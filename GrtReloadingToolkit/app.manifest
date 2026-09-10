@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <assemblyIdentity version="0.1.0.0" name="GRT_Reloading_Toolkit"/>
+
+  <!-- DPI: unaware on purpose. The tool windows use fixed pixel layout; letting Windows
+       bitmap-scale the whole window is correct at every scaling factor. A manifest is applied
+       by the loader before any managed code runs, so it can't be defeated by call order in Main. -->
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">false</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">unaware</dpiAwareness>
+    </windowsSettings>
+  </application>
+
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/> <!-- Windows 10 / 11 -->
+    </application>
+  </compatibility>
+</assembly>

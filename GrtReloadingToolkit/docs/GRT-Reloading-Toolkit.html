@@ -1,0 +1,317 @@
+<title>GRT Reloading Toolkit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1f4; --panel:#ffffff; --panel-2:#f6f8fa;
+    --ink:#16212e; --ink-soft:#4a5a6b; --ink-faint:#7d8b99;
+    --line:#d6dde4; --line-soft:#e5eaee;
+    --sim:#0a90c8;         /* velocity / simulation — cyan */
+    --meas:#c9821a;        /* measured / POI — amber */
+    --node:#3f9d63;        /* the accuracy node — green, semantic */
+    --chart-bg:#0b1622; --chart-ink:#cdd9e5; --chart-grid:#22344a;
+    --sim-bright:#38bdf8; --meas-bright:#f6b64a; --node-bright:#5bbb7b;
+    --shadow:0 1px 2px rgba(16,33,46,.05), 0 8px 26px rgba(16,33,46,.07);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b1420; --panel:#111d2b; --panel-2:#0d1826;
+      --ink:#dce6f0; --ink-soft:#9db0c2; --ink-faint:#6d7f90;
+      --line:#233242; --line-soft:#1a2836;
+      --sim:#38bdf8; --meas:#f6b64a; --node:#5bbb7b;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1420; --panel:#111d2b; --panel-2:#0d1826;
+    --ink:#dce6f0; --ink-soft:#9db0c2; --ink-faint:#6d7f90;
+    --line:#233242; --line-soft:#1a2836;
+    --sim:#38bdf8; --meas:#f6b64a; --node:#5bbb7b;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px}
+  h1,h2,h3{text-wrap:balance; line-height:1.15; margin:0}
+  a{color:var(--sim)}
+  code,.mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+
+  /* ---- masthead ---- */
+  header{border-bottom:1px solid var(--line); background:var(--panel)}
+  .mast{display:flex; align-items:center; gap:14px; padding:18px 0}
+  .glyph{width:34px; height:34px; flex:none}
+  .mast b{font-weight:600; letter-spacing:-.01em; font-size:1.05rem}
+  .mast .v{font:500 .72rem/1 "IBM Plex Mono",monospace; color:var(--ink-faint);
+    border:1px solid var(--line); border-radius:5px; padding:4px 7px; margin-left:auto}
+
+  /* ---- hero ---- */
+  .hero{padding:64px 0 52px}
+  .eyebrow{font:600 .74rem/1 "IBM Plex Mono",monospace; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--meas)}
+  .hero h1{font-size:clamp(2.1rem,5vw,3.4rem); font-weight:700; letter-spacing:-.02em; margin:16px 0 0}
+  .hero p.lede{font-size:1.15rem; color:var(--ink-soft); max-width:60ch; margin:18px 0 0}
+  .facts{display:flex; flex-wrap:wrap; gap:10px 8px; margin-top:26px}
+  .facts span{font:500 .8rem/1 "IBM Plex Mono",monospace; color:var(--ink-soft);
+    background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:8px 13px}
+
+  /* ---- chart panel (always dark: it mirrors the plugin's own chart) ---- */
+  figure.chart{margin:34px 0 0; background:var(--chart-bg); border:1px solid #1c2c3d;
+    border-radius:12px; padding:18px 18px 12px; box-shadow:var(--shadow); overflow:hidden}
+  figure.chart svg{display:block; width:100%; height:auto}
+  figure.chart figcaption{font:500 .78rem/1.5 "IBM Plex Mono",monospace; color:#7f93a6;
+    margin-top:8px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px}
+  .swatch{display:inline-flex; align-items:center; gap:6px}
+  .swatch i{width:14px; height:3px; border-radius:2px; display:inline-block}
+
+  /* ---- section frame ---- */
+  section{padding:52px 0; border-top:1px solid var(--line)}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin-bottom:28px}
+  .sec-head h2{font-size:1.5rem; font-weight:600; letter-spacing:-.01em}
+  .sec-head .n{font:600 .78rem/1 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+  .sec-head p{color:var(--ink-soft); margin:0; max-width:52ch}
+
+  /* ---- tools grid ---- */
+  .tools{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line);
+    border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  @media(max-width:720px){.tools{grid-template-columns:1fr}}
+  .tool{background:var(--panel); padding:22px 22px 20px; display:flex; flex-direction:column; gap:8px}
+  .tool .top{display:flex; align-items:center; gap:10px}
+  .tool .ic{width:22px;height:22px;flex:none;color:var(--sim)}
+  .tool h3{font-size:1.02rem; font-weight:600}
+  .tool p{margin:0; color:var(--ink-soft); font-size:.94rem}
+  .tool .out{margin-top:2px; font:500 .78rem/1.5 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+  .tool .out b{color:var(--meas); font-weight:600}
+
+  /* ---- concept ---- */
+  .concept{display:grid; grid-template-columns:1.1fr .9fr; gap:34px; align-items:start}
+  @media(max-width:760px){.concept{grid-template-columns:1fr}}
+  .concept p{color:var(--ink-soft)}
+  .concept p + p{margin-top:14px}
+  .filetree{background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    padding:18px 20px; font:500 .82rem/2 "IBM Plex Mono",monospace}
+  .filetree .o{color:var(--ink)}
+  .filetree .s{color:var(--sim)}
+  .filetree .c{color:var(--ink-faint)}
+
+  /* ---- install ---- */
+  ol.steps{list-style:none; counter-reset:s; margin:0; padding:0; display:grid; gap:14px}
+  ol.steps li{counter-increment:s; display:grid; grid-template-columns:34px 1fr; gap:14px;
+    align-items:start; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:16px 18px}
+  ol.steps li::before{content:counter(s); font:600 .95rem/34px "IBM Plex Mono",monospace;
+    text-align:center; color:var(--node); background:var(--panel-2);
+    border:1px solid var(--line); border-radius:8px; height:34px}
+  ol.steps b{font-weight:600}
+  ol.steps code{background:var(--panel-2); border:1px solid var(--line-soft);
+    padding:1px 5px; border-radius:4px; font-size:.86em}
+
+  .reports{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px}
+  .reports span{font:500 .82rem/1 "IBM Plex Mono",monospace; color:var(--ink-soft);
+    background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px 11px}
+
+  footer{border-top:1px solid var(--line); padding:34px 0 60px; color:var(--ink-faint); font-size:.88rem}
+  footer .wrap{display:flex; flex-wrap:wrap; gap:8px 24px; align-items:center}
+
+</style>
+
+<header><div class="wrap mast">
+  <svg class="glyph" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+    <path d="M6 25 L20 11 M4 20 L11 27" stroke="var(--sim)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M22 6 l4 4 -3 3 -4 -4z" fill="var(--meas)"/>
+    <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
+  </svg>
+  <b>GRT Reloading Toolkit</b>
+  <span class="v">v0.1 · community plugin</span>
+</div></header>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">Plugin for Gordon&#39;s Reloading Tool</div>
+    <h1>Eight reloading tools, one GRT window.</h1>
+    <p class="lede">Import your chronograph, find the accuracy node, calibrate the barrel to your
+      simulation, size necks, cost your rounds, and print the load card &mdash; then push every
+      result back into GRT as a note, a chart, or a corrected input.</p>
+    <div class="facts">
+      <span>self-contained · no .NET install</span>
+      <span>Athlon + Garmin chrono</span>
+      <span>Ballistic-X &amp; GRT shot-groups</span>
+      <span>5 report templates</span>
+      <span>SQLite inventory + journal</span>
+    </div>
+
+    <figure class="chart">
+      <svg viewBox="0 0 960 400" role="img" aria-label="Example charge ladder: muzzle velocity rises with a flat spot at 40.0 to 40.4 grains, marked as the recommended node.">
+        <!-- node band -->
+        <rect x="439" y="40" width="184" height="300" fill="#5bbb7b" fill-opacity="0.13"/>
+        <line x1="439" y1="40" x2="439" y2="340" stroke="#5bbb7b" stroke-opacity="0.5" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="623" y1="40" x2="623" y2="340" stroke="#5bbb7b" stroke-opacity="0.5" stroke-width="1" stroke-dasharray="3 3"/>
+        <!-- frame -->
+        <rect x="70" y="40" width="830" height="300" fill="none" stroke="#22344a" stroke-width="1"/>
+        <!-- POI-Y (vertical point of impact — stabilises through the node, wanders outside it) -->
+        <polyline fill="none" stroke="#f6b64a" stroke-width="2.5" stroke-dasharray="7 5" stroke-linejoin="round"
+          points="70,128 162,150 254,182 347,158 439,206 531,209 623,212 716,176 808,138 900,96"/>
+        <g fill="#f6b64a" fill-opacity="0.9">
+          <circle cx="70" cy="128" r="3.5"/><circle cx="162" cy="150" r="3.5"/><circle cx="254" cy="182" r="3.5"/>
+          <circle cx="347" cy="158" r="3.5"/><circle cx="439" cy="206" r="3.5"/><circle cx="531" cy="209" r="3.5"/>
+          <circle cx="623" cy="212" r="3.5"/><circle cx="716" cy="176" r="3.5"/><circle cx="808" cy="138" r="3.5"/>
+          <circle cx="900" cy="96" r="3.5"/>
+        </g>
+        <!-- MV line (muzzle velocity — flat spot at the node) -->
+        <polyline fill="none" stroke="#38bdf8" stroke-width="3" stroke-linejoin="round"
+          points="70,323 162,275 254,258 347,219 439,182 531,171 623,152 716,95 808,93 900,55"/>
+        <g fill="#38bdf8">
+          <circle cx="70" cy="323" r="4"/><circle cx="162" cy="275" r="4"/><circle cx="254" cy="258" r="4"/>
+          <circle cx="347" cy="219" r="4"/><circle cx="439" cy="182" r="4"/><circle cx="531" cy="171" r="4"/>
+          <circle cx="623" cy="152" r="4"/><circle cx="716" cy="95" r="4"/><circle cx="808" cy="93" r="4"/>
+          <circle cx="900" cy="55" r="4"/>
+        </g>
+        <!-- axis labels -->
+        <g font-family="IBM Plex Mono, monospace" font-size="15" fill="#8299ac">
+          <text x="70" y="362">39.2</text><text x="428" y="362">40.0</text>
+          <text x="612" y="362">40.4</text><text x="878" y="362">41.0</text>
+          <text x="70" y="30">849 m/s</text><text x="70" y="378" font-size="13">charge weight — grains</text>
+          <text x="900" y="30" text-anchor="end" fill="#f6b64a">POI-Y −2.5 MOA</text>
+        </g>
+        <text x="531" y="378" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="14"
+          font-weight="600" fill="#5bbb7b">recommended node 40.0–40.4 gr</text>
+      </svg>
+      <figcaption>
+        <span>Example ladder — 6.5&nbsp;Creedmoor / VV&nbsp;N550, 10 charges</span>
+        <span>
+          <span class="swatch"><i style="background:#38bdf8"></i>muzzle velocity</span>&nbsp;&nbsp;
+          <span class="swatch"><i style="background:#f6b64a"></i>vertical POI</span>
+        </span>
+      </figcaption>
+    </figure>
+  </div>
+</div>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <span class="n">01</span>
+    <div><h2>The eight tools</h2>
+    <p>All reached from one launcher window. Each writes its result into the load.</p></div>
+  </div>
+  <div class="tools">
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 19V9m5 10V5m5 14v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>Chronograph Import</h3></div>
+      <p>Athlon Rangecraft and Garmin Xero / ShotView exports &mdash; <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, one file or a whole folder &mdash; into a GRT Measurement tab.</p>
+      <div class="out">auto fps↔m/s · footer trimmed · <b>one charge per file</b></div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 20 L9 12 L14 15 L20 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="15" r="3" stroke="currentColor" stroke-width="2"/></svg>
+      <h3>Ladder / OCW Analyzer</h3></div>
+      <p>Velocity flat-spot (Satterlee) + vertical-POI node (OCW / Audette) + a weighted best node, from chrono velocities and target groups.</p>
+      <div class="out">→ <b>OCW Analysis</b> note + chart in the load</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M8 21V8l4-5 4 5v13" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M19 6v6M19 6l-2 2M19 6l2 2M19 12l-2-2M19 12l2-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <h3>Seating-Depth Analyzer</h3></div>
+      <p>Same engine on a seating / jump test &mdash; the group-size plateau plus the vertical-POI node.</p>
+      <div class="out">→ <b>Seating Depth Analysis</b> note + chart</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 15a8 8 0 0116 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 15l5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/></svg>
+      <h3>Barrel Calibration</h3></div>
+      <p>Sweeps GRT for the simulated MV at every measured charge, compares to your chrono, and suggests a <span class="mono">Ba</span> tweak so the model matches your barrel.</p>
+      <div class="out"><b>Ba × (meas ÷ sim)²</b> · scale-vs-shape verdict</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="13" rx="3" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="18" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 8v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>Powder Temp Coefficients</h3></div>
+      <p>Fits <span class="mono">tcc</span> / <span class="mono">tch</span> from strings of one charge shot cold, normal and hot.</p>
+      <div class="out">Ba(T) ≈ Ba₂₁ · (MV<sub>T</sub> ÷ MV₂₁)²</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M8 21V9l3-4 3 4v12M8 21h6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 5v6M19 5v6M5 7h4M19 7h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <h3>Brass Prep</h3></div>
+      <p>Case volume in grain&nbsp;H₂O → GRT&#39;s <span class="mono">casevol</span>; CBTO / case&nbsp;length / BBTO → <span class="mono">gdepth</span>; bushing &amp; mandrel size for a target neck grip.</p>
+      <div class="out">seating = <b>BBTO − (CBTO − caselen)</b></div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M13 4h7v7l-8 8-7-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="16" cy="8" r="1.4" fill="currentColor"/><rect x="9.5" y="12" width="5" height="5" stroke="currentColor" stroke-width="1.6"/></svg>
+      <h3>Load Card / Label</h3></div>
+      <p>Printable A6 recipe card or box labels with a QR of the full recipe. Component lots pull cost per round from the inventory.</p>
+      <div class="out">Save&nbsp;PNG · Print · → <b>Load Sheet</b> note</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="17" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 3h6v3H9z" stroke="currentColor" stroke-width="2"/><path d="M8.5 11l2 2 4-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>Inventory &amp; Load Journal</h3></div>
+      <p>Component stock with lot tracking and cost per round, a range journal that deducts it, and a Firearms tab: round count and an MV-drift chart per barrel.</p>
+      <div class="out">SQLite · <span class="mono">%AppData%\GRTPlugins\</span></div>
+    </div>
+
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <span class="n">02</span>
+    <div><h2>One thing to understand: the snapshot files</h2>
+    <p>The GRT plugin interface can&#39;t edit the open load &mdash; so the toolkit writes beside it.</p></div>
+  </div>
+  <div class="concept">
+    <div>
+      <p>Every &ldquo;Write to GRT load&rdquo; reads your <code>.grtload</code>, adds its result &mdash; a
+        result-field <b>note</b>, sometimes a gallery <b>chart</b>, sometimes a changed input
+        (<span class="mono">Ba</span>, <span class="mono">casevol</span>, <span class="mono">gdepth</span>) &mdash;
+        and saves a timestamped <b>snapshot</b> next to your file. Your original is never touched.</p>
+      <p>Every tool accumulates into the same snapshot family, so the newest one holds all your
+        results. Only the three most recent are kept; older ones are pruned. A fresh filename each
+        time is deliberate &mdash; GRT won&#39;t reload a path it already has open.</p>
+      <p><b>When you&#39;re done:</b> open the newest snapshot in GRT, <b>Save As</b> under a real name,
+        delete the rest. <span class="mono">Ba</span>, <span class="mono">tcc/tch</span> and
+        <span class="mono">casevol</span> are always read from the pristine original, so a second
+        calibration never compounds.</p>
+    </div>
+    <div class="filetree">
+      <div class="o">6.5CM&nbsp;N550.grtload</div>
+      <div class="c">└─ your original — untouched</div>
+      <div class="s">6.5CM&nbsp;N550_toolkit_…_2014.grtload</div>
+      <div class="c">&nbsp;&nbsp;&nbsp;Athlon import</div>
+      <div class="s">6.5CM&nbsp;N550_toolkit_…_2031.grtload</div>
+      <div class="c">&nbsp;&nbsp;&nbsp;+ OCW note + chart</div>
+      <div class="s">6.5CM&nbsp;N550_toolkit_…_2037.grtload</div>
+      <div class="c">&nbsp;&nbsp;&nbsp;+ calibration + Ba 0.4878&nbsp;←&nbsp;keep this</div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head">
+    <span class="n">03</span>
+    <div><h2>Install &amp; reports</h2>
+    <p>Drop-in folder. Restart GRT. One toolbar button.</p></div>
+  </div>
+  <ol class="steps">
+    <li><div><b>Copy</b> the <code>ReloadingToolkit</code> folder into <code>…\GRT-2021.2030…\plugins\</code>.</div></li>
+    <li><div><b>Restart GRT.</b> A single <b>Reloading Toolkit</b> button appears on the toolbar and in the Plugin menu &mdash; it opens a launcher with one button per tool.</div></li>
+    <li><div>In the launcher, click <b>Install GRT report templates</b> once. It adds five DokuWiki pages under <code>doku\&lt;lang&gt;\report\</code> &mdash; open them from Results&nbsp;→&nbsp;<b>+</b>&nbsp;→&nbsp;Add&nbsp;report, on the snapshot file.</div>
+      <div class="reports">
+        <span>Full load workup</span><span>Ladder / OCW</span><span>Seating depth</span><span>Barrel calibration</span><span>Load sheet</span>
+      </div>
+    </li>
+  </ol>
+  <p style="margin-top:22px; color:var(--ink-soft)">Every tool, control and formula is in the
+    <a href="https://claude.ai/code/artifact/368d8623-3c77-437c-ad88-270fafbbae94">full manual</a>.</p>
+</div></section>
+
+<footer><div class="wrap">
+  <span>GRT Reloading Toolkit · v0.1 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span class="mono">com.grt.plugin.reloadingtoolkit</span>
+</div></footer>

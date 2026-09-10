@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<GordonsReloadingTool>
+
+  <plugin
+    name           = "Reloading Toolkit"
+    id             = "com.grt.plugin.reloadingtoolkit"
+    version        = "0.1.0"
+    provider       = "community"
+    description    = "Reloading tools in one window: Athlon Rangecraft chrono import, Ladder / OCW analyzer, Seating-depth analyzer, barrel calibration, powder temp-coefficient fitter, brass prep (case volume + neck tension), load card / label, component inventory + load journal with cost per round, and installable GRT report templates."
+    launch-windows = "GRT_Reloading_Toolkit.exe"
+    launch-type    = "onDemand"
+    launch-args    = ""
+    start-timeout  = "5.0"
+    enabled        = "true"
+  >
+
+    <registerevent>
+      <event name="ColorPresetChange" enabled="false" />
+      <event name="TabSwitch" enabled="false" />
+      <event name="TabDataChange" enabled="false" />
+      <event name="TabComputed" enabled="false" />
+      <event name="WindowClosed" enabled="false" />
+    </registerevent>
+
+    <menu autoenable="true" icon="media/icons/icn_toolkit_16x16.png" icon_colorize="true">
+      <menuitem id="open" label="Reloading Toolkit…" enabled="true" icon="media/icons/icn_toolkit_16x16.png" />
+    </menu>
+
+    <toolbar>
+      <toolbaritem id="open" label="Reloading Toolkit"
+                   tooltip="Open the Reloading Toolkit: chrono import, ladder / seating / calibration analysis, brass prep, load cards, inventory"
+                   icon="media/icons/icn_toolkit_32x32.png" icon_colorize="true" enabled="true" />
+    </toolbar>
+
+  </plugin>
+</GordonsReloadingTool>
