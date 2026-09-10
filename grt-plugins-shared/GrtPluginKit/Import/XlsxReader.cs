@@ -13,6 +13,7 @@ public static class XlsxReader
     /// <summary>Reads the first worksheet as rows of cell text (0-based, ragged, gaps filled with "").</summary>
     public static List<string[]> ReadFirstSheet(string path)
     {
+        RequireOoxml(path);
         using var zip = ZipFile.OpenRead(path);
 
         string[] shared = ReadSharedStrings(zip);
@@ -87,6 +88,29 @@ public static class XlsxReader
             }
         }
         return result.Trim();
+    }
+
+    /// <summary>
+    /// Fails with a message naming the format before ZipFile does with an opaque one. A legacy
+    /// Excel 97-2003 .xls is an OLE2 compound file, not a ZIP, so it is the common way to land here.
+    /// </summary>
+    private static void RequireOoxml(string path)
+    {
+        var head = new byte[8];
+        int n;
+        using (var fs = File.OpenRead(path)) n = fs.Read(head, 0, head.Length);
+
+        static bool Starts(byte[] b, int n, params byte[] sig)
+            => n >= sig.Length && b.AsSpan(0, sig.Length).SequenceEqual(sig);
+
+        if (Starts(head, n, 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1))
+            throw new InvalidDataException(
+                $"{Path.GetFileName(path)} is a legacy Excel 97-2003 workbook (.xls). "
+                + "That format is not supported — re-save it as .xlsx or .csv.");
+
+        if (!Starts(head, n, 0x50, 0x4B))       // "PK" — every ZIP, so every .xlsx
+            throw new InvalidDataException(
+                $"{Path.GetFileName(path)} is not an .xlsx workbook (no ZIP/OOXML header).");
     }
 
     private static string[] ReadSharedStrings(ZipArchive zip)

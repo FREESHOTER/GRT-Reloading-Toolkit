@@ -10,7 +10,7 @@ internal static class AthlonCli
         try { AttachConsole(-1); } catch { }
 
         var rows = new List<ImportBuilder.Row>();
-        var exts = new[] { ".xlsx", ".xls", ".csv", ".tsv" };
+        var exts = new[] { ".xlsx", ".csv", ".tsv" };
         foreach (string f in Directory.EnumerateFiles(folder).Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant())).OrderBy(x => x))
         {
             try

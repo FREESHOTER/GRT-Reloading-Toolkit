@@ -25,7 +25,7 @@ public static class LadderLoader
         var rep = new LoadReport();
 
         var vels = new Dictionary<double, IReadOnlyList<double>>();
-        var chronoExt = new[] { ".xlsx", ".xls", ".csv" };
+        var chronoExt = new[] { ".xlsx", ".csv" };
         var chronoFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string f in Directory.EnumerateFiles(folder).Where(f => chronoExt.Contains(Path.GetExtension(f).ToLowerInvariant())).OrderBy(x => x))
         {
@@ -76,7 +76,7 @@ public static class LadderLoader
         if (velFolder != null && Directory.Exists(velFolder))
             foreach (string f in Directory.EnumerateFiles(velFolder, "*.xls*").OrderBy(x => x))
             {
-                if (!f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) && !f.EndsWith(".xls", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) continue;   // the glob also catches .xlsm/.xlsb/.xls
                 try
                 {
                     var a = AthlonParser.Parse(f);

@@ -6,7 +6,7 @@ using GrtPluginKit.Analysis;
 namespace GrtReloadingToolkit.Athlon;
 
 /// <summary>
-/// Deterministic parser for chronograph exports (.xlsx / .xls / .csv) — Athlon Rangecraft
+/// Deterministic parser for chronograph exports (.xlsx / .csv) — Athlon Rangecraft
 /// Velocity Pro and Garmin Xero C1 Pro / ShotView both fit this shape:
 ///   - an optional summary block of "label | value" rows (average / SD / ES / session note / temp)
 ///   - a shot-table header row: a velocity column ("speed"/"velocity"/"(m/s)"/"(fps)") plus at
