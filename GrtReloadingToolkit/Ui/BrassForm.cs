@@ -44,7 +44,7 @@ internal sealed class BrassForm : Form
     public BrassForm(GrtClient? grt)
     {
         _grt = grt;
-        Text = "GRT Brass Prep  (v0.1)";
+        Text = AppVersion.Title("GRT Brass Prep");
         Width = 640; Height = 520;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(520, 400);

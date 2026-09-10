@@ -57,6 +57,10 @@ pwsh GrtReloadingToolkit/build-plugin.ps1 -Zip
 # add -GrtDir "C:\path\to\GRT…" to also copy it straight into that GRT's plugins\
 ```
 
+The version lives in `Directory.Build.props` and nowhere else — both assemblies get it from the
+compiler, the window titles read it back off the assembly, and `build-plugin.ps1` stamps it into
+the `com.grt.plugin.xml` it puts in `dist\`. Bump it there and tag the release to match.
+
 Tests:
 
 ```

@@ -30,7 +30,7 @@ internal sealed class LabelForm : Form
         _grt = grt;
         _db = db;
         _components = db.Components();
-        Text = "GRT Load Card / Label  (v0.1)";
+        Text = AppVersion.Title("GRT Load Card / Label");
         Width = 940; Height = 620;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(760, 480);

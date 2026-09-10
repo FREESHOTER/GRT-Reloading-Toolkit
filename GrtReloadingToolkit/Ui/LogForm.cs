@@ -19,7 +19,7 @@ internal sealed class LogForm : Form
     {
         _grt = grt;
         _db = db;
-        Text = "GRT Inventory & Load Journal  (v0.1)";
+        Text = AppVersion.Title("GRT Inventory & Load Journal");
         Width = 1080; Height = 640;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(860, 480);
