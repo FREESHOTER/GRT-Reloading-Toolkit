@@ -330,7 +330,10 @@ All on the exe (`plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe`):
 ```
 
 Environment: `OCW_FOLDER` / `SEATING_FOLDER` auto-load a ladder folder on open;
-`RELOADING_LOG_DB` overrides the database path.
+`RELOADING_LOG_DB` overrides the database path;
+`GRT_OCW_CHART_SIZE=WxH` sets the exported OCW/seating chart pixel size (default `1400x1040`) —
+GRT's picture tab fits the image to its width and centres it, so a wide value like `2000x560`
+fills a wide results panel, a near-square value a tall one.
 
 ---
 

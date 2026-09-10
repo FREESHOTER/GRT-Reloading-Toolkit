@@ -25,8 +25,26 @@ internal sealed class LadderChart : Panel
         Render(e.Graphics, Width, Height);
     }
 
+    /// <summary>Default export size. <c>GRT_OCW_CHART_SIZE=WxH</c> overrides it — GRT's picture tab
+    /// fits the image to its width and centres it, so the shape that fills it best depends on the
+    /// user's panel layout.</summary>
+    public static (int w, int h) ExportSize()
+    {
+        var e = Environment.GetEnvironmentVariable("GRT_OCW_CHART_SIZE");
+        if (e is not null)
+        {
+            var p = e.Split('x', 'X', '*', ',');
+            if (p.Length == 2 && int.TryParse(p[0].Trim(), out int w) && int.TryParse(p[1].Trim(), out int h)
+                && w is >= 500 and <= 4000 && h is >= 300 and <= 4000)
+                return (w, h);
+        }
+        return (1400, 1040);
+    }
+
     /// <summary>Renders the current result to a stand-alone PNG (for the GRT report gallery).</summary>
-    public byte[]? RenderPng(int width = 1400, int height = 1040)
+    public byte[]? RenderPng() { var (w, h) = ExportSize(); return RenderPng(w, h); }
+
+    public byte[]? RenderPng(int width, int height)
     {
         if (_r is null || _r.Rows.Count < 2) return null;
         using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
