@@ -1,0 +1,493 @@
+<title>Manuale Reloading Toolkit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1f4; --panel:#ffffff; --panel-2:#f5f7f9;
+    --ink:#16212e; --ink-soft:#48586a; --ink-faint:#7d8b99;
+    --line:#d6dde4; --line-soft:#e6ebef;
+    --sim:#0a7fb0; --meas:#b9770f; --node:#3f9d63;
+    --shadow:0 1px 2px rgba(16,33,46,.05), 0 6px 22px rgba(16,33,46,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b1420; --panel:#111d2b; --panel-2:#0d1826;
+      --ink:#dce6f0; --ink-soft:#9fb1c3; --ink-faint:#6d7f90;
+      --line:#233242; --line-soft:#1a2836;
+      --sim:#54c4f0; --meas:#f0b45c; --node:#67c088;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.32);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1420; --panel:#111d2b; --panel-2:#0d1826;
+    --ink:#dce6f0; --ink-soft:#9fb1c3; --ink-faint:#6d7f90;
+    --line:#233242; --line-soft:#1a2836;
+    --sim:#54c4f0; --meas:#f0b45c; --node:#67c088;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.32);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; scroll-padding-top:24px}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, sans-serif; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  code,pre,.mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+  a{color:var(--sim); text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--sim); outline-offset:2px; border-radius:3px}
+
+  .shell{max-width:1160px; margin:0 auto; padding:0 24px;
+    display:grid; grid-template-columns:250px 1fr; gap:48px; align-items:start}
+  @media(max-width:900px){.shell{grid-template-columns:1fr; gap:0}}
+
+  .top{border-bottom:1px solid var(--line); background:var(--panel)}
+  .top .shell{padding-top:16px; padding-bottom:16px; display:flex; gap:12px; align-items:center; grid-template-columns:none; max-width:1160px}
+  .top svg{width:28px;height:28px;flex:none}
+  .top b{font-weight:600; letter-spacing:-.01em}
+  .top .k{margin-left:auto; font:500 .72rem/1 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+
+  nav{position:sticky; top:24px; font-size:.86rem}
+  @media(max-width:900px){nav{position:static; border-bottom:1px solid var(--line); padding:16px 0; margin-bottom:8px}}
+  nav .lbl{font:600 .7rem/1 "IBM Plex Mono",monospace; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-faint); padding:0 0 10px}
+  nav ol{list-style:none; margin:0; padding:0; counter-reset:nav}
+  nav li{counter-increment:nav}
+  nav a{display:grid; grid-template-columns:22px 1fr; gap:6px; padding:5px 0; color:var(--ink-soft)}
+  nav a::before{content:counter(nav,decimal-leading-zero); font:500 .72rem/1.5 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+  nav a:hover{color:var(--ink); text-decoration:none}
+
+  main{max-width:74ch; padding:40px 0 96px; min-width:0}
+  main > section{padding-top:26px; margin-top:26px; border-top:1px solid var(--line-soft)}
+  main > section:first-child{border-top:0; margin-top:0}
+  h1{font-size:2rem; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; text-wrap:balance}
+  .sub{color:var(--ink-soft); margin:0 0 8px}
+  h2{font-size:1.4rem; font-weight:600; letter-spacing:-.01em; margin:0 0 14px; text-wrap:balance;
+    display:flex; align-items:baseline; gap:12px}
+  h2 .no{font:600 .8rem/1 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+  h3{font-size:1.03rem; font-weight:600; margin:26px 0 8px}
+  p{margin:0 0 14px}
+  ul,ol.plain{margin:0 0 14px; padding-left:22px}
+  li{margin:5px 0}
+  strong{font-weight:600}
+  main code{background:var(--panel-2); border:1px solid var(--line-soft); border-radius:4px; padding:1px 5px; font-size:.86em}
+  .lede{font-size:1.08rem; color:var(--ink-soft)}
+
+  pre{background:#0b1622; color:#cdd9e5; border:1px solid #1c2c3d; border-radius:9px;
+    padding:16px 18px; overflow-x:auto; font-size:.83rem; line-height:1.75; margin:0 0 16px}
+  pre .c{color:#6f8497}
+
+  table{width:100%; border-collapse:collapse; margin:0 0 18px; font-size:.92rem; display:block; overflow-x:auto}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font:600 .74rem/1.3 "IBM Plex Mono",monospace; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-faint); border-bottom:1px solid var(--line)}
+  td:first-child{white-space:nowrap; font-weight:500}
+  tbody tr:last-child td{border-bottom:0}
+
+  .callout{background:var(--panel-2); border:1px solid var(--line); border-left:3px solid var(--meas);
+    border-radius:8px; padding:14px 16px; margin:0 0 16px; font-size:.94rem}
+  .callout b{color:var(--meas)}
+  .callout.node{border-left-color:var(--node)} .callout.node b{color:var(--node)}
+
+  .formula{background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:14px 16px; margin:0 0 16px; font-family:"IBM Plex Mono",monospace; font-size:.86rem; line-height:1.9;
+    box-shadow:var(--shadow)}
+  .formula .c{color:var(--ink-faint)}
+
+  footer{border-top:1px solid var(--line); background:var(--panel)}
+  footer .shell{padding:24px; display:flex; grid-template-columns:none; gap:16px; flex-wrap:wrap;
+    color:var(--ink-faint); font-size:.85rem; max-width:1160px}
+</style>
+
+<div class="top"><div class="shell">
+  <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+    <path d="M6 25 L20 11 M4 20 L11 27" stroke="var(--sim)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M22 6 l4 4 -3 3 -4 -4z" fill="var(--meas)"/>
+    <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
+  </svg>
+  <b>GRT Reloading Toolkit</b>
+  <span class="k">Manuale · v0.1</span>
+</div></div>
+
+<div class="shell">
+  <nav aria-label="Indice">
+    <div class="lbl">Indice</div>
+    <ol>
+      <li><a href="#install">Installazione</a></li>
+      <li><a href="#writeback">Come scrive in GRT</a></li>
+      <li><a href="#chrono">Import cronografo</a></li>
+      <li><a href="#ocw">Analizzatore Ladder / OCW</a></li>
+      <li><a href="#seating">Analizzatore profondità di seduta</a></li>
+      <li><a href="#cal">Calibrazione canna</a></li>
+      <li><a href="#temp">Coefficienti temperatura polvere</a></li>
+      <li><a href="#brass">Preparazione bossoli</a></li>
+      <li><a href="#card">Cartellino / etichette</a></li>
+      <li><a href="#log">Inventario e diario</a></li>
+      <li><a href="#reports">Template report GRT</a></li>
+      <li><a href="#cli">Riga di comando</a></li>
+      <li><a href="#faq">Limiti e FAQ</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section>
+      <h1>Reloading Toolkit — Manuale</h1>
+      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Otto strumenti di ricarica e
+        una serie di template di report GRT in un&#39;unica finestra.</p>
+      <p class="lede">Id plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribuito come
+        eseguibile Windows a file singolo — non serve il runtime .NET sulla macchina che lo esegue
+        (versione self-contained; la versione <em>lite</em> richiede il .NET 8 Desktop Runtime).</p>
+    </section>
+
+    <section id="install">
+      <h2><span class="no">01</span>Installazione</h2>
+      <ol class="plain">
+        <li>Copia la cartella <code>ReloadingToolkit</code> in <code>…\GRT-2021.2030…\plugins\</code>.</li>
+        <li>Riavvia GRT.</li>
+        <li>Compaiono un unico pulsante in barra degli strumenti <strong>&laquo;Reloading Toolkit&raquo;</strong>
+          (icona chiave + cacciavite) e una voce nel menu <strong>Plugin</strong>. Clicca uno dei due
+          — si apre una piccola finestra <strong>launcher</strong> con un pulsante per ogni strumento.</li>
+        <li>Facoltativo: nel launcher, clicca una volta
+          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§11).</li>
+      </ol>
+      <p>Il toolkit è <em>on-demand</em>: GRT lo avvia al primo click ed esce quando chiudi la sua
+        ultima finestra. Un solo processo serve tutte le finestre, quindi aprire un secondo strumento
+        mentre uno è già aperto lo porta semplicemente in primo piano.</p>
+    </section>
+
+    <section id="writeback">
+      <h2><span class="no">02</span>Come il toolkit scrive in GRT — leggi prima questo</h2>
+      <p>L&#39;interfaccia plugin di GRT <strong>non può modificare il load aperto in GRT</strong>. Può
+        solo chiedere a GRT di <em>aprire un file</em>. Quindi ogni strumento che &laquo;scrive nel load&raquo;
+        fa così:</p>
+      <ol class="plain">
+        <li>Legge il tuo load (il file XML <code>.grtload</code> su disco).</li>
+        <li>Aggiunge il proprio risultato — una <strong>nota</strong> nel campo risultati, a volte un
+          <strong>grafico</strong> nella gallery, a volte un <strong>input</strong> modificato
+          (<code>Ba</code>, <code>casevol</code>, <code>gdepth</code>, <code>tcc</code>/<code>tch</code>).</li>
+        <li>Salva uno <strong>snapshot con data e ora</strong> accanto al tuo file e dice a GRT di aprirlo.</li>
+      </ol>
+      <pre>MioLoad.grtload                          <span class="c">← il tuo originale, mai toccato</span>
+MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto dal toolkit</span></pre>
+      <ul>
+        <li><strong>Ogni strumento si accumula nella stessa famiglia di snapshot.</strong> Lanci
+          l&#39;analizzatore ladder, poi la calibrazione canna, poi la preparazione bossoli — lo
+          snapshot più recente contiene tutti e tre i risultati. Vengono tenuti solo i <strong>3
+          più recenti</strong>; i più vecchi vengono cancellati.</li>
+        <li><strong>Ogni scrittura crea un nome nuovo</strong> (con i secondi). Il comando
+          <em>Load_File</em> di GRT non ricarica un percorso che ha già aperto, quindi un nome fisso
+          mostrerebbe contenuto vecchio alla seconda scrittura.</li>
+        <li><code>Ba</code>, <code>tcc</code>/<code>tch</code> e <code>casevol</code> vengono sempre
+          letti dal tuo file <strong>originale</strong>, mai da uno snapshot che porta già una
+          correzione — così ripetere una calibrazione non la raddoppia.</li>
+      </ul>
+      <div class="callout"><b>Quando hai finito:</b> in GRT apri lo snapshot
+        <code>…_toolkit_…grtload</code> più recente, usa <strong>File → Salva con nome</strong> per
+        dargli un nome pulito, poi cancella gli snapshot <code>_toolkit_…</code>. Non premere
+        <em>Ctrl+S</em> su un vecchio tab <code>…_toolkit.grtload</code> a nome fisso che GRT aveva
+        aperto prima di uno snapshot più recente — GRT ci scriverebbe sopra la sua copia vecchia in
+        memoria.</div>
+    </section>
+
+    <section id="chrono">
+      <h2><span class="no">03</span>Import cronografo</h2>
+      <p>Trasforma gli export del cronografo in un tab GRT <strong>Imported Measurement</strong> (una
+        <code>charge</code> per file, i colpi sotto). Una cartella di file = una scalare.</p>
+      <p><strong>Supportati:</strong> Athlon Rangecraft (Velocity Pro) e Garmin Xero C1 Pro / ShotView,
+        come <code>.xlsx</code>, <code>.xls</code> o <code>.csv</code>.</p>
+      <table><thead><tr><th>Controllo</th><th>Effetto</th></tr></thead><tbody>
+        <tr><td>Add chrono files…</td><td>Seleziona uno o più file (uno per carica).</td></tr>
+        <tr><td>Add folder…</td><td>Seleziona una cartella — legge ogni <code>.xlsx/.xls/.csv</code>; i file che non sono export del cronografo (CSV bersaglio, database) vengono saltati in silenzio.</td></tr>
+        <tr><td>Remove selected</td><td>Toglie le righe evidenziate.</td></tr>
+        <tr><td>TEMP= on every shot</td><td>Scrive anche la temperatura della sessione come nota per ogni colpo (per l&#39;assistente temperatura di GRT).</td></tr>
+        <tr><td>replace previous…</td><td>Toglie le misurazioni &laquo;Athlon …&raquo; precedenti prima di aggiungere questa (attivo di default).</td></tr>
+        <tr><td>Import into GRT</td><td>Scrive la misurazione nel load e apre lo snapshot.</td></tr>
+      </tbody></table>
+      <p><strong>Griglia:</strong> Use · File · Charge (gr) · Shots · AVG m/s · SD · ES · Temp °C (modificabile).</p>
+      <p><strong>Il peso della carica</strong> viene dagli appunti della sessione (&laquo;carica 39.2&raquo;,
+        &laquo;charge 41.5 gr&raquo;), altrimenti da un numero nel nome file (&laquo;39.20.xlsx&raquo;).</p>
+      <p><strong>Le unità</strong> vengono prese dall&#39;intestazione di colonna se dice
+        <code>(m/s)</code> / <code>(mps)</code> / <code>(fps)</code> / <code>ft/s</code>; altrimenti
+        vengono dedotte dalla grandezza della velocità (≥&nbsp;1400&nbsp;→&nbsp;fps). I fps vengono
+        convertiti in m/s per GRT. Sono accettati sia il formato <code>1,234.5</code> sia
+        <code>1.234,5</code>; il blocco riassuntivo in fondo viene ignorato.</p>
+    </section>
+
+    <section id="ocw">
+      <h2><span class="no">04</span>Analizzatore Ladder / OCW</h2>
+      <p>Trova il nodo di precisione in una <strong>scalare di cariche</strong> dalle velocità al
+        cronografo e dai gruppi a bersaglio.</p>
+      <p><strong>I gruppi possono venire da:</strong> export Ballistic-X <code>.csv</code> (uno per
+        carica, nella stessa cartella dei file del cronografo), <em>oppure</em> dai tab &laquo;Analisi
+        gruppo di colpi&raquo; di GRT stesso (vedi&nbsp;§10). Le velocità vengono sempre dai file del
+        cronografo.</p>
+      <table><thead><tr><th>Controllo</th><th>Effetto</th></tr></thead><tbody>
+        <tr><td>Pick ladder folder…</td><td>Cartella con <code>*.xlsx</code> del cronografo + <code>Carica *.csv</code> di Ballistic-X, una coppia per carica.</td></tr>
+        <tr><td>w POI · w MV · window</td><td>Pesi dell&#39;analisi e larghezza del nodo (3–5 gradini).</td></tr>
+        <tr><td>Re-analyze</td><td>Ricalcola con i pesi attuali.</td></tr>
+        <tr><td>Groups from GRT load</td><td>Legge i gruppi dai tab &laquo;gruppo di colpi&raquo; di GRT invece che dai <code>.csv</code>, con i due menù unità (distanza di riferimento / distanza di tiro) e l&#39;opzione <em>drop flyers</em>.</td></tr>
+        <tr><td>Write note to GRT load</td><td>Scrive la nota &laquo;OCW Analysis&raquo; <strong>e il grafico</strong> nel load.</td></tr>
+      </tbody></table>
+      <p><strong>Griglia:</strong> carica · n · MV · SD · ES · distanza · POI-Y (MOA) · raggio medio
+        del gruppo (MOA) · dispersione verticale (MOA). Il nodo consigliato è evidenziato in verde.</p>
+      <h3>Cosa calcola</h3>
+      <ul>
+        <li><strong>Flat-spot di velocità (Satterlee)</strong> — la finestra di gradini in cui la MV media varia meno.</li>
+        <li><strong>Nodo POI verticale (OCW / Audette)</strong> — la finestra in cui il punto d&#39;impatto verticale è più stabile.</li>
+        <li><strong>Nodo consigliato</strong> — una combinazione pesata di planarità MV + stabilità POI + dimensione gruppo + SD.</li>
+      </ul>
+      <p>Scritto come <code>~~result.Note("OCW Analysis")~~</code> e
+        <code>~~result.picture.ocw_chart.png~~</code>.</p>
+      <div class="callout node"><b>Conferma</b> sempre un nodo con un gruppo fresco prima di
+        adottarlo. La SD qui è SD di popolazione (n).</div>
+    </section>
+
+    <section id="seating">
+      <h2><span class="no">05</span>Analizzatore profondità di seduta</h2>
+      <p>Stessa finestra e stesso flusso dell&#39;analizzatore OCW, ma l&#39;asse X è la
+        <strong>profondità di seduta / salto (mm)</strong> e il segnale primario è il
+        <strong>plateau della dimensione del gruppo</strong> invece del flat-spot di velocità. Il
+        valore del gradino viene letto da un numero negli appunti della sessione o nel nome file
+        (&laquo;salto 0.02&raquo;, &laquo;jump .015&raquo;, &laquo;cbto 2.850&raquo;).</p>
+      <p>Scritto come <code>~~result.Note("Seating Depth Analysis")~~</code> +
+        <code>~~result.picture.seating_chart.png~~</code>.</p>
+    </section>
+
+    <section id="cal">
+      <h2><span class="no">06</span>Calibrazione canna</h2>
+      <p>Confronta la velocità alla volata <strong>simulata</strong> da GRT con quella
+        <strong>misurata</strong> su più cariche e suggerisce un ritocco del <code>Ba</code>
+        (coefficiente di combustione) perché GRT combaci con la tua canna.</p>
+      <h3>Flusso</h3>
+      <ol class="plain">
+        <li>Prima importa le stringhe del cronografo nel load (§3).</li>
+        <li><strong>Load measured from GRT load</strong> — riempie la griglia con una riga per carica
+          (carica + MV media misurata, dalle Measurements del load).</li>
+        <li>Ottieni la MV simulata:
+          <ul>
+            <li><strong>Capture ALL sim MV (sweeps GRT)</strong> — per ogni carica misurata lo
+              strumento apre brevemente in GRT una copia del load a carica singola, la fa calcolare,
+              legge la MV simulata, poi riapre il tuo load. Lascia un tab usa-e-getta per carica in
+              GRT; chiudili dopo.</li>
+            <li><strong>Capture current charge only</strong> — legge il risultato simulato attuale di
+              GRT e lo mette nella riga della carica attualmente impostata nel load (<code>mc</code>).</li>
+          </ul>
+        </li>
+        <li><strong>Write calibration note</strong> (solo nota) o <strong>Write Ba-corrected
+          .grtload</strong> (nota + il nuovo <code>Ba</code>).</li>
+      </ol>
+      <p><strong>Griglia:</strong> Charge gr · Meas MV · Sim MV · Δ&nbsp;m/s · Δ&nbsp;%.</p>
+      <div class="formula">
+        <span class="c">// per ogni carica</span><br>
+        Δ%  =  100 · (misurata − sim) / sim<br><br>
+        <span class="c">// suggerito — la MV scala circa come √Ba</span><br>
+        Ba<sub>nuovo</sub>  =  Ba<sub>vecchio</sub> · (media&nbsp;misurata ÷ media&nbsp;sim)²
+      </div>
+      <p>Se il Δ% è più o meno <strong>costante</strong> tra le cariche → un solo <code>Ba</code> lo
+        sistema (&laquo;errore di scala&raquo;; lo strumento dice <em>consistent</em>). Se
+        <strong>varia con la carica</strong> → il <code>Ba</code> da solo non basta (&laquo;errore di
+        forma&raquo; — controlla prima volume del bossolo da bossolo sparato, lunghezza canna, peso
+        palla).</p>
+      <div class="callout"><b>Come leggere il risultato:</b> uno scarto piccolo e costante
+        (≤&nbsp;~0,3&nbsp;%) significa che la tua canna combacia già con GRT — la modifica di
+        <code>Ba</code> è una frazione di percento e la dispersione residua per carica è rumore del
+        cronografo, non qualcosa da inseguire. Un <code>Ba</code> corretto vale per <em>quella canna
+        + quel lotto di polvere</em>.</div>
+    </section>
+
+    <section id="temp">
+      <h2><span class="no">07</span>Coefficienti temperatura polvere</h2>
+      <p>Calcola i coefficienti di temperatura della polvere <code>tcc</code> (sotto 21&nbsp;°C) e
+        <code>tch</code> (sopra 21&nbsp;°C) da stringhe del cronografo di <strong>una sola
+        carica</strong> sparata a <strong>temperature diverse</strong>.</p>
+      <div class="callout"><b>Non è una scalare di cariche.</b> Servono per esempio 40,0&nbsp;gr
+        sparati a freddo (~0&nbsp;°C), normale (~21&nbsp;°C) e caldo (~40&nbsp;°C). Se carichi più
+        cariche diverse lo strumento si rifiuta e te lo dice.</div>
+      <ol class="plain">
+        <li><strong>Add Athlon strings…</strong> — le stringhe della singola carica, a ogni temperatura.</li>
+        <li>Compila la colonna <strong>Temp °C</strong> con la temperatura reale di ogni stringa; spunta <strong>Use</strong>.</li>
+        <li><strong>Load Ba from GRT load</strong> (o digitalo).</li>
+        <li><strong>Fit</strong> → tcc / tch, e i m/s per °C grezzi.</li>
+        <li><strong>Write tcc/tch to GRT load</strong>.</li>
+      </ol>
+      <div class="formula">
+        Ba(T)  ≈  Ba₂₁ · ( MV(T) / MV₂₁ )²<br>
+        tcc  =  media( (Ba₂₁ − Ba(T)) / (21 − T) )   <span class="c">per le stringhe fredde</span><br>
+        tch  =  <span class="c">simmetrico, per le stringhe calde</span>
+      </div>
+    </section>
+
+    <section id="brass">
+      <h2><span class="no">08</span>Preparazione bossoli</h2>
+      <p>Tre calcolatori, uno per tab.</p>
+
+      <h3>8a · Volume bossolo → GRT <code>casevol</code></h3>
+      <p>Inserisci i pesi di <strong>3+ bossoli sparati e disinnescati</strong>: vuoto e pieno
+        d&#39;acqua (o direttamente il peso dell&#39;acqua). L&#39;acqua si pesa in <strong>grani</strong>
+        o <strong>grammi</strong> (interruttore). L&#39;output è il <strong>volume medio in grani
+        H₂O</strong> e in cm³.</p>
+      <ul>
+        <li>GRT memorizza <code>casevol</code> internamente in <strong>cm³</strong> anche se la sua
+          interfaccia di solito mostra grani&nbsp;H₂O — lo strumento scrive cm³ e fissa l&#39;unità.
+          Densità dell&#39;acqua 0,99821&nbsp;g/cm³ (20&nbsp;°C).</li>
+        <li><strong>Write casevol to GRT load</strong> scrive la <strong>media</strong> nel calibro;
+          SD / intervallo vanno nella nota.</li>
+      </ul>
+
+      <h3>8b · Profondità di seduta → GRT <code>gdepth</code></h3>
+      <p>Inserisci <strong>CBTO</strong> (base cartuccia-ogiva, cartuccia carica), <strong>lunghezza
+        bossolo</strong>, <strong>BBTO</strong> (base palla-ogiva, palla nuda). Misura CBTO e BBTO con
+        lo <strong>stesso inserto comparatore</strong>. Unità mm o pollici.</p>
+      <div class="formula">
+        DIFF               =  CBTO − lunghezza&nbsp;bossolo   <span class="c">// ogiva sopra la bocca del bossolo</span><br>
+        profondità&nbsp;seduta  =  BBTO − DIFF                 <span class="c">// base palla → bocca bossolo = &laquo;seating depth&raquo; di GRT</span>
+      </div>
+      <p>Gli avvisi segnalano geometrie impossibili e risultati insolitamente poco / molto profondi.
+        <strong>Write seating depth to GRT load</strong> imposta <code>gdepth</code>; GRT ricalcola
+        la COAL da lì.</p>
+
+      <h3>8c · Dimensionamento colletto / bushing</h3>
+      <p>Inserisci diametro palla, spessore parete del colletto, <strong>interferenza (grip)</strong>
+        desiderata, e facoltativamente un <strong>diametro esterno colletto caricato misurato</strong>
+        (0 = stimato come diametro palla + 2×parete). Unità <strong>pollici</strong> di default (i
+        bushing si vendono in pollici), interruttore per mm.</p>
+      <div class="formula">
+        Ø&nbsp;bushing  =  Ø&nbsp;colletto&nbsp;caricato − interferenza − ritorno&nbsp;elastico   <span class="c">// ritorno ≈ 0,03 mm</span><br>
+        Ø&nbsp;mandrino  =  Ø&nbsp;palla − interferenza
+      </div>
+      <p>Ordina 2–3 bushing intorno al valore; un mandrino come ultimo passaggio imposta l&#39;ID
+        direttamente e uniforma il runout della parete.</p>
+    </section>
+
+    <section id="card">
+      <h2><span class="no">09</span>Cartellino / etichette</h2>
+      <p><strong>Cartellino ricetta (A6)</strong> o <strong>etichette per scatola</strong>
+        stampabili, ciascuno con un <strong>QR code</strong> della ricetta completa.</p>
+      <ul>
+        <li><strong>Load from GRT</strong> — compila il cartellino dal load aperto (calibro, arma,
+          palla + peso, polvere, carica, COAL, profondità di seduta, e MV/SD dall&#39;ultima
+          misurazione).</li>
+        <li>Menù a tendina <strong>lotto Polvere / InneSco / Bossolo / Palla</strong> — scegli un lotto
+          dall&#39;inventario (§10) per calcolare il <strong>costo per colpo</strong> e stampare il
+          lotto sul cartellino.</li>
+        <li>Modifica qualsiasi campo nella griglia proprietà. Scegli <strong>Recipe card</strong> o
+          <strong>Box labels</strong> + un numero.</li>
+        <li><strong>Save PNG…</strong>, <strong>Print…</strong> (anteprima di stampa), o <strong>Write
+          load-sheet note to GRT</strong> — mette nel load la ricetta + il dettaglio costo per colpo
+          come nota &laquo;Load Sheet&raquo;.</li>
+      </ul>
+    </section>
+
+    <section id="log">
+      <h2><span class="no">10</span>Inventario e diario</h2>
+      <p>Un piccolo database SQLite in <code>%AppData%\GRTPlugins\reloading_log.db</code>. Tre tab.</p>
+      <ul>
+        <li><strong>Inventory</strong> — scorte di polvere / inneSchi / bossoli / palle con id lotto,
+          prezzo e (per i bossoli) un contatore <em>usi previsti</em> che ammortizza il costo del
+          bossolo. Add / Edit / Restock / Archive.</li>
+        <li><strong>Journal</strong> — una riga per sessione al poligono o lotto caricato: data, load,
+          calibro, arma, carica, colpi, MV, SD, gruppo MOA, distanza, note, e <strong>costo per
+          colpo</strong> dai lotti collegati. <strong>Log from GRT</strong> precompila dal load
+          aperto. Modificare o cancellare una voce riconcilia l&#39;inventario; spunta <em>deduct
+          components from inventory on save</em> per scalare le scorte.</li>
+        <li><strong>Firearms</strong> — una riga per canna: conteggio colpi totale
+          (<code>rounds before</code> + colpi del diario), numero di voci MV, ultimo uso. Add / Edit /
+          Retire, e un <strong>grafico deriva MV</strong> (velocità alla volata vs colpi cumulativi
+          con linea di tendenza — &laquo;+X m/s ogni 100 rd&raquo;).</li>
+      </ul>
+
+      <h3>Usare i tab &laquo;gruppo di colpi&raquo; di GRT come sorgente</h3>
+      <p>Se fai l&#39;analisi dei gruppi <strong>dentro GRT</strong> (barra strumenti → icona gruppo
+        colpi, o Risultati → <strong>+</strong> → Analisi gruppo — trascini la foto del bersaglio,
+        imposti una distanza di riferimento e la distanza di tiro, aggiungi marcatori
+        <code>(+) Gruppo</code> e <code>(+) Colpo</code>, marchi un punto come <em>Point of Aim</em>,
+        segnali i flyer):</p>
+      <ol class="plain">
+        <li><strong>Nomina ogni gruppo con la sua carica / seduta</strong> — &laquo;40.0&raquo;,
+          &laquo;Gruppo 40.2 gr&raquo;, &laquo;salto 0.02&raquo;. L&#39;analizzatore legge il numero.
+          Più gruppi possono stare in un solo tab (stessa foto), o un tab per carica.</li>
+        <li><strong>Salva il load</strong> così i tab gruppo finiscono nel <code>.grtload</code>.</li>
+        <li>Nell&#39;analizzatore Ladder / Seating imposta <strong>ref dist</strong> (mm / cm /
+          pollici) e <strong>shoot dist</strong> (m / yd) — GRT non memorizza quale unità usava il
+          campo distanza di riferimento — eventualmente spunta <strong>drop flyers</strong>, poi
+          clicca <strong>Groups from GRT load</strong>.</li>
+      </ol>
+      <p>Ogni foro (memorizzato come frazione dell&#39;immagine) viene convertito in MOA usando i due
+        punti di riferimento e le proporzioni dell&#39;immagine (1&nbsp;MOA = 29,0888&nbsp;mm a
+        100&nbsp;m).</p>
+    </section>
+
+    <section id="reports">
+      <h2><span class="no">11</span>Template report GRT</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive cinque pagine
+        di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
+        dei report. Vai lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
+        stesso). È idempotente e non distruttivo; per cancellare una pagina la salvi vuota in GRT.</p>
+      <table><thead><tr><th>Pagina</th><th>Recupera</th></tr></thead><tbody>
+        <tr><td>Full load workup</td><td>ricetta + risultati predetti + diagramma curve di GRT + tutte le sezioni sotto</td></tr>
+        <tr><td>Ladder / OCW report</td><td>la nota OCW + grafico</td></tr>
+        <tr><td>Seating-depth report</td><td>la nota seating + grafico</td></tr>
+        <tr><td>Barrel calibration report</td><td>le note calibrazione + coefficienti temperatura</td></tr>
+        <tr><td>Load sheet</td><td>ricetta + predetto + nota costo</td></tr>
+      </tbody></table>
+      <div class="callout"><b>Per vedere un report:</b> pannello Risultati → <strong>+</strong> (nuovo
+        tab) → <strong>Add report</strong> → scegli una pagina &laquo;Toolkit — …&raquo;. Aprilo
+        <strong>sullo snapshot <code>…_toolkit_…grtload</code></strong> — è lì che stanno le note e i
+        grafici, non nel tuo file originale. Le sezioni vuote significano solo che non hai ancora
+        lanciato quello strumento.</div>
+    </section>
+
+    <section id="cli">
+      <h2><span class="no">12</span>Riga di comando</h2>
+      <p>Punti di ingresso di debug sull&#39;exe
+        (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
+      <pre>--dbtest [db]                                    <span class="c">autotest inventario / diario</span>
+--athlon &lt;cartella&gt; &lt;base.grtload&gt; [tempC]        <span class="c">import cronografo da una cartella</span>
+--ladder charge|seating &lt;cartella&gt; [base.grtload] <span class="c">analisi ladder</span>
+--ladder charge|seating --synthetic [out.png]     <span class="c">test grafico senza dati</span>
+--groups &lt;load.grtload&gt; [mm|cm|in] [m|yd] [--drop-flyers]
+--cal &lt;porta&gt; &lt;base&gt; &lt;carica:simMv&gt; …              <span class="c">calcolo calibrazione</span>
+--tcoeff &lt;Ba&gt; &lt;file.xlsx:tempC&gt; …                  <span class="c">fit coefficienti temperatura</span>
+--card &lt;base.grtload&gt; [outDir]                    <span class="c">rende cartellino / etichette</span>
+--brass vol gr|g &lt;p…&gt;
+--brass neck &lt;dia&gt; &lt;parete&gt; &lt;interf&gt; [loadedOd]
+--brass seat &lt;cbto&gt; &lt;caselen&gt; &lt;bbto&gt; [mm|in]
+--reports [grtRoot]                               <span class="c">installa i template report</span></pre>
+      <p>Ambiente: <code>OCW_FOLDER</code> / <code>SEATING_FOLDER</code> caricano una cartella ladder
+        all&#39;apertura; <code>RELOADING_LOG_DB</code> cambia il percorso del database.</p>
+    </section>
+
+    <section id="faq">
+      <h2><span class="no">13</span>Limiti e FAQ</h2>
+      <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
+      <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
+        aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;
+        tieni il più recente (Salva con nome con un nome vero) e cancella gli altri. Vengono tenuti
+        automaticamente solo i 3 più recenti.</p>
+      <h3>Ho cambiato il <code>Ba</code> ma la velocità di GRT non si è mossa.</h3>
+      <p>O GRT sta ancora mostrando il tab vecchio (apri lo snapshot più recente), oppure la
+        correzione è davvero minima — uno scarto dello 0,1&nbsp;% sposta la V₀ di ~0,6&nbsp;m/s, che
+        è dentro il rumore del cronografo.</p>
+      <h3>&laquo;No usable shot groups in that load.&raquo;</h3>
+      <p>Il tuo load non ha tab &laquo;gruppo di colpi&raquo; di GRT — hai analizzato i gruppi in
+        Ballistic-X. Usa il percorso <code>.csv</code>, o crea prima i gruppi in GRT (§10).</p>
+      <h3>Lo strumento coefficienti temperatura non attiva &laquo;Write&raquo;.</h3>
+      <p>Serve una carica a più temperature, non una scalare.</p>
+      <h3>Un&#39;icona sola in barra, non otto.</h3>
+      <p>È voluto — apre il launcher; ogni strumento è un pulsante lì. Le modifiche al manifest
+        richiedono un riavvio di GRT per comparire.</p>
+      <h3>Numeri</h3>
+      <p>Ogni campo accetta <code>.</code> o <code>,</code> come separatore decimale
+        indipendentemente dal locale di Windows. Il testo dei report viene sempre scritto con il
+        <code>.</code> come decimale (lo richiede GRT).</p>
+    </section>
+  </main>
+</div>
+
+<footer><div class="shell">
+  <span>GRT Reloading Toolkit · v0.1 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span class="mono">com.grt.plugin.reloadingtoolkit</span>
+</div></footer>
