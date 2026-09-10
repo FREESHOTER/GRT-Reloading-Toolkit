@@ -222,8 +222,13 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         cronografo e dai gruppi a bersaglio.</p>
       <p><strong>I gruppi possono venire da:</strong> export Ballistic-X <code>.csv</code> (uno per
         carica, nella stessa cartella dei file del cronografo), <em>oppure</em> dai tab &laquo;Analisi
-        gruppo di colpi&raquo; di GRT stesso (vedi&nbsp;§10). Le velocità vengono sempre dai file del
-        cronografo.</p>
+        gruppo di colpi&raquo; di GRT stesso (vedi&nbsp;§10).</p>
+      <p><strong>Le velocità</strong> vengono dai file <code>*.xlsx</code> del cronografo nella
+        cartella scelta. Ogni carica senza file del cronografo viene completata dalla
+        <strong>misurazione del cronografo già importata nel load aperto</strong> (§3), abbinata per
+        peso della carica — quindi se hai fatto prima l&#39;import del cronografo, il flat-spot di
+        velocità e la linea MV blu compaiono anche quando la cartella contiene solo i <code>.csv</code>
+        dei bersagli. Un file del cronografo nella cartella ha sempre la precedenza per quella carica.</p>
       <table><thead><tr><th>Controllo</th><th>Effetto</th></tr></thead><tbody>
         <tr><td>Pick ladder folder…</td><td>Cartella con <code>*.xlsx</code> del cronografo + <code>Carica *.csv</code> di Ballistic-X, una coppia per carica.</td></tr>
         <tr><td>w POI · w MV · window</td><td>Pesi dell&#39;analisi e larghezza del nodo (3–5 gradini).</td></tr>

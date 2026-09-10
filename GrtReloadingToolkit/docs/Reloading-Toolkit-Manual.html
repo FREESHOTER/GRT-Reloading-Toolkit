@@ -221,7 +221,12 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         target groups.</p>
       <p><strong>Group data can come from:</strong> Ballistic-X <code>.csv</code> exports (one per charge,
         in the same folder as the chrono files), <em>or</em> GRT&#39;s own &ldquo;Shot group&rdquo; tabs
-        (see&nbsp;§10). Velocities always come from chrono files.</p>
+        (see&nbsp;§10).</p>
+      <p><strong>Velocities</strong> come from the chrono <code>*.xlsx</code> in the picked folder. Any
+        charge with no chrono file is filled in from the <strong>chronograph Measurement already
+        imported into the open load</strong> (§3), matched by charge weight &mdash; so if you ran the
+        chrono import first, the MV flat-spot and the blue MV line show up even when the folder holds
+        only target <code>.csv</code> files. A chrono file in the folder always wins for that charge.</p>
       <table><thead><tr><th>Control</th><th>Effect</th></tr></thead><tbody>
         <tr><td>Pick ladder folder…</td><td>Folder with chrono <code>*.xlsx</code> + Ballistic-X <code>Carica *.csv</code>, one pair per charge.</td></tr>
         <tr><td>w POI · w MV · window</td><td>Analysis weights and the node width (3–5 steps).</td></tr>
