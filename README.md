@@ -13,7 +13,7 @@ report templates.
 
 | | |
 |---|---|
-| **Chronograph Import** | Athlon Rangecraft and Garmin Xero C1 Pro / ShotView exports (`.xlsx` / `.xls` / `.csv`), one file or a whole folder → a GRT Imported Measurement. Auto-detects fps vs m/s. |
+| **Chronograph Import** | Athlon Rangecraft and Garmin Xero C1 Pro / ShotView exports (`.xlsx` / `.csv`), one file or a whole folder → a GRT Imported Measurement. Auto-detects fps vs m/s. |
 | **Ladder / OCW Analyzer** | Velocity flat-spot (Satterlee) + vertical-POI node (OCW / Audette) + a weighted best node → an *OCW Analysis* note and chart. Groups from Ballistic-X CSV or GRT's own shot-group tabs. |
 | **Seating-Depth Analyzer** | Group-size plateau + vertical-POI node for a seating / jump test. |
 | **Barrel Calibration** | Sweeps GRT for the simulated MV at every measured charge, compares to your chrono, suggests a `Ba` tweak (`Ba × (meas ÷ sim)²`). |
@@ -62,9 +62,9 @@ Tests:
 dotnet test GrtReloadingToolkit.Tests/GrtReloadingToolkit.Tests.csproj
 ```
 
-They run anywhere — no Windows Desktop SDK needed. The ladder analyser is plain arithmetic
-with no WinForms dependency, so the test project links its two source files rather than
-referencing the `net8.0-windows` plugin project.
+They run anywhere — no Windows Desktop SDK needed. The ladder analyser and the log store are
+plain arithmetic and SQLite with no WinForms dependency, so the test project links their source
+files rather than referencing the `net8.0-windows` plugin project.
 
 Layout:
 
@@ -73,7 +73,7 @@ GrtReloadingToolkit/        the plugin (WinForms, net8.0-windows)
   plugin/                   com.grt.plugin.xml + media icons
   build-plugin.ps1
   app.manifest              DPI-unaware (windows use fixed pixel layout — Windows bitmap-scales them)
-GrtReloadingToolkit.Tests/  xunit; ladder / OCW node analysis
+GrtReloadingToolkit.Tests/  xunit; ladder / OCW node analysis, stock ledger, .xlsx reader
 grt-plugins-shared/
   GrtPluginKit/             shared library: GRT IPC client, .grtload reader/writer, chrono parsers
   make-icons.ps1

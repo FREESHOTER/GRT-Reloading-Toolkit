@@ -63,15 +63,15 @@ Key points:
 Turns chronograph exports into a GRT **Imported Measurement** tab (one `charge` per file, its shots
 underneath). A folder of files = a ladder.
 
-**Supported:** Athlon Rangecraft (Velocity Pro) and Garmin Xero C1 Pro / ShotView, as `.xlsx`,
-`.xls` or `.csv`.
+**Supported:** Athlon Rangecraft (Velocity Pro) and Garmin Xero C1 Pro / ShotView, as `.xlsx`
+or `.csv`.
 
 **Buttons**
 
 | Control | Effect |
 |---|---|
 | **Add chrono files…** | Pick one or more files (one per charge). |
-| **Add folder…** | Pick a folder — every `.xlsx/.xls/.csv` in it is read; files that are not chrono exports (target CSVs, databases…) are skipped silently. |
+| **Add folder…** | Pick a folder — every `.xlsx/.csv` in it is read; files that are not chrono exports (target CSVs, databases…) are skipped silently. |
 | **Remove selected** | Drop the highlighted grid rows. |
 | **TEMP= on every shot** | Also write the session temperature as a per-shot note (for GRT's temp assistant). |
 | **replace previous chrono import in this load** | Remove earlier "Athlon …" measurements before adding this one (on by default). |
@@ -260,6 +260,9 @@ A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`. Three tabs.
 
 - **Inventory** — powder / primer / brass / bullet stock with lot id, price and (for brass) an
   *expected uses* count that amortises the case cost. **Add / Edit / Restock / Archive**.
+  Stock can go **negative** — that just means the lot was entered short, or rounds were logged
+  against the wrong lot. It is never silently absorbed, so editing or deleting the entry always
+  gives back exactly what it took. Fix it with **Restock** (or **Edit** the lot's quantity).
 - **Journal** — one row per range session or batch: date, load, caliber, firearm, charge, rounds,
   MV, SD, group MOA, distance, notes, and **cost per round** from the referenced lots. **New**,
   **Log from GRT** (prefills from the open load), **Edit**, **Delete**. Editing or deleting an
