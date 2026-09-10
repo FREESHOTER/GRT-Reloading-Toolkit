@@ -17,7 +17,17 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
-$dotnet = "C:\Program Files\dotnet\dotnet.exe"
+# dotnet off PATH: the hardcoded "C:\Program Files\dotnet\dotnet.exe" broke every install that
+# isn't the default x64 machine-wide one — winget, per-user, ARM64, side-by-side.
+$dotnet = (Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue |
+           Select-Object -First 1).Source
+if (-not $dotnet) {
+    $dotnet = @("$env:ProgramFiles\dotnet\dotnet.exe",
+                "${env:ProgramFiles(x86)}\dotnet\dotnet.exe",
+                "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe") |
+              Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+}
+if (-not $dotnet) { throw "dotnet not found on PATH. Install the .NET 8 SDK: https://dotnet.microsoft.com/download/dotnet/8.0" }
 $csproj = Join-Path $root "GrtReloadingToolkit.csproj"
 
 function Assemble($outDir, $payloadDir) {
