@@ -13,7 +13,10 @@ public sealed class Db : IDisposable
     public Db(string path)
     {
         Path = path;
-        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+        // a bare file name ("reloading.db", e.g. from RELOADING_LOG_DB) has no directory part,
+        // and CreateDirectory("") throws — that path is the current directory, already there.
+        string? dir = System.IO.Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
         _cn = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path }.ToString());
         _cn.Open();
         Exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
@@ -122,10 +125,11 @@ CREATE TABLE IF NOT EXISTS firearms (
         return (long)(cmd.ExecuteScalar() ?? 0L);
     }
 
+    /// <summary>Moves stock and records the move. May drive qty_current negative — see <see cref="ApplyStock"/>.</summary>
     public void AdjustStock(long componentId, double delta, string reason)
     {
         using var tx = _cn.BeginTransaction();
-        Exec("UPDATE components SET qty_current = MAX(0, qty_current + $d) WHERE id=$id", tx,
+        Exec("UPDATE components SET qty_current = qty_current + $d WHERE id=$id", tx,
             ("$d", delta), ("$id", componentId));
         Exec("INSERT INTO ledger(component_id,delta,reason) VALUES ($id,$d,$r)", tx,
             ("$id", componentId), ("$d", delta), ("$r", reason));
@@ -196,13 +200,19 @@ CREATE TABLE IF NOT EXISTS firearms (
         tx.Commit();
     }
 
-    /// <summary>sign −1 deducts, +1 restores. Applies rounds×(1 per primer/brass/bullet) and charge×rounds grams of powder.</summary>
+    /// <summary>
+    /// sign −1 deducts, +1 restores. Applies rounds×(1 per primer/brass/bullet) and charge×rounds grams of powder.
+    /// Deductions are deliberately not clamped at zero: a clamp loses the overshoot while the matching
+    /// reversal (edit or delete the entry) still restores the full amount, so logging 200 rounds against
+    /// 150 primers and then deleting the entry would leave 200 in stock. qty_current must stay equal to
+    /// its running ledger total; a negative balance is the honest signal that the lot was mis-counted.
+    /// </summary>
     private void ApplyStock(JournalEntry e, int sign, SqliteTransaction tx, string reason)
     {
         void Move(long? id, double amount)
         {
             if (id is not { } cid || amount <= 0) return;
-            Exec("UPDATE components SET qty_current = MAX(0, qty_current + $d) WHERE id=$id", tx, ("$d", sign * amount), ("$id", cid));
+            Exec("UPDATE components SET qty_current = qty_current + $d WHERE id=$id", tx, ("$d", sign * amount), ("$id", cid));
             Exec("INSERT INTO ledger(component_id,delta,reason) VALUES ($id,$d,$r)", tx, ("$id", cid), ("$d", sign * amount), ("$r", reason));
         }
         double powderG = e.ChargeGr * 0.06479891 * e.Rounds; // grains -> grams
