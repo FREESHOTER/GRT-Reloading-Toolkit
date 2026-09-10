@@ -196,10 +196,10 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <p>Turns chronograph exports into a GRT <strong>Imported Measurement</strong> tab (one
         <code>charge</code> per file, its shots underneath). A folder of files = a ladder.</p>
       <p><strong>Supported:</strong> Athlon Rangecraft (Velocity Pro) and Garmin Xero C1 Pro / ShotView,
-        as <code>.xlsx</code>, <code>.xls</code> or <code>.csv</code>.</p>
+        as <code>.xlsx</code> or <code>.csv</code>.</p>
       <table><thead><tr><th>Control</th><th>Effect</th></tr></thead><tbody>
         <tr><td>Add chrono files…</td><td>Pick one or more files (one per charge).</td></tr>
-        <tr><td>Add folder…</td><td>Pick a folder &mdash; every <code>.xlsx/.xls/.csv</code> is read; files that aren&#39;t chrono exports (target CSVs, databases) are skipped silently.</td></tr>
+        <tr><td>Add folder…</td><td>Pick a folder &mdash; every <code>.xlsx/.csv</code> is read; files that aren&#39;t chrono exports (target CSVs, databases) are skipped silently.</td></tr>
         <tr><td>Remove selected</td><td>Drop the highlighted grid rows.</td></tr>
         <tr><td>TEMP= on every shot</td><td>Also write the session temperature as a per-shot note (for GRT&#39;s temp assistant).</td></tr>
         <tr><td>replace previous…</td><td>Remove earlier &ldquo;Athlon …&rdquo; measurements before adding this one (on by default).</td></tr>
@@ -383,7 +383,9 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <ul>
         <li><strong>Inventory</strong> &mdash; powder / primer / brass / bullet stock with lot id, price
           and (for brass) an <em>expected uses</em> count that amortises the case cost. Add / Edit /
-          Restock / Archive.</li>
+          Restock / Archive. Stock can go <strong>negative</strong> &mdash; that just means the lot was
+          entered short, or rounds were logged against the wrong lot. It is never silently absorbed, so
+          editing or deleting the entry always gives back exactly what it took.</li>
         <li><strong>Journal</strong> &mdash; one row per range session or batch: date, load, caliber,
           firearm, charge, rounds, MV, SD, group MOA, distance, notes, and <strong>cost per
           round</strong> from the referenced lots. <strong>Log from GRT</strong> prefills from the open

@@ -197,10 +197,10 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p>Trasforma gli export del cronografo in un tab GRT <strong>Imported Measurement</strong> (una
         <code>charge</code> per file, i colpi sotto). Una cartella di file = una scalare.</p>
       <p><strong>Supportati:</strong> Athlon Rangecraft (Velocity Pro) e Garmin Xero C1 Pro / ShotView,
-        come <code>.xlsx</code>, <code>.xls</code> o <code>.csv</code>.</p>
+        come <code>.xlsx</code> o <code>.csv</code>.</p>
       <table><thead><tr><th>Controllo</th><th>Effetto</th></tr></thead><tbody>
         <tr><td>Add chrono files…</td><td>Seleziona uno o più file (uno per carica).</td></tr>
-        <tr><td>Add folder…</td><td>Seleziona una cartella — legge ogni <code>.xlsx/.xls/.csv</code>; i file che non sono export del cronografo (CSV bersaglio, database) vengono saltati in silenzio.</td></tr>
+        <tr><td>Add folder…</td><td>Seleziona una cartella — legge ogni <code>.xlsx/.csv</code>; i file che non sono export del cronografo (CSV bersaglio, database) vengono saltati in silenzio.</td></tr>
         <tr><td>Remove selected</td><td>Toglie le righe evidenziate.</td></tr>
         <tr><td>TEMP= on every shot</td><td>Scrive anche la temperatura della sessione come nota per ogni colpo (per l&#39;assistente temperatura di GRT).</td></tr>
         <tr><td>replace previous…</td><td>Toglie le misurazioni &laquo;Athlon …&raquo; precedenti prima di aggiungere questa (attivo di default).</td></tr>
@@ -392,7 +392,10 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <ul>
         <li><strong>Inventory</strong> — scorte di polvere / inneSchi / bossoli / palle con id lotto,
           prezzo e (per i bossoli) un contatore <em>usi previsti</em> che ammortizza il costo del
-          bossolo. Add / Edit / Restock / Archive.</li>
+          bossolo. Add / Edit / Restock / Archive. Le scorte possono andare in <strong>negativo</strong>
+          &mdash; significa solo che il lotto è stato inserito corto, o che i colpi sono stati registrati
+          sul lotto sbagliato. Non viene mai assorbito in silenzio: modificando o cancellando la riga
+          torna indietro esattamente quanto era stato tolto.</li>
         <li><strong>Journal</strong> — una riga per sessione al poligono o lotto caricato: data, load,
           calibro, arma, carica, colpi, MV, SD, gruppo MOA, distanza, note, e <strong>costo per
           colpo</strong> dai lotti collegati. <strong>Log from GRT</strong> precompila dal load

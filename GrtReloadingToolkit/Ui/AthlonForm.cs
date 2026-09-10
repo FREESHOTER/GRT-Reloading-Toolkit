@@ -136,7 +136,7 @@ internal sealed class AthlonForm : Form
         using var dlg = new OpenFileDialog
         {
             Multiselect = true,
-            Filter = "Chronograph export (*.xlsx;*.xls;*.csv)|*.xlsx;*.xls;*.csv|All files (*.*)|*.*",
+            Filter = "Chronograph export (*.xlsx;*.csv)|*.xlsx;*.csv|All files (*.*)|*.*",
             Title = "Select one chrono file (Athlon or Garmin) per charge",
         };
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
@@ -145,15 +145,15 @@ internal sealed class AthlonForm : Form
 
     private void AddFolder()
     {
-        using var d = new FolderBrowserDialog { Description = "Folder with one chrono file (Athlon / Garmin, .xlsx / .xls / .csv) per charge" };
+        using var d = new FolderBrowserDialog { Description = "Folder with one chrono file (Athlon / Garmin, .xlsx / .csv) per charge" };
         if (d.ShowDialog(this) != DialogResult.OK) return;
 
-        var exts = new[] { ".xlsx", ".xls", ".csv", ".tsv" };
+        var exts = new[] { ".xlsx", ".csv", ".tsv" };
         var files = Directory.EnumerateFiles(d.SelectedPath)
             .Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        if (files.Count == 0) { MessageBox.Show(this, "No .xlsx / .xls / .csv files in that folder.", "Add folder"); return; }
+        if (files.Count == 0) { MessageBox.Show(this, "No .xlsx / .csv files in that folder.", "Add folder"); return; }
 
         int before = _strings.Count;
         AddPaths(files, showErrorDialog: false);      // a folder may hold target CSVs etc. — just skip those
