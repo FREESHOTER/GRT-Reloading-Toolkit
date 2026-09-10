@@ -206,9 +206,11 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>replace previous…</td><td>Toglie le misurazioni &laquo;Athlon …&raquo; precedenti prima di aggiungere questa (attivo di default).</td></tr>
         <tr><td>Import into GRT</td><td>Scrive la misurazione nel load e apre lo snapshot.</td></tr>
       </tbody></table>
-      <p><strong>Griglia:</strong> Use · File · Charge (gr) · Shots · AVG m/s · SD · ES · Temp °C (modificabile).</p>
+      <p><strong>Griglia:</strong> Use · File · Charge (gr, modificabile) · Shots · AVG m/s · SD · ES · Temp °C (modificabile).</p>
       <p><strong>Il peso della carica</strong> viene dagli appunti della sessione (&laquo;carica 39.2&raquo;,
-        &laquo;charge 41.5 gr&raquo;), altrimenti da un numero nel nome file (&laquo;39.20.xlsx&raquo;).</p>
+        &laquo;charge 41.5 gr&raquo;), altrimenti da un numero nel nome file (&laquo;39.20.xlsx&raquo;).
+        Se non c&#39;è né nell&#39;uno né nell&#39;altro la cella mostra <code>?</code>: basta scrivere la
+        carica direttamente lì, come si fa con la cella <strong>Temp °C</strong>.</p>
       <p><strong>Le unità</strong> vengono prese dall&#39;intestazione di colonna se dice
         <code>(m/s)</code> / <code>(mps)</code> / <code>(fps)</code> / <code>ft/s</code>; altrimenti
         vengono dedotte dalla grandezza della velocità (≥&nbsp;1400&nbsp;→&nbsp;fps). I fps vengono

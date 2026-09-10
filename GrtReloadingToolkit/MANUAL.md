@@ -77,10 +77,11 @@ or `.csv`.
 | **replace previous chrono import in this load** | Remove earlier "Athlon …" measurements before adding this one (on by default). |
 | **Import into GRT** | Write the measurement into the load and open the snapshot. |
 
-**Grid columns:** Use · File · Charge (gr) · Shots · AVG m/s · SD · ES · Temp °C (editable).
+**Grid columns:** Use · File · Charge (gr, editable) · Shots · AVG m/s · SD · ES · Temp °C (editable).
 
 **How the charge weight is found:** from the session note ("carica 39.2", "charge 41.5 gr"), else a
-number in the file name ("39.20.xlsx"). Edit the Temp °C cell if the file doesn't carry it.
+number in the file name ("39.20.xlsx"). If neither carries it the cell shows `?` — type the charge
+straight into it. Same for the Temp °C cell.
 
 **Units:** taken from the column header if it says `(m/s)` / `(mps)` / `(fps)` / `ft/s`; otherwise
 guessed from the velocity magnitude (≥ 1400 → fps). fps is converted to m/s for GRT. Both `1,234.5`
