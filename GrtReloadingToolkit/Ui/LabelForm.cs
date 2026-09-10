@@ -13,7 +13,8 @@ internal sealed class LabelForm : Form
     private readonly GrtClient? _grt;
     private readonly Db _db;
     private readonly LoadCard _card = new();
-    private readonly List<Component> _components;
+    private List<Component> _components;
+    private bool _suppressCombo;
 
     private readonly PictureBox _preview = new() { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White };
     private readonly RadioButton _rCard = new() { Text = "Recipe card (A6)", Checked = true, AutoSize = true };
@@ -36,6 +37,7 @@ internal sealed class LabelForm : Form
         MinimumSize = new Size(760, 480);
         Build();
         NudFix.ApplyTo(this);
+        Activated += (_, _) => RefreshComponents();
         Render();
         _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
     }
@@ -65,7 +67,8 @@ internal sealed class LabelForm : Form
         FillCombo(_primer, ComponentKind.Primer);
         FillCombo(_brass, ComponentKind.Brass);
         FillCombo(_bullet, ComponentKind.Bullet);
-        foreach (var cb in new[] { _powder, _primer, _brass, _bullet }) cb.SelectedIndexChanged += (_, _) => { ApplyComponents(); Render(); };
+        foreach (var cb in new[] { _powder, _primer, _brass, _bullet })
+            cb.SelectedIndexChanged += (_, _) => { if (!_suppressCombo) { ApplyComponents(); Render(); } };
         Row("Powder lot", _powder);
         Row("Primer lot", _primer);
         Row("Brass lot", _brass);
@@ -96,11 +99,55 @@ internal sealed class LabelForm : Form
         Controls.Add(top);
     }
 
+    private (ComponentKind kind, ComboBox box)[] Slots => new[]
+    {
+        (ComponentKind.Powder, _powder),
+        (ComponentKind.Primer, _primer),
+        (ComponentKind.Brass,  _brass),
+        (ComponentKind.Bullet, _bullet),
+    };
+
     private void FillCombo(ComboBox cb, ComponentKind k)
     {
+        cb.Items.Clear();
         cb.Items.Add("— none —");
         foreach (var c in _components.Where(x => x.Kind == k)) cb.Items.Add(c.Display);
         cb.SelectedIndex = 0;
+    }
+
+    /// <summary>
+    /// Re-reads the component list, so a lot added or renamed in the Inventory window while this
+    /// one is open actually shows up in the drop-downs. The combos hold display strings indexed
+    /// into a kind-filtered slice of the list, so they have to be rebuilt wholesale; the current
+    /// selection is carried across by component id, not by index.
+    /// </summary>
+    private void RefreshComponents()
+    {
+        var fresh = _db.Components();
+        if (fresh.Count == _components.Count
+            && fresh.Zip(_components).All(p => p.First.Id == p.Second.Id && p.First.Display == p.Second.Display))
+            return;
+
+        var slots = Slots;
+        var keep = slots.Select(s => Sel(s.box, s.kind)?.Id).ToList();
+        _components = fresh;
+
+        _suppressCombo = true;
+        try
+        {
+            for (int i = 0; i < slots.Length; i++)
+            {
+                var (kind, cb) = slots[i];
+                FillCombo(cb, kind);
+                if (keep[i] is not { } id) continue;
+                int ix = _components.Where(x => x.Kind == kind).ToList().FindIndex(x => x.Id == id);
+                if (ix >= 0) cb.SelectedIndex = ix + 1;
+            }
+        }
+        finally { _suppressCombo = false; }
+
+        ApplyComponents();
+        Render();
     }
 
     private Component? Sel(ComboBox cb, ComponentKind k)
