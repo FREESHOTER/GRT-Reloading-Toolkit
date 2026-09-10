@@ -244,16 +244,10 @@ public sealed class GrtClient : IDisposable
     }
 
 
-    /// <summary>"850.5 m/s" → 850.5 (first numeric token, unit stripped).</summary>
+    /// <summary>"850.5 m/s" → 850.5, "2,850 fps" → 2850 (first numeric token, unit stripped).</summary>
     private static double? ValueOf(JsonElement obj, string name)
-    {
-        string? s = Str(obj, name);
-        if (string.IsNullOrWhiteSpace(s)) return null;
-        int i = 0;
-        if (i < s.Length && (s[i] == '-' || s[i] == '+')) i++;
-        while (i < s.Length && (char.IsDigit(s[i]) || s[i] == '.' || s[i] == ',')) i++;
-        return double.TryParse(s[..i].Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double d) ? d : null;
-    }
+        // fully qualified: the local Str(JsonElement, string) helper hides GrtPluginKit.Util.Str.
+        => GrtPluginKit.Util.Str.ParseNumber(Str(obj, name));
 
     private static string UnitOf(JsonElement obj, string name)
     {

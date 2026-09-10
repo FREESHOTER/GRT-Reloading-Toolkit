@@ -236,10 +236,13 @@ internal sealed class BrassForm : Form
         decimal f = toInch ? 1m / (decimal)BrassCalc.MmPerInch : (decimal)BrassCalc.MmPerInch;
         foreach (var n in new[] { _sdCbto, _sdCase, _sdBbto })
         {
+            // read first: lowering Maximum clamps Value on the spot, so converting
+            // afterwards would convert the clamped number, not what the user typed.
+            decimal v = n.Value;
             n.Maximum = toInch ? 8m : 200m;
             n.DecimalPlaces = toInch ? 4 : 3;
             n.Increment = toInch ? 0.0005M : 0.01M;
-            n.Value = Math.Round(Math.Clamp(n.Value * f, n.Minimum, n.Maximum), n.DecimalPlaces);
+            n.Value = Math.Round(Math.Clamp(v * f, n.Minimum, n.Maximum), n.DecimalPlaces);
         }
         _sdInInch = toInch;
         _suppressSdUnit = false;
@@ -354,10 +357,13 @@ internal sealed class BrassForm : Form
         decimal f = toInch ? 1m / (decimal)MmPerIn : (decimal)MmPerIn;
         foreach (var n in new[] { _bulletDia, _wall, _interf, _loadedOd })
         {
+            // read first: lowering Maximum clamps Value on the spot, so converting
+            // afterwards would convert the clamped number, not what the user typed.
+            decimal v = n.Value;
             n.Maximum = toInch ? 2m : 60m;                    // generous; exact value not important
             n.DecimalPlaces = toInch ? 4 : 3;
             n.Increment = toInch ? 0.0005M : 0.001M;
-            n.Value = Math.Round(Math.Clamp(n.Value * f, n.Minimum, n.Maximum), n.DecimalPlaces);
+            n.Value = Math.Round(Math.Clamp(v * f, n.Minimum, n.Maximum), n.DecimalPlaces);
         }
         _neckInInch = toInch;
         _suppressNeckUnit = false;
