@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>GrtReloadingToolkit.Tests</RootNamespace>
+    <Deterministic>true</Deterministic>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The ladder analyser is plain arithmetic that happens to live in the plugin project.
+         That project is net8.0-windows and needs the Windows Desktop SDK, so referencing it
+         would make these tests Windows-only. Linking the two files it actually needs keeps
+         them runnable on any machine and on CI. -->
+    <Compile Include="..\GrtReloadingToolkit\Ocw\LadderStep.cs" Link="Ocw\LadderStep.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ocw\LadderAnalyzer.cs" Link="Ocw\LadderAnalyzer.cs" />
+  </ItemGroup>
+
+</Project>

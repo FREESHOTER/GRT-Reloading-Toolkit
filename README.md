@@ -56,6 +56,16 @@ pwsh GrtReloadingToolkit/build-plugin.ps1 -Zip
 # add -GrtDir "C:\path\to\GRT…" to also copy it straight into that GRT's plugins\
 ```
 
+Tests:
+
+```
+dotnet test GrtReloadingToolkit.Tests/GrtReloadingToolkit.Tests.csproj
+```
+
+They run anywhere — no Windows Desktop SDK needed. The ladder analyser is plain arithmetic
+with no WinForms dependency, so the test project links its two source files rather than
+referencing the `net8.0-windows` plugin project.
+
 Layout:
 
 ```
@@ -63,6 +73,7 @@ GrtReloadingToolkit/        the plugin (WinForms, net8.0-windows)
   plugin/                   com.grt.plugin.xml + media icons
   build-plugin.ps1
   app.manifest              DPI-unaware (windows use fixed pixel layout — Windows bitmap-scales them)
+GrtReloadingToolkit.Tests/  xunit; ladder / OCW node analysis
 grt-plugins-shared/
   GrtPluginKit/             shared library: GRT IPC client, .grtload reader/writer, chrono parsers
   make-icons.ps1

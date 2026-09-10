@@ -28,13 +28,15 @@ public static class LadderAnalyzer
                 PoiRange: Range(seg.Where(s => s.HasTarget).Select(s => s.PoiYMoa)),
                 GrpMean: Mean(seg.Where(s => s.HasTarget).Select(s => s.MeanRadiusMoa)),
                 GrpRange: Range(seg.Where(s => s.HasTarget).Select(s => s.MeanRadiusMoa)),
-                SdMean: Mean(seg.Where(s => s.HasVel).Select(s => s.SdMps))));
+                SdMean: Mean(seg.Where(s => s.HasVel).Select(s => s.SdMps)),
+                VelFull: seg.All(s => s.HasVel),
+                TargetFull: seg.All(s => s.HasTarget)));
         }
 
         // ---- primary node -----------------------------------------------------
         if (mode == LadderMode.Charge)
         {
-            var velW = windows.Where(x => Count(xs, x, win, s => s.HasVel) >= win).ToList();
+            var velW = windows.Where(x => x.VelFull).ToList();
             if (velW.Count > 0)
             {
                 var best = velW.OrderBy(x => x.VelRange).First();
@@ -44,7 +46,7 @@ public static class LadderAnalyzer
         }
         else
         {
-            var grpW = windows.Where(x => Count(xs, x, win, s => s.HasTarget) >= win).ToList();
+            var grpW = windows.Where(x => x.TargetFull).ToList();
             if (grpW.Count > 0)
             {
                 // tightest groups that are also stable across the window (forgiving node)
@@ -55,7 +57,7 @@ public static class LadderAnalyzer
         }
 
         // ---- vertical-POI node ----------------------------------------------
-        var poiW = windows.Where(x => Count(xs, x, win, s => s.HasTarget) >= win).ToList();
+        var poiW = windows.Where(x => x.TargetFull).ToList();
         if (poiW.Count > 0)
         {
             var best = poiW.OrderBy(x => x.PoiRange).ThenBy(x => x.GrpMean).First();
@@ -64,22 +66,36 @@ public static class LadderAnalyzer
         }
 
         // ---- weighted best -------------------------------------------------
-        double nVel = Norm(windows.Select(x => x.VelRange));
-        double nPoi = Norm(windows.Select(x => x.PoiRange));
-        double nGrpM = Norm(windows.Select(x => x.GrpMean));
-        double nGrpR = Norm(windows.Select(x => x.GrpRange));
-        double nSd = Norm(windows.Select(x => x.SdMean));
-        Win? bestC = null; double bestS = double.MaxValue;
-        foreach (var x in windows)
+        // Only fully measured windows may be recommended: a window missing a chrono or a
+        // target has a 0 range for that signal, which is the *best* possible score, so an
+        // unguarded search hands the recommendation to the least-measured window. A signal
+        // that is absent from the whole ladder is not required (a seating test with no
+        // chrono still gets a node) — it just scores the same everywhere and cancels out.
+        bool anyVel = xs.Any(s => s.HasVel), anyTarget = xs.Any(s => s.HasTarget);
+        var cand = windows.Where(x => (!anyVel || x.VelFull) && (!anyTarget || x.TargetFull)).ToList();
+        if (cand.Count == 0)
         {
+            cand = windows;
+            r.Warnings.Add("no window has both chrono and target data on every step — the recommended node is a best-effort over partly measured windows");
+        }
+        // normalise over the candidates only, so a missing signal scores the worst (1.0)
+        double nVel = Norm(cand.Where(x => x.VelFull).Select(x => x.VelRange));
+        double nPoi = Norm(cand.Where(x => x.TargetFull).Select(x => x.PoiRange));
+        double nGrpM = Norm(cand.Where(x => x.TargetFull).Select(x => x.GrpMean));
+        double nGrpR = Norm(cand.Where(x => x.TargetFull).Select(x => x.GrpRange));
+        double nSd = Norm(cand.Where(x => x.VelFull).Select(x => x.SdMean));
+        Win? bestC = null; double bestS = double.MaxValue;
+        foreach (var x in cand)
+        {
+            double grpM = x.TargetFull ? Safe(x.GrpMean, nGrpM) : Missing;
             double groupTerm = mode == LadderMode.Seating
-                ? Safe(x.GrpMean, nGrpM) + Safe(x.GrpRange, nGrpR)
-                : Safe(x.GrpMean, nGrpM);
+                ? grpM + (x.TargetFull ? Safe(x.GrpRange, nGrpR) : Missing)
+                : grpM;
             double score =
-                w.Velocity * Safe(x.VelRange, nVel) +
-                w.Poi * Safe(x.PoiRange, nPoi) +
+                w.Velocity * (x.VelFull ? Safe(x.VelRange, nVel) : Missing) +
+                w.Poi * (x.TargetFull ? Safe(x.PoiRange, nPoi) : Missing) +
                 w.Group * groupTerm +
-                w.Sd * Safe(x.SdMean, nSd);
+                w.Sd * (x.VelFull ? Safe(x.SdMean, nSd) : Missing);
             if (score < bestS) { bestS = score; bestC = x; }
         }
         if (bestC is { } bc)
@@ -125,7 +141,11 @@ public static class LadderAnalyzer
     }
 
     // ---- helpers ---------------------------------------------------------
-    private readonly record struct Win(int Lo, int Hi, double VelRange, double PoiRange, double GrpMean, double GrpRange, double SdMean);
+    /// <summary>Score charged for a signal this window cannot supply — worse than any measured window,
+    /// whose normalised terms are all &lt;= 1.0.</summary>
+    private const double Missing = 1.0 + 1e-9;
+
+    private readonly record struct Win(int Lo, int Hi, double VelRange, double PoiRange, double GrpMean, double GrpRange, double SdMean, bool VelFull, bool TargetFull);
 
     private static NodeWindow Node(List<LadderStep> xs, Win x, string basis) => Node(xs, x, 0, basis);
     private static NodeWindow Node(List<LadderStep> xs, Win x, double score, string basis) => new()
@@ -136,7 +156,6 @@ public static class LadderAnalyzer
         Score = score,
         Basis = basis,
     };
-    private static int Count(List<LadderStep> xs, Win x, int win, Func<LadderStep, bool> p) => xs.Skip(x.Lo).Take(win).Count(p);
     private static double Range(IEnumerable<double> v) { var l = v.ToList(); return l.Count == 0 ? 0 : l.Max() - l.Min(); }
     private static double Mean(IEnumerable<double> v) { var l = v.ToList(); return l.Count == 0 ? 0 : l.Average(); }
     private static double Norm(IEnumerable<double> v) { var l = v.ToList(); double m = l.Count == 0 ? 0 : l.Max(); return m > 0 ? m : 1; }
