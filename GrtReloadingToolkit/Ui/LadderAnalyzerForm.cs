@@ -292,7 +292,7 @@ internal abstract class LadderAnalyzerForm : Form
             var png = _chart.RenderPng();
             if (png != null)
             {
-                doc.AddGalleryPicture($"{NoteTitle} chart", GalleryPictureName, png, 1600, 760);
+                doc.AddGalleryPicture($"{NoteTitle} chart", GalleryPictureName, png);
                 AppendLog($"embedded chart as gallery picture '{GalleryPictureName}'");
             }
             string outPath = doc.SaveSibling(SiblingSuffix);

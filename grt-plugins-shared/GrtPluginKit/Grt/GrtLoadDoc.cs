@@ -258,6 +258,22 @@ public sealed class GrtLoadDoc
     /// extension ("chart.png"); a report embeds it with <c>~~result.picture.&lt;name&gt;.png~~</c>.
     /// Pass <paramref name="pictureName"/> without the extension — ".png" is appended.
     /// </summary>
+    /// <summary>Adds a gallery picture, reading its pixel size straight from the PNG header
+    /// so the <c>&lt;picture&gt;</c> width/height always match the image.</summary>
+    public void AddGalleryPicture(string galleryTitle, string pictureName, byte[] png, bool showInReport = true)
+    {
+        var (w, h) = PngSize(png);
+        AddGalleryPicture(galleryTitle, pictureName, png, w, h, showInReport);
+    }
+
+    /// <summary>(width, height) from a PNG's IHDR chunk; (0, 0) if it doesn't look like a PNG.</summary>
+    private static (int w, int h) PngSize(byte[] png)
+    {
+        if (png.Length < 24 || png[0] != 0x89 || png[1] != 0x50) return (0, 0);
+        int R(int o) => (png[o] << 24) | (png[o + 1] << 16) | (png[o + 2] << 8) | png[o + 3];
+        return (R(16), R(20));
+    }
+
     public void AddGalleryPicture(string galleryTitle, string pictureName, byte[] png, int width, int height, bool showInReport = true)
     {
         if (!pictureName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) pictureName += ".png";

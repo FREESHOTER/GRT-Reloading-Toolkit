@@ -54,7 +54,7 @@ internal static class LadderCli
             int removed = doc.RemoveByTitlePrefix(title);
             doc.AddNote(title, report);
             string picName = mode == LadderMode.Seating ? "seating_chart" : "ocw_chart";
-            if (png != null) doc.AddGalleryPicture($"{title} chart", picName, png, 1600, 760);
+            if (png != null) doc.AddGalleryPicture($"{title} chart", picName, png);
             string outp = doc.SaveSibling(mode == LadderMode.Seating ? "seating" : "ocw");
             Console.WriteLine($"\n(note '{title}' written -> {outp}, replaced {removed})");
         }
@@ -98,7 +98,7 @@ internal static class LadderCli
             var doc = GrtLoadDoc.OpenForToolkitEdit(outPng);
             doc.RemoveByTitlePrefix(title);
             doc.AddNote(title, LadderAnalyzer.BuildReport(res, $"{title} synthetic"));
-            doc.AddGalleryPicture($"{title} chart", picName, png, 1600, 760);
+            doc.AddGalleryPicture($"{title} chart", picName, png);
             string outp = doc.SaveSibling(mode == LadderMode.Seating ? "seating" : "ocw");
             Console.WriteLine("wrote " + outp);
         }

@@ -26,7 +26,7 @@ internal sealed class LadderChart : Panel
     }
 
     /// <summary>Renders the current result to a stand-alone PNG (for the GRT report gallery).</summary>
-    public byte[]? RenderPng(int width = 1600, int height = 760)
+    public byte[]? RenderPng(int width = 1400, int height = 1040)
     {
         if (_r is null || _r.Rows.Count < 2) return null;
         using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
