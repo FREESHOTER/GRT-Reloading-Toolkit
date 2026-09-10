@@ -10,6 +10,9 @@ public sealed class LoadReport
     public List<string> Log { get; } = new();
 }
 
+/// <summary>Velocities for one ladder step, sourced outside a chrono folder (e.g. a GRT load Measurement).</summary>
+public sealed record LadderVelocity(double Step, IReadOnlyList<double> Velocities);
+
 /// <summary>
 /// Builds ladder steps from a folder of Athlon Rangecraft <c>*.xlsx</c> (velocities) and
 /// Ballistic-X <c>*.csv</c> (target coords), pairing them by the step value.
@@ -21,15 +24,16 @@ public static class LadderLoader
     {
         var rep = new LoadReport();
 
-        var vels = new Dictionary<double, AthlonString>();
+        var vels = new Dictionary<double, IReadOnlyList<double>>();
         var chronoExt = new[] { ".xlsx", ".xls", ".csv" };
+        var chronoFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string f in Directory.EnumerateFiles(folder).Where(f => chronoExt.Contains(Path.GetExtension(f).ToLowerInvariant())).OrderBy(x => x))
         {
             try
             {
                 var a = AthlonParser.Parse(f);
                 double? x = StepValue(mode, a.ChargeGrains, a.SessionNote, f);
-                if (x is { } v) { vels[Key(v)] = a; rep.Log.Add($"velocity {Path.GetFileName(f)} -> {v:0.0##}, {a.Shots.Count} shots"); }
+                if (x is { } v) { vels[Key(v)] = a.Velocities.ToList(); chronoFiles.Add(f); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {v:0.0##}, {a.Shots.Count} shots"); }
                 else rep.Log.Add($"velocity {Path.GetFileName(f)}: no step value, skipped");
             }
             catch (Exception) when (Path.GetExtension(f).Equals(".csv", StringComparison.OrdinalIgnoreCase))
@@ -49,7 +53,7 @@ public static class LadderLoader
                 if (x is { } v) { tgts[Key(v)] = t; rep.Log.Add($"target {Path.GetFileName(f)} -> {v:0.0##}, {t.Impacts.Count} impacts @ {t.DistanceM:0} m"); }
                 else rep.Log.Add($"target {Path.GetFileName(f)}: no step value, skipped");
             }
-            catch (Exception) when (vels.Values.Any(a => string.Equals(a.SourceFile, f, StringComparison.OrdinalIgnoreCase)))
+            catch (Exception) when (chronoFiles.Contains(f))
             {
                 // already consumed as a chrono file
             }
@@ -67,7 +71,8 @@ public static class LadderLoader
     public static LoadReport FromGroups(IEnumerable<TargetGroup> groups, LadderMode mode, string? velFolder = null)
     {
         var rep = new LoadReport();
-        var vels = new Dictionary<double, AthlonString>();
+        var vels = new Dictionary<double, IReadOnlyList<double>>();
+
         if (velFolder != null && Directory.Exists(velFolder))
             foreach (string f in Directory.EnumerateFiles(velFolder, "*.xls*").OrderBy(x => x))
             {
@@ -76,7 +81,7 @@ public static class LadderLoader
                 {
                     var a = AthlonParser.Parse(f);
                     if (StepValue(mode, a.ChargeGrains, a.SessionNote, f) is { } v)
-                    { vels[Key(v)] = a; rep.Log.Add($"velocity {Path.GetFileName(f)} -> {v:0.0##}, {a.Shots.Count} shots"); }
+                    { vels[Key(v)] = a.Velocities.ToList(); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {v:0.0##}, {a.Shots.Count} shots"); }
                 }
                 catch (Exception ex) { rep.Log.Add($"velocity {Path.GetFileName(f)}: {ex.Message}"); }
             }
@@ -93,14 +98,34 @@ public static class LadderLoader
         return rep;
     }
 
-    private static void Merge(LoadReport rep, Dictionary<double, AthlonString> vels, Dictionary<double, TargetGroup> tgts)
+    /// <summary>
+    /// Fills in velocity stats for any ladder step that has none, from velocities carried in the
+    /// open GRT load's Measurement. Steps that already have a chrono velocity are left untouched.
+    /// </summary>
+    public static void FillMissingVelocities(LoadReport rep, IEnumerable<LadderVelocity> extra)
+    {
+        var map = extra.Where(v => v.Velocities.Count > 0)
+                       .GroupBy(v => Key(v.Step))
+                       .ToDictionary(g => g.Key, g => g.Last().Velocities);
+        int filled = 0;
+        foreach (var row in rep.Rows)
+            if (row.VelN == 0 && map.TryGetValue(Key(row.X), out var vs))
+            {
+                var st = StringStats.From(vs.ToList());
+                row.VelN = st.N; row.MeanMps = st.Mean; row.SdMps = st.Sd; row.EsMps = st.Es;
+                filled++;
+            }
+        if (filled > 0) rep.Log.Add($"filled {filled} step(s) with velocities from the load's Measurement");
+    }
+
+    private static void Merge(LoadReport rep, Dictionary<double, IReadOnlyList<double>> vels, Dictionary<double, TargetGroup> tgts)
     {
         foreach (double key in vels.Keys.Union(tgts.Keys).OrderBy(x => x))
         {
             var row = new LadderStep { X = key };
-            if (vels.TryGetValue(key, out var a))
+            if (vels.TryGetValue(key, out var vlist) && vlist.Count > 0)
             {
-                var st = StringStats.From(a.Velocities.ToList());
+                var st = StringStats.From(vlist.ToList());
                 row.VelN = st.N; row.MeanMps = st.Mean; row.SdMps = st.Sd; row.EsMps = st.Es;
             }
             if (tgts.TryGetValue(key, out var t))
@@ -115,6 +140,22 @@ public static class LadderLoader
             }
             rep.Rows.Add(row);
         }
+    }
+
+    /// <summary>Step value for a GRT Measurement <c>&lt;charge&gt;</c> — charge weight (gr) in Charge mode,
+    /// a seating/jump number parsed from the charge name or note in Seating mode.</summary>
+    public static double? MeasurementStep(LadderMode mode, double? chargeGrains, string name, string? note)
+    {
+        if (mode == LadderMode.Charge)
+            return chargeGrains ?? NumberIn(name);
+
+        foreach (var t in new[] { note, name })
+        {
+            if (string.IsNullOrWhiteSpace(t)) continue;
+            var m = Regex.Match(t, @"(?:salto|jump|seat\w*|cbto|coal|profond\w*)\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)", RegexOptions.IgnoreCase);
+            if (m.Success && TryNum(m.Groups[1].Value, out double s)) return s;
+        }
+        return NumberIn(name);
     }
 
     private static double? StepValue(LadderMode mode, double? chargeGrains, string? sessionNote, string path)

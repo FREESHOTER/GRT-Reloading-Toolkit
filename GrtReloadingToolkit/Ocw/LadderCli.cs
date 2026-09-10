@@ -19,6 +19,22 @@ internal static class LadderCli
         string unit = mode == LadderMode.Seating ? "mm" : "gr";
 
         var loaded = LadderLoader.FromFolder(folder, mode);
+
+        // fill any step that has no chrono velocity from the base load's own Measurement, like the GUI
+        if (basePath != null && File.Exists(basePath))
+        {
+            var bdoc = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(basePath));
+            var lv = new List<LadderVelocity>();
+            foreach (var meas in bdoc.Measurements())
+                foreach (var ch in meas.Charges)
+                {
+                    var vs = ch.Shots.Select(sh => sh.VelocityMps).Where(v => v > 50).ToList();
+                    if (vs.Count > 0 && LadderLoader.MeasurementStep(mode, ch.ChargeGrains, ch.Name, ch.Note) is { } step)
+                        lv.Add(new LadderVelocity(step, vs));
+                }
+            if (lv.Count > 0) LadderLoader.FillMissingVelocities(loaded, lv);
+        }
+
         foreach (var l in loaded.Log) Console.WriteLine("  " + l);
         Console.WriteLine();
 

@@ -35,6 +35,7 @@ internal abstract class LadderAnalyzerForm : Form
 
     private string? _folderPath;
     private List<TargetGroup>? _grtGroups;   // set when the source is GRT shot-group tabs
+    private List<LadderVelocity>? _grtVels;  // velocities read from the open load's Measurement
     private LadderResult? _result;
     private Action<string>? _logHandler;
 
@@ -66,7 +67,7 @@ internal abstract class LadderAnalyzerForm : Form
 
         string? preset = PresetEnvVar is null ? null : Environment.GetEnvironmentVariable(PresetEnvVar);
         if (!string.IsNullOrWhiteSpace(preset) && Directory.Exists(preset))
-            Shown += (_, _) => { _folderPath = preset; _folder.Text = preset; Reanalyze(); };
+            Shown += async (_, _) => { _folderPath = preset; _folder.Text = preset; await RefreshLoadVelocitiesAsync(); Reanalyze(); };
     }
 
     public void BringForward()
@@ -79,7 +80,7 @@ internal abstract class LadderAnalyzerForm : Form
     {
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 66, Padding = new Padding(6, 6, 6, 0), WrapContents = true };
         var pick = new Button { Text = "Pick ladder folder…", AutoSize = true };
-        pick.Click += (_, _) => PickFolder();
+        pick.Click += async (_, _) => await PickFolderAsync();
         top.Controls.Add(pick);
         top.Controls.Add(_folder);
         top.Controls.Add(new Label { Text = "  w POI", AutoSize = true, Padding = new Padding(10, 6, 0, 0) });
@@ -144,14 +145,39 @@ internal abstract class LadderAnalyzerForm : Form
         Controls.Add(top);
     }
 
-    private void PickFolder()
+    private async Task PickFolderAsync()
     {
         using var d = new FolderBrowserDialog { Description = "Folder with chrono *.xlsx (Athlon/Garmin) and Ballistic-X *.csv for one ladder" };
         if (d.ShowDialog(this) != DialogResult.OK) return;
         _folderPath = d.SelectedPath;
         _folder.Text = _folderPath;
-        _grtGroups = null;   // folder source replaces GRT-group source
+        _grtGroups = null;   // folder source replaces the GRT shot-group source
+        await RefreshLoadVelocitiesAsync();   // best-effort: fill gaps from the open load's Measurement
         Reanalyze();
+    }
+
+    /// <summary>Reads per-charge velocities from the open GRT load's Measurement(s), best-effort.</summary>
+    private async Task RefreshLoadVelocitiesAsync()
+    {
+        _grtVels = null;
+        if (_grt is not { Connected: true }) return;
+        try
+        {
+            var top = await _grt.GetTabOnTopAsync();
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) return;
+            var doc = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
+            var vlist = new List<LadderVelocity>();
+            foreach (var meas in doc.Measurements())
+                foreach (var ch in meas.Charges)
+                {
+                    var vs = ch.Shots.Select(s => s.VelocityMps).Where(v => v > 50).ToList();
+                    if (vs.Count == 0) continue;
+                    if (LadderLoader.MeasurementStep(Mode, ch.ChargeGrains, ch.Name, ch.Note) is { } step)
+                        vlist.Add(new LadderVelocity(step, vs));
+                }
+            if (vlist.Count > 0) { _grtVels = vlist; AppendLog($"velocities available from load Measurement: {vlist.Count} charge(s)"); }
+        }
+        catch (Exception ex) { AppendLog("load-velocity read skipped: " + ex.Message); }
     }
 
     private async Task LoadGrtGroupsAsync()
@@ -174,6 +200,9 @@ internal abstract class LadderAnalyzerForm : Form
             foreach (var l in log) AppendLog(l);
             if (groups.Count == 0) { MessageBox.Show(this, "No usable shot groups in that load.", "Groups from GRT"); return; }
 
+            // so the MV flat-spot appears without also pointing at a chrono folder
+            await RefreshLoadVelocitiesAsync();
+
             _grtGroups = groups;
             _folder.Text = $"GRT shot groups ({groups.Count}) — {Path.GetFileName(top.file)}";
             Reanalyze();
@@ -193,6 +222,7 @@ internal abstract class LadderAnalyzerForm : Form
             var loaded = _grtGroups is { } gg
                 ? LadderLoader.FromGroups(gg, Mode, _folderPath)
                 : LadderLoader.FromFolder(_folderPath!, Mode);
+            if (_grtVels is { } lv) LadderLoader.FillMissingVelocities(loaded, lv);
             foreach (var l in loaded.Log) AppendLog(l);
 
             var w = AnalysisWeights.For(Mode);

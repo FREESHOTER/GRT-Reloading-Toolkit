@@ -92,10 +92,16 @@ and `1.234,5` number styles are accepted; the summary footer is ignored.
 
 Finds the accuracy node in a **charge ladder** from chronograph velocities and target groups.
 
-**Two data sources for the groups** (velocities always come from chrono files):
+**Two data sources for the groups:**
 
 - **Ballistic-X `.csv` exports** — put them in the same folder as the chrono files, one per charge.
 - **GRT's own "Shot group" tabs** — see §10.
+
+**Velocities** come from the chrono `*.xlsx` in the picked folder. Any charge that has no chrono
+file is filled in automatically from the **chronograph Measurement already imported into the open
+load** (§3), matched by charge weight — so if you ran the chrono import first, the MV flat-spot and
+the blue MV line appear even when the folder holds only target `.csv` files. A chrono file in the
+folder always wins over the load's own numbers for that charge.
 
 **Top bar**
 

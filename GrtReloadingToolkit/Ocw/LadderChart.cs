@@ -79,7 +79,29 @@ internal sealed class LadderChart : Panel
 
         var ci = CultureInfo.InvariantCulture;
         using var fnt = new Font("Segoe UI", fpt);
+        using var fsm = new Font("Segoe UI", fpt * 0.9f);
         using var tb = new SolidBrush(Color.FromArgb(210, 220, 230));
+        using var tf = new SolidBrush(Color.FromArgb(150, 165, 180));
+
+        // horizontal grid + dual y-axis ticks at round values (left = primary series, right = POI-Y)
+        using var grid = new Pen(Color.FromArgb(30, 148, 163, 184));
+        void YAxis((double lo, double hi) rng, Func<double, float> Y, bool left, string unit, bool drawGrid)
+        {
+            double step = NiceStep(rng.hi - rng.lo, 4);
+            int dp = step >= 1 ? 0 : step >= 0.1 ? 1 : 2;
+            float xTxt = left ? 4 * s : ml + pw + 4 * s;
+            for (double v = Math.Ceiling(rng.lo / step) * step; v <= rng.hi + step * 1e-6; v += step)
+            {
+                float yy = Y(v);
+                if (yy < mt + 6 * s || yy > mt + ph - 4 * s) continue;
+                if (drawGrid) g.DrawLine(grid, ml, yy, ml + pw, yy);
+                g.DrawString(v.ToString("0." + new string('0', dp), ci), fsm, tf, xTxt, yy - 7 * s);
+            }
+            g.DrawString(unit, fsm, tf, xTxt, mt - 16 * s);
+        }
+        if (pr.Count > 1) YAxis(PR, Yp, left: true, pUnitLo, drawGrid: true);
+        if (po.Count > 1) YAxis(PoR, Ypo, left: false, "MOA", drawGrid: pr.Count <= 1);
+
         foreach (var x in rows)
         {
             g.DrawString(x.X.ToString(seat ? "0.0##" : "0.0", ci), fnt, tb, X(x.X) - 12 * s, mt + ph + 5 * s);
@@ -93,8 +115,6 @@ internal sealed class LadderChart : Panel
             g.DrawLines(p, pts);
             using var dot = new SolidBrush(Color.FromArgb(56, 189, 248));
             foreach (var pt in pts) g.FillEllipse(dot, pt.X - dotR, pt.Y - dotR, dotR * 2, dotR * 2);
-            g.DrawString(FormattableString.Invariant($"{pName} {PR.hi:0.0#}"), fnt, tb, 4 * s, mt - 2 * s);
-            g.DrawString(FormattableString.Invariant($"{PR.lo:0.0#} {pUnitLo}"), fnt, tb, 4 * s, mt + ph - 12 * s);
         }
 
         if (po.Count > 1)
@@ -109,18 +129,26 @@ internal sealed class LadderChart : Panel
                 float rad = (3 + 5 * (float)(1 - po[i].MeanRadiusMoa / Math.Max(1e-6, grpMax))) * s;
                 g.FillEllipse(dot, pts[i].X - rad, pts[i].Y - rad, rad * 2, rad * 2);
             }
-            g.DrawString(FormattableString.Invariant($"POI-Y {PoR.hi:0.0}"), fnt, tb, width - mr + 2 * s, mt - 2 * s);
-            g.DrawString(FormattableString.Invariant($"{PoR.lo:0.0} MOA"), fnt, tb, width - mr + 2 * s, mt + ph - 12 * s);
         }
 
         using var lg = new Font("Segoe UI", fpt, FontStyle.Bold);
         g.DrawString($"- {pName}    - - POI-Y (marker = group, bigger = tighter)", lg, tb, ml, 4 * s);
     }
 
+    /// <summary>A 1-2-5 &times; 10ⁿ step that splits <paramref name="span"/> into roughly <paramref name="target"/> intervals.</summary>
+    private static double NiceStep(double span, int target)
+    {
+        if (span <= 1e-9) return 1;
+        double raw = span / Math.Max(1, target);
+        double mag = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+        double n = raw / mag;
+        return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag;
+    }
+
     private static (double lo, double hi) Pad((double lo, double hi) r)
     {
         if (r.hi - r.lo < 1e-9) return (r.lo - 1, r.hi + 1);
-        double p = (r.hi - r.lo) * 0.12;
+        double p = (r.hi - r.lo) * 0.14;
         return (r.lo - p, r.hi + p);
     }
 }
