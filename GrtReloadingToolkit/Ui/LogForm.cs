@@ -180,7 +180,10 @@ internal sealed class LogForm : Form
     {
         if (SelectedComponent is not { } c) return;
         string? s = Prompt($"Add how many {c.Unit} to '{c.Display}'? (negative to correct down)");
-        if (s != null && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double d))
+        // Str.ParseNumber, not an InvariantCulture TryParse: an Italian or German user types
+        // "1,5" and an invariant parse rejects it, so the restock silently does nothing. The
+        // same reason NudFix exists for every NumericUpDown in the app.
+        if (GrtPluginKit.Util.Str.ParseNumber(s) is { } d)
         {
             _db.AdjustStock(c.Id, d, "manual restock");
             RefreshInventory();
