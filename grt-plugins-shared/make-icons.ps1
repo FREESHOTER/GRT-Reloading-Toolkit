@@ -1,12 +1,23 @@
 <#
   Themed monochrome plugin icons for GRT (white line art on transparent).
   GRT recolors them per color preset when the manifest sets icon_colorize="true".
-  Output: ./icons/<name>_16x16.png and ./icons/<name>_32x32.png
+
+  Writes <name>_16x16.png and <name>_32x32.png straight into the plugin's icon folder,
+  overwriting the committed set — the names below ARE the names com.grt.plugin.xml and the
+  launcher ask for. It used to write nine differently-named files (athlon_import, ladder_ocw,
+  ...) into ./icons/, which .gitignore excludes and nothing reads, so regenerating the icons
+  changed nothing anyone could see.
+
+  Usage:
+    ./make-icons.ps1
+    ./make-icons.ps1 -OutDir ..\SomeOtherPlugin\plugin\media\icons
 #>
+param(
+    [string]$OutDir = (Join-Path $PSScriptRoot "..\GrtReloadingToolkit\plugin\media\icons")
+)
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
-$outDir = Join-Path $PSScriptRoot "icons"
 New-Item -ItemType Directory -Force $outDir | Out-Null
 
 function Draw([int]$S, [scriptblock]$Body) {
@@ -31,7 +42,7 @@ function Pt($x, $y, $k) { New-Object System.Drawing.PointF(($x * $k), ($y * $k))
 $icons = @{
 
   # Athlon import — a bullet dropping into a tray
-  "athlon_import" = {
+  "icn_athlon" = {
     param($g, $pen, $brush, $k, $S)
     # tray (open top)
     $g.DrawLines($pen, @((Pt 7 19 $k), (Pt 7 27 $k), (Pt 25 27 $k), (Pt 25 19 $k)))
@@ -54,7 +65,7 @@ $icons = @{
   }
 
   # Ladder / OCW — ascending bars, one node ringed
-  "ladder_ocw" = {
+  "icn_ocw" = {
     param($g, $pen, $brush, $k, $S)
     $base = 27
     $g.DrawLine($pen, (Pt 4 $base $k), (Pt 28 $base $k))
@@ -70,7 +81,7 @@ $icons = @{
   }
 
   # Seating depth — bullet seated in a case, with a depth double-arrow
-  "seating_depth" = {
+  "icn_seating" = {
     param($g, $pen, $brush, $k, $S)
     # case: open-top U
     $g.DrawLines($pen, @((Pt 8 8 $k), (Pt 8 27 $k), (Pt 19 27 $k), (Pt 19 8 $k)))
@@ -92,7 +103,7 @@ $icons = @{
   }
 
   # Barrel calibration — gauge arc + needle + adjust tick
-  "barrel_cal" = {
+  "icn_cal" = {
     param($g, $pen, $brush, $k, $S)
     # gauge arc (open bottom)
     $g.DrawArc($pen, (5 * $k), (7 * $k), (22 * $k), (22 * $k), 160, 220)
@@ -108,7 +119,7 @@ $icons = @{
   }
 
   # Powder temp coefficient — thermometer
-  "temp_coeff" = {
+  "icn_temp" = {
     param($g, $pen, $brush, $k, $S)
     # bulb
     $g.FillEllipse($brush, (12 * $k), (21 * $k), (8 * $k), (8 * $k))
@@ -125,7 +136,7 @@ $icons = @{
   }
 
   # Load card / label — a tag with a hole and lines + a small QR square
-  "load_label" = {
+  "icn_label" = {
     param($g, $pen, $brush, $k, $S)
     # tag outline (pointed left)
     $tag = New-Object System.Drawing.Drawing2D.GraphicsPath
@@ -148,7 +159,7 @@ $icons = @{
   }
 
   # Brass prep — case mouth + caliper jaws
-  "brass_prep" = {
+  "icn_brass" = {
     param($g, $pen, $brush, $k, $S)
     # case (open top, tapered neck)
     $g.DrawLines($pen, @((Pt 9 27 $k), (Pt 9 15 $k), (Pt 12 10 $k), (Pt 12 6 $k)))
@@ -164,7 +175,7 @@ $icons = @{
   }
 
   # Toolkit — a wrench crossed with a screwdriver (single entry-point icon)
-  "toolkit" = {
+  "icn_toolkit" = {
     param($g, $pen, $brush, $k, $S)
     $thick = if ($S -le 16) { 2.4 } else { 3.4 }
     $p2 = New-Object System.Drawing.Pen([System.Drawing.Color]::White, $thick)
@@ -182,7 +193,7 @@ $icons = @{
   }
 
   # Inventory / journal — clipboard with a check and entry lines
-  "inventory_log" = {
+  "icn_log" = {
     param($g, $pen, $brush, $k, $S)
     $g.DrawRectangle($pen, (6 * $k), (6 * $k), (20 * $k), (23 * $k))
     $g.DrawRectangle($pen, (12 * $k), (3 * $k), (8 * $k), (5 * $k))
