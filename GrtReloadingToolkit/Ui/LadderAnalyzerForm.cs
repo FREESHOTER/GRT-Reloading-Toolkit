@@ -251,7 +251,7 @@ internal abstract class LadderAnalyzerForm : Form
                         && c >= bn.Low - 1e-6 && c <= bn.High + 1e-6)
                         row.DefaultCellStyle.BackColor = Color.FromArgb(215, 245, 220);
 
-            _chart.Show(_result);
+            _chart.SetData(_result);
             _summary.Text = LadderAnalyzer.BuildReport(_result, HeadlineFor(DateTime.Now)).Replace("\n", "\r\n");
             _writeBtn.Enabled = _result.BestNode != null && _grt is { Connected: true };
             _status.Text = _result.BestNode is { } n

@@ -60,7 +60,7 @@ internal sealed class LogForm : Form
         _fa.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _fa.Dock = DockStyle.Fill;
         _fa.CellDoubleClick += (_, _) => { if (_fa.CurrentRow?.Tag is Firearm f) EditFirearm(f); };
-        _fa.SelectionChanged += (_, _) => ShowBarrelChart();
+        _fa.SelectionChanged += (_, _) => RefreshBarrelChart();
         foreach (var (n, h) in new[] { ("name", "Firearm"), ("cal", "Caliber"), ("tot", "Total rounds"), ("ent", "MV entries"), ("last", "Last used") })
             _fa.Columns.Add(n, h);
 
@@ -84,12 +84,12 @@ internal sealed class LogForm : Form
                 hist.Count > 0 ? hist[^1].date : "");
             _fa.Rows[i].Tag = f;
         }
-        ShowBarrelChart();
+        RefreshBarrelChart();
     }
 
-    private void ShowBarrelChart()
+    private void RefreshBarrelChart()
     {
-        _faChart.Show(_fa.CurrentRow?.Tag is Firearm f ? (f.Name, _db.FirearmMvHistory(f.Id)) : (null, null));
+        _faChart.SetData(_fa.CurrentRow?.Tag is Firearm f ? (f.Name, _db.FirearmMvHistory(f.Id)) : (null, null));
     }
 
     private void EditFirearm(Firearm f)
