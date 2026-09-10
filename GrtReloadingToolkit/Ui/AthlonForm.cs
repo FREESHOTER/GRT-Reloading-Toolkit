@@ -13,7 +13,7 @@ internal sealed class AthlonForm : Form
     private readonly List<AthlonString> _strings = new();
 
     private readonly DataGridView _grid = new();
-    private readonly TextBox _log = new();
+    private readonly TextBox _log = UiLog.NewLogBox();
     private readonly Label _status = new();
     private readonly CheckBox _perShotTemp = new();
     private readonly CheckBox _replacePrev = new() { Checked = true };
@@ -102,13 +102,9 @@ internal sealed class AthlonForm : Form
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "es", HeaderText = "ES", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = "Temp °C", FillWeight = 10 });
 
+
         var bottom = new Panel { Dock = DockStyle.Bottom, Height = 150 };
-        _log.Multiline = true;
-        _log.ReadOnly = true;
-        _log.ScrollBars = ScrollBars.Vertical;
         _log.Dock = DockStyle.Fill;
-        _log.BackColor = SystemColors.Window;
-        _log.Font = new Font(FontFamily.GenericMonospace, 8f);
 
         var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 44, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _importBtn.Text = "Import into GRT";

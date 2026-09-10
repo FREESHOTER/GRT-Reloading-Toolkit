@@ -17,6 +17,7 @@ internal sealed class CalibrationForm : Form
     private readonly GrtClient? _grt;
     private readonly DataGridView _grid = new();
     private readonly TextBox _summary = new();
+    private readonly TextBox _log = UiLog.NewLogBox();
     private readonly Label _status = new();
     private readonly Button _writeNote = new() { Text = "Write calibration note", AutoSize = true, Enabled = false };
     private readonly Button _writeBa = new() { Text = "Write Ba-corrected .grtload", AutoSize = true, Enabled = false };
@@ -33,9 +34,9 @@ internal sealed class CalibrationForm : Form
         _grt = grt;
         _logHandler = AppendLog;
         Text = AppVersion.Title("GRT Barrel Calibration");
-        Width = 820; Height = 560;
+        Width = 820; Height = 650;
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(640, 420);
+        MinimumSize = new Size(640, 510);
         Build();
         NudFix.ApplyTo(this);
         if (_grt != null) _grt.Log += _logHandler;
@@ -92,9 +93,14 @@ internal sealed class CalibrationForm : Form
         _summary.Font = new Font(FontFamily.GenericMonospace, 8.5f);
         _summary.Dock = DockStyle.Fill;
 
-        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 210 };
+        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(210);
         split.Panel1.Controls.Add(_grid);
         split.Panel2.Controls.Add(_summary);
+
+        // Diagnostics get their own box: the summary is rewritten wholesale on every
+        // analysis, so anything appended to it is wiped milliseconds later.
+        _log.Dock = DockStyle.Bottom;
+        _log.Height = 90;
 
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _writeNote.Click += async (_, _) => await WriteAsync(false);
@@ -105,6 +111,7 @@ internal sealed class CalibrationForm : Form
         _status.Dock = DockStyle.Bottom; _status.Height = 20; _status.ForeColor = SystemColors.GrayText; _status.Padding = new Padding(8, 2, 0, 0);
 
         Controls.Add(split);
+        Controls.Add(_log);
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(top);
@@ -334,5 +341,5 @@ internal sealed class CalibrationForm : Form
         MessageBox.Show(this, ex.Message, "Calibration", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
-    private void AppendLog(string line) => _summary.SafeAppend(line);
+    private void AppendLog(string line) => _log.SafeAppend(line);
 }

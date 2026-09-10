@@ -64,7 +64,7 @@ internal sealed class LogForm : Form
         foreach (var (n, h) in new[] { ("name", "Firearm"), ("cal", "Caliber"), ("tot", "Total rounds"), ("ent", "MV entries"), ("last", "Last used") })
             _fa.Columns.Add(n, h);
 
-        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 180 };
+        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(180);
         split.Panel1.Controls.Add(_fa);
         _faChart.Dock = DockStyle.Fill;
         split.Panel2.Controls.Add(_faChart);

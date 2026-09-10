@@ -238,6 +238,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       </tbody></table>
       <p><strong>Griglia:</strong> carica · n · MV · SD · ES · distanza · POI-Y (MOA) · raggio medio
         del gruppo (MOA) · dispersione verticale (MOA). Il nodo consigliato è evidenziato in verde.</p>
+      <p><strong>Riquadro di log:</strong> la striscia sopra i pulsanti riporta il resoconto del
+        caricamento &mdash; quali file sono stati letti, quali sono stati saltati e perché, e i messaggi
+        della connessione a GRT. Il riquadro del riepilogo viene riscritto da zero a ogni analisi; il log no.</p>
       <h3>Cosa calcola</h3>
       <ul>
         <li><strong>Flat-spot di velocità (Satterlee)</strong> — la finestra di gradini in cui la MV media varia meno.</li>
@@ -284,7 +287,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <li><strong>Write calibration note</strong> (solo nota) o <strong>Write Ba-corrected
           .grtload</strong> (nota + il nuovo <code>Ba</code>).</li>
       </ol>
-      <p><strong>Griglia:</strong> Charge gr · Meas MV · Sim MV · Δ&nbsp;m/s · Δ&nbsp;%.</p>
+      <p><strong>Griglia:</strong> Charge gr · Meas MV · Sim MV · Δ&nbsp;m/s · Δ&nbsp;%. La striscia sopra
+        i pulsanti registra lo sweep mentre gira; il riquadro del riepilogo sopra di essa viene riscritto
+        a ogni ricalcolo.</p>
       <div class="formula">
         <span class="c">// per ogni carica</span><br>
         Δ%  =  100 · (misurata − sim) / sim<br><br>
@@ -318,6 +323,8 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <li><strong>Fit</strong> → tcc / tch, e i m/s per °C grezzi.</li>
         <li><strong>Write tcc/tch to GRT load</strong>.</li>
       </ol>
+      <p>La striscia sopra i pulsanti registra ogni stringa man mano che viene letta; il riquadro del
+        riepilogo sopra di essa viene riscritto a ogni fit.</p>
       <div class="formula">
         Ba(T)  ≈  Ba₂₁ · ( MV(T) / MV₂₁ )²<br>
         tcc  =  media( (Ba₂₁ − Ba(T)) / (21 − T) )   <span class="c">per le stringhe fredde</span><br>

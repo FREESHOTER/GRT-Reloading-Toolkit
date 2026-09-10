@@ -18,6 +18,7 @@ internal sealed class TempCoeffForm : Form
     private readonly GrtClient? _grt;
     private readonly DataGridView _grid = new();
     private readonly TextBox _summary = new();
+    private readonly TextBox _log = UiLog.NewLogBox();
     private readonly Label _status = new();
     private readonly NumericUpDown _ba = new() { DecimalPlaces = 6, Increment = 0.001M, Maximum = 100, Width = 90 };
     private readonly Button _write = new() { Text = "Write tcc/tch to GRT load", AutoSize = true, Enabled = false };
@@ -35,9 +36,9 @@ internal sealed class TempCoeffForm : Form
         _grt = grt;
         _logHandler = AppendLog;
         Text = AppVersion.Title("GRT Powder Temp-Coefficient Fitter");
-        Width = 860; Height = 560;
+        Width = 860; Height = 650;
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(660, 420);
+        MinimumSize = new Size(660, 510);
         Build();
         NudFix.ApplyTo(this);
         if (_grt != null) _grt.Log += _logHandler;
@@ -91,9 +92,14 @@ internal sealed class TempCoeffForm : Form
         _summary.Font = new Font(FontFamily.GenericMonospace, 8.5f);
         _summary.Dock = DockStyle.Fill;
 
-        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 200 };
+        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(200);
         split.Panel1.Controls.Add(_grid);
         split.Panel2.Controls.Add(_summary);
+
+        // Diagnostics get their own box: the summary is rewritten wholesale on every
+        // analysis, so anything appended to it is wiped milliseconds later.
+        _log.Dock = DockStyle.Bottom;
+        _log.Height = 90;
 
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _write.Click += async (_, _) => await WriteAsync();
@@ -102,6 +108,7 @@ internal sealed class TempCoeffForm : Form
         _status.Dock = DockStyle.Bottom; _status.Height = 20; _status.ForeColor = SystemColors.GrayText; _status.Padding = new Padding(8, 2, 0, 0);
 
         Controls.Add(split);
+        Controls.Add(_log);
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(top);
@@ -219,5 +226,5 @@ internal sealed class TempCoeffForm : Form
 
     private void Err(Exception ex) { AppendLog("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, "Temp coefficients", MessageBoxButtons.OK, MessageBoxIcon.Error); }
 
-    private void AppendLog(string line) => _summary.SafeAppend(line);
+    private void AppendLog(string line) => _log.SafeAppend(line);
 }

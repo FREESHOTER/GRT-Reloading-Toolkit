@@ -7,6 +7,19 @@ namespace GrtReloadingToolkit.Ui;
 /// </summary>
 internal static class UiLog
 {
+    /// <summary>
+    /// A box to <see cref="SafeAppend"/> into: read-only, monospaced, scrolling. Docking and
+    /// sizing are the form's business — this only fixes the look, which every log box shares.
+    /// </summary>
+    public static TextBox NewLogBox() => new()
+    {
+        Multiline = true,
+        ReadOnly = true,
+        ScrollBars = ScrollBars.Vertical,
+        BackColor = SystemColors.Window,
+        Font = new Font(FontFamily.GenericMonospace, 8f),
+    };
+
     public static void SafeAppend(this TextBox box, string line)
     {
         if (box is null || box.IsDisposed || box.Disposing || !box.IsHandleCreated) return;
