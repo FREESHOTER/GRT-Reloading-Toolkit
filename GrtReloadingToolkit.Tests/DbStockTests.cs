@@ -142,7 +142,10 @@ public sealed class DbStockTests : IDisposable
         }
         finally
         {
-            foreach (string f in Directory.EnumerateFiles(".", bare + "*")) File.Delete(f);
+            // the pooled SQLite connection keeps a Windows file lock past Dispose()
+            SqliteConnection.ClearAllPools();
+            foreach (string f in Directory.EnumerateFiles(".", bare + "*"))
+                try { File.Delete(f); } catch (IOException) { }
         }
     }
 }
