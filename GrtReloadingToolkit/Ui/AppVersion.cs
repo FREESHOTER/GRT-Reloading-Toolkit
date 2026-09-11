@@ -12,7 +12,7 @@ namespace GrtReloadingToolkit.Ui;
 /// </summary>
 internal static class AppVersion
 {
-    /// <summary>"0.1.6" — the informational version with any "+buildmetadata" suffix trimmed.</summary>
+    /// <summary>"0.1.7" — the informational version with any "+buildmetadata" suffix trimmed.</summary>
     public static string Short { get; } = Read();
 
     /// <summary>A window caption with the version appended the way every tool window shows it.</summary>

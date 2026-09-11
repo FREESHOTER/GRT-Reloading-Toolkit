@@ -6,7 +6,7 @@
   <plugin
     name           = "Reloading Toolkit"
     id             = "com.grt.plugin.reloadingtoolkit"
-    version        = "0.1.6"
+    version        = "0.1.7"
     provider       = "community"
     description    = "Reloading tools in one window: Athlon Rangecraft chrono import, Ladder / OCW analyzer, Seating-depth analyzer, barrel calibration, powder temp-coefficient fitter, brass prep (case volume + neck tension), load card / label, component inventory + load journal with cost per round, and installable GRT report templates."
     launch-windows = "GRT_Reloading_Toolkit.exe"
