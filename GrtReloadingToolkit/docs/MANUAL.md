@@ -322,7 +322,7 @@ All on the exe (`plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe`):
 --ladder charge|seating <folder> [base.grtload]  ladder analysis
 --ladder charge|seating --synthetic [out.png]    fixture-free chart test
 --groups <load.grtload> [mm|cm|in] [m|yd] [--drop-flyers]   GRT shot-group → MOA
---cal <port> <base> <charge:simMv> …             calibration math
+--cal <port> <base> <charge:simMv> …             calibration math (sim MVs given, not swept)
 --tcoeff <Ba> <file.xlsx:tempC> …                temp-coefficient fit
 --card <base.grtload> [outDir]                   render a recipe card / labels
 --brass vol gr|g <w…>  |  --brass neck <dia> <wall> <interf> [loadedOd]  |  --brass seat <cbto> <caselen> <bbto> [mm|in]

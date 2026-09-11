@@ -25,7 +25,7 @@ internal sealed class AthlonForm : Form
     {
         _grt = grt;
         _logHandler = AppendLog;
-        Text = "Chronograph import (Athlon / Garmin)  (v0.1)";
+        Text = AppVersion.Title("Chronograph import (Athlon / Garmin)");
         Width = 900;
         Height = 560;
         StartPosition = FormStartPosition.CenterScreen;

@@ -17,8 +17,37 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
-$dotnet = "C:\Program Files\dotnet\dotnet.exe"
+# dotnet off PATH: the hardcoded "C:\Program Files\dotnet\dotnet.exe" broke every install that
+# isn't the default x64 machine-wide one — winget, per-user, ARM64, side-by-side.
+$dotnet = (Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue |
+           Select-Object -First 1).Source
+if (-not $dotnet) {
+    $dotnet = @("$env:ProgramFiles\dotnet\dotnet.exe",
+                "${env:ProgramFiles(x86)}\dotnet\dotnet.exe",
+                "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe") |
+              Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+}
+if (-not $dotnet) { throw "dotnet not found on PATH. Install the .NET 8 SDK: https://dotnet.microsoft.com/download/dotnet/8.0" }
 $csproj = Join-Path $root "GrtReloadingToolkit.csproj"
+
+# The version lives in Directory.Build.props and nowhere else: the assemblies get it from the
+# compiler, the window titles read it back off the assembly, and the shipped manifest is stamped
+# with it below. GRT reads com.grt.plugin.xml, so an unstamped copy is how a 0.1.5 build ends up
+# announcing itself as 0.1.0.
+$propsPath = Join-Path $root "..\Directory.Build.props"
+$version = ([xml](Get-Content $propsPath)).SelectSingleNode("/Project/PropertyGroup/Version").InnerText.Trim()
+if (-not $version) { throw "no <Version> in $propsPath" }
+Write-Host "==> version $version"
+
+# Rewrites the manifest's version attribute in place. Line-anchored so it can't hit the
+# `<?xml version="1.0"?>` declaration, and the result is re-parsed and checked, because a
+# silently unstamped manifest is exactly the drift this is here to stop.
+function Stamp($manifest) {
+    $txt = [regex]::Replace((Get-Content $manifest -Raw), '(?m)^(\s*version\s*=\s*")[^"]*(")', "`${1}$version`${2}")
+    Set-Content $manifest -Value $txt -NoNewline -Encoding UTF8
+    $got = ([xml](Get-Content $manifest)).SelectSingleNode("/GordonsReloadingTool/plugin").GetAttribute("version")
+    if ($got -ne $version) { throw "manifest version is '$got', expected '$version' — check the version attribute in plugin\com.grt.plugin.xml" }
+}
 
 function Assemble($outDir, $payloadDir) {
     if (Test-Path $outDir) { Remove-Item -Recurse -Force $outDir }
@@ -26,6 +55,7 @@ function Assemble($outDir, $payloadDir) {
     Copy-Item (Join-Path $payloadDir "*") $outDir -Recurse
     Remove-Item -Recurse -Force (Join-Path $outDir "plugin") -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $root "plugin\com.grt.plugin.xml") $outDir -Force
+    Stamp (Join-Path $outDir "com.grt.plugin.xml")
     Copy-Item (Join-Path $root "plugin\media") $outDir -Recurse
     Copy-Item (Join-Path $root "README.md") $outDir
     Copy-Item (Join-Path $root "MANUAL.md") $outDir

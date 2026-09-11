@@ -47,6 +47,7 @@ you're done, open the newest one and *File → Save As* under a real name.
 Needs the .NET 8 SDK.
 
 ```powershell
+dotnet build                    # the whole solution (Windows only — the plugin is WinForms)
 dotnet build GrtReloadingToolkit/GrtReloadingToolkit.csproj -c Release
 
 # assemble the drop-in plugin folder(s) under dist\ (and optionally .zip them):
@@ -56,13 +57,19 @@ pwsh GrtReloadingToolkit/build-plugin.ps1 -Zip
 # add -GrtDir "C:\path\to\GRT…" to also copy it straight into that GRT's plugins\
 ```
 
+The version lives in `Directory.Build.props` and nowhere else — both assemblies get it from the
+compiler, the window titles read it back off the assembly, and `build-plugin.ps1` stamps it into
+the `com.grt.plugin.xml` it puts in `dist\`. Bump it there and tag the release to match.
+
 Tests:
 
 ```
 dotnet test GrtReloadingToolkit.Tests/GrtReloadingToolkit.Tests.csproj
 ```
 
-They run anywhere — no Windows Desktop SDK needed. The ladder analyser and the log store are
+They run anywhere — no Windows Desktop SDK needed, so on macOS or Linux name the two
+portable projects rather than the solution (`dotnet build` at the root pulls in the WinForms
+project and fails). The ladder analyser and the log store are
 plain arithmetic and SQLite with no WinForms dependency, so the test project links their source
 files rather than referencing the `net8.0-windows` plugin project.
 

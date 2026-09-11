@@ -9,8 +9,6 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>GRT_Reloading_Toolkit</AssemblyName>
     <RootNamespace>GrtReloadingToolkit</RootNamespace>
-    <Version>0.1.0</Version>
-    <Product>GRT Reloading Toolkit</Product>
     <!-- DPI awareness is set by app.manifest (dpiAware=false), applied by the OS loader before
          any managed code runs. The tool windows use hand-coded pixel layout; letting Windows
          bitmap-scale each window is proportionally correct at any scale (slightly soft above

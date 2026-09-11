@@ -34,7 +34,7 @@ internal sealed class TempCoeffForm : Form
     {
         _grt = grt;
         _logHandler = AppendLog;
-        Text = "GRT Powder Temp-Coefficient Fitter  (v0.1)";
+        Text = AppVersion.Title("GRT Powder Temp-Coefficient Fitter");
         Width = 860; Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(660, 420);

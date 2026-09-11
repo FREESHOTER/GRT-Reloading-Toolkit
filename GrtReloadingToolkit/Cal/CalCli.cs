@@ -8,6 +8,8 @@ namespace GrtReloadingToolkit.Cal;
 /// <summary>
 /// Console harness:  --cal &lt;ipcport&gt; &lt;base.grtload&gt; &lt;charge:simMv&gt; [&lt;charge:simMv&gt; ...]
 /// Loads measured MV from the base file's Measurements and pairs with the given sim MVs.
+/// The sim MVs are the ones you type — this exercises the calibration maths, not GRT's solver.
+/// For a real per-charge sweep of GRT use the Barrel Calibration window (<c>SweepAll</c>).
 /// </summary>
 internal static class CalCli
 {
@@ -37,17 +39,30 @@ internal static class CalCli
                 if (v.Count > 0 && c.ChargeGrains is { } g) meas[Math.Round(g, 2)] = StringStats.From(v).Mean;
             }
 
+        // The simMv of each charge:simMv pair is used as given. This harness is the calibration
+        // *maths* — GRT is read for the load on top and its Ba, not swept: nothing here tells GRT
+        // to change the charge, so querying it once per pair returned the same simulated MV every
+        // time, for every charge. (It set MOCK_SIM_MV first, which nothing in the repo reads.)
+        // The real per-charge sweep is Ui/CalibrationForm.SweepAll, which writes a one-shot load
+        // per charge and opens each in GRT.
         var result = new CalResult();
         foreach (string spec in args.Skip(3))
         {
             var parts = spec.Split(':');
-            double chg = double.Parse(parts[0], CultureInfo.InvariantCulture);
-            Environment.SetEnvironmentVariable("MOCK_SIM_MV", parts[1]);
-            var r = await grt.GetTabResultsAsync(top.handle);
+            if (parts.Length != 2
+                || !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double chg)
+                || !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double simMv))
+            {
+                Console.WriteLine($"  skipped '{spec}': expected <charge>:<simMv>, e.g. 39.2:812.5");
+                continue;
+            }
             double measMv = meas.TryGetValue(Math.Round(chg, 2), out double mv) ? mv : 0;
-            result.Points.Add(new CalPoint { ChargeGr = chg, SimMps = r.MuzzleVelocityMps ?? 0, MeasMps = measMv });
-            Console.WriteLine($"  captured {chg} gr: sim {r.MuzzleVelocityMps:0.0}, meas {measMv:0.0}");
+            result.Points.Add(new CalPoint { ChargeGr = chg, SimMps = simMv, MeasMps = measMv });
+            Console.WriteLine($"  {chg} gr: sim {simMv:0.0}, meas {measMv:0.0}"
+                + (measMv > 0 ? "" : "   (no measured velocity at this charge in the load)"));
         }
+
+        if (result.Points.Count == 0) { Console.WriteLine("no usable charge:simMv pairs — nothing to report."); return; }
 
         Console.WriteLine();
         Console.WriteLine(result.BuildReport($"Barrel Calibration {DateTime.Now:yyyy-MM-dd}", ba is > 0 ? ba : null,

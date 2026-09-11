@@ -15,7 +15,7 @@ every tool is a button there. One background process serves all of them.
 | 🏷 **Load Card / Label** | Printable A6 recipe card / ammo-box labels with a QR of the full recipe. Component-lot dropdowns compute **cost per round**. "Write load-sheet note" puts the recipe + cost breakdown into the load. |
 | 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet) with lot tracking and cost per round, a load/range journal that deducts stock, and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
 
-Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes four DokuWiki
+Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes five DokuWiki
 report pages into `GRT\doku\<lang>\report\` and links them from the Reports index —
 
 - *Toolkit — Ladder / OCW report* (pulls the OCW note + chart)

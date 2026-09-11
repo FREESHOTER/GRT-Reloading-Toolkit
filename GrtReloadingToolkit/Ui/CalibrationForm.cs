@@ -32,7 +32,7 @@ internal sealed class CalibrationForm : Form
     {
         _grt = grt;
         _logHandler = AppendLog;
-        Text = "GRT Barrel Calibration  (v0.1)";
+        Text = AppVersion.Title("GRT Barrel Calibration");
         Width = 820; Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(640, 420);
