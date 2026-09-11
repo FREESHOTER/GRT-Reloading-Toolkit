@@ -33,7 +33,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="plugin\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="_plugin_template\" />
+    <!-- The plugin template (manifest + icons) lands in the output under plugin\, which is what
+         build-plugin.ps1's Assemble strips before laying down the stamped copy at the folder root.
+         This item carried LinkBase="_plugin_template\" from the first commit and it never did
+         anything: MSBuild synthesizes Link from LinkBase only in AssignLinkMetadata, which is
+         gated on SynthesizeLinkMetadata (never set) and skips items whose DefiningProjectFullPath
+         is the project itself — as this one's is. Do NOT re-add it. It described a layout that has
+         never existed, and reading it as real is how you conclude Assemble strips the wrong
+         folder on Windows. -->
+    <None Include="plugin\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
