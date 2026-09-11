@@ -3,7 +3,7 @@
   <!-- Four-part form of <Version> in Directory.Build.props; a manifest is a build input, so
        it cannot be stamped at package time the way com.grt.plugin.xml is. VersionSyncTests
        fails if the two drift apart. -->
-  <assemblyIdentity version="0.1.6.0" name="GRT_Reloading_Toolkit"/>
+  <assemblyIdentity version="0.1.7.0" name="GRT_Reloading_Toolkit"/>
 
   <!-- DPI: unaware on purpose. The tool windows use fixed pixel layout; letting Windows
        bitmap-scale the whole window is correct at every scaling factor. A manifest is applied

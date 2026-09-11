@@ -11,7 +11,7 @@
        managed code runs, so nothing can stamp it. VersionSyncTests fails until all three
        agree. Bump the three, then tag the release to match. -->
   <PropertyGroup>
-    <Version>0.1.6</Version>
+    <Version>0.1.7</Version>
     <Company>community</Company>
     <Product>GRT Reloading Toolkit</Product>
   </PropertyGroup>

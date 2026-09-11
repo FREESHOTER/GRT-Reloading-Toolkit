@@ -23,7 +23,7 @@ public class VersionSyncTests
         return dir!.FullName;
     }
 
-    /// <summary>"0.1.6" — the &lt;Version&gt; every project in the tree is built with.</summary>
+    /// <summary>"0.1.7" — the &lt;Version&gt; every project in the tree is built with.</summary>
     private static string DeclaredVersion()
     {
         var props = XDocument.Load(Path.Combine(RepoRoot(), "Directory.Build.props"));
