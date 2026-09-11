@@ -32,3 +32,22 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Build plugin
         run: dotnet build GrtReloadingToolkit/GrtReloadingToolkit.csproj -c Release --nologo
+      # The csproj's plugin\**\* item has to land in the output under plugin\, because that is the
+      # folder build-plugin.ps1's Assemble deletes before copying in the stamped manifest. Item
+      # metadata can relocate it silently — a Link, a LinkBase that actually takes effect, or the
+      # item moving into an imported .props — and the build still succeeds, so the packaging
+      # breaks with nothing failing. This runner is the only place that layout is observable on
+      # Windows, so assert it here rather than infer it.
+      - name: Check plugin payload layout
+        shell: pwsh
+        run: |
+          $out = "GrtReloadingToolkit/bin/Release/net8.0-windows"
+          Write-Host "==> directories in the build output:"
+          Get-ChildItem $out -Directory | ForEach-Object { Write-Host "      $($_.Name)\" }
+          foreach ($f in @("plugin\com.grt.plugin.xml", "plugin\media\icons\icn_toolkit_16x16.png")) {
+            if (-not (Test-Path (Join-Path $out $f))) { throw "missing from the build output: $f" }
+            Write-Host "      ok: $f"
+          }
+          $stray = Get-ChildItem $out -Recurse -Directory -Filter "_plugin_template"
+          if ($stray) { throw "_plugin_template in the build output ($($stray[0].FullName)); Assemble strips 'plugin', so the payload would ship twice" }
+          Write-Host "==> payload is under plugin\, and there is no _plugin_template"
