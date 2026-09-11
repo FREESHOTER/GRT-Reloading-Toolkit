@@ -3,10 +3,15 @@
   <!-- The one place the version is written. It reaches:
          * both assemblies, via <Version> below;
          * every window title, via Ui/AppVersion (reads the assembly, so it cannot drift);
-         * the shipped com.grt.plugin.xml, which build-plugin.ps1 stamps when it assembles dist\.
-       Bump it here and tag the release to match — nothing else needs touching. -->
+         * the com.grt.plugin.xml that build-plugin.ps1 stamps into dist\ when it packages.
+       Two literals in the tree do NOT follow from this and must be bumped by hand:
+       GrtReloadingToolkit/plugin/com.grt.plugin.xml — the stamp only rewrites the copy in
+       dist\, so this one is what a hand-copied plugin folder reports — and
+       GrtReloadingToolkit/app.manifest, a build input the OS loader applies before any
+       managed code runs, so nothing can stamp it. VersionSyncTests fails until all three
+       agree. Bump the three, then tag the release to match. -->
   <PropertyGroup>
-    <Version>0.1.5</Version>
+    <Version>0.1.6</Version>
     <Company>community</Company>
     <Product>GRT Reloading Toolkit</Product>
   </PropertyGroup>
