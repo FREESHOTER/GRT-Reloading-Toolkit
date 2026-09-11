@@ -44,7 +44,7 @@ internal static class LadderCli
         Console.WriteLine(report);
 
         var chart = new LadderChart();
-        chart.Show(res);
+        chart.SetData(res);
         byte[]? png = chart.RenderPng();
         Console.WriteLine(png != null ? $"chart PNG: {png.Length} bytes" : "chart PNG: (none)");
 
@@ -85,7 +85,7 @@ internal static class LadderCli
         Console.WriteLine(LadderAnalyzer.BuildReport(res, $"{mode} synthetic"));
 
         var chart = new LadderChart();
-        chart.Show(res);
+        chart.SetData(res);
         byte[]? png = chart.RenderPng();
         Console.WriteLine(png != null ? $"chart PNG: {png.Length} bytes" : "chart PNG: (none)");
         if (png == null || string.IsNullOrWhiteSpace(outPng)) return;

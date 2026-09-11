@@ -13,7 +13,7 @@ internal sealed class AthlonForm : Form
     private readonly List<AthlonString> _strings = new();
 
     private readonly DataGridView _grid = new();
-    private readonly TextBox _log = new();
+    private readonly TextBox _log = UiLog.NewLogBox();
     private readonly Label _status = new();
     private readonly CheckBox _perShotTemp = new();
     private readonly CheckBox _replacePrev = new() { Checked = true };
@@ -95,20 +95,29 @@ internal sealed class AthlonForm : Form
 
         _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "inc", HeaderText = "Use", FillWeight = 6 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "file", HeaderText = "File", ReadOnly = true, FillWeight = 30 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = "Charge (gr)", ReadOnly = true, FillWeight = 12 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = "Charge (gr)", FillWeight = 12,
+            ToolTipText = "Editable — type the charge here when the session note and file name don't carry it." });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "n", HeaderText = "Shots", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "avg", HeaderText = "AVG m/s", ReadOnly = true, FillWeight = 12 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sd", HeaderText = "SD", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "es", HeaderText = "ES", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = "Temp °C", FillWeight = 10 });
 
+        // The charge is guessed from the session note / file name and shows "?" when neither
+        // carries it. Writing the corrected value back into the parsed string is what the
+        // import reads — the grid cell alone would be cosmetic.
+        _grid.CellEndEdit += (_, e) =>
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0 || _grid.Columns[e.ColumnIndex].Name != "charge") return;
+            DataGridViewRow row = _grid.Rows[e.RowIndex];
+            if (row.Tag is not AthlonString s) return;
+            double? g = Str.ParseNumber(Convert.ToString(row.Cells["charge"].Value, CultureInfo.InvariantCulture));
+            s.ChargeGrains = g is > 0 ? g : null;
+            row.Cells["charge"].Value = s.ChargeGrains is { } v ? Str.Num(v, 2) : "?";
+        };
+
         var bottom = new Panel { Dock = DockStyle.Bottom, Height = 150 };
-        _log.Multiline = true;
-        _log.ReadOnly = true;
-        _log.ScrollBars = ScrollBars.Vertical;
         _log.Dock = DockStyle.Fill;
-        _log.BackColor = SystemColors.Window;
-        _log.Font = new Font(FontFamily.GenericMonospace, 8f);
 
         var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 44, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _importBtn.Text = "Import into GRT";

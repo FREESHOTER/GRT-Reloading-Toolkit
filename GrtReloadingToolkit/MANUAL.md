@@ -77,10 +77,11 @@ or `.csv`.
 | **replace previous chrono import in this load** | Remove earlier "Athlon …" measurements before adding this one (on by default). |
 | **Import into GRT** | Write the measurement into the load and open the snapshot. |
 
-**Grid columns:** Use · File · Charge (gr) · Shots · AVG m/s · SD · ES · Temp °C (editable).
+**Grid columns:** Use · File · Charge (gr, editable) · Shots · AVG m/s · SD · ES · Temp °C (editable).
 
 **How the charge weight is found:** from the session note ("carica 39.2", "charge 41.5 gr"), else a
-number in the file name ("39.20.xlsx"). Edit the Temp °C cell if the file doesn't carry it.
+number in the file name ("39.20.xlsx"). If neither carries it the cell shows `?` — type the charge
+straight into it. Same for the Temp °C cell.
 
 **Units:** taken from the column header if it says `(m/s)` / `(mps)` / `(fps)` / `ft/s`; otherwise
 guessed from the velocity magnitude (≥ 1400 → fps). fps is converted to m/s for GRT. Both `1,234.5`
@@ -115,6 +116,10 @@ folder always wins over the load's own numbers for that charge.
 
 **Grid:** charge · n · MV · SD · ES · distance · POI-Y (MOA) · group mean-radius (MOA) · vertical
 spread (MOA). The recommended node is shaded green.
+
+**Log strip:** the narrow box above the buttons carries the loader's running commentary — which
+files were read, which were skipped and why, and the GRT connection chatter. The summary pane is
+rewritten from scratch on every analysis; the log is not.
 
 **What it computes**
 
@@ -160,7 +165,8 @@ suggests a `Ba` (combustion coefficient) tweak so GRT matches your barrel.
 4. Read the verdict, then **Write calibration note** (note only) or **Write Ba-corrected .grtload**
    (note **+** the new `Ba`).
 
-**Grid:** Charge gr · Meas MV · Sim MV · Δ m/s · Δ %.
+**Grid:** Charge gr · Meas MV · Sim MV · Δ m/s · Δ %. The narrow box above the buttons logs the
+sweep as it runs; the summary pane above it is rewritten on every recompute.
 
 **The maths**
 
@@ -191,6 +197,9 @@ chronograph strings of **one charge** fired at **different temperatures**.
 3. **Load Ba from GRT load** (or type the `Ba`).
 4. **Fit** → tcc / tch, and the raw m/s-per-°C.
 5. **Write tcc/tch to GRT load**.
+
+The narrow box above the buttons logs each string as it is read; the summary pane above it is
+rewritten on every fit.
 
 Model: `Ba(T) ≈ Ba₂₁ · (MV(T) / MV₂₁)²`;  `tcc = mean( (Ba₂₁ − Ba(T)) / (21 − T) )` for the cold
 strings, `tch` symmetric for the hot ones.

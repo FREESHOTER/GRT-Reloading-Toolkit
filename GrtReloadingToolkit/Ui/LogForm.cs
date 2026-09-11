@@ -60,11 +60,11 @@ internal sealed class LogForm : Form
         _fa.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _fa.Dock = DockStyle.Fill;
         _fa.CellDoubleClick += (_, _) => { if (_fa.CurrentRow?.Tag is Firearm f) EditFirearm(f); };
-        _fa.SelectionChanged += (_, _) => ShowBarrelChart();
+        _fa.SelectionChanged += (_, _) => RefreshBarrelChart();
         foreach (var (n, h) in new[] { ("name", "Firearm"), ("cal", "Caliber"), ("tot", "Total rounds"), ("ent", "MV entries"), ("last", "Last used") })
             _fa.Columns.Add(n, h);
 
-        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 180 };
+        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(180);
         split.Panel1.Controls.Add(_fa);
         _faChart.Dock = DockStyle.Fill;
         split.Panel2.Controls.Add(_faChart);
@@ -84,12 +84,12 @@ internal sealed class LogForm : Form
                 hist.Count > 0 ? hist[^1].date : "");
             _fa.Rows[i].Tag = f;
         }
-        ShowBarrelChart();
+        RefreshBarrelChart();
     }
 
-    private void ShowBarrelChart()
+    private void RefreshBarrelChart()
     {
-        _faChart.Show(_fa.CurrentRow?.Tag is Firearm f ? (f.Name, _db.FirearmMvHistory(f.Id)) : (null, null));
+        _faChart.SetData(_fa.CurrentRow?.Tag is Firearm f ? (f.Name, _db.FirearmMvHistory(f.Id)) : (null, null));
     }
 
     private void EditFirearm(Firearm f)
@@ -180,7 +180,10 @@ internal sealed class LogForm : Form
     {
         if (SelectedComponent is not { } c) return;
         string? s = Prompt($"Add how many {c.Unit} to '{c.Display}'? (negative to correct down)");
-        if (s != null && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double d))
+        // Str.ParseNumber, not an InvariantCulture TryParse: an Italian or German user types
+        // "1,5" and an invariant parse rejects it, so the restock silently does nothing. The
+        // same reason NudFix exists for every NumericUpDown in the app.
+        if (GrtPluginKit.Util.Str.ParseNumber(s) is { } d)
         {
             _db.AdjustStock(c.Id, d, "manual restock");
             RefreshInventory();

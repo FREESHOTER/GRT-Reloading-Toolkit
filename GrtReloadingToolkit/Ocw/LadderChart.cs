@@ -17,7 +17,8 @@ internal sealed class LadderChart : Panel
         BackColor = Color.FromArgb(18, 24, 36);
     }
 
-    public void Show(LadderResult r) { _r = r; Invalidate(); }
+    /// <summary>Sets the result to draw. Not <see cref="Control.Show"/> — the panel's visibility is the caller's business.</summary>
+    public void SetData(LadderResult r) { _r = r; Invalidate(); }
 
     protected override void OnPaint(PaintEventArgs e)
     {

@@ -205,9 +205,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>replace previous…</td><td>Remove earlier &ldquo;Athlon …&rdquo; measurements before adding this one (on by default).</td></tr>
         <tr><td>Import into GRT</td><td>Write the measurement into the load and open the snapshot.</td></tr>
       </tbody></table>
-      <p><strong>Grid:</strong> Use · File · Charge (gr) · Shots · AVG m/s · SD · ES · Temp °C (editable).</p>
+      <p><strong>Grid:</strong> Use · File · Charge (gr, editable) · Shots · AVG m/s · SD · ES · Temp °C (editable).</p>
       <p><strong>Charge weight</strong> comes from the session note (&ldquo;carica 39.2&rdquo;,
-        &ldquo;charge 41.5 gr&rdquo;), else a number in the file name (&ldquo;39.20.xlsx&rdquo;).</p>
+        &ldquo;charge 41.5 gr&rdquo;), else a number in the file name (&ldquo;39.20.xlsx&rdquo;). If neither
+        carries it the cell shows <code>?</code> &mdash; type the charge straight into it, same as the
+        <strong>Temp °C</strong> cell.</p>
       <p><strong>Units</strong> are taken from the column header if it says <code>(m/s)</code> /
         <code>(mps)</code> / <code>(fps)</code> / <code>ft/s</code>; otherwise guessed from the velocity
         magnitude (≥&nbsp;1400&nbsp;→&nbsp;fps). fps is converted to m/s for GRT. Both
@@ -236,6 +238,9 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       </tbody></table>
       <p><strong>Grid:</strong> charge · n · MV · SD · ES · distance · POI-Y (MOA) · group mean-radius
         (MOA) · vertical spread (MOA). The recommended node is shaded green.</p>
+      <p><strong>Log strip:</strong> the narrow box above the buttons carries the loader&#39;s running
+        commentary &mdash; which files were read, which were skipped and why, and the GRT connection
+        chatter. The summary pane is rewritten from scratch on every analysis; the log is not.</p>
       <h3>What it computes</h3>
       <ul>
         <li><strong>Velocity flat-spot (Satterlee)</strong> &mdash; the window of steps where average MV changes least.</li>
@@ -282,7 +287,8 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <li><strong>Write calibration note</strong> (note only) or <strong>Write Ba-corrected
           .grtload</strong> (note + the new <code>Ba</code>).</li>
       </ol>
-      <p><strong>Grid:</strong> Charge gr · Meas MV · Sim MV · Δ&nbsp;m/s · Δ&nbsp;%.</p>
+      <p><strong>Grid:</strong> Charge gr · Meas MV · Sim MV · Δ&nbsp;m/s · Δ&nbsp;%. The narrow box above
+        the buttons logs the sweep as it runs; the summary pane above it is rewritten on every recompute.</p>
       <div class="formula">
         <span class="c">// per charge</span><br>
         Δ%  =  100 · (measured − sim) / sim<br><br>
@@ -314,6 +320,8 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <li><strong>Fit</strong> → tcc / tch, and the raw m/s-per-°C.</li>
         <li><strong>Write tcc/tch to GRT load</strong>.</li>
       </ol>
+      <p>The narrow box above the buttons logs each string as it is read; the summary pane above it is
+        rewritten on every fit.</p>
       <div class="formula">
         Ba(T)  ≈  Ba₂₁ · ( MV(T) / MV₂₁ )²<br>
         tcc  =  mean( (Ba₂₁ − Ba(T)) / (21 − T) )   <span class="c">for the cold strings</span><br>

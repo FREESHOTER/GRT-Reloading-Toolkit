@@ -14,7 +14,8 @@ internal sealed class BarrelChart : Panel
         BackColor = Color.FromArgb(18, 24, 36);
     }
 
-    public void Show((string? name, List<(string, string, double, int, double, double?)>? pts) data)
+    /// <summary>Sets the series to draw. Not <see cref="Control.Show"/> — the panel's visibility is the caller's business.</summary>
+    public void SetData((string? name, List<(string, string, double, int, double, double?)>? pts) data)
     {
         _name = data.name;
         _pts = data.pts;

@@ -206,9 +206,11 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>replace previous…</td><td>Toglie le misurazioni &laquo;Athlon …&raquo; precedenti prima di aggiungere questa (attivo di default).</td></tr>
         <tr><td>Import into GRT</td><td>Scrive la misurazione nel load e apre lo snapshot.</td></tr>
       </tbody></table>
-      <p><strong>Griglia:</strong> Use · File · Charge (gr) · Shots · AVG m/s · SD · ES · Temp °C (modificabile).</p>
+      <p><strong>Griglia:</strong> Use · File · Charge (gr, modificabile) · Shots · AVG m/s · SD · ES · Temp °C (modificabile).</p>
       <p><strong>Il peso della carica</strong> viene dagli appunti della sessione (&laquo;carica 39.2&raquo;,
-        &laquo;charge 41.5 gr&raquo;), altrimenti da un numero nel nome file (&laquo;39.20.xlsx&raquo;).</p>
+        &laquo;charge 41.5 gr&raquo;), altrimenti da un numero nel nome file (&laquo;39.20.xlsx&raquo;).
+        Se non c&#39;è né nell&#39;uno né nell&#39;altro la cella mostra <code>?</code>: basta scrivere la
+        carica direttamente lì, come si fa con la cella <strong>Temp °C</strong>.</p>
       <p><strong>Le unità</strong> vengono prese dall&#39;intestazione di colonna se dice
         <code>(m/s)</code> / <code>(mps)</code> / <code>(fps)</code> / <code>ft/s</code>; altrimenti
         vengono dedotte dalla grandezza della velocità (≥&nbsp;1400&nbsp;→&nbsp;fps). I fps vengono
@@ -238,6 +240,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       </tbody></table>
       <p><strong>Griglia:</strong> carica · n · MV · SD · ES · distanza · POI-Y (MOA) · raggio medio
         del gruppo (MOA) · dispersione verticale (MOA). Il nodo consigliato è evidenziato in verde.</p>
+      <p><strong>Riquadro di log:</strong> la striscia sopra i pulsanti riporta il resoconto del
+        caricamento &mdash; quali file sono stati letti, quali sono stati saltati e perché, e i messaggi
+        della connessione a GRT. Il riquadro del riepilogo viene riscritto da zero a ogni analisi; il log no.</p>
       <h3>Cosa calcola</h3>
       <ul>
         <li><strong>Flat-spot di velocità (Satterlee)</strong> — la finestra di gradini in cui la MV media varia meno.</li>
@@ -284,7 +289,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <li><strong>Write calibration note</strong> (solo nota) o <strong>Write Ba-corrected
           .grtload</strong> (nota + il nuovo <code>Ba</code>).</li>
       </ol>
-      <p><strong>Griglia:</strong> Charge gr · Meas MV · Sim MV · Δ&nbsp;m/s · Δ&nbsp;%.</p>
+      <p><strong>Griglia:</strong> Charge gr · Meas MV · Sim MV · Δ&nbsp;m/s · Δ&nbsp;%. La striscia sopra
+        i pulsanti registra lo sweep mentre gira; il riquadro del riepilogo sopra di essa viene riscritto
+        a ogni ricalcolo.</p>
       <div class="formula">
         <span class="c">// per ogni carica</span><br>
         Δ%  =  100 · (misurata − sim) / sim<br><br>
@@ -318,6 +325,8 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <li><strong>Fit</strong> → tcc / tch, e i m/s per °C grezzi.</li>
         <li><strong>Write tcc/tch to GRT load</strong>.</li>
       </ol>
+      <p>La striscia sopra i pulsanti registra ogni stringa man mano che viene letta; il riquadro del
+        riepilogo sopra di essa viene riscritto a ogni fit.</p>
       <div class="formula">
         Ba(T)  ≈  Ba₂₁ · ( MV(T) / MV₂₁ )²<br>
         tcc  =  media( (Ba₂₁ − Ba(T)) / (21 − T) )   <span class="c">per le stringhe fredde</span><br>
@@ -390,12 +399,13 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <h2><span class="no">10</span>Inventario e diario</h2>
       <p>Un piccolo database SQLite in <code>%AppData%\GRTPlugins\reloading_log.db</code>. Tre tab.</p>
       <ul>
-        <li><strong>Inventory</strong> — scorte di polvere / inneSchi / bossoli / palle con id lotto,
+        <li><strong>Inventory</strong> — scorte di polvere / inneschi / bossoli / palle con id lotto,
           prezzo e (per i bossoli) un contatore <em>usi previsti</em> che ammortizza il costo del
           bossolo. Add / Edit / Restock / Archive. Le scorte possono andare in <strong>negativo</strong>
-          &mdash; significa solo che il lotto è stato inserito corto, o che i colpi sono stati registrati
-          sul lotto sbagliato. Non viene mai assorbito in silenzio: modificando o cancellando la riga
-          torna indietro esattamente quanto era stato tolto.</li>
+          — significa solo che il lotto è stato inserito con una quantità inferiore a quella reale, o che
+          i colpi sono stati registrati sul lotto sbagliato. Lo scarto non viene mai assorbito in
+          silenzio: modificando o cancellando la riga del journal viene restituito esattamente quanto
+          era stato tolto.</li>
         <li><strong>Journal</strong> — una riga per sessione al poligono o lotto caricato: data, load,
           calibro, arma, carica, colpi, MV, SD, gruppo MOA, distanza, note, e <strong>costo per
           colpo</strong> dai lotti collegati. <strong>Log from GRT</strong> precompila dal load
