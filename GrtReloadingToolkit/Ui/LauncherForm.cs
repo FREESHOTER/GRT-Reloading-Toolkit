@@ -9,7 +9,7 @@ internal sealed class LauncherForm : Form
 {
     public LauncherForm(Action<Tool> open)
     {
-        Text = "Reloading Toolkit";
+        Text = AppVersion.Title("Reloading Toolkit");
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
