@@ -1,0 +1,43 @@
+name: Generate icons
+
+# TEMPORARY, hand-triggered. make-icons.ps1 draws with System.Drawing (GDI+), which exists only on
+# Windows, and this runner is the only Windows in the project — so the committed PNGs come from the
+# generator itself rather than from a re-implementation on someone's Mac.
+#
+# Delete this workflow once the regenerated icons are committed. It is not part of CI.
+#
+# It triggers on pushes to its own branch rather than on workflow_dispatch alone: a dispatchable
+# workflow is only visible to the API once it exists on the default branch, and this one is never
+# going to live there.
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/toolkit-reticle-icon]
+
+jobs:
+  icons:
+    name: regenerate plugin icons
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Windows PowerShell 5.1, NOT pwsh. `Add-Type -AssemblyName System.Drawing` resolves out of
+      # the box on .NET Framework; PowerShell 7 does not carry System.Drawing.Common in its default
+      # assembly set, so the script would die on its Add-Type line.
+      - name: Run make-icons.ps1
+        shell: powershell
+        run: ./grt-plugins-shared/make-icons.ps1
+
+      - name: Show what the generator changed
+        shell: powershell
+        run: |
+          git diff --stat
+          Write-Host "==> icons now in the tree:"
+          Get-ChildItem GrtReloadingToolkit/plugin/media/icons/*.png |
+            ForEach-Object { Write-Host ("      {0}  {1} bytes" -f $_.Name, $_.Length) }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: icons
+          path: GrtReloadingToolkit/plugin/media/icons/*.png
+          if-no-files-found: error

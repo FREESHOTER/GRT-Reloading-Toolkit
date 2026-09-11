@@ -37,6 +37,37 @@ function Draw([int]$S, [scriptblock]$Body) {
 }
 function Pt($x, $y, $k) { New-Object System.Drawing.PointF(($x * $k), ($y * $k)) }
 
+# A loaded round drawn in the icn_seating idiom: outlined case, filled ogive. $bw and $nw are the
+# case and neck half-widths; the shoulder and neck sit proportionally along the round so the
+# silhouette reads as a bottlenecked rifle case rather than a lozenge. Only icn_toolkit uses this
+# today, but it is the one shape here with enough geometry to be worth naming.
+function CaseAndBullet($g, $brush, $k, $cx, $yBase, $yTip, $bw, $nw, $penW) {
+    $p = New-Object System.Drawing.Pen([System.Drawing.Color]::White, $penW)
+    $p.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $p.EndCap   = [System.Drawing.Drawing2D.LineCap]::Round
+    $p.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
+
+    $span = $yBase - $yTip
+    $ySh  = $yBase - $span * 0.40   # body starts tapering into the shoulder
+    $yNk  = $ySh - $span * 0.12     # top of the shoulder / bottom of the neck
+    $yOg  = $yNk - $span * 0.10     # where the ogive takes over
+
+    $g.DrawLines($p, @((Pt ($cx - $bw) $yBase $k), (Pt ($cx - $bw) $ySh $k),
+                       (Pt ($cx - $nw) $yNk $k),   (Pt ($cx - $nw) $yOg $k)))
+    $g.DrawLines($p, @((Pt ($cx + $bw) $yBase $k), (Pt ($cx + $bw) $ySh $k),
+                       (Pt ($cx + $nw) $yNk $k),   (Pt ($cx + $nw) $yOg $k)))
+    $g.DrawLine($p, (Pt ($cx - $bw) $yBase $k), (Pt ($cx + $bw) $yBase $k))
+
+    $og = New-Object System.Drawing.Drawing2D.GraphicsPath
+    $og.AddBezier((Pt ($cx - $nw) $yOg $k), (Pt ($cx - $nw) ($yTip + ($yOg - $yTip) * 0.18) $k),
+                  (Pt ($cx - $nw * 0.55) $yTip $k), (Pt $cx $yTip $k))
+    $og.AddBezier((Pt $cx $yTip $k), (Pt ($cx + $nw * 0.55) $yTip $k),
+                  (Pt ($cx + $nw) ($yTip + ($yOg - $yTip) * 0.18) $k), (Pt ($cx + $nw) $yOg $k))
+    $og.CloseFigure()
+    $g.FillPath($brush, $og)
+    $p.Dispose()
+}
+
 # ------------------------------------------------------------------ definitions --
 
 $icons = @{
@@ -174,22 +205,31 @@ $icons = @{
     }
   }
 
-  # Toolkit — a wrench crossed with a screwdriver (single entry-point icon)
+  # Toolkit — a loaded round centred in a reticle (single entry-point icon)
+  #
+  # This replaced a wrench crossed with a screwdriver, which said "tools" and nothing about
+  # reloading, while every icon around it names its own job. The 16px branch drops the reticle
+  # ticks rather than scaling them: at that size they collide with the ring and read as noise,
+  # the same reason icn_cal drops its +/- marks and icn_brass drops its caliper jaws.
   "icn_toolkit" = {
     param($g, $pen, $brush, $k, $S)
-    $thick = if ($S -le 16) { 2.4 } else { 3.4 }
-    $p2 = New-Object System.Drawing.Pen([System.Drawing.Color]::White, $thick)
-    $p2.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-    $p2.EndCap   = [System.Drawing.Drawing2D.LineCap]::Round
-    # screwdriver (top-left to bottom-right)
-    $g.DrawLine($p2, (Pt 7 7 $k), (Pt 22 22 $k))
-    $g.DrawLine($p2, (Pt 5 5 $k), (Pt 8 8 $k))          # handle stub
-    # wrench (bottom-left to top-right) with an open jaw
-    $g.DrawLine($p2, (Pt 8 24 $k), (Pt 20 12 $k))
-    $jaw = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $jaw.AddArc((18 * $k), (5 * $k), (9 * $k), (9 * $k), 110, 230)
-    $g.DrawPath($p2, $jaw)
-    $p2.Dispose()
+    $ringW = if ($S -le 16) { 1.9 } else { 2.4 }
+    $pr = New-Object System.Drawing.Pen([System.Drawing.Color]::White, $ringW)
+    $pr.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $pr.EndCap   = [System.Drawing.Drawing2D.LineCap]::Round
+    if ($S -le 16) {
+        $g.DrawEllipse($pr, (2.5 * $k), (2.5 * $k), (27 * $k), (27 * $k))
+        CaseAndBullet $g $brush $k 16 22.5 10.5 2.9 1.55 1.8
+    } else {
+        $g.DrawEllipse($pr, (3 * $k), (3 * $k), (26 * $k), (26 * $k))
+        CaseAndBullet $g $brush $k 16 24 9 3.6 2.0 2.6
+        # reticle ticks, outside the ring at N/S/E/W
+        $g.DrawLine($pr, (Pt 16 0 $k),  (Pt 16 3 $k))
+        $g.DrawLine($pr, (Pt 16 29 $k), (Pt 16 32 $k))
+        $g.DrawLine($pr, (Pt 0 16 $k),  (Pt 3 16 $k))
+        $g.DrawLine($pr, (Pt 29 16 $k), (Pt 32 16 $k))
+    }
+    $pr.Dispose()
   }
 
   # Inventory / journal — clipboard with a check and entry lines
