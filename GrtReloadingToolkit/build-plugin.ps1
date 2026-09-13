@@ -73,6 +73,34 @@ function Assemble($outDir, $payloadDir) {
     if (Test-Path $docs) { Copy-Item $docs $outDir -Recurse }
 }
 
+# Zips $srcDir as a single top-level folder named after it, which is the layout GRT expects when
+# the zip is unpacked into its plugins folder.
+#
+# Compress-Archive is the obvious call and is what this used to be, but on Windows PowerShell 5.1
+# it writes the entry paths with backslashes. The ZIP spec requires "/" (APPNOTE 4.4.17.1), and
+# while Windows Explorer and Expand-Archive forgive it, Python's zipfile, macOS Archive Utility
+# and Info-ZIP do not - they read "ReloadingToolkit\com.grt.plugin.xml" as one flat filename and
+# unpack a heap of oddly named files instead of a folder. pwsh writes "/", so the same script
+# produced two different artifacts depending on who ran it. Naming the separator fixes that.
+function WriteZip($srcDir, $zipPath) {
+    if (-not ('System.IO.Compression.ZipFile' -as [type])) {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+    }
+    $srcDir = (Resolve-Path $srcDir).Path.TrimEnd('\', '/')
+    $top = Split-Path $srcDir -Leaf
+    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+    $zip = [System.IO.Compression.ZipFile]::Open($zipPath, 'Create')
+    try {
+        foreach ($f in (Get-ChildItem $srcDir -Recurse -File)) {
+            $entry = "$top/" + $f.FullName.Substring($srcDir.Length + 1).Replace('\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $zip, $f.FullName, $entry, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        }
+    } finally {
+        $zip.Dispose()
+    }
+}
+
 # ---- 1. self-contained single file ----
 Write-Host "==> publish: self-contained single file"
 $scDir = Join-Path $root "artifacts\publish-sc"
@@ -96,8 +124,8 @@ Write-Host "==> dist\ReloadingToolkit      $('{0:N0}' -f ((Get-ChildItem $plugin
 Write-Host "==> dist\ReloadingToolkit-lite $('{0:N0}' -f ((Get-ChildItem $liteOut  -Recurse -File | Measure-Object Length -Sum).Sum/1KB)) KB"
 
 if ($Zip) {
-    Compress-Archive -Path $pluginOut -DestinationPath (Join-Path $root "dist\ReloadingToolkit.zip") -Force
-    Compress-Archive -Path $liteOut   -DestinationPath (Join-Path $root "dist\ReloadingToolkit-lite.zip") -Force
+    WriteZip $pluginOut (Join-Path $root "dist\ReloadingToolkit.zip")
+    WriteZip $liteOut   (Join-Path $root "dist\ReloadingToolkit-lite.zip")
     Write-Host "==> zips written to dist\"
 }
 
