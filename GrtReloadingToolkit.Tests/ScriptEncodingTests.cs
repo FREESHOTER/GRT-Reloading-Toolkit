@@ -3,6 +3,10 @@ using Xunit;
 namespace GrtReloadingToolkit.Tests;
 
 /// <summary>
+/// Guards the .ps1 files against the ways Windows PowerShell 5.1 quietly means something other
+/// than what pwsh means, none of which are visible from macOS. Two so far: source encoding, and
+/// the zip separator Compress-Archive writes.
+///
 /// build-plugin.ps1 is the only way the shipped plugin folder gets built, and it gets run on
 /// Windows, where a .ps1 with no byte-order mark is decoded with the system ANSI code page
 /// instead of UTF-8. Windows PowerShell 5.1 then reads the three UTF-8 bytes of an em dash as
@@ -27,10 +31,9 @@ public class ScriptEncodingTests
         return dir!.FullName;
     }
 
-    [Fact]
-    public void PowerShellScriptsAreAscii()
+    /// <summary>Every .ps1 in the repo, build output aside.</summary>
+    private static List<string> Scripts(string root)
     {
-        string root = RepoRoot();
         List<string> scripts = Directory
             .EnumerateFiles(root, "*.ps1", SearchOption.AllDirectories)
             .Where(p => !p[root.Length..].Split(Path.DirectorySeparatorChar)
@@ -40,8 +43,15 @@ public class ScriptEncodingTests
 
         // A search that quietly stops finding the scripts would pass forever.
         Assert.NotEmpty(scripts);
+        return scripts;
+    }
 
-        foreach (string script in scripts)
+    [Fact]
+    public void PowerShellScriptsAreAscii()
+    {
+        string root = RepoRoot();
+
+        foreach (string script in Scripts(root))
         {
             byte[] bytes = File.ReadAllBytes(script);
             int at = Array.FindIndex(bytes, b => b > 0x7F);
@@ -52,6 +62,56 @@ public class ScriptEncodingTests
                 $"{Path.GetRelativePath(root, script)} line {line} is not ASCII (byte 0x{bytes[at]:X2}). " +
                 "Windows PowerShell 5.1 decodes a BOM-less .ps1 as ANSI, so this parses as something " +
                 "else there - see ScriptEncodingTests. Use a plain ASCII equivalent: '-' for an em dash.");
+        }
+    }
+
+    /// <summary>
+    /// Compress-Archive on Windows PowerShell 5.1 writes the zip entry paths with backslashes.
+    /// The format requires '/' (APPNOTE 4.4.17.1); Explorer and Expand-Archive forgive it, but
+    /// Python's zipfile, macOS Archive Utility and Info-ZIP read "ReloadingToolkit\x.dll" as one
+    /// flat filename, so a plugin zipped on Windows unpacks as a heap of oddly named files rather
+    /// than a folder. pwsh writes '/', so the same script produced two different artifacts
+    /// depending on who ran it. build-plugin.ps1 uses WriteZip, which names the separator itself.
+    ///
+    /// Only whole-line and block comments are skipped, so a mention in a trailing comment fails
+    /// this test. That is the safe direction: unlike the ASCII rule above, where a hand-rolled
+    /// parser risked false negatives, the worst case here is a loud failure on a line that meant
+    /// no harm, and moving the word to its own comment line fixes it.
+    /// </summary>
+    [Fact]
+    public void PowerShellScriptsDoNotUseCompressArchive()
+    {
+        string root = RepoRoot();
+
+        foreach (string script in Scripts(root))
+        {
+            bool inBlockComment = false;
+            string[] lines = File.ReadAllLines(script);
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                if (inBlockComment)
+                {
+                    if (line.Contains("#>")) inBlockComment = false;
+                    continue;
+                }
+
+                string trimmed = line.TrimStart();
+                if (trimmed.StartsWith("<#"))
+                {
+                    if (!line.Contains("#>")) inBlockComment = true;
+                    continue;
+                }
+                if (trimmed.StartsWith('#')) continue;
+                if (!line.Contains("Compress-Archive", StringComparison.OrdinalIgnoreCase)) continue;
+
+                Assert.Fail(
+                    $"{Path.GetRelativePath(root, script)} line {i + 1} calls Compress-Archive, which " +
+                    "writes backslash zip entry paths on Windows PowerShell 5.1 - the resulting zip does " +
+                    "not unpack as a folder anywhere but Windows. See ScriptEncodingTests. Use the " +
+                    "WriteZip helper in build-plugin.ps1, which writes '/' on every edition.");
+            }
         }
     }
 }
