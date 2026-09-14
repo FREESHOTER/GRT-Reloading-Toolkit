@@ -4,8 +4,9 @@ namespace GrtReloadingToolkit.Tests;
 
 /// <summary>
 /// Guards the .ps1 files against the ways Windows PowerShell 5.1 quietly means something other
-/// than what pwsh means, none of which are visible from macOS. Two so far: source encoding, and
-/// the zip separator Compress-Archive writes.
+/// than what pwsh means, plus one way a script can silently ship a stale build regardless of
+/// PowerShell edition. Three so far: source encoding, the zip separator Compress-Archive writes,
+/// and a native command's exit code going unchecked.
 ///
 /// build-plugin.ps1 is the only way the shipped plugin folder gets built, and it gets run on
 /// Windows, where a .ps1 with no byte-order mark is decoded with the system ANSI code page
@@ -113,5 +114,37 @@ public class ScriptEncodingTests
                     "WriteZip helper in build-plugin.ps1, which writes '/' on every edition.");
             }
         }
+    }
+
+    /// <summary>
+    /// `& dotnet.exe publish` is a native command: PowerShell's own `$ErrorActionPreference =
+    /// "Stop"` does not see a non-zero exit code from it, only PowerShell's own terminating
+    /// errors. Without an explicit `$LASTEXITCODE` check, a failed publish falls through to
+    /// Assemble/WriteZip, which happily re-package whatever is already sitting in the output
+    /// folders from a previous run and report success sizes for a build that never happened -
+    /// found live, on a real machine, immediately after issue #12's wrong-dotnet.exe bug: the
+    /// script "succeeded" while silently re-shipping yesterday's exe.
+    ///
+    /// This is a coarse count rather than per-call adjacency checking (which risks false
+    /// negatives if a check moves a few lines away) - it only needs to catch a check being
+    /// deleted outright, and a per-publish-call ratio is precise enough for that without being
+    /// fragile to reformatting.
+    /// </summary>
+    [Fact]
+    public void PublishCallsCheckExitCode()
+    {
+        string root = RepoRoot();
+        string script = Path.Combine(root, "GrtReloadingToolkit", "build-plugin.ps1");
+        Assert.True(File.Exists(script), $"expected {script} to exist");
+
+        string text = File.ReadAllText(script);
+        int publishCalls = System.Text.RegularExpressions.Regex.Matches(text, @"&\s*\$dotnet\s+publish\b").Count;
+        int exitCodeChecks = System.Text.RegularExpressions.Regex.Matches(text, @"\$LASTEXITCODE").Count;
+
+        Assert.True(publishCalls > 0, $"expected at least one '& $dotnet publish' call in {script} - did it move or get renamed?");
+        Assert.True(exitCodeChecks >= publishCalls,
+            $"{script} has {publishCalls} '& $dotnet publish' call(s) but only {exitCodeChecks} " +
+            "$LASTEXITCODE check(s) - a failed publish would silently fall through to packaging " +
+            "stale artifacts. See ScriptEncodingTests / issue #12.");
     }
 }
