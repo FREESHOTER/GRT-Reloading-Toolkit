@@ -3,7 +3,7 @@
   GRT recolors them per color preset when the manifest sets icon_colorize="true".
 
   Writes <name>_16x16.png and <name>_32x32.png straight into the plugin's icon folder,
-  overwriting the committed set — the names below ARE the names com.grt.plugin.xml and the
+  overwriting the committed set - the names below ARE the names com.grt.plugin.xml and the
   launcher ask for. It used to write nine differently-named files (athlon_import, ladder_ocw,
   ...) into ./icons/, which .gitignore excludes and nothing reads, so regenerating the icons
   changed nothing anyone could see.
@@ -72,7 +72,7 @@ function CaseAndBullet($g, $brush, $k, $cx, $yBase, $yTip, $bw, $nw, $penW) {
 
 $icons = @{
 
-  # Athlon import — a bullet dropping into a tray
+  # Athlon import - a bullet dropping into a tray
   "icn_athlon" = {
     param($g, $pen, $brush, $k, $S)
     # tray (open top)
@@ -95,7 +95,7 @@ $icons = @{
     }
   }
 
-  # Ladder / OCW — ascending bars, one node ringed
+  # Ladder / OCW - ascending bars, one node ringed
   "icn_ocw" = {
     param($g, $pen, $brush, $k, $S)
     $base = 27
@@ -111,7 +111,7 @@ $icons = @{
     }
   }
 
-  # Seating depth — bullet seated in a case, with a depth double-arrow
+  # Seating depth - bullet seated in a case, with a depth double-arrow
   "icn_seating" = {
     param($g, $pen, $brush, $k, $S)
     # case: open-top U
@@ -133,7 +133,7 @@ $icons = @{
     }
   }
 
-  # Barrel calibration — gauge arc + needle + adjust tick
+  # Barrel calibration - gauge arc + needle + adjust tick
   "icn_cal" = {
     param($g, $pen, $brush, $k, $S)
     # gauge arc (open bottom)
@@ -149,7 +149,7 @@ $icons = @{
     }
   }
 
-  # Powder temp coefficient — thermometer
+  # Powder temp coefficient - thermometer
   "icn_temp" = {
     param($g, $pen, $brush, $k, $S)
     # bulb
@@ -166,7 +166,7 @@ $icons = @{
     }
   }
 
-  # Load card / label — a tag with a hole and lines + a small QR square
+  # Load card / label - a tag with a hole and lines + a small QR square
   "icn_label" = {
     param($g, $pen, $brush, $k, $S)
     # tag outline (pointed left)
@@ -189,7 +189,7 @@ $icons = @{
     }
   }
 
-  # Brass prep — case mouth + caliper jaws
+  # Brass prep - case mouth + caliper jaws
   "icn_brass" = {
     param($g, $pen, $brush, $k, $S)
     # case (open top, tapered neck)
@@ -205,7 +205,7 @@ $icons = @{
     }
   }
 
-  # Toolkit — a loaded round centred in a reticle (single entry-point icon)
+  # Toolkit - a loaded round centred in a reticle (single entry-point icon)
   #
   # This replaced a wrench crossed with a screwdriver, which said "tools" and nothing about
   # reloading, while every icon around it names its own job. The 16px branch drops the reticle
@@ -232,7 +232,7 @@ $icons = @{
     $pr.Dispose()
   }
 
-  # Inventory / journal — clipboard with a check and entry lines
+  # Inventory / journal - clipboard with a check and entry lines
   "icn_log" = {
     param($g, $pen, $brush, $k, $S)
     $g.DrawRectangle($pen, (6 * $k), (6 * $k), (20 * $k), (23 * $k))

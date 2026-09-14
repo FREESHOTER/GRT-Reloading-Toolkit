@@ -1,8 +1,8 @@
 <#
   Publishes the plugin and assembles drop-in GRT plugin folders.
 
-    ./dist/ReloadingToolkit/       self-contained (~64 MB exe) — no runtime needed, host it
-    ./dist/ReloadingToolkit-lite/  framework-dependent (~1.5 MB zip) — needs .NET 8 Desktop Runtime
+    ./dist/ReloadingToolkit/       self-contained (~64 MB exe) - no runtime needed, host it
+    ./dist/ReloadingToolkit-lite/  framework-dependent (~1.5 MB zip) - needs .NET 8 Desktop Runtime
 
   Usage:
     ./build-plugin.ps1
@@ -18,7 +18,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 # dotnet off PATH: the hardcoded "C:\Program Files\dotnet\dotnet.exe" broke every install that
-# isn't the default x64 machine-wide one — winget, per-user, ARM64, side-by-side.
+# isn't the default x64 machine-wide one - winget, per-user, ARM64, side-by-side.
 $dotnet = (Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue |
            Select-Object -First 1).Source
 if (-not $dotnet) {
@@ -35,18 +35,28 @@ $csproj = Join-Path $root "GrtReloadingToolkit.csproj"
 # with it below. GRT reads com.grt.plugin.xml, so an unstamped copy is how a 0.1.5 build ends up
 # announcing itself as 0.1.0.
 $propsPath = Join-Path $root "..\Directory.Build.props"
-$version = ([xml](Get-Content $propsPath)).SelectSingleNode("/Project/PropertyGroup/Version").InnerText.Trim()
+$version = ([xml](Get-Content $propsPath -Raw -Encoding UTF8)).SelectSingleNode("/Project/PropertyGroup/Version").InnerText.Trim()
 if (-not $version) { throw "no <Version> in $propsPath" }
 Write-Host "==> version $version"
 
 # Rewrites the manifest's version attribute in place. Line-anchored so it can't hit the
 # `<?xml version="1.0"?>` declaration, and the result is re-parsed and checked, because a
 # silently unstamped manifest is exactly the drift this is here to stop.
+#
+# Every read and write below names its encoding. The manifest is BOM-less UTF-8 holding one
+# non-ASCII character - the ellipsis in the menu label - and Windows PowerShell 5.1 reads a
+# BOM-less file as the system ANSI code page, so a bare Get-Content mangles that label and
+# writes the mojibake straight into the shipped plugin. Set-Content -Encoding UTF8 is no good
+# either: on 5.1 it prepends a BOM the source does not have, so the same script would ship a
+# different manifest on Windows than on pwsh. WriteAllText with an explicit BOM-less
+# UTF8Encoding is the one spelling that means the same thing on both.
 function Stamp($manifest) {
-    $txt = [regex]::Replace((Get-Content $manifest -Raw), '(?m)^(\s*version\s*=\s*")[^"]*(")', "`${1}$version`${2}")
-    Set-Content $manifest -Value $txt -NoNewline -Encoding UTF8
-    $got = ([xml](Get-Content $manifest)).SelectSingleNode("/GordonsReloadingTool/plugin").GetAttribute("version")
-    if ($got -ne $version) { throw "manifest version is '$got', expected '$version' — check the version attribute in plugin\com.grt.plugin.xml" }
+    # .NET resolves relative paths against the process working directory, not PowerShell's.
+    $manifest = (Resolve-Path $manifest).Path
+    $txt = [regex]::Replace((Get-Content $manifest -Raw -Encoding UTF8), '(?m)^(\s*version\s*=\s*")[^"]*(")', "`${1}$version`${2}")
+    [System.IO.File]::WriteAllText($manifest, $txt, (New-Object System.Text.UTF8Encoding $false))
+    $got = ([xml](Get-Content $manifest -Raw -Encoding UTF8)).SelectSingleNode("/GordonsReloadingTool/plugin").GetAttribute("version")
+    if ($got -ne $version) { throw "manifest version is '$got', expected '$version' - check the version attribute in plugin\com.grt.plugin.xml" }
 }
 
 function Assemble($outDir, $payloadDir) {
@@ -63,6 +73,34 @@ function Assemble($outDir, $payloadDir) {
     if (Test-Path $docs) { Copy-Item $docs $outDir -Recurse }
 }
 
+# Zips $srcDir as a single top-level folder named after it, which is the layout GRT expects when
+# the zip is unpacked into its plugins folder.
+#
+# Compress-Archive is the obvious call and is what this used to be, but on Windows PowerShell 5.1
+# it writes the entry paths with backslashes. The ZIP spec requires "/" (APPNOTE 4.4.17.1), and
+# while Windows Explorer and Expand-Archive forgive it, Python's zipfile, macOS Archive Utility
+# and Info-ZIP do not - they read "ReloadingToolkit\com.grt.plugin.xml" as one flat filename and
+# unpack a heap of oddly named files instead of a folder. pwsh writes "/", so the same script
+# produced two different artifacts depending on who ran it. Naming the separator fixes that.
+function WriteZip($srcDir, $zipPath) {
+    if (-not ('System.IO.Compression.ZipFile' -as [type])) {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+    }
+    $srcDir = (Resolve-Path $srcDir).Path.TrimEnd('\', '/')
+    $top = Split-Path $srcDir -Leaf
+    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+    $zip = [System.IO.Compression.ZipFile]::Open($zipPath, 'Create')
+    try {
+        foreach ($f in (Get-ChildItem $srcDir -Recurse -File)) {
+            $entry = "$top/" + $f.FullName.Substring($srcDir.Length + 1).Replace('\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $zip, $f.FullName, $entry, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        }
+    } finally {
+        $zip.Dispose()
+    }
+}
+
 # ---- 1. self-contained single file ----
 Write-Host "==> publish: self-contained single file"
 $scDir = Join-Path $root "artifacts\publish-sc"
@@ -70,7 +108,7 @@ $scDir = Join-Path $root "artifacts\publish-sc"
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:EnableCompressionInSingleFile=true -p:DebugType=none -o $scDir | Out-Host
 $pluginOut = Join-Path $root "dist\ReloadingToolkit"
-# self-contained publish dir also holds the plugin\ copy from csproj <None> — Assemble strips it
+# self-contained publish dir also holds the plugin\ copy from csproj <None> - Assemble strips it
 Assemble $pluginOut $scDir
 Get-ChildItem $pluginOut -File | Where-Object { $_.Name -notin @('GRT_Reloading_Toolkit.exe','com.grt.plugin.xml','README.md','MANUAL.md') } | Remove-Item -Force
 
@@ -86,8 +124,8 @@ Write-Host "==> dist\ReloadingToolkit      $('{0:N0}' -f ((Get-ChildItem $plugin
 Write-Host "==> dist\ReloadingToolkit-lite $('{0:N0}' -f ((Get-ChildItem $liteOut  -Recurse -File | Measure-Object Length -Sum).Sum/1KB)) KB"
 
 if ($Zip) {
-    Compress-Archive -Path $pluginOut -DestinationPath (Join-Path $root "dist\ReloadingToolkit.zip") -Force
-    Compress-Archive -Path $liteOut   -DestinationPath (Join-Path $root "dist\ReloadingToolkit-lite.zip") -Force
+    WriteZip $pluginOut (Join-Path $root "dist\ReloadingToolkit.zip")
+    WriteZip $liteOut   (Join-Path $root "dist\ReloadingToolkit-lite.zip")
     Write-Host "==> zips written to dist\"
 }
 
