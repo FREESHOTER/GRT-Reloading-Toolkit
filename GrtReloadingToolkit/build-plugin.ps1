@@ -17,17 +17,26 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
+
+# A `dotnet.exe` with no SDK registered (a bare host - e.g. a 32-bit stub left behind by some
+# other product's install, sitting on PATH ahead of the real one) loads fine as a command but
+# can't run `publish`. Take the first PATH match that actually reports an SDK, not just the
+# first one PATH happens to list first.
+function HasSdk($path) {
+    try { return [bool](& $path --list-sdks 2>$null) } catch { return $false }
+}
 # dotnet off PATH: the hardcoded "C:\Program Files\dotnet\dotnet.exe" broke every install that
 # isn't the default x64 machine-wide one - winget, per-user, ARM64, side-by-side.
-$dotnet = (Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue |
-           Select-Object -First 1).Source
+$dotnet = Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue |
+          Select-Object -ExpandProperty Source -Unique |
+          Where-Object { HasSdk $_ } | Select-Object -First 1
 if (-not $dotnet) {
     $dotnet = @("$env:ProgramFiles\dotnet\dotnet.exe",
                 "${env:ProgramFiles(x86)}\dotnet\dotnet.exe",
                 "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe") |
-              Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+              Where-Object { $_ -and (Test-Path $_) -and (HasSdk $_) } | Select-Object -First 1
 }
-if (-not $dotnet) { throw "dotnet not found on PATH. Install the .NET 8 SDK: https://dotnet.microsoft.com/download/dotnet/8.0" }
+if (-not $dotnet) { throw "no dotnet install with an SDK found on PATH or in the usual install locations. Install the .NET 8 SDK: https://dotnet.microsoft.com/download/dotnet/8.0" }
 $csproj = Join-Path $root "GrtReloadingToolkit.csproj"
 
 # The version lives in Directory.Build.props and nowhere else: the assemblies get it from the
@@ -107,6 +116,11 @@ $scDir = Join-Path $root "artifacts\publish-sc"
 & $dotnet publish $csproj -c $Configuration -r win-x64 --self-contained true `
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:EnableCompressionInSingleFile=true -p:DebugType=none -o $scDir | Out-Host
+# `& dotnet.exe` is a native command: $ErrorActionPreference = "Stop" does not see its exit code,
+# only PowerShell's own terminating errors - a failed publish would otherwise fall through to
+# Assemble/WriteZip below, which happily re-package whatever is already sitting in $scDir/dist\
+# from a previous run and report success sizes for a build that never happened.
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish (self-contained) failed with exit code $LASTEXITCODE" }
 $pluginOut = Join-Path $root "dist\ReloadingToolkit"
 # self-contained publish dir also holds the plugin\ copy from csproj <None> - Assemble strips it
 Assemble $pluginOut $scDir
@@ -117,6 +131,7 @@ Write-Host "==> publish: framework-dependent (lite)"
 $fdDir = Join-Path $root "artifacts\publish-fd"
 & $dotnet publish $csproj -c $Configuration -p:RuntimeIdentifier=win-x64 -p:SelfContained=false `
     -p:DebugType=none -p:SatelliteResourceLanguages=en -o $fdDir | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish (framework-dependent) failed with exit code $LASTEXITCODE" }
 $liteOut = Join-Path $root "dist\ReloadingToolkit-lite"
 Assemble $liteOut $fdDir
 
