@@ -12,8 +12,22 @@ public sealed class GrtResults
     public double? MaxPressure { get; init; }
     public string MaxPressureUnit { get; init; } = "";
     public double? BarrelTimeMs { get; init; }
+    /// <summary>Always null against a real GRT 2021.2030 response as of 2026-09-14 - no field named
+    /// "BurnRatio" (or any obvious alternative) appears anywhere in a live, complete (non-truncated)
+    /// Get_TabResults payload, even though GRT's own report macros and CSV export both use this exact
+    /// name. Likely only derivable from the P/V/t chunk stream (not read by this client), not exposed
+    /// as a flat scalar. Kept for API shape / in case a different GRT version or load state does
+    /// expose it - don't assume it works without re-verifying against a live response first.</summary>
     public double? BurnRatio { get; init; }
+    /// <summary>Same caveat as <see cref="BurnRatio"/>: always null against a real live response as of
+    /// 2026-09-14, despite "LoadRatio" being a real GRT field name elsewhere (report macros, CSV
+    /// export). Not confirmed obtainable via Get_TabResults.</summary>
     public double? LoadRatio { get; init; }
+    /// <summary>GRT's own classic (generic, length+caliber-only) optimal barrel time, ms - the
+    /// number the "Tempo di canna ottimale (OBT #n)" field in GRT's UI shows.</summary>
+    public double? OptimalBarrelTimeMs { get; init; }
+    /// <summary>The node label GRT prints next to its own OBT value, e.g. "#5" or "#5 ½".</summary>
+    public string OptimalBarrelTimeNode { get; init; } = "";
 }
 
 /// <summary>
@@ -237,9 +251,14 @@ public sealed class GrtClient : IDisposable
             MuzzleVelocityMps = ValueOf(d, "MuzzleVelocity") ?? ValueOf(d, "EndVelocity"),
             MaxPressure = ValueOf(d, "MaxPressure"),
             MaxPressureUnit = UnitOf(d, "MaxPressure"),
-            BarrelTimeMs = ValueOf(d, "BarrelTime") ?? ValueOf(d, "EndTime"),
+            // "BarrelTime"/"EndTime" never actually appear in the live IPC payload (verified against
+            // a real GRT 2021.2030 response 2026-09-14) - the real field is "MuzzleTime". Kept as a
+            // fallback in case a different GRT version does use one of those names.
+            BarrelTimeMs = ValueOf(d, "MuzzleTime") ?? ValueOf(d, "BarrelTime") ?? ValueOf(d, "EndTime"),
             BurnRatio = ValueOf(d, "BurnRatio"),
             LoadRatio = ValueOf(d, "LoadRatio"),
+            OptimalBarrelTimeMs = ValueOf(d, "OptimalBarrelTime"),
+            OptimalBarrelTimeNode = Str(d, "OptimalBarrelTimeNode") ?? "",
         };
     }
 
@@ -263,7 +282,7 @@ public sealed class GrtClient : IDisposable
     private static string GetMessage(JsonElement result) =>
         result.TryGetProperty("message", out var m) ? m.GetString() ?? "" : "(no message)";
 
-    private static string Trim(string s) => s.Length <= 400 ? s : s[..400] + "…";
+    private static string Trim(string s) => s.Length <= 2000 ? s : s[..2000] + "…";
 
     public void Dispose()
     {
