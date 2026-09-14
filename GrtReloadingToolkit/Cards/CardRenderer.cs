@@ -14,6 +14,40 @@ internal static class CardRenderer
         return new Bitmap(ms);
     }
 
+    /// <summary>One line, clipped with an ellipsis rather than wrapped or spilled past its box.</summary>
+    private static StringFormat OneLine() => new(StringFormat.GenericDefault)
+    {
+        Trimming = StringTrimming.EllipsisCharacter,
+        FormatFlags = StringFormatFlags.NoWrap,
+    };
+
+    /// <summary>
+    /// Segoe UI at <paramref name="pt"/>, or the largest size below it that still fits
+    /// <paramref name="width"/>, down to a floor of 55% of <paramref name="pt"/>.
+    ///
+    /// The header used to be two bare DrawString(text, font, brush, x, y) calls, which have no box
+    /// and so neither wrap nor shrink: at A6 preview scale the charge line is ~91pt, and "Hodgon
+    /// H4831SC" measures ~1017px against ~909px of usable width, so the powder name - the one thing
+    /// the card exists to state - ran off the edge and was clipped mid-word. Shrinking beats
+    /// wrapping here because the header is two lines by design (caliber, then charge and powder)
+    /// and a wrapped third line would push every row below it down. The floor stops one absurd
+    /// component name from rendering the header at 8pt; past it, OneLine's ellipsis takes over.
+    /// </summary>
+    private static Font Fit(Graphics g, string text, float pt, FontStyle style, float width, StringFormat fmt)
+    {
+        var font = new Font("Segoe UI", pt, style, GraphicsUnit.Point);
+        if (string.IsNullOrWhiteSpace(text)) return font;
+
+        float floor = pt * 0.55f;
+        while (g.MeasureString(text, font, int.MaxValue, fmt).Width > width && font.SizeInPoints > floor)
+        {
+            float next = Math.Max(font.SizeInPoints * 0.94f, floor);
+            font.Dispose();
+            font = new Font("Segoe UI", next, style, GraphicsUnit.Point);
+        }
+        return font;
+    }
+
     /// <summary>Full recipe card. bounds in the graphics' own units (1/100 in for print, px for bitmap).</summary>
     public static void DrawRecipeCard(Graphics g, RectangleF b, LoadCard c, Bitmap qr)
     {
@@ -24,18 +58,21 @@ internal static class CardRenderer
         using var pen = new Pen(Color.Black, 1.2f * u);
         g.DrawRectangle(pen, b.X, b.Y, b.Width, b.Height);
 
-        using var hFont = new Font("Segoe UI", 7.5f * u, FontStyle.Bold, GraphicsUnit.Point);
+        float pad = 5 * u;
+        float x = b.X + pad, y = b.Y + pad;
+        float textW = b.Width - 2 * pad;
+
+        using var one = OneLine();
+        using var hFont = Fit(g, c.Title, 7.5f * u, FontStyle.Bold, textW, one);
+        using var chFont = Fit(g, c.ChargeLine, 9f * u, FontStyle.Bold, textW, one);
         using var kFont = new Font("Segoe UI", 3.4f * u, FontStyle.Bold, GraphicsUnit.Point);
         using var vFont = new Font("Segoe UI", 3.6f * u, FontStyle.Regular, GraphicsUnit.Point);
-        using var chFont = new Font("Segoe UI", 9f * u, FontStyle.Bold, GraphicsUnit.Point);
         using var black = new SolidBrush(Color.Black);
         using var grey = new SolidBrush(Color.FromArgb(90, 90, 90));
 
-        float pad = 5 * u;
-        float x = b.X + pad, y = b.Y + pad;
-        g.DrawString(c.Title, hFont, black, x, y);
+        g.DrawString(c.Title, hFont, black, new RectangleF(x, y, textW, hFont.GetHeight(g) * 1.2f), one);
         y += hFont.GetHeight(g) + 1 * u;
-        g.DrawString(c.ChargeLine, chFont, black, x, y);
+        g.DrawString(c.ChargeLine, chFont, black, new RectangleF(x, y, textW, chFont.GetHeight(g) * 1.2f), one);
         y += chFont.GetHeight(g) + 2 * u;
 
         (string k, string? v)[] rows =
@@ -57,7 +94,9 @@ internal static class CardRenderer
         {
             if (string.IsNullOrWhiteSpace(v)) continue;
             g.DrawString(k, kFont, grey, x, y);
-            g.DrawString(v, vFont, black, x + labelW, y);
+            // The labels are a fixed set of short literals, but the values are component names off
+            // the user's inventory and have the same room to overrun as the header did.
+            g.DrawString(v, vFont, black, new RectangleF(x + labelW, y, textW - labelW, vFont.GetHeight(g) * 1.2f), one);
             y += vFont.GetHeight(g) + 1.4f * u;
         }
 
@@ -78,22 +117,26 @@ internal static class CardRenderer
         using var pen = new Pen(Color.Black, 0.8f * u);
         g.DrawRectangle(pen, b.X, b.Y, b.Width, b.Height);
 
-        using var big = new Font("Segoe UI", 5f * u, FontStyle.Bold, GraphicsUnit.Point);
-        using var mid = new Font("Segoe UI", 3.6f * u, FontStyle.Bold, GraphicsUnit.Point);
-        using var sm = new Font("Segoe UI", 3f * u, FontStyle.Regular, GraphicsUnit.Point);
-        using var black = new SolidBrush(Color.Black);
-
         float qrSize = b.Height - 2 * u;
         g.DrawImage(qr, new RectangleF(b.Right - qrSize - u, b.Y + u, qrSize, qrSize));
 
         float x = b.X + 2 * u, y = b.Y + 1.5f * u;
         float textW = b.Width - qrSize - 5 * u;
-        g.DrawString(c.Title, big, black, new RectangleF(x, y, textW, big.GetHeight(g) * 1.2f));
+
+        // These already drew into a box, so they wrapped instead of spilling - but the box is only
+        // 1.2 lines tall, so a long name lost its second half to the clip just as invisibly.
+        using var one = OneLine();
+        using var big = Fit(g, c.Title, 5f * u, FontStyle.Bold, textW, one);
+        using var mid = Fit(g, c.ChargeLine, 3.6f * u, FontStyle.Bold, textW, one);
+        using var sm = new Font("Segoe UI", 3f * u, FontStyle.Regular, GraphicsUnit.Point);
+        using var black = new SolidBrush(Color.Black);
+
+        g.DrawString(c.Title, big, black, new RectangleF(x, y, textW, big.GetHeight(g) * 1.2f), one);
         y += big.GetHeight(g) + 0.5f * u;
-        g.DrawString(c.ChargeLine, mid, black, new RectangleF(x, y, textW, mid.GetHeight(g) * 1.2f));
+        g.DrawString(c.ChargeLine, mid, black, new RectangleF(x, y, textW, mid.GetHeight(g) * 1.2f), one);
         y += mid.GetHeight(g) + 0.4f * u;
         string b3 = c.Bullet + (c.BulletGr is { } bg ? " " + bg.ToString("0.#", CultureInfo.InvariantCulture) + "gr" : "");
-        if (!string.IsNullOrWhiteSpace(b3)) { g.DrawString(b3, sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f)); y += sm.GetHeight(g) + 0.3f * u; }
-        g.DrawString($"{c.Primer}   {c.Date}".Trim(), sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f));
+        if (!string.IsNullOrWhiteSpace(b3)) { g.DrawString(b3, sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f), one); y += sm.GetHeight(g) + 0.3f * u; }
+        g.DrawString($"{c.Primer}   {c.Date}".Trim(), sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f), one);
     }
 }
