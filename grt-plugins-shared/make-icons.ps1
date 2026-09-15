@@ -8,17 +8,35 @@
   ...) into ./icons/, which .gitignore excludes and nothing reads, so regenerating the icons
   changed nothing anyone could see.
 
+  icn_toolkit is the exception: it is the only icon GRT itself renders (com.grt.plugin.xml names
+  it and nothing else), and it ships in colour with icon_colorize="false". See $Steel below.
+
   Usage:
     ./make-icons.ps1
     ./make-icons.ps1 -OutDir ..\SomeOtherPlugin\plugin\media\icons
+    ./make-icons.ps1 -Ico ..\GrtReloadingToolkit\app.ico   # also write the application icon
 #>
 param(
-    [string]$OutDir = (Join-Path $PSScriptRoot "..\GrtReloadingToolkit\plugin\media\icons")
+    [string]$OutDir = (Join-Path $PSScriptRoot "..\GrtReloadingToolkit\plugin\media\icons"),
+    [string]$Ico = ""
 )
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
 New-Item -ItemType Directory -Force $outDir | Out-Null
+
+# Palette for icn_toolkit, which is drawn in colour rather than white line art.
+#
+# GRT recolours a white glyph only where the manifest asks it to, and in the plugin dropdown it
+# does not, so a white icon there is white on a white menu and simply cannot be seen. The three
+# plugins GRT ships alongside this one (chrono, miller, seating) all sidestep that by shipping
+# full-colour artwork with icon_colorize="false": their icons measure mean luminance 53, 59 and
+# 151, against 254 for the white set here. This palette follows them, and is warm for the same
+# reason theirs is - brass is what the subject actually looks like.
+$Steel      = [System.Drawing.Color]::FromArgb(255, 44, 50, 56)     # reticle ring, outlines
+$BrassFill  = [System.Drawing.Color]::FromArgb(255, 199, 158, 74)   # cartridge case body
+$BrassEdge  = [System.Drawing.Color]::FromArgb(255, 133, 100, 40)   # case outline, darker brass
+$CopperFill = [System.Drawing.Color]::FromArgb(255, 162, 79, 38)    # jacketed bullet
 
 function Draw([int]$S, [scriptblock]$Body) {
     $bmp = New-Object System.Drawing.Bitmap($S, $S, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
@@ -37,34 +55,54 @@ function Draw([int]$S, [scriptblock]$Body) {
 }
 function Pt($x, $y, $k) { New-Object System.Drawing.PointF(($x * $k), ($y * $k)) }
 
-# A loaded round drawn in the icn_seating idiom: outlined case, filled ogive. $bw and $nw are the
-# case and neck half-widths; the shoulder and neck sit proportionally along the round so the
-# silhouette reads as a bottlenecked rifle case rather than a lozenge. Only icn_toolkit uses this
-# today, but it is the one shape here with enough geometry to be worth naming.
-function CaseAndBullet($g, $brush, $k, $cx, $yBase, $yTip, $bw, $nw, $penW) {
-    $p = New-Object System.Drawing.Pen([System.Drawing.Color]::White, $penW)
+# A loaded round: brass case, copper bullet, both outlined. $bw and $nw are the case and neck
+# half-widths; the shoulder and neck sit proportionally along the round so the silhouette reads as
+# a bottlenecked rifle case rather than a lozenge. Only icn_toolkit uses this today, but it is the
+# one shape here with enough geometry to be worth naming.
+#
+# The case used to be three open strokes in the icn_seating idiom - outline only, no fill - which
+# is right for a white glyph that GRT tints, and wrong the moment the icon carries its own colour:
+# an unfilled outline in brass reads as a wire drawing, not as brass. So the same points now build
+# one closed path that gets filled and then stroked.
+function CaseAndBullet($g, $k, $cx, $yBase, $yTip, $bw, $nw, $penW, $edge, $caseBrush, $bulletBrush) {
+    $p = New-Object System.Drawing.Pen($edge, $penW)
     $p.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
     $p.EndCap   = [System.Drawing.Drawing2D.LineCap]::Round
     $p.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
 
+    # Proportions of a real bottlenecked rifle round, near enough: the body is over half the length,
+    # the shoulder is a short sharp taper, the neck is shorter still, and the bullet is the rest.
+    # An earlier, blunter split (0.40 / 0.12 / 0.10) left the body too short and the ogive too long,
+    # and at 32px the whole thing read as a lozenge rather than a cartridge.
     $span = $yBase - $yTip
-    $ySh  = $yBase - $span * 0.40   # body starts tapering into the shoulder
-    $yNk  = $ySh - $span * 0.12     # top of the shoulder / bottom of the neck
-    $yOg  = $yNk - $span * 0.10     # where the ogive takes over
+    $ySh  = $yBase - $span * 0.52   # body starts tapering into the shoulder
+    $yNk  = $ySh - $span * 0.14     # top of the shoulder / bottom of the neck
+    $yOg  = $yNk - $span * 0.06     # where the ogive takes over
 
-    $g.DrawLines($p, @((Pt ($cx - $bw) $yBase $k), (Pt ($cx - $bw) $ySh $k),
-                       (Pt ($cx - $nw) $yNk $k),   (Pt ($cx - $nw) $yOg $k)))
-    $g.DrawLines($p, @((Pt ($cx + $bw) $yBase $k), (Pt ($cx + $bw) $ySh $k),
-                       (Pt ($cx + $nw) $yNk $k),   (Pt ($cx + $nw) $yOg $k)))
-    $g.DrawLine($p, (Pt ($cx - $bw) $yBase $k), (Pt ($cx + $bw) $yBase $k))
+    $case = New-Object System.Drawing.Drawing2D.GraphicsPath
+    $case.AddLines(@((Pt ($cx - $bw) $yBase $k), (Pt ($cx - $bw) $ySh $k),
+                     (Pt ($cx - $nw) $yNk $k),   (Pt ($cx - $nw) $yOg $k),
+                     (Pt ($cx + $nw) $yOg $k),   (Pt ($cx + $nw) $yNk $k),
+                     (Pt ($cx + $bw) $ySh $k),   (Pt ($cx + $bw) $yBase $k)))
+    $case.CloseFigure()
+    $g.FillPath($caseBrush, $case)
+    $g.DrawPath($p, $case)
 
+    # The control points pull the curve most of the way up at full width before turning in, which
+    # is what makes an ogive an ogive rather than a dome. 0.45 is the height at which it starts to
+    # narrow; 0.25 is how close to the axis the tangent comes at the tip.
+    $yCtl = $yTip + ($yOg - $yTip) * 0.45
     $og = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $og.AddBezier((Pt ($cx - $nw) $yOg $k), (Pt ($cx - $nw) ($yTip + ($yOg - $yTip) * 0.18) $k),
-                  (Pt ($cx - $nw * 0.55) $yTip $k), (Pt $cx $yTip $k))
-    $og.AddBezier((Pt $cx $yTip $k), (Pt ($cx + $nw * 0.55) $yTip $k),
-                  (Pt ($cx + $nw) ($yTip + ($yOg - $yTip) * 0.18) $k), (Pt ($cx + $nw) $yOg $k))
+    $og.AddBezier((Pt ($cx - $nw) $yOg $k), (Pt ($cx - $nw) $yCtl $k),
+                  (Pt ($cx - $nw * 0.25) $yTip $k), (Pt $cx $yTip $k))
+    $og.AddBezier((Pt $cx $yTip $k), (Pt ($cx + $nw * 0.25) $yTip $k),
+                  (Pt ($cx + $nw) $yCtl $k), (Pt ($cx + $nw) $yOg $k))
     $og.CloseFigure()
-    $g.FillPath($brush, $og)
+    $g.FillPath($bulletBrush, $og)
+    $g.DrawPath($p, $og)
+
+    $case.Dispose()
+    $og.Dispose()
     $p.Dispose()
 }
 
@@ -213,22 +251,32 @@ $icons = @{
   # the same reason icn_cal drops its +/- marks and icn_brass drops its caliper jaws.
   "icn_toolkit" = {
     param($g, $pen, $brush, $k, $S)
+    # The shared white $pen and $brush are deliberately unused here: this is the one icon GRT
+    # renders itself, so it carries its own colour. See the palette at the top of the file.
     $ringW = if ($S -le 16) { 1.9 } else { 2.4 }
-    $pr = New-Object System.Drawing.Pen([System.Drawing.Color]::White, $ringW)
+    $pr = New-Object System.Drawing.Pen($Steel, $ringW)
     $pr.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
     $pr.EndCap   = [System.Drawing.Drawing2D.LineCap]::Round
+    $bCase   = New-Object System.Drawing.SolidBrush($BrassFill)
+    $bBullet = New-Object System.Drawing.SolidBrush($CopperFill)
     if ($S -le 16) {
+        # At 16px the round is about 8 device pixels wide and the bullet barely 3 tall, so the
+        # outline has to get *thinner* rather than thicker: at 2.0 it ate the copper entirely and
+        # the icon read as a plain brass slug. The round is also stretched nearer the ring than at
+        # 32px, because the ogive only reads at all once it has three pixels to work with.
         $g.DrawEllipse($pr, (2.5 * $k), (2.5 * $k), (27 * $k), (27 * $k))
-        CaseAndBullet $g $brush $k 16 22.5 10.5 2.9 1.55 1.8
+        CaseAndBullet $g $k 16 26 5.5 3.9 2.4 1.2 $BrassEdge $bCase $bBullet
     } else {
         $g.DrawEllipse($pr, (3 * $k), (3 * $k), (26 * $k), (26 * $k))
-        CaseAndBullet $g $brush $k 16 24 9 3.6 2.0 2.6
+        CaseAndBullet $g $k 16 25 6.5 4.0 2.4 1.5 $BrassEdge $bCase $bBullet
         # reticle ticks, outside the ring at N/S/E/W
         $g.DrawLine($pr, (Pt 16 0 $k),  (Pt 16 3 $k))
         $g.DrawLine($pr, (Pt 16 29 $k), (Pt 16 32 $k))
         $g.DrawLine($pr, (Pt 0 16 $k),  (Pt 3 16 $k))
         $g.DrawLine($pr, (Pt 29 16 $k), (Pt 32 16 $k))
     }
+    $bCase.Dispose()
+    $bBullet.Dispose()
     $pr.Dispose()
   }
 
@@ -249,6 +297,75 @@ $icons = @{
   }
 }
 
+# One bitmap as an ICO image payload.
+#
+# Sizes below 256 go in as a DIB, which is what every Windows version since 95 reads; 256 goes in
+# as a PNG, because a 256x256 DIB is a quarter of a megabyte of the exe and PNG entries are the
+# documented way around that (Vista+). Mixing the two in one file is the ordinary convention, not
+# a compromise.
+#
+# The DIB is a BITMAPINFOHEADER whose biHeight is *doubled*: the format expects a colour bitmap
+# followed by a 1-bit AND mask, and the header covers both. The mask is all zeros - "opaque
+# everywhere" - because the alpha channel already carries the transparency and every reader that
+# understands a 32bpp icon uses it.
+function IcoPayload($bmp) {
+    $S = $bmp.Width
+    if ($S -ge 256) {
+        $ms = New-Object System.IO.MemoryStream
+        $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+        $bytes = $ms.ToArray()
+        $ms.Dispose()
+        return $bytes
+    }
+
+    $maskStride = [int]([Math]::Floor(($S + 31) / 32)) * 4
+    $out = New-Object System.IO.MemoryStream
+    $w = New-Object System.IO.BinaryWriter($out)
+    $w.Write([uint32]40); $w.Write([int32]$S); $w.Write([int32]($S * 2))
+    $w.Write([uint16]1);  $w.Write([uint16]32)
+    $w.Write([uint32]0);  $w.Write([uint32]0)
+    $w.Write([int32]0);   $w.Write([int32]0)
+    $w.Write([uint32]0);  $w.Write([uint32]0)
+    for ($y = $S - 1; $y -ge 0; $y--) {       # DIB rows run bottom-up
+        for ($x = 0; $x -lt $S; $x++) {
+            $c = $bmp.GetPixel($x, $y)
+            $w.Write([byte]$c.B); $w.Write([byte]$c.G); $w.Write([byte]$c.R); $w.Write([byte]$c.A)
+        }
+    }
+    $w.Write((New-Object byte[] ($maskStride * $S)))
+    $w.Flush()
+    $bytes = $out.ToArray()
+    $w.Dispose()
+    return $bytes
+}
+
+# A multi-size .ico: ICONDIR header, one 16-byte ICONDIRENTRY per image, then the payloads.
+function WriteIco($path, $bitmaps) {
+    # [byte[]] on the way in, because a function returning an array emits its elements one at a
+    # time: without the cast each payload arrives as a loose stream of bytes and the entries end
+    # up one byte long.
+    $payloads = New-Object System.Collections.ArrayList
+    foreach ($b in $bitmaps) { [void]$payloads.Add([byte[]](IcoPayload $b)) }
+
+    $out = New-Object System.IO.MemoryStream
+    $w = New-Object System.IO.BinaryWriter($out)
+    $w.Write([uint16]0); $w.Write([uint16]1); $w.Write([uint16]$payloads.Count)
+    $offset = 6 + 16 * $payloads.Count
+    for ($i = 0; $i -lt $payloads.Count; $i++) {
+        $S = $bitmaps[$i].Width
+        # 256 is written as 0: the field is one byte, so 256 does not fit and 0 means 256.
+        $w.Write([byte]($S % 256)); $w.Write([byte]($S % 256))
+        $w.Write([byte]0); $w.Write([byte]0)
+        $w.Write([uint16]1); $w.Write([uint16]32)
+        $w.Write([uint32]$payloads[$i].Length); $w.Write([uint32]$offset)
+        $offset += $payloads[$i].Length
+    }
+    foreach ($p in $payloads) { $w.Write($p) }
+    $w.Flush()
+    [IO.File]::WriteAllBytes($path, $out.ToArray())
+    $w.Dispose()
+}
+
 foreach ($name in $icons.Keys) {
     foreach ($size in 16, 32) {
         $bmp = Draw $size $icons[$name]
@@ -258,3 +375,15 @@ foreach ($name in $icons.Keys) {
     Write-Host "  $name  (16 + 32)"
 }
 Write-Host "done -> $outDir"
+
+if ($Ico -ne "") {
+    # The app icon is the same drawing as the plugin icon, at the four sizes Windows asks for:
+    # 16 in the title bar, 32 on the taskbar, 48 in Explorer's medium view, 256 for the large ones.
+    # Resolve against the caller's location, not the process working directory, which is where a
+    # relative path passed to [IO.File] would otherwise land.
+    $icoPath = [IO.Path]::GetFullPath([IO.Path]::Combine((Get-Location).ProviderPath, $Ico))
+    $bitmaps = @(16, 32, 48, 256 | ForEach-Object { Draw $_ $icons["icn_toolkit"] })
+    WriteIco $icoPath $bitmaps
+    $bitmaps | ForEach-Object { $_.Dispose() }
+    Write-Host "done -> $icoPath  (16 + 32 + 48 + 256)"
+}

@@ -24,14 +24,19 @@
       <event name="WindowClosed" enabled="false" />
     </registerevent>
 
-    <menu autoenable="true" icon="media/icons/icn_toolkit_16x16.png" icon_colorize="true">
-      <menuitem id="open" label="Reloading Toolkit…" enabled="true" icon="media/icons/icn_toolkit_16x16.png" />
+    <!-- icon_colorize="false" everywhere the icon appears: it now ships in colour rather than as
+         white line art for GRT to tint. GRT does not tint in the plugin dropdown, so the white
+         version was white on a white menu and invisible there. The three plugins GRT ships
+         (chrono, miller, seating) all use false with full-colour artwork; they leave the attribute
+         off <menuitem>, but spelling it out costs nothing and does not rely on the default. -->
+    <menu autoenable="true" icon="media/icons/icn_toolkit_16x16.png" icon_colorize="false">
+      <menuitem id="open" label="Reloading Toolkit…" enabled="true" icon="media/icons/icn_toolkit_16x16.png" icon_colorize="false" />
     </menu>
 
     <toolbar>
       <toolbaritem id="open" label="Reloading Toolkit"
                    tooltip="Open the Reloading Toolkit: chrono import, ladder / seating / calibration analysis, brass prep, load cards, inventory"
-                   icon="media/icons/icn_toolkit_32x32.png" icon_colorize="true" enabled="true" />
+                   icon="media/icons/icn_toolkit_32x32.png" icon_colorize="false" enabled="true" />
     </toolbar>
 
   </plugin>
