@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using GrtPluginKit.Grt;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ocw;
 
@@ -92,7 +94,8 @@ public static class GrtShotGroups
                 tg.ChargeGrains = step;
 
                 int flyers = set.Points.Count(p => p.Flyer && !p.PointOfAim);
-                string tag = step is { } s ? $"step {s:0.0##}" : $"ordinal {groupIdx}";
+                // No LadderMode here — a shot-group tab is read the same way for both ladders.
+                string tag = step is { } s ? "step " + s.ToString(Str.StepFormat, CultureInfo.InvariantCulture) : $"ordinal {groupIdx}";
                 log.Add($"'{sg.Title}' / {set.Name}: {tg.Impacts.Count} hits @ {distM:0} m, {tag}"
                         + (flyers > 0 ? $" ({flyers} flyer{(flyers > 1 ? "s" : "")}{(opt.ExcludeFlyers ? " excluded" : " kept")})" : ""));
                 outp.Add(tg);

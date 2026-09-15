@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Util;
 using QRCoder;
 
 namespace GrtReloadingToolkit.Cards;
@@ -81,8 +82,8 @@ internal static class CardRenderer
             ("Bullet", c.Bullet + (c.BulletGr is { } bg ? "  " + bg.ToString("0.#", CultureInfo.InvariantCulture) + " gr" : "")),
             ("Primer", c.Primer),
             ("Brass", c.Brass),
-            ("COAL", c.CoalMm is { } o ? o.ToString("0.00", CultureInfo.InvariantCulture) + " mm" : null),
-            ("CBTO", c.CbtoMm is { } t ? t.ToString("0.00", CultureInfo.InvariantCulture) + " mm" : null),
+            ("COAL", c.CoalMm is { } o ? Str.Len(o) + " mm" : null),
+            ("CBTO", c.CbtoMm is { } t ? Str.Len(t) + " mm" : null),
             ("MV / SD", c.MvMs is { } mv ? mv.ToString("0", CultureInfo.InvariantCulture) + " m/s" + (c.SdMs is { } sd ? "  SD " + sd.ToString("0.0", CultureInfo.InvariantCulture) : "") : null),
             ("Cost / round", string.IsNullOrWhiteSpace(c.CostPerRound) ? null : c.CostPerRound),
             ("Date", c.Date),

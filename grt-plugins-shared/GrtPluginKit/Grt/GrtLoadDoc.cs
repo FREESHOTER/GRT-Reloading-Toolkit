@@ -141,6 +141,19 @@ public sealed class GrtLoadDoc
     public double? CaseLenMm => ParseInput("caliber", "caselen");
     /// <summary>Bullet seating depth in mm.</summary>
     public double? SeatingDepthMm => ParseInput("projectile", "gdepth");
+    /// <summary>Projectile overall length in mm.</summary>
+    public double? BulletLengthMm => ParseInput("projectile", "glen");
+
+    /// <summary>
+    /// COAL implied by the current case length, bullet length and seating depth, or null if any of
+    /// the three is missing. GRT documents oal as "calculated based on actual case length, the
+    /// length of the projectile minus the seating depth", and the identity holds exactly in the
+    /// loads GRT itself writes - so a tool that moves <c>gdepth</c> in a file must move <c>oal</c>
+    /// with it. GRT recomputes oal when the user edits seating depth in its own UI, but a load
+    /// opened from disk keeps whatever oal the file carries.
+    /// </summary>
+    public static double? CoalFrom(double? caseLenMm, double? bulletLenMm, double? seatingDepthMm) =>
+        caseLenMm is { } cl && bulletLenMm is { } gl && seatingDepthMm is { } gd ? cl + gl - gd : null;
     public double? LadderStepGr => ParseInputG("propellant", "laddermc");
     public int? LadderCount => (int?)ParseInput("propellant", "laddercnt");
     public double? PropellantBa => ParseInput("propellant", "Ba");

@@ -1,5 +1,6 @@
 using System.Globalization;
 using GrtPluginKit.Grt;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ocw;
 
@@ -21,7 +22,7 @@ internal static class GroupsCli
 
         foreach (var g in groups)
         {
-            Console.WriteLine($"{g.SourceFile}  charge/step={g.ChargeGrains?.ToString("0.0##", ci) ?? "?"}  dist={g.DistanceM.ToString("0", ci)} m");
+            Console.WriteLine($"{g.SourceFile}  charge/step={g.ChargeGrains?.ToString(Str.StepFormat, ci) ?? "?"}  dist={g.DistanceM.ToString("0", ci)} m");
             Console.WriteLine($"  n={g.Impacts.Count}  center=({g.CenterXMoa.ToString("0.00", ci)}, {g.CenterYMoa.ToString("0.00", ci)}) MOA");
             Console.WriteLine($"  mean radius={g.MeanRadiusMoa.ToString("0.00", ci)} MOA   ES={g.GroupEsMoa.ToString("0.00", ci)} MOA   vertical={g.VerticalSpreadMoa.ToString("0.00", ci)} MOA");
             double moaMm = GrtShotGroups.MoaMm(g.DistanceM);

@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ocw;
 
@@ -109,6 +110,9 @@ public static class LadderAnalyzer
     {
         bool seat = r.Mode == LadderMode.Seating;
         string xh = seat ? $"seat({r.XUnit})" : "charge";
+        // In a seating ladder the step IS a length, so it follows the length rule; in a charge
+        // ladder it is a powder weight, which a scale resolves to about 0.02 gr.
+        string xf = seat ? Str.LengthFormat : "0.0##";
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
@@ -116,13 +120,13 @@ public static class LadderAnalyzer
         sb.AppendLine($"{xh,7}  n   MV      SD    ES   | dist  POI-Y   grpMR  vert  (MOA)");
         foreach (var x in r.Rows)
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "{0,7:0.0##} {1,3} {2,7:0.0} {3,5:0.0} {4,5:0.0} | {5,4:0} {6,7:0.00} {7,6:0.00} {8,5:0.00}",
-                x.X, x.HasVel ? x.VelN : 0, x.MeanMps, x.SdMps, x.EsMps,
+                "{0,7} {1,3} {2,7:0.0} {3,5:0.0} {4,5:0.0} | {5,4:0} {6,7:0.00} {7,6:0.00} {8,5:0.00}",
+                x.X.ToString(xf, CultureInfo.InvariantCulture), x.HasVel ? x.VelN : 0, x.MeanMps, x.SdMps, x.EsMps,
                 x.HasTarget ? x.DistanceM : 0, x.PoiYMoa, x.MeanRadiusMoa, x.VertSpreadMoa));
         sb.AppendLine();
-        Line(sb, seat ? "Group-size plateau" : "Velocity flat-spot (Satterlee)", r.PrimaryNode, r.XUnit);
-        Line(sb, "Vertical-POI node", r.PoiNode, r.XUnit);
-        Line(sb, "Recommended node (weighted)", r.BestNode, r.XUnit);
+        Line(sb, seat ? "Group-size plateau" : "Velocity flat-spot (Satterlee)", r.PrimaryNode, r.XUnit, xf);
+        Line(sb, "Vertical-POI node", r.PoiNode, r.XUnit, xf);
+        Line(sb, "Recommended node (weighted)", r.BestNode, r.XUnit, xf);
         if (r.Warnings.Count > 0)
         {
             sb.AppendLine();
@@ -133,11 +137,12 @@ public static class LadderAnalyzer
         sb.AppendLine("SD is population (n). Confirm any node with a fresh confirmation group before committing.");
         return sb.ToString();
 
-        static void Line(System.Text.StringBuilder s, string label, NodeWindow? n, string unit)
+        static void Line(System.Text.StringBuilder s, string label, NodeWindow? n, string unit, string xf)
             => s.AppendLine(n is null
                 ? $"{label}: n/a"
-                : string.Format(CultureInfo.InvariantCulture, "{0}: {1:0.0##}-{2:0.0##} {3}  (center {4:0.0##})  -- {5}",
-                    label, n.Low, n.High, unit, n.Center, n.Basis));
+                : string.Format(CultureInfo.InvariantCulture, "{0}: {1}-{2} {3}  (center {4})  -- {5}",
+                    label, n.Low.ToString(xf, CultureInfo.InvariantCulture), n.High.ToString(xf, CultureInfo.InvariantCulture),
+                    unit, n.Center.ToString(xf, CultureInfo.InvariantCulture), n.Basis));
     }
 
     // ---- helpers ---------------------------------------------------------

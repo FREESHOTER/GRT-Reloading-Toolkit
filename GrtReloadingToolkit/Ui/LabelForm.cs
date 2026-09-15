@@ -4,6 +4,7 @@ using GrtReloadingToolkit.Cards;
 using GrtReloadingToolkit.Log;
 using GrtPluginKit.Grt;
 using GrtPluginKit.Ipc;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ui;
 
@@ -235,8 +236,8 @@ internal sealed class LabelForm : Form
         L("Charge", _card.ChargeGr is { } g ? g.ToString("0.0#", ci) + " gr" : null);
         L("Primer", _card.Primer);
         L("Brass", _card.Brass);
-        L("COAL", _card.CoalMm is { } o ? o.ToString("0.###", ci) + " mm" : null);
-        L("CBTO", _card.CbtoMm is { } cbto ? cbto.ToString("0.###", ci) + " mm" : null);
+        L("COAL", _card.CoalMm is { } o ? Str.Len(o) + " mm" : null);
+        L("CBTO", _card.CbtoMm is { } cbto ? Str.Len(cbto) + " mm" : null);
         string mvStr = "";
         if (_card.MvMs is { } mv)
         {

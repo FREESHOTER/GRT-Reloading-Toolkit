@@ -2,6 +2,7 @@ using System.Globalization;
 using GrtReloadingToolkit.Ocw;
 using GrtPluginKit.Grt;
 using GrtPluginKit.Ipc;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ui;
 
@@ -242,7 +243,7 @@ internal abstract class LadderAnalyzerForm : Form
             _grid.Rows.Clear();
             foreach (var x in _result.Rows)
                 _grid.Rows.Add(
-                    x.X.ToString(Mode == LadderMode.Seating ? "0.0##" : "0.0", CultureInfo.InvariantCulture),
+                    x.X.ToString(Mode == LadderMode.Seating ? Str.LengthFormat : "0.0", CultureInfo.InvariantCulture),
                     x.HasVel ? x.VelN : 0,
                     x.HasVel ? x.MeanMps.ToString("0.0", CultureInfo.InvariantCulture) : "",
                     x.HasVel ? x.SdMps.ToString("0.0", CultureInfo.InvariantCulture) : "",
@@ -261,8 +262,10 @@ internal abstract class LadderAnalyzerForm : Form
             _chart.SetData(_result);
             _summary.Text = LadderAnalyzer.BuildReport(_result, HeadlineFor(DateTime.Now)).Replace("\n", "\r\n");
             _writeBtn.Enabled = _result.BestNode != null && _grt is { Connected: true };
+            string xf = Mode == LadderMode.Seating ? Str.LengthFormat : "0.0##";
             _status.Text = _result.BestNode is { } n
-                ? string.Format(CultureInfo.InvariantCulture, "Recommended node {0:0.0##}–{1:0.0##} {2}", n.Low, n.High, XUnit)
+                ? string.Format(CultureInfo.InvariantCulture, "Recommended node {0}–{1} {2}",
+                    n.Low.ToString(xf, CultureInfo.InvariantCulture), n.High.ToString(xf, CultureInfo.InvariantCulture), XUnit)
                 : "analysis done";
         }
         catch (Exception ex)

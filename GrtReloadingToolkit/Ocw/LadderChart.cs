@@ -1,5 +1,6 @@
 using System.Drawing.Imaging;
 using System.Globalization;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ocw;
 
@@ -123,7 +124,7 @@ internal sealed class LadderChart : Panel
 
         foreach (var x in rows)
         {
-            g.DrawString(x.X.ToString(seat ? "0.0##" : "0.0", ci), fnt, tb, X(x.X) - 12 * s, mt + ph + 5 * s);
+            g.DrawString(x.X.ToString(seat ? Str.LengthFormat : "0.0", ci), fnt, tb, X(x.X) - 12 * s, mt + ph + 5 * s);
             g.DrawLine(axis, X(x.X), mt + ph, X(x.X), mt + ph + 4 * s);
         }
 

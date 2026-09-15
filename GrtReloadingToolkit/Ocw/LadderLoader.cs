@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using System.Globalization;
+using GrtPluginKit.Util;
 using GrtReloadingToolkit.Athlon;
 using GrtPluginKit.Analysis;
 
@@ -33,7 +35,7 @@ public static class LadderLoader
             {
                 var a = AthlonParser.Parse(f);
                 double? x = StepValue(mode, a.ChargeGrains, a.SessionNote, f);
-                if (x is { } v) { vels[Key(v)] = a.Velocities.ToList(); chronoFiles.Add(f); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {v:0.0##}, {a.Shots.Count} shots"); }
+                if (x is { } v) { vels[Key(v)] = a.Velocities.ToList(); chronoFiles.Add(f); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
                 else rep.Log.Add($"velocity {Path.GetFileName(f)}: no step value, skipped");
             }
             catch (Exception) when (Path.GetExtension(f).Equals(".csv", StringComparison.OrdinalIgnoreCase))
@@ -50,7 +52,7 @@ public static class LadderLoader
             {
                 var t = BallisticXCsv.Parse(f);
                 double? x = StepValue(mode, t.ChargeGrains, null, f);
-                if (x is { } v) { tgts[Key(v)] = t; rep.Log.Add($"target {Path.GetFileName(f)} -> {v:0.0##}, {t.Impacts.Count} impacts @ {t.DistanceM:0} m"); }
+                if (x is { } v) { tgts[Key(v)] = t; rep.Log.Add($"target {Path.GetFileName(f)} -> {StepText(mode, v)}, {t.Impacts.Count} impacts @ {t.DistanceM:0} m"); }
                 else rep.Log.Add($"target {Path.GetFileName(f)}: no step value, skipped");
             }
             catch (Exception) when (chronoFiles.Contains(f))
@@ -81,7 +83,7 @@ public static class LadderLoader
                 {
                     var a = AthlonParser.Parse(f);
                     if (StepValue(mode, a.ChargeGrains, a.SessionNote, f) is { } v)
-                    { vels[Key(v)] = a.Velocities.ToList(); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {v:0.0##}, {a.Shots.Count} shots"); }
+                    { vels[Key(v)] = a.Velocities.ToList(); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
                 }
                 catch (Exception ex) { rep.Log.Add($"velocity {Path.GetFileName(f)}: {ex.Message}"); }
             }
@@ -181,5 +183,17 @@ public static class LadderLoader
     private static bool TryNum(string s, out double v)
         => double.TryParse(s.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out v);
 
+    /// <summary>
+    /// Pairing key for a ladder step. Deliberately rounded: the step is recovered from file names
+    /// and session notes written by hand and by two different apps, so a velocity file and its
+    /// target file have to land on the same key despite the last digit disagreeing. Three decimals
+    /// is the tolerance, not the precision - <see cref="StepText"/> shows the value unrounded, and
+    /// two genuinely distinct steps closer together than 0.001 would merge here.
+    /// </summary>
     private static double Key(double x) => Math.Round(x, 3);
+
+    /// <summary>A step value for the log: a length in a seating ladder, a charge weight otherwise.</summary>
+    private static string StepText(LadderMode mode, double v) => mode == LadderMode.Seating
+        ? Str.Len(v)
+        : v.ToString("0.0##", CultureInfo.InvariantCulture);
 }

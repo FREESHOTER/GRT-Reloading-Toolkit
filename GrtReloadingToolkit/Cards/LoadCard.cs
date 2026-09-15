@@ -1,6 +1,7 @@
 using System.Globalization;
 using GrtPluginKit.Analysis;
 using GrtPluginKit.Grt;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Cards;
 
@@ -43,8 +44,8 @@ public sealed class LoadCard
         if (ChargeGr is { } c) Add(sb, "charge", c.ToString("0.0##", CultureInfo.InvariantCulture) + " gr");
         Add(sb, "primer", Primer);
         Add(sb, "brass", Brass);
-        if (CoalMm is { } o) Add(sb, "COAL", o.ToString("0.00", CultureInfo.InvariantCulture) + " mm");
-        if (CbtoMm is { } t) Add(sb, "CBTO", t.ToString("0.00", CultureInfo.InvariantCulture) + " mm");
+        if (CoalMm is { } o) Add(sb, "COAL", Str.Len(o) + " mm");
+        if (CbtoMm is { } t) Add(sb, "CBTO", Str.Len(t) + " mm");
         if (MvMs is { } v) Add(sb, "MV", v.ToString("0", CultureInfo.InvariantCulture) + " m/s" + (SdMs is { } s ? " SD " + s.ToString("0.0", CultureInfo.InvariantCulture) : ""));
         Add(sb, "date", Date);
         Add(sb, "cost", CostPerRound);
@@ -67,8 +68,11 @@ public sealed class LoadCard
             BulletGr = R(doc.BulletMassGr, 1),
             Powder = doc.PropellantName,
             ChargeGr = R(doc.PropellantChargeGr, 2),
-            CoalMm = R(doc.CoalMm, 3),
-            SeatingDepthMm = R(doc.SeatingDepthMm, 3),
+            // Lengths are carried at the precision GRT stored them and rounded only where they
+            // are displayed; rounding here would have thrown the extra places away for every
+            // consumer at once, invisibly.
+            CoalMm = doc.CoalMm,
+            SeatingDepthMm = doc.SeatingDepthMm,
             SourceFile = path,
         };
 
