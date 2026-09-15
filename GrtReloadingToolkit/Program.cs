@@ -51,7 +51,11 @@ internal static class Program
             for (int i = 0; i < 25 && grt.PendingActivation is null; i++) Thread.Sleep(20);
         }
 
-        Application.Run(new ToolkitContext(grt));
+        // Held in a using rather than passed inline: Application.Run disposes the context itself,
+        // but only along paths that end the loop normally, and the context owns the SQLite handle.
+        // Disposing twice is harmless; not disposing at all leaves a -wal file behind.
+        using (var ctx = new ToolkitContext(grt))
+            Application.Run(ctx);
         grt?.Dispose();
     }
 }
@@ -126,7 +130,17 @@ internal sealed class ToolkitContext : ApplicationContext
         f.FormClosed += (_, _) =>
         {
             _open.Remove(t);
-            if (_open.Count == 0) { _db.Dispose(); ExitThread(); }
+
+            // A form that went away without raising FormClosed — disposed directly, or its handle
+            // torn down under us — would otherwise sit in _open for ever and, because the count
+            // never reaches zero, leave a windowless process alive holding the exe locked.
+            foreach (Tool stale in _open.Where(kv => kv.Value.IsDisposed).Select(kv => kv.Key).ToList())
+                _open.Remove(stale);
+
+            // Ending the message loop comes first and on its own. Anything that can throw or block
+            // — closing SQLite above all — runs in Dispose below, where failing it costs a tidy
+            // shutdown rather than the process's only way out.
+            if (_open.Count == 0) ExitThread();
         };
         _open[t] = f;
         f.Show();
@@ -145,5 +159,21 @@ internal sealed class ToolkitContext : ApplicationContext
         var log = Reports.ReportTemplates.Install(root);
         MessageBox.Show(string.Join(Environment.NewLine, log),
             "Install GRT report templates", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    /// <summary>
+    /// Runs once the message loop has ended, so this is where the things the context owns are
+    /// released. A throw here is swallowed on purpose: the windows are gone and the loop has
+    /// stopped, and letting SQLite teardown take the process down with it would turn tidy-up
+    /// into a crash on exit. May run twice (Application.Run and Main's using both dispose);
+    /// SqliteConnection.Dispose tolerates that.
+    /// </summary>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            try { _db.Dispose(); } catch { }
+        }
+        base.Dispose(disposing);
     }
 }
