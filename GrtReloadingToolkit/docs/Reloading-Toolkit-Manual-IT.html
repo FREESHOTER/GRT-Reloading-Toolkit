@@ -190,6 +190,48 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <em>Ctrl+S</em> su un vecchio tab <code>…_toolkit.grtload</code> a nome fisso che GRT aveva
         aperto prima di uno snapshot più recente — GRT ci scriverebbe sopra la sua copia vecchia in
         memoria.</div>
+
+      <h3>Unità: il toolkit mostra quello che mostra GRT</h3>
+      <p>Un file <code>.grtload</code> è <strong>sempre metrico</strong> — lunghezze in mm, velocità in
+        m/s, temperature in &deg;C — qualunque unità stia mostrando GRT. GRT tiene la tua scelta a
+        parte, in <code>ValueUnits</code> dentro <code>GordonsReloadingTool.cfg</code>, e converte solo
+        al momento di mostrarla a schermo.</p>
+      <p>Il toolkit fa lo stesso. All&#39;avvio legge quella riga dal GRT che ha accanto e segue quattro
+        delle sue impostazioni:</p>
+      <table><thead><tr><th>Campo GRT</th><th>Che cosa lo segue</th></tr></thead><tbody>
+        <tr><td><code>oal</code></td><td>ogni lunghezza: COAL, profondità di seating, OD colletto,
+          lunghezza bossolo, la card, l&#39;etichetta</td></tr>
+        <tr><td><code>velocity</code></td><td>ogni velocità iniziale, SD ed ES — tabelle, grafici, note
+          e il blocco QR</td></tr>
+        <tr><td><code>pt</code></td><td>ogni temperatura</td></tr>
+        <tr><td><code>range</code></td><td>ogni distanza di tiro</td></tr>
+      </tbody></table>
+      <p>Quindi se GRT è impostato su pollici e ft/s, lo è anche il toolkit: intestazioni di colonna,
+        assi dei grafici, la card del load, l&#39;etichetta della scatola e le note che riscrive in GRT
+        dicono tutte <code>in</code> e <code>ft/s</code>. Se accanto non c&#39;è nessun GRT installato
+        (uso autonomo, o una macchina di prova) resta metrico, come ha sempre fatto. Il file salvato non
+        cambia: è metrico in entrambi i casi, così un load resta leggibile da chiunque.</p>
+      <p>Tre cose deliberatamente <strong>non</strong> seguono GRT:</p>
+      <ul>
+        <li><strong>MOA</strong> è un angolo. Il numero è lo stesso in qualsiasi sistema di unità,
+          quindi non viene mai convertito.</li>
+        <li><strong><code>UNIT=</code></strong> in una nota del cronografo registra l&#39;unità del
+          <em>tuo file di export</em>. È provenienza del dato, non una scelta di visualizzazione.</li>
+        <li><strong>La colonna X del ladder</strong> (carica, oppure seat/jump). Quel numero viene letto
+          dai nomi dei tuoi file e dalle note di carica, quindi niente registra in che unità l&#39;hai
+          scritto — convertirlo sarebbe tirare a indovinare. L&#39;intestazione segue GRT così sai qual
+          è la convenzione, ma il numero è esattamente quello che hai scritto tu.</li>
+      </ul>
+      <p>Dove una scheda ha un suo selettore di unità (le schede bossoli, le unità bersaglio del ladder)
+        comanda il selettore: l&#39;impostazione di GRT è solo quella con cui si apre la prima volta.
+        Dopo, viene ricordata la tua scelta.</p>
+
+      <h3>Quello che scrivi resta</h3>
+      <p>Ogni casella che compili viene salvata mentre lavori e torna quando riapri la finestra: chiudere
+        uno strumento non è più una misura persa. Vale anche per i valori che prima sparivano, fra cui
+        <em>measure loaded neck OD</em> e la <em>profondità di seating</em>. Lo stato sta in
+        <code>%APPDATA%\GRTPlugins\toolkit-ui.json</code>; cancella quel file per ripartire con tutte
+        le schede vuote.</p>
     </section>
 
     <section id="chrono">

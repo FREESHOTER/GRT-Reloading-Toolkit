@@ -189,6 +189,48 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         then delete the <code>_toolkit_…</code> snapshots. Do not press <em>Ctrl+S</em> on an old
         fixed-name <code>…_toolkit.grtload</code> tab GRT opened before a newer snapshot was written
         &mdash; GRT would save its stale in-memory copy over the file.</div>
+
+      <h3>Units: the toolkit shows what GRT shows</h3>
+      <p>A <code>.grtload</code> file is <strong>always metric</strong> &mdash; lengths in mm,
+        velocities in m/s, temperatures in &deg;C &mdash; whatever units GRT is displaying. GRT keeps
+        your choice separately, in <code>ValueUnits</code> in <code>GordonsReloadingTool.cfg</code>,
+        and converts on the way to the screen.</p>
+      <p>The toolkit does the same. At startup it reads that line from the GRT beside it and follows
+        four of its settings:</p>
+      <table><thead><tr><th>GRT field</th><th>What follows it</th></tr></thead><tbody>
+        <tr><td><code>oal</code></td><td>every length: COAL, seating depth, neck OD, case length, the
+          card, the label</td></tr>
+        <tr><td><code>velocity</code></td><td>every muzzle velocity, SD and ES &mdash; grids, charts,
+          notes and the QR block</td></tr>
+        <tr><td><code>pt</code></td><td>every temperature</td></tr>
+        <tr><td><code>range</code></td><td>every shooting distance</td></tr>
+      </tbody></table>
+      <p>So if GRT is set to inches and ft/s, so is the toolkit: column headers, chart axes, the load
+        card, the box label and the notes it writes back all say <code>in</code> and <code>ft/s</code>.
+        With no GRT installed beside it (stand-alone, or a test box) it stays metric, which is what it
+        has always done. The stored file never changes &mdash; it is metric either way, so a load stays
+        readable by anyone.</p>
+      <p>Three things deliberately do <strong>not</strong> follow GRT:</p>
+      <ul>
+        <li><strong>MOA</strong> is an angle. The number is the same in every unit system, so it is
+          never converted.</li>
+        <li><strong><code>UNIT=</code></strong> in a chronograph note records what unit <em>your export
+          file</em> used. That is provenance, not a display choice.</li>
+        <li><strong>The ladder X column</strong> (charge, or seat/jump). That number is read out of your
+          own file names and charge notes, so nothing records which unit you wrote it in &mdash;
+          converting it would be a guess. The heading follows GRT so you know the convention, but the
+          number is exactly as you typed it.</li>
+      </ul>
+      <p>Where a tab has its own unit picker (the brass tabs, the ladder&#39;s target units) the picker
+        still wins: GRT&#39;s setting is only what it opens on the first time. After that, your choice
+        is remembered.</p>
+
+      <h3>Your typing is kept</h3>
+      <p>Every box you fill in is saved as you go and comes back when you reopen the window &mdash;
+        closing a tool is no longer a lost measurement. That covers the values that used to vanish,
+        including <em>measure loaded neck OD</em> and <em>seating depth</em>. The state lives in
+        <code>%APPDATA%\GRTPlugins\toolkit-ui.json</code>; delete that file to start every tab
+        fresh.</p>
     </section>
 
     <section id="chrono">

@@ -56,6 +56,48 @@ Key points:
 - Do **not** press *Ctrl+S* on an old fixed-name `…_toolkit.grtload` tab that GRT opened before a
   newer snapshot was written — GRT would save its stale in-memory copy over the file.
 
+### Units: the toolkit shows what GRT shows
+
+A `.grtload` file is **always metric** — lengths in mm, velocities in m/s, temperatures in °C —
+whatever units GRT is displaying. GRT keeps your choice of units separately, in `ValueUnits` in
+`GordonsReloadingTool.cfg`, and converts on the way to the screen.
+
+The toolkit does the same. At startup it reads that line from the GRT beside it and follows four
+of its settings:
+
+| GRT field | What follows it |
+|---|---|
+| `oal` | every length: COAL, seating depth, neck OD, case length, the card, the label |
+| `velocity` | every muzzle velocity, SD and ES, in grids, charts, notes and the QR block |
+| `pt` | every temperature |
+| `range` | every shooting distance |
+
+So if GRT is set to inches and ft/s, so is the toolkit — column headers, chart axes, the load
+card, the box label and the notes it writes back all say `in` and `ft/s`. If there is no GRT
+installed beside it (stand-alone, or a test box) it stays metric, which is what it has always
+done. The stored file never changes: it is metric either way, so a load stays readable by anyone.
+
+Three things deliberately do **not** follow GRT:
+
+- **MOA** is an angle. The number is the same in every unit system, so it is never converted.
+- **`UNIT=`** in a chronograph note records what unit *your export file* used. That is provenance,
+  not a display choice.
+- **The ladder X column** (charge or seat/jump). That number is read out of your own file names
+  and charge notes, so nothing records which unit you wrote it in — converting it would be a
+  guess. The heading follows GRT so you know the convention, but the number is exactly as you
+  typed it.
+
+Where a tab has its own unit picker (the brass tabs, the ladder's target units), the picker still
+wins — GRT's setting is only what it opens on the first time. After that, your choice is
+remembered.
+
+### Your typing is kept
+
+Every box you fill in is saved as you go and comes back when you reopen the window — closing a
+tool is no longer a lost measurement. That covers the values that used to vanish, including
+*measure loaded neck OD* and *seating depth*. The state lives in
+`%APPDATA%\GRTPlugins\toolkit-ui.json`; delete that file to start every tab fresh.
+
 ---
 
 ## 3. Chronograph Import  🎯
