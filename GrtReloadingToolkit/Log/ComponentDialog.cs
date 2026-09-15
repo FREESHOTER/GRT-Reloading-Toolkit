@@ -25,6 +25,7 @@ internal sealed class ComponentDialog : Form
     {
         _c = c;
         Text = c.Id == 0 ? "Add component" : "Edit component";
+        Ui.AppIcon.Apply(this);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = MinimizeBox = false;

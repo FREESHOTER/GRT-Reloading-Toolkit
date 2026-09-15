@@ -33,6 +33,7 @@ internal sealed class JournalDialog : Form
         _e = e;
         _components = components;
         Text = e.Id == 0 ? "New journal entry" : "Edit journal entry";
+        Ui.AppIcon.Apply(this);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = MinimizeBox = false;

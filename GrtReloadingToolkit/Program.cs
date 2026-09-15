@@ -110,7 +110,8 @@ internal sealed class ToolkitContext : ApplicationContext
             return;
         }
 
-        Form f = t switch
+        // Every tool window is born here, so this is the one place that has to dress them.
+        Form f = AppIcon.Apply<Form>(t switch
         {
             Tool.Athlon => new AthlonForm(_grt),
             Tool.Ocw => new OcwForm(_grt),
@@ -121,7 +122,7 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.Label => new LabelForm(_grt, _db),
             Tool.Log => new LogForm(_grt, _db),
             _ => new LauncherForm(Open),
-        };
+        });
         f.FormClosed += (_, _) =>
         {
             _open.Remove(t);
