@@ -1,7 +1,6 @@
 using System.Globalization;
 using GrtPluginKit.Analysis;
 using GrtPluginKit.Grt;
-using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Cards;
 
@@ -44,9 +43,10 @@ public sealed class LoadCard
         if (ChargeGr is { } c) Add(sb, "charge", c.ToString("0.0##", CultureInfo.InvariantCulture) + " gr");
         Add(sb, "primer", Primer);
         Add(sb, "brass", Brass);
-        if (CoalMm is { } o) Add(sb, "COAL", Str.Len(o) + " mm");
-        if (CbtoMm is { } t) Add(sb, "CBTO", Str.Len(t) + " mm");
-        if (MvMs is { } v) Add(sb, "MV", v.ToString("0", CultureInfo.InvariantCulture) + " m/s" + (SdMs is { } s ? " SD " + s.ToString("0.0", CultureInfo.InvariantCulture) : ""));
+        var u = GrtUnits.Current;
+        if (CoalMm is { } o) Add(sb, "COAL", u.Length(o));
+        if (CbtoMm is { } t) Add(sb, "CBTO", u.Length(t));
+        if (MvMs is { } v) Add(sb, "MV", u.Velocity(v) + (SdMs is { } s ? " SD " + u.VelocitySd(s) : ""));
         Add(sb, "date", Date);
         Add(sb, "cost", CostPerRound);
         return sb.ToString().TrimEnd();

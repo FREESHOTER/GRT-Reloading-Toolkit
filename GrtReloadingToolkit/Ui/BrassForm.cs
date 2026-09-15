@@ -20,7 +20,6 @@ internal sealed class BrassForm : Form
     private BrassCalc.CaseVolumeResult? _cvResult;
 
     // neck — inch by default (bushing dies are sold in inch); toggle to mm if wanted
-    private const double MmPerIn = 25.4;
     private readonly ComboBox _neckUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 60, Items = { "inch", "mm" } };
     private readonly NumericUpDown _bulletDia = new() { DecimalPlaces = 4, Increment = 0.0005M, Maximum = 2, Value = 0.2640M, Width = 90 };
     private readonly NumericUpDown _wall = new() { DecimalPlaces = 4, Increment = 0.0005M, Maximum = 0.1M, Value = 0.0140M, Width = 90 };
@@ -410,7 +409,7 @@ internal sealed class BrassForm : Form
         bool toInch = _neckUnit.SelectedIndex == 0;
         if (toInch == _neckInInch) return;
         _suppressNeckUnit = true;
-        decimal f = toInch ? 1m / (decimal)MmPerIn : (decimal)MmPerIn;
+        decimal f = toInch ? 1m / (decimal)BrassCalc.MmPerInch : (decimal)BrassCalc.MmPerInch;
         foreach (var n in new[] { _bulletDia, _wall, _interf, _loadedOd })
         {
             // read first: lowering Maximum clamps Value on the spot, so converting
@@ -428,14 +427,14 @@ internal sealed class BrassForm : Form
     private void RecalcNeck()
     {
         if (_suppressNeckUnit) return;
-        double toMm = _neckInInch ? MmPerIn : 1.0;
+        double toMm = _neckInInch ? BrassCalc.MmPerInch : 1.0;
         double dia = (double)_bulletDia.Value * toMm, wall = (double)_wall.Value * toMm, interf = (double)_interf.Value * toMm;
         double? loaded = _loadedOd.Value > 0 ? (double)_loadedOd.Value * toMm : null;
         var r = BrassCalc.Neck(dia, wall, interf, loaded);
 
         string U(double mm) => BrassCalc.Both(mm, _neckInInch);
         string step = _neckInInch ? "0.001 in" : "0.025 mm";
-        double d = _neckInInch ? MmPerIn * 0.001 : 0.025;
+        double d = _neckInInch ? BrassCalc.MmPerInch * 0.001 : 0.025;
 
         _neckOut.Text = string.Format(CultureInfo.InvariantCulture,
             "loaded neck OD    : {0}{1}\n\n" +

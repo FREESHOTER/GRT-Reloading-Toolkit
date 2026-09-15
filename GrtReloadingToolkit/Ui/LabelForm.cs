@@ -236,13 +236,14 @@ internal sealed class LabelForm : Form
         L("Charge", _card.ChargeGr is { } g ? g.ToString("0.0#", ci) + " gr" : null);
         L("Primer", _card.Primer);
         L("Brass", _card.Brass);
-        L("COAL", _card.CoalMm is { } o ? Str.Len(o) + " mm" : null);
-        L("CBTO", _card.CbtoMm is { } cbto ? Str.Len(cbto) + " mm" : null);
+        var u = GrtUnits.Current;
+        L("COAL", _card.CoalMm is { } o ? u.Length(o) : null);
+        L("CBTO", _card.CbtoMm is { } cbto ? u.Length(cbto) : null);
         string mvStr = "";
         if (_card.MvMs is { } mv)
         {
-            mvStr = mv.ToString("0", ci) + " m/s";
-            if (_card.SdMs is { } sd) mvStr += "  SD " + sd.ToString("0.0", ci);
+            mvStr = u.Velocity(mv);
+            if (_card.SdMs is { } sd) mvStr += "  SD " + u.VelocitySd(sd);
         }
         L("MV (measured)", mvStr);
         L("Lot", _card.LotNote);

@@ -1,4 +1,5 @@
 using GrtPluginKit.Analysis;
+using GrtPluginKit.Grt;
 using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Brass;
@@ -53,7 +54,8 @@ public static class BrassCalc
         return new NeckResult(bushing, mandrel, neckIdAfter, interferenceMm, loadedNeckOd, notes);
     }
 
-    public const double MmPerInch = 25.4;
+    /// <summary>Kept under the brass-prep name its callers already use; defined once in the kit.</summary>
+    public const double MmPerInch = GrtUnits.MmPerInch;
 
     public sealed record SeatingResult(double SeatingDepthMm, double DiffMm, IReadOnlyList<string> Notes)
     {

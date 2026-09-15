@@ -55,6 +55,13 @@ public sealed class GrtConfig
     }
 
     /// <summary>
+    /// The config of the GRT we are running beside, read once. Null when there is no install to
+    /// read. GRT is not watched for changes: it reads this file at startup too, so a unit changed
+    /// while both are open is already out of step until GRT restarts.
+    /// </summary>
+    public static GrtConfig? Current { get; } = Load();
+
+    /// <summary>
     /// Reads the config from the GRT install, or null if there is no install to read — in which
     /// case the caller keeps its own defaults rather than guessing at units.
     /// </summary>

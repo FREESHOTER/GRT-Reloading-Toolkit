@@ -1,11 +1,14 @@
 using System.Globalization;
-using GrtPluginKit.Util;
+using GrtPluginKit.Grt;
 using QRCoder;
 
 namespace GrtReloadingToolkit.Cards;
 
 internal static class CardRenderer
 {
+    /// <summary>The units GRT is showing, so a printed card reads like the load it came from.</summary>
+    private static GrtUnits U => GrtUnits.Current;
+
     public static Bitmap QrBitmap(string text, int px = 8)
     {
         using var gen = new QRCodeGenerator();
@@ -82,9 +85,9 @@ internal static class CardRenderer
             ("Bullet", c.Bullet + (c.BulletGr is { } bg ? "  " + bg.ToString("0.#", CultureInfo.InvariantCulture) + " gr" : "")),
             ("Primer", c.Primer),
             ("Brass", c.Brass),
-            ("COAL", c.CoalMm is { } o ? Str.Len(o) + " mm" : null),
-            ("CBTO", c.CbtoMm is { } t ? Str.Len(t) + " mm" : null),
-            ("MV / SD", c.MvMs is { } mv ? mv.ToString("0", CultureInfo.InvariantCulture) + " m/s" + (c.SdMs is { } sd ? "  SD " + sd.ToString("0.0", CultureInfo.InvariantCulture) : "") : null),
+            ("COAL", c.CoalMm is { } o ? U.Length(o) : null),
+            ("CBTO", c.CbtoMm is { } t ? U.Length(t) : null),
+            ("MV / SD", c.MvMs is { } mv ? U.Velocity(mv) + (c.SdMs is { } sd ? "  SD " + U.VelocitySd(sd) : "") : null),
             ("Cost / round", string.IsNullOrWhiteSpace(c.CostPerRound) ? null : c.CostPerRound),
             ("Date", c.Date),
             ("Notes", string.IsNullOrWhiteSpace(c.LotNote) ? null : c.LotNote),
