@@ -1,5 +1,6 @@
 using System.Drawing.Imaging;
 using System.Globalization;
+using GrtPluginKit.Grt;
 using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ocw;
@@ -75,10 +76,13 @@ internal sealed class LadderChart : Panel
         float X(double c) => ml + (float)((c - cMin) / Math.Max(1e-9, cMax - cMin)) * pw;
 
         // primary series
+        // MOA is an angle, so it is the same number everywhere; a velocity is stored in m/s and has
+        // to be drawn in whatever GRT is showing, or the node reads in units the load never used.
+        var u = GrtUnits.Current;
         Func<LadderStep, bool> hasP = seat ? x => x.HasTarget : x => x.HasVel;
-        Func<LadderStep, double> valP = seat ? x => x.MeanRadiusMoa : x => x.MeanMps;
+        Func<LadderStep, double> valP = seat ? x => x.MeanRadiusMoa : x => u.VelocityValue(x.MeanMps);
         string pName = seat ? "group MOA" : "MV";
-        string pUnitLo = seat ? "MOA" : "m/s";
+        string pUnitLo = seat ? "MOA" : u.VelocityUnitName;
 
         var pr = rows.Where(hasP).ToList();
         var po = rows.Where(x => x.HasTarget).ToList();

@@ -77,9 +77,12 @@ internal sealed class CalibrationForm : Form
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = "Charge gr" });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "meas", HeaderText = "Meas MV m/s" });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sim", HeaderText = "Sim MV m/s" });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "dm", HeaderText = "Δ m/s", ReadOnly = true });
+        // Velocities are stored in m/s; these three columns show and accept GRT's unit instead, so
+        // a shooter reading ft/s off their chronograph types the number they are looking at.
+        string vu = GrtUnits.Current.VelocityUnitName;
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "meas", HeaderText = "Meas MV " + vu });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sim", HeaderText = "Sim MV " + vu });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "dm", HeaderText = "Δ " + vu, ReadOnly = true });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "dp", HeaderText = "Δ %", ReadOnly = true });
         // Rebuild after the edit-control teardown completes — clearing rows inside CellEndEdit
         // disposes the DataGridView's editing TextBox mid-event ("Cannot access a disposed object").
@@ -189,7 +192,7 @@ internal sealed class CalibrationForm : Form
                 return;
             }
             SetSim(c, sim);
-            AppendLog($"captured sim MV {sim:0.0} m/s for {c:0.00} gr (GRT's current charge)  Pmax {res.MaxPressure:0} {res.MaxPressureUnit}");
+            AppendLog($"captured sim MV {GrtUnits.Current.Velocity(sim)} for {c:0.00} gr (GRT's current charge)  Pmax {res.MaxPressure:0} {res.MaxPressureUnit}");
             RefreshGrid();
             Recompute();
         }
@@ -238,7 +241,7 @@ internal sealed class CalibrationForm : Form
                 if (res.MuzzleVelocityMps is { } sim && sim > 0)
                 {
                     SetSim(chg, sim);
-                    AppendLog($"{chg:0.00} gr -> sim {sim:0.0} m/s");
+                    AppendLog($"{chg:0.00} gr -> sim {GrtUnits.Current.Velocity(sim)}");
                 }
                 else AppendLog($"{chg:0.00} gr -> no sim MV (skipped)");
                 RefreshGrid();
@@ -274,12 +277,13 @@ internal sealed class CalibrationForm : Form
     {
         _suppressGrid = true;
         _grid.Rows.Clear();
+        var u = GrtUnits.Current;
         foreach (var p in _result.Points.OrderBy(p => p.ChargeGr))
             _grid.Rows.Add(
                 p.ChargeGr.ToString("0.00", CultureInfo.InvariantCulture),
-                p.MeasMps > 0 ? p.MeasMps.ToString("0.0", CultureInfo.InvariantCulture) : "",
-                p.SimMps > 0 ? p.SimMps.ToString("0.0", CultureInfo.InvariantCulture) : "",
-                p.Valid ? p.DeltaMps.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture) : "",
+                p.MeasMps > 0 ? u.VelocityValue(p.MeasMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
+                p.SimMps > 0 ? u.VelocityValue(p.SimMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
+                p.Valid ? u.VelocityValue(p.DeltaMps).ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture) : "",
                 p.Valid ? p.DeltaPct.ToString("+0.00;-0.00;0.00", CultureInfo.InvariantCulture) : "");
         _suppressGrid = false;
     }
@@ -291,8 +295,10 @@ internal sealed class CalibrationForm : Form
         {
             var p = ordered[i];
             if (D(_grid.Rows[i].Cells["chg"].Value) is { } c) p.ChargeGr = c;
-            if (D(_grid.Rows[i].Cells["meas"].Value) is { } m) p.MeasMps = m;
-            if (D(_grid.Rows[i].Cells["sim"].Value) is { } s) p.SimMps = s;
+            // The inverse of RefreshGrid: the cells are in GRT's unit, the point is always m/s.
+            var u = GrtUnits.Current;
+            if (D(_grid.Rows[i].Cells["meas"].Value) is { } m) p.MeasMps = u.VelocityToMps(m);
+            if (D(_grid.Rows[i].Cells["sim"].Value) is { } s) p.SimMps = u.VelocityToMps(s);
         }
     }
 
@@ -304,7 +310,7 @@ internal sealed class CalibrationForm : Form
         _writeNote.Enabled = ok;
         _writeBa.Enabled = ok && _baOld is > 0;
         _status.Text = _result.N >= 1
-            ? string.Format(CultureInfo.InvariantCulture, "{0} point(s), mean offset {1:+0.0;-0.0} m/s ({2:+0.0;-0.0} %)", _result.N, _result.MeanDeltaMps, _result.MeanDeltaPct)
+            ? string.Format(CultureInfo.InvariantCulture, "{0} point(s), mean offset {1:+0.0;-0.0} {2} ({3:+0.0;-0.0} %)", _result.N, GrtUnits.Current.VelocityValue(_result.MeanDeltaMps), GrtUnits.Current.VelocityUnitName, _result.MeanDeltaPct)
             : "capture at least one charge";
     }
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Grt;
 
 namespace GrtReloadingToolkit.Ui;
 
@@ -51,8 +52,11 @@ internal sealed class BarrelChart : Panel
 
         using var axis = new Pen(Color.FromArgb(120, 148, 163, 184));
         g.DrawRectangle(axis, ml, mt, pw, ph);
-        g.DrawString($"{yMax:0} m/s", fnt, tb, 4, mt - 3);
-        g.DrawString($"{yMin:0}", fnt, tb, 4, mt + ph - 12);
+        // Only the labels change: the scale is linear, so converting the axis would redraw the
+        // identical curve. Round counts are counts, and stay counts.
+        var u = GrtUnits.Current;
+        g.DrawString($"{u.VelocityValue(yMax):0} {u.VelocityUnitName}", fnt, tb, 4, mt - 3);
+        g.DrawString($"{u.VelocityValue(yMin):0}", fnt, tb, 4, mt + ph - 12);
         g.DrawString($"{xMin:0} rd", fnt, tb, ml, mt + ph + 6);
         g.DrawString($"{xMax:0} rd", fnt, tb, ml + pw - 40, mt + ph + 6);
         g.DrawString(_name ?? "", new Font("Segoe UI", 8f, FontStyle.Bold), tb, ml, 3);
@@ -63,8 +67,8 @@ internal sealed class BarrelChart : Panel
             var (a, b) = LinFit(_pts.Select(p => (double)p.cumRounds).ToArray(), _pts.Select(p => p.mv).ToArray());
             using var trend = new Pen(Color.FromArgb(120, 251, 191, 36), 1.5f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
             g.DrawLine(trend, X(xMin), Y(a + b * xMin), X(xMax), Y(a + b * xMax));
-            double per100 = b * 100;
-            g.DrawString(string.Format(CultureInfo.InvariantCulture, "trend {0:+0.0;-0.0} m/s / 100 rd", per100),
+            double per100 = u.VelocityValue(b * 100);
+            g.DrawString(string.Format(CultureInfo.InvariantCulture, "trend {0:+0.0;-0.0} {1} / 100 rd", per100, u.VelocityUnitName),
                 fnt, new SolidBrush(Color.FromArgb(251, 191, 36)), ml + 6, mt + 4);
         }
 

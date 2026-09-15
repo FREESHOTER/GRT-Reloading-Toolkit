@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Grt;
 using GrtReloadingToolkit.Log;
 
 namespace GrtReloadingToolkit.Log;
@@ -15,8 +16,12 @@ internal sealed class JournalDialog : Form
     private readonly ComboBox _powder = Combo(), _primer = Combo(), _brass = Combo(), _bullet = Combo();
     private readonly NumericUpDown _charge = new() { DecimalPlaces = 2, Maximum = 500, Width = 90 };
     private readonly NumericUpDown _rounds = new() { Maximum = 100000, Width = 90 };
-    private readonly NumericUpDown _mv = new() { DecimalPlaces = 1, Maximum = 3000, Width = 90 };
-    private readonly NumericUpDown _sd = new() { DecimalPlaces = 1, Maximum = 500, Width = 80 };
+    // Entered and shown in GRT's unit, stored in m/s. The ceilings convert with the boxes, or a
+    // ft/s shooter could not type a 3000 ft/s load.
+    private static readonly GrtUnits U = GrtUnits.Current;
+    private static readonly decimal MvMax = (decimal)U.VelocityValue(3000), SdMax = (decimal)U.VelocityValue(500);
+    private readonly NumericUpDown _mv = new() { DecimalPlaces = 1, Maximum = MvMax, Width = 90 };
+    private readonly NumericUpDown _sd = new() { DecimalPlaces = 1, Maximum = SdMax, Width = 80 };
     private readonly NumericUpDown _grp = new() { DecimalPlaces = 2, Maximum = 50, Width = 80 };
     private readonly NumericUpDown _dist = new() { Maximum = 3000, Width = 90 };
     private readonly TextBox _notes = new() { Width = 380, Multiline = true, Height = 44, ScrollBars = ScrollBars.Vertical };
@@ -43,8 +48,8 @@ internal sealed class JournalDialog : Form
         _load.Text = e.LoadName; _cal.Text = e.Caliber; _firearm.Text = e.Firearm;
         _charge.Value = (decimal)Math.Min(500, e.ChargeGr);
         _rounds.Value = Math.Min(100000, e.Rounds);
-        if (e.VelocityAvgMs is { } v) _mv.Value = (decimal)Math.Min(3000, v);
-        if (e.SdMs is { } s) _sd.Value = (decimal)Math.Min(500, s);
+        if (e.VelocityAvgMs is { } v) _mv.Value = Math.Min(MvMax, (decimal)U.VelocityValue(v));
+        if (e.SdMs is { } s) _sd.Value = Math.Min(SdMax, (decimal)U.VelocityValue(s));
         if (e.GroupMoa is { } g) _grp.Value = (decimal)Math.Min(50, g);
         if (e.DistanceM is { } d) _dist.Value = (decimal)Math.Min(3000, d);
         _notes.Text = e.Notes;
@@ -71,8 +76,8 @@ internal sealed class JournalDialog : Form
         Row("Bullet", _bullet);
         Row("Charge gr", _charge);
         Row("Rounds", _rounds);
-        Row("MV m/s", _mv);
-        Row("SD m/s", _sd);
+        Row("MV " + U.VelocityUnitName, _mv);
+        Row("SD " + U.VelocityUnitName, _sd);
         Row("Group MOA", _grp);
         Row("Distance m", _dist);
         Row("Notes", _notes);
@@ -128,8 +133,8 @@ internal sealed class JournalDialog : Form
         _e.PowderId = Sel(_powder); _e.PrimerId = Sel(_primer); _e.BrassId = Sel(_brass); _e.BulletId = Sel(_bullet);
         _e.ChargeGr = (double)_charge.Value;
         _e.Rounds = (int)_rounds.Value;
-        _e.VelocityAvgMs = _mv.Value > 0 ? (double)_mv.Value : null;
-        _e.SdMs = _sd.Value > 0 ? (double)_sd.Value : null;
+        _e.VelocityAvgMs = _mv.Value > 0 ? U.VelocityToMps((double)_mv.Value) : null;
+        _e.SdMs = _sd.Value > 0 ? U.VelocityToMps((double)_sd.Value) : null;
         _e.GroupMoa = _grp.Value > 0 ? (double)_grp.Value : null;
         _e.DistanceM = _dist.Value > 0 ? (double)_dist.Value : null;
         _e.Notes = _notes.Text.Trim();

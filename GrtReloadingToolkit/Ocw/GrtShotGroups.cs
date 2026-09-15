@@ -28,11 +28,11 @@ public static class GrtShotGroups
     public static double RefToMm(double v, RefUnit u) => u switch
     {
         RefUnit.Cm => v * 10.0,
-        RefUnit.Inch => v * 25.4,
+        RefUnit.Inch => v * GrtUnits.MmPerInch,
         _ => v,
     };
 
-    public static double ShootToM(double v, ShootUnit u) => u == ShootUnit.Yards ? v * 0.9144 : v;
+    public static double ShootToM(double v, ShootUnit u) => u == ShootUnit.Yards ? v * GrtUnits.MetresPerYard : v;
 
     public sealed record Options(RefUnit Ref = RefUnit.Mm, ShootUnit Shoot = ShootUnit.Meters, bool ExcludeFlyers = false);
 

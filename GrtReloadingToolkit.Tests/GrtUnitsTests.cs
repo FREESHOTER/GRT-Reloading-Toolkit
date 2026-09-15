@@ -107,5 +107,92 @@ public class GrtUnitsTests : IDisposable
     {
         Assert.Equal(25.4, GrtUnits.MmPerInch);
         Assert.Equal(0.3048, GrtUnits.MetresPerFoot);
+        Assert.Equal(0.9144, GrtUnits.MetresPerYard, 10);
+    }
+
+    [Fact]
+    public void ImperialTemperatureIsFahrenheit()
+    {
+        // 21 °C is GRT's normal powder temperature, and 69.8 °F is what that shooter's log says.
+        Assert.Equal("69.8 °F", GrtUnits.From(Cfg(Imperial)).Temperature(21));
+        Assert.Equal("21.0 °C", GrtUnits.From(Cfg(Metric)).Temperature(21));
+    }
+
+    [Theory]
+    [InlineData("F")]      // RAIDER's own config writes it bare
+    [InlineData("°F")]     // the degree sign appears on the Celsius side, so allow it on both
+    public void TheFahrenheitSpellingsGrtMightUseAllCount(string unit)
+        => Assert.True(GrtUnits.From(Cfg("oal=in;pt=" + unit)).TemperatureInF);
+
+    [Theory]
+    [InlineData("C")]
+    [InlineData("°C")]
+    [InlineData("K")]
+    public void EverythingElseIsTheMetricSide(string unit)
+        => Assert.False(GrtUnits.From(Cfg("oal=mm;pt=" + unit)).TemperatureInF);
+
+    [Fact]
+    public void ATemperatureSurvivesTheRoundTrip()
+    {
+        // The grid shows °F and reads °F back; if these two disagree the load drifts a little
+        // colder or hotter every time the window is reopened.
+        var u = GrtUnits.From(Cfg(Imperial));
+        Assert.Equal(21.0, u.TemperatureToCelsius(u.TemperatureValue(21.0)), 10);
+        Assert.Equal(-40.0, u.TemperatureValue(-40.0), 10);   // the one temperature that is its own twin
+    }
+
+    [Fact]
+    public void AVelocitySurvivesTheRoundTrip()
+    {
+        var u = GrtUnits.From(Cfg(Imperial));
+        Assert.Equal(869.0, u.VelocityToMps(u.VelocityValue(869.0)), 10);
+        Assert.Equal(869.0, GrtUnits.From(Cfg(Metric)).VelocityToMps(869.0), 10);
+    }
+
+    [Fact]
+    public void ImperialDistanceIsYards()
+    {
+        var u = GrtUnits.From(Cfg(Imperial));
+        Assert.True(u.DistanceInYards);
+        Assert.Equal("yd", u.DistanceUnitName);
+        Assert.Equal(100.0, u.DistanceValue(91.44), 10);      // the 100 yd line, stored in metres
+        Assert.False(GrtUnits.From(Cfg(Metric)).DistanceInYards);
+    }
+
+    [Theory]
+    [InlineData("yd")]
+    [InlineData("yard")]
+    [InlineData("yards")]
+    public void TheYardSpellingsGrtMightUseAllCount(string unit)
+        => Assert.True(GrtUnits.From(Cfg("oal=in;range=" + unit)).DistanceInYards);
+
+    [Fact]
+    public void TheUnitNamesMatchWhatTheValuesAreIn()
+    {
+        var i = GrtUnits.From(Cfg(Imperial));
+        Assert.Equal(("in", "ft/s", "°F", "yd"), (i.LengthUnitName, i.VelocityUnitName, i.TemperatureUnitName, i.DistanceUnitName));
+        var m = GrtUnits.From(Cfg(Metric));
+        Assert.Equal(("mm", "m/s", "°C", "m"), (m.LengthUnitName, m.VelocityUnitName, m.TemperatureUnitName, m.DistanceUnitName));
+    }
+
+    [Fact]
+    public void EveryAxisIsReadSeparately()
+    {
+        // GRT lets a user mix them, and plenty do — inches and yards with a Celsius powder temp.
+        var u = GrtUnits.From(Cfg("oal=in;velocity=ft/s;pt=°C;range=m"));
+        Assert.True(u.LengthInInch);
+        Assert.True(u.VelocityInFps);
+        Assert.False(u.TemperatureInF);
+        Assert.False(u.DistanceInYards);
+    }
+
+    [Fact]
+    public void NoInstallMeansMetricOnEveryAxis()
+    {
+        var u = GrtUnits.From(null);
+        Assert.False(u.TemperatureInF);
+        Assert.False(u.DistanceInYards);
+        Assert.Equal("21.0 °C", u.Temperature(21));
+        Assert.Equal(91.44, u.DistanceValue(91.44), 10);
     }
 }
