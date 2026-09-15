@@ -26,8 +26,8 @@ internal static class CardRenderer
     /// <paramref name="width"/>, down to a floor of 55% of <paramref name="pt"/>.
     ///
     /// The header used to be two bare DrawString(text, font, brush, x, y) calls, which have no box
-    /// and so neither wrap nor shrink: at A6 preview scale the charge line is ~91pt, and "Hodgon
-    /// H4831SC" measures ~1017px against ~909px of usable width, so the powder name - the one thing
+    /// and so neither wrap nor shrink: at A6 preview scale the charge line is ~91pt, and "Hodgdon
+    /// H4831SC" measures over 1000px against ~909px of usable width, so the powder name - the one thing
     /// the card exists to state - ran off the edge and was clipped mid-word. Shrinking beats
     /// wrapping here because the header is two lines by design (caliber, then charge and powder)
     /// and a wrapped third line would push every row below it down. The floor stops one absurd
