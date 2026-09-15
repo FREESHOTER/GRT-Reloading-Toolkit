@@ -321,6 +321,9 @@ internal sealed class BrassForm : Form
 
             // Full precision, not the 4 decimals we display: GRT stores these as doubles and
             // derives the combustion chamber from them, so there is nothing to gain by truncating.
+            //
+            // And mm, whatever this tab is showing. A .grtload is metric even on an install
+            // configured entirely in inches — ValueUnits only decides what GRT draws on screen.
             const string Exact = "0.#########";
             double depth = _sdResult.SeatingDepthMm;
             if (!doc.SetInput("projectile", "gdepth", depth.ToString(Exact, CultureInfo.InvariantCulture), "mm"))

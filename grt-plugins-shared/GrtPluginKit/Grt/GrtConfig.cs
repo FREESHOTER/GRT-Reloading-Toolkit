@@ -10,6 +10,11 @@ namespace GrtPluginKit.Grt;
 /// reads <c>caselen=mm;oal=mm;gdepth=mm;pressure=bar;velocity=m/s;pt=°C;range=m</c>. A plugin that
 /// hardcodes either one is wrong for half its users, so we read this and follow.
 ///
+/// This map is display only. GRT's .grtload files are metric whatever it is set to — an install
+/// configured entirely in inches still writes
+/// <c>&lt;input name="gdepth" value="…" unit="mm" …/&gt;</c> — so a plugin writing a length back
+/// keeps sending mm and only what it shows on screen follows this map.
+///
 /// Display precision is NOT in here. GRT's decimal places live in the compiled binary, so the
 /// four-decimal length rule rests on what GRT stores and shows, not on anything configurable.
 /// </summary>
