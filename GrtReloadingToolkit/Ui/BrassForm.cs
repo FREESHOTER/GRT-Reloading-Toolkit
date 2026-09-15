@@ -52,8 +52,10 @@ internal sealed class BrassForm : Form
         MinimumSize = new Size(520, 400);
         Build();
         NudFix.ApplyTo(this);
-        // Unit pickers before the boxes they convert: restoring one rescales whatever is in
-        // them, so it has to act on the defaults, not on the measurements we are putting back.
+        ApplyGrtUnits();
+        // After ApplyGrtUnits, so a unit you picked yourself outlives GRT's default; and unit
+        // pickers before the boxes they convert, since restoring one rescales whatever is in them.
+        // It has to act on the defaults, not on the measurements we are about to put back.
         UiState.Bind(this, "brass",
             ("cv.unit", _cvUnit),
             ("sd.unit", _sdUnit), ("sd.cbto", _sdCbto), ("sd.case", _sdCase), ("sd.bbto", _sdBbto),
@@ -233,6 +235,28 @@ internal sealed class BrassForm : Form
         page.Controls.Add(help);
         page.Controls.Add(t);
         return page;
+    }
+
+    /// <summary>
+    /// Opens each tab in the unit GRT is showing that quantity in, so a number read here and a
+    /// number read in GRT are the same number. GRT's unit map is per-field and per-user: an
+    /// imperial install reads gdepth=in, a metric one gdepth=mm. Without an install to ask
+    /// (stand-alone, or a dev box) the built-in defaults stand.
+    /// </summary>
+    private void ApplyGrtUnits()
+    {
+        var cfg = GrtConfig.Load();
+        if (cfg == null) return;
+
+        // seating depth: GRT writes it as gdepth, which is what this tab produces
+        _sdUnit.SelectedIndex = cfg.IsInch("gdepth") ? 1 : 0;
+
+        // neck work is sized off the bullet, so follow the unit GRT shows the bullet diameter in
+        if (cfg.UnitFor("Dbul") is not null) _neckUnit.SelectedIndex = cfg.IsInch("Dbul") ? 0 : 1;
+
+        // case volume is water weight in both systems — grain H2O or gram
+        if (cfg.UnitFor("casevol") is { } cv)
+            _cvUnit.SelectedIndex = cv.Contains("grain", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
     }
 
     private bool SdInInch => _sdUnit.SelectedIndex == 1;
