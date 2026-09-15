@@ -41,6 +41,7 @@ internal sealed class TempCoeffForm : Form
         MinimumSize = new Size(660, 510);
         Build();
         NudFix.ApplyTo(this);
+        UiState.Bind(this, "tempcoeff", ("ba", _ba));
         if (_grt != null) _grt.Log += _logHandler;
         _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
     }

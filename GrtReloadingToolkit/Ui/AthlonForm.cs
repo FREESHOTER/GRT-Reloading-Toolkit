@@ -32,6 +32,7 @@ internal sealed class AthlonForm : Form
         MinimumSize = new Size(720, 420);
 
         BuildLayout();
+        UiState.Bind(this, "athlon", ("perShotTemp", _perShotTemp), ("replacePrev", _replacePrev));
         if (_grt != null) _grt.Log += _logHandler;
         UpdateStatus();
     }

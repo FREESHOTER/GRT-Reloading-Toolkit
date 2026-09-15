@@ -64,6 +64,11 @@ internal abstract class LadderAnalyzerForm : Form
         _wPrim.Value = (decimal)(Mode == LadderMode.Seating ? dw.Group : dw.Velocity);
         Build();
         NudFix.ApplyTo(this);
+        // Keyed by mode: a charge ladder and a seating ladder have their own weights, and the
+        // defaults above differ between them, so one shared key would hand each the other's.
+        UiState.Bind(this, "ladder." + Mode,
+            ("wPoi", _wPoi), ("wPrim", _wPrim), ("window", _win),
+            ("refUnit", _refUnit), ("shootUnit", _shootUnit), ("noFlyers", _noFlyers));
         if (_grt != null) { _logHandler = AppendLog; _grt.Log += _logHandler; }
         UpdateStatus();
 

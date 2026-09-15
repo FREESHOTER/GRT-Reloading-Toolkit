@@ -52,6 +52,13 @@ internal sealed class BrassForm : Form
         MinimumSize = new Size(520, 400);
         Build();
         NudFix.ApplyTo(this);
+        // Unit pickers before the boxes they convert: restoring one rescales whatever is in
+        // them, so it has to act on the defaults, not on the measurements we are putting back.
+        UiState.Bind(this, "brass",
+            ("cv.unit", _cvUnit),
+            ("sd.unit", _sdUnit), ("sd.cbto", _sdCbto), ("sd.case", _sdCase), ("sd.bbto", _sdBbto),
+            ("neck.unit", _neckUnit), ("neck.bulletDia", _bulletDia), ("neck.wall", _wall),
+            ("neck.interference", _interf), ("neck.loadedOd", _loadedOd));
         _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
         RecalcNeck();
         RecalcSeating();
