@@ -80,7 +80,7 @@ internal sealed class TempCoeffForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "use", HeaderText = "Use", FillWeight = 7 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "file", HeaderText = "File", ReadOnly = true, FillWeight = 34 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = "Charge gr", ReadOnly = true, FillWeight = 13 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = "Charge " + GrtUnits.Current.ChargeUnitName, ReadOnly = true, FillWeight = 13 });
         // The fit, and tcc/tch, are defined in GRT's own terms (ΔBa/ΔT about a 21 °C normal
         // point), so the analysis stays metric; these two columns are what the shooter reads and
         // types, and follow GRT's display units.
@@ -137,7 +137,7 @@ internal sealed class TempCoeffForm : Form
                     TempC = a.SessionTempC ?? 21,
                     N = st.N, MeanMps = st.Mean, SdMps = st.Sd,
                 });
-                AppendLog($"{Path.GetFileName(f)}: {st.N} shots, {a.ChargeGrains} gr, temp {(a.SessionTempC is { } t ? GrtUnits.Current.Temperature(t) : "?")}");
+                AppendLog($"{Path.GetFileName(f)}: {st.N} shots, {(a.ChargeGrains is { } cg ? GrtUnits.Current.Charge(cg) : "?")}, temp {(a.SessionTempC is { } t ? GrtUnits.Current.Temperature(t) : "?")}");
             }
             catch (Exception ex) { AppendLog($"{Path.GetFileName(f)}: {ex.Message}"); }
         }
@@ -176,7 +176,7 @@ internal sealed class TempCoeffForm : Form
         foreach (var p in _points.OrderBy(p => p.TempC))
         {
             int i = _grid.Rows.Add(p.Use, Path.GetFileName(p.File),
-                p.ChargeGr > 0 ? p.ChargeGr.ToString("0.0##", CultureInfo.InvariantCulture) : "?",
+                p.ChargeGr > 0 ? u.ChargeValue(p.ChargeGr).ToString(u.ChargeFormat, CultureInfo.InvariantCulture) : "?",
                 u.TemperatureValue(p.TempC).ToString("0.0", CultureInfo.InvariantCulture),
                 p.N, u.VelocityValue(p.MeanMps).ToString("0.0", CultureInfo.InvariantCulture), u.VelocityValue(p.SdMps).ToString("0.0", CultureInfo.InvariantCulture));
             _grid.Rows[i].Tag = p;

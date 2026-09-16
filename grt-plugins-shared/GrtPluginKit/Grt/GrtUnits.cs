@@ -28,12 +28,14 @@ public sealed class GrtUnits
 
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-    private GrtUnits(bool inch, bool fps, bool fahrenheit, bool yards)
+    private GrtUnits(bool inch, bool fps, bool fahrenheit, bool yards, bool chargeGrams, bool bulletGrams)
     {
         LengthInInch = inch;
         VelocityInFps = fps;
         TemperatureInF = fahrenheit;
         DistanceInYards = yards;
+        ChargeInGrams = chargeGrams;
+        BulletMassInGrams = bulletGrams;
     }
 
     /// <summary>What the running GRT shows, read once. Metric when there is no install to ask.</summary>
@@ -51,13 +53,22 @@ public sealed class GrtUnits
     /// <summary>True when GRT shows shooting distances in yards. Follows <c>range</c>.</summary>
     public bool DistanceInYards { get; }
 
+    /// <summary>True when GRT shows powder charges in grams. Follows <c>charge</c>.</summary>
+    public bool ChargeInGrams { get; }
+
+    /// <summary>
+    /// True when GRT shows projectile weights in grams. Follows <c>mp</c>, which a user sets
+    /// separately from <c>charge</c> — a 140 gr bullet over 2.5 g of powder is a real config.
+    /// </summary>
+    public bool BulletMassInGrams { get; }
+
     /// <summary>
     /// Reads a config's opinion on the units we display. A null config — no GRT installed beside
     /// us — gives metric, which is what the toolkit has always displayed.
     /// </summary>
     public static GrtUnits From(GrtConfig? cfg)
     {
-        if (cfg == null) return new GrtUnits(false, false, false, false);
+        if (cfg == null) return new GrtUnits(false, false, false, false, false, false);
         string? v = cfg.UnitFor("velocity");
         bool fps = v is not null
             && (v.StartsWith("ft", StringComparison.OrdinalIgnoreCase) || v.Equals("fps", StringComparison.OrdinalIgnoreCase));
@@ -67,7 +78,15 @@ public sealed class GrtUnits
         string? r = cfg.UnitFor("range");
         bool yards = r is not null
             && (r.StartsWith("yd", StringComparison.OrdinalIgnoreCase) || r.StartsWith("yard", StringComparison.OrdinalIgnoreCase));
-        return new GrtUnits(cfg.IsInch("oal"), fps, fahrenheit, yards);
+        return new GrtUnits(cfg.IsInch("oal"), fps, fahrenheit, yards, Grams(cfg, "charge"), Grams(cfg, "mp"));
+
+        // GRT writes "grain" for the imperial side; grams appear as "g" and milligrams as "mg",
+        // and only "g" is offered for a charge, so anything that is not a grain is the gram side.
+        static bool Grams(GrtConfig c, string field)
+        {
+            string? u = c.UnitFor(field);
+            return u is not null && !u.StartsWith("gr", StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     /// <summary>The unit name alone, for labelling a number we cannot convert — see <see cref="Length"/>.</summary>
@@ -126,6 +145,42 @@ public sealed class GrtUnits
 
     /// <summary>The unit <see cref="VelocityPerDegreeValue"/> returns, e.g. "ft/s per °F".</summary>
     public string VelocityPerDegreeUnitName => VelocityUnitName + " per " + TemperatureUnitName;
+
+    /// <summary>Grains in a gram. A grain is exactly 64.79891 mg, so this is exact to the digits shown.</summary>
+    public const double GrainsPerGram = 1000.0 / 64.79891;
+
+    /// <summary>The unit a powder charge is shown in.</summary>
+    public string ChargeUnitName => ChargeInGrams ? "g" : "gr";
+
+    /// <summary>The unit a projectile weight is shown in.</summary>
+    public string BulletMassUnitName => BulletMassInGrams ? "g" : "gr";
+
+    /// <summary>
+    /// A stored charge weight as a bare number, for a column or axis headed with its unit. The
+    /// toolkit holds charges in grains throughout — a .grtload records them that way and so does
+    /// every chronograph file it reads — so grains in is the only case this has to handle.
+    /// </summary>
+    public double ChargeValue(double gr) => ChargeInGrams ? gr / GrainsPerGram : gr;
+
+    /// <summary>The inverse of <see cref="ChargeValue"/>: what the user typed, back to stored grains.</summary>
+    public double ChargeToGrains(double shown) => ChargeInGrams ? shown * GrainsPerGram : shown;
+
+    /// <summary>
+    /// A stored charge, with its unit. Grains keep the three trailing-trimmed places a powder
+    /// scale resolves; grams need four fixed, because 0.02 gr — a good scale's last digit — is
+    /// 0.0013 g, and three places would round two neighbouring ladder steps onto each other.
+    /// </summary>
+    public string Charge(double gr) => ChargeValue(gr).ToString(ChargeFormat, Inv) + " " + ChargeUnitName;
+
+    /// <summary>The numeric format <see cref="Charge"/> uses, for tables that place the unit themselves.</summary>
+    public string ChargeFormat => ChargeInGrams ? "0.0000" : "0.0##";
+
+    /// <summary>A stored projectile weight as a bare number. See <see cref="ChargeValue"/>.</summary>
+    public double BulletMassValue(double gr) => BulletMassInGrams ? gr / GrainsPerGram : gr;
+
+    /// <summary>A stored projectile weight, with its unit. Bullets come in whole grains, or tenths of a gram.</summary>
+    public string BulletMass(double gr) =>
+        BulletMassValue(gr).ToString(BulletMassInGrams ? "0.00" : "0.#", Inv) + " " + BulletMassUnitName;
 
     /// <summary>A stored temperature, with its unit. One decimal — chronograph sensors resolve no finer.</summary>
     public string Temperature(double celsius) =>

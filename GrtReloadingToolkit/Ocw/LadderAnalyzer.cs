@@ -1,6 +1,5 @@
 using System.Globalization;
 using GrtPluginKit.Grt;
-using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ocw;
 
@@ -112,8 +111,8 @@ public static class LadderAnalyzer
         bool seat = r.Mode == LadderMode.Seating;
         string xh = seat ? $"seat({r.XUnit})" : "charge";
         // In a seating ladder the step IS a length, so it follows the length rule; in a charge
-        // ladder it is a powder weight, which a scale resolves to about 0.02 gr.
-        string xf = seat ? Str.LengthFormat : "0.0##";
+        // ladder it is a powder weight, and LadderModes owns both halves of that.
+        string xf = r.Mode.XFormat();
         // This table goes into GRT as a note, so it reads in the units GRT is set to. The unit
         // names go in a legend rather than the headers, which are fixed-width and would shift.
         var gu = GrtUnits.Current;
@@ -121,18 +120,19 @@ public static class LadderAnalyzer
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
-        sb.AppendLine($"MV/SD/ES in {gu.VelocityUnitName}, dist in {gu.DistanceUnitName}, POI-Y/grpMR/vert in MOA");
+        sb.AppendLine($"{(seat ? "seat" : "charge")} in {r.XUnit}, MV/SD/ES in {gu.VelocityUnitName}, "
+            + $"dist in {gu.DistanceUnitName}, POI-Y/grpMR/vert in MOA");
         sb.AppendLine($"{xh,7}  n   MV      SD    ES   | dist  POI-Y   grpMR  vert");
         foreach (var x in r.Rows)
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 "{0,7} {1,3} {2,7:0.0} {3,5:0.0} {4,5:0.0} | {5,4:0} {6,7:0.00} {7,6:0.00} {8,5:0.00}",
-                x.X.ToString(xf, CultureInfo.InvariantCulture), x.HasVel ? x.VelN : 0,
+                r.Mode.XValue(x.X).ToString(xf, CultureInfo.InvariantCulture), x.HasVel ? x.VelN : 0,
                 gu.VelocityValue(x.MeanMps), gu.VelocityValue(x.SdMps), gu.VelocityValue(x.EsMps),
                 x.HasTarget ? gu.DistanceValue(x.DistanceM) : 0, x.PoiYMoa, x.MeanRadiusMoa, x.VertSpreadMoa));
         sb.AppendLine();
-        Line(sb, seat ? "Group-size plateau" : "Velocity flat-spot (Satterlee)", r.PrimaryNode, r.XUnit, xf);
-        Line(sb, "Vertical-POI node", r.PoiNode, r.XUnit, xf);
-        Line(sb, "Recommended node (weighted)", r.BestNode, r.XUnit, xf);
+        Line(sb, seat ? "Group-size plateau" : "Velocity flat-spot (Satterlee)", r.PrimaryNode, r);
+        Line(sb, "Vertical-POI node", r.PoiNode, r);
+        Line(sb, "Recommended node (weighted)", r.BestNode, r);
         if (r.Warnings.Count > 0)
         {
             sb.AppendLine();
@@ -143,12 +143,16 @@ public static class LadderAnalyzer
         sb.AppendLine("SD is population (n). Confirm any node with a fresh confirmation group before committing.");
         return sb.ToString();
 
-        static void Line(System.Text.StringBuilder s, string label, NodeWindow? n, string unit, string xf)
-            => s.AppendLine(n is null
+        // A node's bounds are the same quantity as the X column, so they take the same conversion.
+        static void Line(System.Text.StringBuilder s, string label, NodeWindow? n, LadderResult r)
+        {
+            string xf = r.Mode.XFormat();
+            string F(double v) => r.Mode.XValue(v).ToString(xf, CultureInfo.InvariantCulture);
+            s.AppendLine(n is null
                 ? $"{label}: n/a"
                 : string.Format(CultureInfo.InvariantCulture, "{0}: {1}-{2} {3}  (center {4})  -- {5}",
-                    label, n.Low.ToString(xf, CultureInfo.InvariantCulture), n.High.ToString(xf, CultureInfo.InvariantCulture),
-                    unit, n.Center.ToString(xf, CultureInfo.InvariantCulture), n.Basis));
+                    label, F(n.Low), F(n.High), r.XUnit, F(n.Center), n.Basis));
+        }
     }
 
     // ---- helpers ---------------------------------------------------------

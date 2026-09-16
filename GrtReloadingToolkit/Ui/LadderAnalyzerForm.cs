@@ -2,7 +2,6 @@ using System.Globalization;
 using GrtReloadingToolkit.Ocw;
 using GrtPluginKit.Grt;
 using GrtPluginKit.Ipc;
-using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ui;
 
@@ -12,7 +11,7 @@ internal abstract class LadderAnalyzerForm : Form
     protected abstract LadderMode Mode { get; }
     protected abstract string WindowTitle { get; }
     protected abstract string XHeader { get; }          // grid column header
-    private string XUnit => Mode.XUnitName();           // "gr" / "mm" / "in"
+    private string XUnit => Mode.XUnitName();           // "gr"/"g" (charge) or "mm"/"in" (seating)
     protected abstract string NoteTitle { get; }        // stable, e.g. "OCW Analysis"
     protected abstract string GalleryPictureName { get; } // stable, e.g. "ocw_chart" — for ~~result.picture.<name>~~
     protected abstract string SiblingSuffix { get; }    // e.g. "ocw" / "seating"
@@ -258,7 +257,7 @@ internal abstract class LadderAnalyzerForm : Form
             var u = GrtUnits.Current;
             foreach (var x in _result.Rows)
                 _grid.Rows.Add(
-                    x.X.ToString(Mode == LadderMode.Seating ? Str.LengthFormat : "0.0", CultureInfo.InvariantCulture),
+                    Mode.XValue(x.X).ToString(Mode.XFormat(), CultureInfo.InvariantCulture),
                     x.HasVel ? x.VelN : 0,
                     x.HasVel ? u.VelocityValue(x.MeanMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
                     x.HasVel ? u.VelocityValue(x.SdMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
@@ -268,19 +267,21 @@ internal abstract class LadderAnalyzerForm : Form
                     x.HasTarget ? x.MeanRadiusMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? x.VertSpreadMoa.ToString("0.00", CultureInfo.InvariantCulture) : "");
 
+            // Matched on the stored X, not on the cell text: the cell is rounded for display and
+            // in grams a step and a node bound differ well inside the printed last digit.
             if (_result.BestNode is { } bn)
-                foreach (DataGridViewRow row in _grid.Rows)
-                    if (double.TryParse((string)row.Cells["x"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double c)
-                        && c >= bn.Low - 1e-6 && c <= bn.High + 1e-6)
-                        row.DefaultCellStyle.BackColor = Color.FromArgb(215, 245, 220);
+                for (int i = 0; i < _result.Rows.Count; i++)
+                    if (_result.Rows[i].X >= bn.Low - 1e-6 && _result.Rows[i].X <= bn.High + 1e-6)
+                        _grid.Rows[i].DefaultCellStyle.BackColor = Color.FromArgb(215, 245, 220);
 
             _chart.SetData(_result);
             _summary.Text = LadderAnalyzer.BuildReport(_result, HeadlineFor(DateTime.Now)).Replace("\n", "\r\n");
             _writeBtn.Enabled = _result.BestNode != null && _grt is { Connected: true };
-            string xf = Mode == LadderMode.Seating ? Str.LengthFormat : "0.0##";
+            string xf = Mode.XFormat();
             _status.Text = _result.BestNode is { } n
                 ? string.Format(CultureInfo.InvariantCulture, "Recommended node {0}–{1} {2}",
-                    n.Low.ToString(xf, CultureInfo.InvariantCulture), n.High.ToString(xf, CultureInfo.InvariantCulture), XUnit)
+                    Mode.XValue(n.Low).ToString(xf, CultureInfo.InvariantCulture),
+                    Mode.XValue(n.High).ToString(xf, CultureInfo.InvariantCulture), XUnit)
                 : "analysis done";
         }
         catch (Exception ex)

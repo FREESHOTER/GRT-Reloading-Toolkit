@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Grt;
 using GrtPluginKit.Ipc;
 using GrtReloadingToolkit.Log;
 
@@ -216,7 +217,7 @@ internal sealed class LogForm : Form
         _jrn.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _jrn.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _jrn.CellDoubleClick += (_, _) => EditEntry();
-        foreach (var (n, h) in new[] { ("date", "Date"), ("load", "Load"), ("cal", "Caliber"), ("chg", "Charge gr"),
+        foreach (var (n, h) in new[] { ("date", "Date"), ("load", "Load"), ("cal", "Caliber"), ("chg", "Charge " + GrtUnits.Current.ChargeUnitName),
                      ("rnd", "Rounds"), ("mv", "MV"), ("sd", "SD"), ("grp", "MOA"), ("cpr", "Cost/rd"), ("tot", "Total") })
             _jrn.Columns.Add(n, h);
 
@@ -228,12 +229,13 @@ internal sealed class LogForm : Form
     private void RefreshJournal()
     {
         _jrn.Rows.Clear();
+        var gu = GrtUnits.Current;
         var comps = _db.Components(includeArchived: true).ToDictionary(c => c.Id);
         foreach (var e in _db.Journal())
         {
             var cb = Costing.PerRound(e, id => comps.GetValueOrDefault(id));
             int i = _jrn.Rows.Add(e.Date, e.LoadName, e.Caliber,
-                e.ChargeGr > 0 ? e.ChargeGr.ToString("0.00", CultureInfo.InvariantCulture) : "",
+                e.ChargeGr > 0 ? gu.ChargeValue(e.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture) : "",
                 e.Rounds,
                 e.VelocityAvgMs?.ToString("0", CultureInfo.InvariantCulture) ?? "",
                 e.SdMs?.ToString("0.0", CultureInfo.InvariantCulture) ?? "",

@@ -153,6 +153,51 @@ public class GrtUnitsTests : IDisposable
     }
 
     [Fact]
+    public void ANeitherAxisOfMassIsAssumedFromTheOther()
+    {
+        // GRT sets the powder charge and the projectile weight separately, and a 140 gr bullet
+        // over 2.5 g of powder is a real config. Reading one from the other would mislabel it.
+        var mixed = GrtUnits.From(Cfg("oal=mm;charge=g;mp=grain"));
+        Assert.True(mixed.ChargeInGrams);
+        Assert.False(mixed.BulletMassInGrams);
+        Assert.Equal("g", mixed.ChargeUnitName);
+        Assert.Equal("gr", mixed.BulletMassUnitName);
+    }
+
+    [Fact]
+    public void GrainsAreTheDefaultWhenGrtSaysNothing()
+    {
+        // Neither Imperial nor Metric above declares charge or mp, and an install that has never
+        // touched those settings must not silently start printing powder weights in grams.
+        foreach (var u in new[] { GrtUnits.From(Cfg(Imperial)), GrtUnits.From(Cfg(Metric)), GrtUnits.From(null) })
+        {
+            Assert.False(u.ChargeInGrams);
+            Assert.False(u.BulletMassInGrams);
+            Assert.Equal("41.3 gr", u.Charge(41.3));
+        }
+    }
+
+    [Fact]
+    public void AChargeSurvivesTheRoundTrip()
+    {
+        // The calibration grid shows a charge and reads it back; disagreement here walks the
+        // load off its own ladder step every time the window is reopened.
+        var u = GrtUnits.From(Cfg("oal=mm;charge=g"));
+        Assert.Equal(41.3, u.ChargeToGrains(u.ChargeValue(41.3)), 9);
+        Assert.Equal(2.676195, u.ChargeValue(41.3), 6);    // 41.3 x 0.06479891 g per grain
+        Assert.Equal("2.6762 g", u.Charge(41.3));
+    }
+
+    [Fact]
+    public void GramsKeepEnoughPlacesToSeparateTwoLadderSteps()
+    {
+        // 0.02 gr is a good scale's last digit and 0.0013 g, so three decimals would round two
+        // neighbouring steps onto the same number and the ladder would read as a plateau.
+        var u = GrtUnits.From(Cfg("oal=mm;charge=g"));
+        Assert.NotEqual(u.Charge(41.30), u.Charge(41.32));
+    }
+
+    [Fact]
     public void ATemperatureSurvivesTheRoundTrip()
     {
         // The grid shows °F and reads °F back; if these two disagree the load drifts a little

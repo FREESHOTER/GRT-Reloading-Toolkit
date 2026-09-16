@@ -109,17 +109,18 @@ public sealed class TempCoeffResult
 
     public string BuildReport(string headline)
     {
-        // Written into GRT as a note, so it reads in GRT's units; the charge stays in grains.
+        // Written into GRT as a note, so it reads in GRT's units, charges included.
         var gu = GrtUnits.Current;
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
-        sb.AppendLine($"temp in {gu.TemperatureUnitName}, MV/SD in {gu.VelocityUnitName}, charge in gr");
+        sb.AppendLine($"temp in {gu.TemperatureUnitName}, MV/SD in {gu.VelocityUnitName}, charge in {gu.ChargeUnitName}");
         sb.AppendLine("  temp   n     MV      SD    charge");
         foreach (var x in Points)
-            sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "{0,6:0.0} {1,3} {2,8:0.0} {3,6:0.0}   {4:0.0##}",
-                gu.TemperatureValue(x.TempC), x.N, gu.VelocityValue(x.MeanMps), gu.VelocityValue(x.SdMps), x.ChargeGr));
+            sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "{0,6:0.0} {1,3} {2,8:0.0} {3,6:0.0}   {4}",
+                gu.TemperatureValue(x.TempC), x.N, gu.VelocityValue(x.MeanMps), gu.VelocityValue(x.SdMps),
+                gu.ChargeValue(x.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture)));
         sb.AppendLine();
         string perDeg = gu.VelocityPerDegreeUnitName;
         if (MvNormal is { } mvn) sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "MV at {0}: {1}   (powder Ba = {2:0.######})", gu.Temperature(NormalC), gu.Velocity(mvn), BaNormal));

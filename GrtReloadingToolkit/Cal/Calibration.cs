@@ -39,18 +39,20 @@ public sealed class CalResult
 
     public string BuildReport(string headline, double? baOld, string powderName)
     {
-        // Written into GRT as a note, so it reads in GRT's units; the charge stays in grains.
+        // Written into GRT as a note, so it reads in GRT's units, charges included. The window's
+        // own charge column is editable and is left in grains, which is what its header says.
         var gu = GrtUnits.Current;
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
-        sb.AppendLine($"charge in gr, velocities in {gu.VelocityUnitName}");
+        sb.AppendLine($"charge in {gu.ChargeUnitName}, velocities in {gu.VelocityUnitName}");
         sb.AppendLine("charge   meas MV   sim MV     d MV    d %");
         foreach (var p in Points.OrderBy(p => p.ChargeGr))
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "{0,6:0.0} {1,9:0.0} {2,9:0.0} {3,8:+0.0;-0.0;0.0} {4,7:+0.00;-0.00;0.00}",
-                p.ChargeGr, gu.VelocityValue(p.MeasMps), gu.VelocityValue(p.SimMps),
+                "{0,6} {1,9:0.0} {2,9:0.0} {3,8:+0.0;-0.0;0.0} {4,7:+0.00;-0.00;0.00}",
+                gu.ChargeValue(p.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture),
+                gu.VelocityValue(p.MeasMps), gu.VelocityValue(p.SimMps),
                 gu.VelocityValue(p.DeltaMps), p.DeltaPct));
         sb.AppendLine();
         if (N == 0) { sb.AppendLine("no valid points captured."); return sb.ToString(); }

@@ -82,7 +82,7 @@ internal static class CardRenderer
         (string k, string? v)[] rows =
         {
             ("Firearm", c.Firearm),
-            ("Bullet", c.Bullet + (c.BulletGr is { } bg ? "  " + bg.ToString("0.#", CultureInfo.InvariantCulture) + " gr" : "")),
+            ("Bullet", c.Bullet + (c.BulletGr is { } bg ? "  " + U.BulletMass(bg) : "")),
             ("Primer", c.Primer),
             ("Brass", c.Brass),
             ("COAL", c.CoalMm is { } o ? U.Length(o) : null),

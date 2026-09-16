@@ -17,7 +17,8 @@ internal static class AthlonCli
             {
                 var a = AthlonParser.Parse(f);
                 rows.Add(new ImportBuilder.Row(a, tempC ?? a.SessionTempC, true));
-                Console.WriteLine($"  {a.FileName}: {a.Shots.Count} shots, {a.ChargeGrains} gr, unit={a.SourceUnit}");
+                Console.WriteLine($"  {a.FileName}: {a.Shots.Count} shots, "
+                    + $"{(a.ChargeGrains is { } g ? GrtUnits.Current.Charge(g) : "?")}, unit={a.SourceUnit}");
                 foreach (var w in a.Warnings) Console.WriteLine($"      ! {w}");
             }
             catch (Exception ex) { Console.WriteLine($"  {Path.GetFileName(f)}: {ex.Message}"); }

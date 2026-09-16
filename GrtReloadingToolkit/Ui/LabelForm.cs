@@ -230,13 +230,13 @@ internal sealed class LabelForm : Form
         void L(string k, string? v) { if (!string.IsNullOrWhiteSpace(v)) sb.Append(k.PadRight(16)).Append(": ").Append(v).Append('\n'); }
         L("Caliber", _card.Caliber);
         L("Firearm", _card.Firearm);
-        string bw = _card.BulletGr is { } bg && bg > 0 ? " " + bg.ToString("0.#", ci) + " gr" : "";
+        var u = GrtUnits.Current;
+        string bw = _card.BulletGr is { } bg && bg > 0 ? " " + u.BulletMass(bg) : "";
         L("Bullet", (_card.Bullet + bw).Trim());
         L("Powder", _card.Powder);
-        L("Charge", _card.ChargeGr is { } g ? g.ToString("0.0#", ci) + " gr" : null);
+        L("Charge", _card.ChargeGr is { } g ? u.Charge(g) : null);
         L("Primer", _card.Primer);
         L("Brass", _card.Brass);
-        var u = GrtUnits.Current;
         L("COAL", _card.CoalMm is { } o ? u.Length(o) : null);
         L("CBTO", _card.CbtoMm is { } cbto ? u.Length(cbto) : null);
         string mvStr = "";

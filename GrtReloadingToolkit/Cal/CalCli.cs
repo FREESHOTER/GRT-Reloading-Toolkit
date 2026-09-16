@@ -60,7 +60,9 @@ internal static class CalCli
             double measMv = meas.TryGetValue(Math.Round(chg, 2), out double mv) ? mv : 0;
             result.Points.Add(new CalPoint { ChargeGr = chg, SimMps = simMv, MeasMps = measMv });
             // simMv is typed in m/s (see the summary above); both go through the same conversion
-            // so the pair stays comparable, which is the only thing this line is for.
+            // so the pair stays comparable, which is the only thing this line is for. The charge
+            // is echoed as typed, like TempCoeffCli's temperature: the charge:simMv argument is
+            // documented in grains, and this is the key the load was matched on.
             Console.WriteLine($"  {chg} gr: sim {gu.VelocityValue(simMv):0.0}, meas {gu.VelocityValue(measMv):0.0} {gu.VelocityUnitName}"
                 + (measMv > 0 ? "" : "   (no measured velocity at this charge in the load)"));
         }

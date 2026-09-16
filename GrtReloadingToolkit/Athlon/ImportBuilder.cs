@@ -51,8 +51,10 @@ internal static class ImportBuilder
 
     private static string BuildName(AthlonString s, double? grains, double? tempC)
     {
+        // A label, like TempToken below: the charge's real value is ValueKg, so this reads in
+        // whatever GRT weighs powder in without anything downstream depending on the number.
         string head = grains is { } g
-            ? g.ToString("0.0#", CultureInfo.InvariantCulture) + " gr"
+            ? GrtUnits.Current.Charge(g)
             : Path.GetFileNameWithoutExtension(s.SourceFile);
         return tempC is { } t ? $"{head} @ {GrtUnits.Current.Temperature(t)}" : head;
     }

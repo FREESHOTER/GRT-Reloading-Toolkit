@@ -1,4 +1,3 @@
-using System.Globalization;
 using GrtPluginKit.Analysis;
 using GrtPluginKit.Grt;
 
@@ -28,7 +27,7 @@ public sealed class LoadCard
     public string Title => string.IsNullOrWhiteSpace(Caliber) ? "Load" : Caliber;
 
     public string ChargeLine => ChargeGr is { } g
-        ? $"{g.ToString("0.0#", CultureInfo.InvariantCulture)} gr {Powder}".Trim()
+        ? $"{GrtUnits.Current.Charge(g)} {Powder}".Trim()
         : Powder;
 
     /// <summary>Compact human+machine readable block for the QR code.</summary>
@@ -38,12 +37,12 @@ public sealed class LoadCard
         sb.AppendLine("GRT LOAD");
         Add(sb, "cal", Caliber);
         Add(sb, "gun", Firearm);
-        Add(sb, "bullet", Bullet + (BulletGr is { } b ? " " + b.ToString("0.#", CultureInfo.InvariantCulture) + "gr" : ""));
+        var u = GrtUnits.Current;
+        Add(sb, "bullet", Bullet + (BulletGr is { } b ? " " + u.BulletMass(b) : ""));
         Add(sb, "powder", Powder);
-        if (ChargeGr is { } c) Add(sb, "charge", c.ToString("0.0##", CultureInfo.InvariantCulture) + " gr");
+        if (ChargeGr is { } c) Add(sb, "charge", u.Charge(c));
         Add(sb, "primer", Primer);
         Add(sb, "brass", Brass);
-        var u = GrtUnits.Current;
         if (CoalMm is { } o) Add(sb, "COAL", u.Length(o));
         if (CbtoMm is { } t) Add(sb, "CBTO", u.Length(t));
         if (MvMs is { } v) Add(sb, "MV", u.Velocity(v) + (SdMs is { } s ? " SD " + u.VelocitySd(s) : ""));
