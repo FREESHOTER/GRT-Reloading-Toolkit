@@ -119,9 +119,13 @@ internal sealed class JournalDialog : Form
         };
         var cb = Costing.PerRound(probe, id => _components.FirstOrDefault(c => c.Id == id));
         double total = cb.PerRound * probe.Rounds;
-        _cost.Text = $"{Costing.Format(cb.PerRound, cb.Currency)} / round   " +
-                     $"(powder {cb.Powder:0.000}  primer {cb.Primer:0.000}  bullet {cb.Bullet:0.000}  brass {cb.Brass:0.000})" +
-                     (probe.Rounds > 0 ? $"   →  {Costing.Format(total, cb.Currency)} for {probe.Rounds}" : "");
+        // The bare component figures stay either way -- they are each right in their own lot's
+        // currency, and this is the window where you can see which lot to change.
+        string lines = $"(powder {cb.Powder:0.000}  primer {cb.Primer:0.000}  bullet {cb.Bullet:0.000}  brass {cb.Brass:0.000})";
+        _cost.Text = cb.Mixed
+            ? $"{cb.MixedNote} — no total until the lots match   {lines}"
+            : $"{Costing.Format(cb.PerRound, cb.Currency)} / round   " + lines +
+              (probe.Rounds > 0 ? $"   →  {Costing.Format(total, cb.Currency)} for {probe.Rounds}" : "");
     }
 
     private void Commit()

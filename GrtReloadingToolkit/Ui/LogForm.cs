@@ -241,8 +241,9 @@ internal sealed class LogForm : Form
                 e.VelocityAvgMs?.ToString("0", CultureInfo.InvariantCulture) ?? "",
                 e.SdMs?.ToString("0.0", CultureInfo.InvariantCulture) ?? "",
                 e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
-                cb.PerRound > 0 ? $"{cb.PerRound:0.000} {cb.Currency}" : "",
-                cb.PerRound > 0 && e.Rounds > 0 ? $"{cb.PerRound * e.Rounds:0.00} {cb.Currency}" : "");
+                cb.PerRoundText,
+                cb.Mixed ? cb.MixedNote
+                    : cb.PerRound > 0 && e.Rounds > 0 ? $"{cb.PerRound * e.Rounds:0.00} {cb.Currency}" : "");
             _jrn.Rows[i].Tag = e;
         }
     }

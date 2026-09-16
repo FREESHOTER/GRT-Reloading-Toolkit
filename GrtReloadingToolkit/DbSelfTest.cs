@@ -22,7 +22,7 @@ internal static class DbSelfTest
 
         var comps = db.Components().ToDictionary(c => c.Id);
         var cb = Costing.PerRound(e, i => comps.GetValueOrDefault(i));
-        Console.WriteLine($"cost/round = {Costing.Format(cb.PerRound, cb.Currency)}  (pw {cb.Powder:0.0000} pr {cb.Primer:0.0000} bu {cb.Bullet:0.0000} br {cb.Brass:0.0000})");
+        Console.WriteLine($"cost/round = {cb.PerRoundText}  (pw {cb.Powder:0.0000} pr {cb.Primer:0.0000} bu {cb.Bullet:0.0000} br {cb.Brass:0.0000})");
         foreach (var c in db.Components()) Console.WriteLine($"  {c.Kind,-7} {c.Display,-26} {c.QtyCurrent:0.###}/{c.QtyInitial:0.###} {c.Unit}");
         db.DeleteEntry(id);
         Console.WriteLine("after delete (restored):");

@@ -39,13 +39,61 @@ public class MoneyTests
     }
 
     [Fact]
-    public void ACostIsLabelledByWhicheverComponentNamesACurrency()
+    public void ACostIsLabelledByWhicheverPricedComponentNamesACurrency()
     {
-        // Costing does not convert -- it labels. That is fine for one currency and wrong for two,
-        // which is why the dropdown defaults everything to the same one.
+        // Costing does not convert -- it labels. With one currency that label is simply the
+        // currency the lots were bought in.
         var e = new JournalEntry { ChargeGr = 41.3, PowderId = 1 };
         var powder = new Component { Id = 1, Kind = ComponentKind.Powder, QtyInitial = 454, CostTotal = 45.4, Currency = "USD" };
-        Assert.Equal("USD", Costing.PerRound(e, _ => powder).Currency);
+        var cb = Costing.PerRound(e, _ => powder);
+        Assert.Equal("USD", cb.Currency);
+        Assert.False(cb.Mixed);
         Assert.Equal(Money.Default, Costing.PerRound(new JournalEntry(), _ => null).Currency);
+    }
+
+    [Fact]
+    public void TwoCurrenciesInOneRoundAreNamedRatherThanAddedUp()
+    {
+        // A dollar of powder and a euro of bullet summed to 2 of whichever currency was named
+        // first. The sum is still there for the caller that wants the components, but nothing
+        // prints it: a number in neither currency is worse than no number.
+        var e = new JournalEntry { ChargeGr = 41.3, PowderId = 1, BulletId = 2 };
+        var powder = new Component { Id = 1, Kind = ComponentKind.Powder, QtyInitial = 454, CostTotal = 45.4, Currency = "USD" };
+        var bullet = new Component { Id = 2, Kind = ComponentKind.Bullet, QtyInitial = 100, CostTotal = 60, Currency = "EUR" };
+        var cb = Costing.PerRound(e, id => id == 1 ? powder : bullet);
+
+        Assert.True(cb.Mixed);
+        Assert.Equal("mixed USD/EUR", cb.MixedNote);
+        Assert.Equal(cb.MixedNote, cb.PerRoundText);
+        Assert.DoesNotContain(cb.PerRound.ToString("0.000", CultureInfo.InvariantCulture), cb.PerRoundText);
+    }
+
+    [Fact]
+    public void ALotWithNoPriceOnItDoesNotMakeARoundMixed()
+    {
+        // It names a currency, but none of its money is in the sum, so reporting a mismatch
+        // would cost the user a cost-per-round they were entitled to.
+        var e = new JournalEntry { ChargeGr = 41.3, PowderId = 1, BulletId = 2 };
+        var powder = new Component { Id = 1, Kind = ComponentKind.Powder, QtyInitial = 454, CostTotal = 45.4, Currency = "USD" };
+        var bullet = new Component { Id = 2, Kind = ComponentKind.Bullet, QtyInitial = 100, CostTotal = 0, Currency = "EUR" };
+        var cb = Costing.PerRound(e, id => id == 1 ? powder : bullet);
+
+        Assert.False(cb.Mixed);
+        Assert.Equal("USD", cb.Currency);
+        Assert.Contains("USD", cb.PerRoundText);
+    }
+
+    [Fact]
+    public void AnEmptyCurrencyIsTheDefaultAndNotAThirdCurrency()
+    {
+        // Lots added before the column had a default carry "". Treating that as its own currency
+        // would report a mismatch against the very currency it means.
+        var e = new JournalEntry { ChargeGr = 41.3, PowderId = 1, BulletId = 2 };
+        var powder = new Component { Id = 1, Kind = ComponentKind.Powder, QtyInitial = 454, CostTotal = 45.4, Currency = "" };
+        var bullet = new Component { Id = 2, Kind = ComponentKind.Bullet, QtyInitial = 100, CostTotal = 60, Currency = Money.Default };
+        var cb = Costing.PerRound(e, id => id == 1 ? powder : bullet);
+
+        Assert.False(cb.Mixed);
+        Assert.Equal(Money.Default, cb.Currency);
     }
 }

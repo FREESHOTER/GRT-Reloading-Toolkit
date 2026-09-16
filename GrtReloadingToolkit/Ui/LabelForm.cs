@@ -177,7 +177,9 @@ internal sealed class LabelForm : Form
         // charge every round for the whole tube.
         var probe = new JournalEntry { PowderId = pw?.Id, PrimerId = pr?.Id, BrassId = br?.Id, BulletId = bu?.Id, ChargeGr = _card.ChargeGr ?? 0, Rounds = 1 };
         var cb = Costing.PerRound(probe, id => _components.FirstOrDefault(c => c.Id == id));
-        _card.CostPerRound = cb.PerRound > 0 ? Costing.Format(cb.PerRound, cb.Currency) + " / rd" : "";
+        // Mixed lots print "mixed EUR/USD" rather than a total, which is the one thing the card
+        // must not carry: a number in neither currency, printed as though it were in one of them.
+        _card.CostPerRound = cb.Mixed ? cb.MixedNote : cb.PerRoundText is { Length: > 0 } t ? t + " / rd" : "";
         string lot = string.Join(" · ", new[] { pw?.Lot, pr?.Lot, bu?.Lot }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => "lot " + s));
         if (lot.Length > 0) _card.LotNote = lot;
         _props.Refresh();
@@ -259,7 +261,15 @@ internal sealed class LabelForm : Form
         L("MV (measured)", mvStr);
         L("Lot", _card.LotNote);
 
-        if (cb.PerRound > 0)
+        if (cb.Mixed)
+        {
+            // The per-component lines are dropped with the total: each is right in its own lot's
+            // currency, and this note has one column to print them in.
+            sb.Append("\ncost per round\n").Append(new string('-', 14)).Append('\n');
+            sb.Append("lots are in ").Append(string.Join(" and ", cb.Currencies))
+              .Append(", so no total is shown.\n");
+        }
+        else if (cb.PerRound > 0)
         {
             sb.Append("\ncost per round\n").Append(new string('-', 14)).Append('\n');
             void C(string k, double v) { if (v > 0) sb.Append(k.PadRight(10)).Append(": ").Append(Costing.Format(v, cb.Currency)).Append('\n'); }

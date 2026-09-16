@@ -37,9 +37,32 @@ public static class Money
     }
 }
 
-public sealed record CostBreakdown(double Powder, double Primer, double Brass, double Bullet, string Currency)
+public sealed record CostBreakdown(double Powder, double Primer, double Brass, double Bullet, string Currency, IReadOnlyList<string> Currencies)
 {
+    /// <summary>
+    /// The sum of the four lines. Only a cost when <see cref="Mixed"/> is false: adding a dollar
+    /// to a euro gives a number and not an amount, so every display goes through
+    /// <see cref="PerRoundText"/> rather than formatting this itself.
+    /// </summary>
     public double PerRound => Powder + Primer + Brass + Bullet;
+
+    /// <summary>
+    /// The lots that priced this round were bought in more than one currency. Nothing here
+    /// converts between them -- a rate is a fact about a day, not about a component -- so the
+    /// honest answer is to name the mismatch instead of totalling through it.
+    /// </summary>
+    public bool Mixed => Currencies.Count > 1;
+
+    /// <summary>What goes where the cost would have gone: "mixed EUR/USD".</summary>
+    public string MixedNote => "mixed " + string.Join("/", Currencies);
+
+    /// <summary>
+    /// The cost of one round, or why there is not one. Every window that shows a cost per round
+    /// shows this, so none of them can print a total across two currencies.
+    /// </summary>
+    public string PerRoundText => Mixed ? MixedNote
+        : PerRound > 0 ? Costing.Format(PerRound, Currency)
+        : "";
 }
 
 public static class Costing
@@ -54,16 +77,36 @@ public static class Costing
         Component? br = e.BrassId is { } c ? lookup(c) : null;
         Component? bu = e.BulletId is { } d ? lookup(d) : null;
 
-        // Whichever component names one wins: this labels a total, it does not convert. A lot
-        // bought in USD and a lot in EUR added together would be mislabelled -- keep one currency.
-        string cur = pw?.Currency ?? pr?.Currency ?? bu?.Currency ?? br?.Currency ?? Money.Default;
-
         double powder = pw is not null ? e.ChargeGr * GrainToGram * pw.CostPerUnit : 0; // CostPerUnit = per gram
         double primer = pr?.CostPerUnit ?? 0;
         double bullet = bu?.CostPerUnit ?? 0;
         double brass = br?.CostPerUnit ?? 0; // already amortised over ExpectedUses
 
-        return new CostBreakdown(powder, primer, brass, bullet, cur);
+        // The currencies that money is actually being added in. A lot with no price on it names a
+        // currency too, but nothing of its is in the sum, so counting it would report a mismatch
+        // that costs the user nothing -- only a line that contributes gets a say.
+        var currencies = new[] { (powder, pw), (primer, pr), (brass, br), (bullet, bu) }
+            .Where(t => t.Item1 > 0 && t.Item2 is not null)
+            .Select(t => Name(t.Item2!))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        // Whichever priced component names one first labels the total. With one currency that is
+        // simply the currency; with several the total is not shown at all, so it is only a label
+        // for the lines.
+        string cur = currencies.Count > 0 ? currencies[0]
+            : pw is not null ? Name(pw)
+            : pr is not null ? Name(pr)
+            : bu is not null ? Name(bu)
+            : br is not null ? Name(br)
+            : Money.Default;
+
+        return new CostBreakdown(powder, primer, brass, bullet, cur, currencies);
+
+        // An older row can hold an empty currency, which is not a third currency -- it is a lot
+        // added before the column had a default.
+        static string Name(Component c) =>
+            string.IsNullOrWhiteSpace(c.Currency) ? Money.Default : c.Currency.Trim().ToUpperInvariant();
     }
 
     public static string Format(double v, string currency) => $"{v:0.000} {currency}";
