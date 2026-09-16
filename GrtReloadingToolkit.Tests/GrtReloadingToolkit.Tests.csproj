@@ -32,6 +32,7 @@
     <!-- Same story for the log store: SQLite and arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\Log\LogModels.cs" Link="Log\LogModels.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Db.cs" Link="Log\Db.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\Costing.cs" Link="Log\Costing.cs" />
     <!-- And for the brass-prep maths, which owns the length formatting the seating-depth
          tests assert on. -->
     <Compile Include="..\GrtReloadingToolkit\Brass\BrassCalc.cs" Link="Brass\BrassCalc.cs" />

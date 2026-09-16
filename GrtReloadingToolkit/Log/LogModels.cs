@@ -14,7 +14,7 @@ public sealed class Component
     public double QtyInitial { get; set; }
     public double QtyCurrent { get; set; }
     public double CostTotal { get; set; }          // purchase price of this lot, user's currency
-    public string Currency { get; set; } = "EUR";
+    public string Currency { get; set; } = Money.Default;
     /// <summary>Expected firings before retirement — brass amortisation (1 for consumables).</summary>
     public int ExpectedUses { get; set; } = 1;
     public double? BulletWeightGr { get; set; }

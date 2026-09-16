@@ -9,6 +9,18 @@ namespace GrtReloadingToolkit.Ui;
 /// </summary>
 internal static class NudFix
 {
+    /// <summary>
+    /// Assigns a stored value to a spinner without ever throwing, by clamping to the control's
+    /// own range. <see cref="NumericUpDown.Value"/> throws if the value falls outside
+    /// Minimum..Maximum, and every number the toolkit puts in one of these comes from a database
+    /// row or a .grtload — sources with a wider range than the spinner. The idiom this replaces,
+    /// <c>Value = (decimal)Math.Min(max, x)</c>, guards only the top, so one negative row in the
+    /// inventory took the edit dialog down in its constructor before it could be shown. A
+    /// spinner that has to represent negatives says so in its Minimum; this only stops a crash.
+    /// </summary>
+    public static void Set(NumericUpDown nud, double value) =>
+        nud.Value = Math.Clamp((decimal)value, nud.Minimum, nud.Maximum);
+
     public static void ApplyTo(Control root)
     {
         foreach (var nud in Descendants(root).OfType<NumericUpDown>())

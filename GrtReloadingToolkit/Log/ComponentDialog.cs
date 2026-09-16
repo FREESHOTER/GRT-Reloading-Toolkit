@@ -10,10 +10,14 @@ internal sealed class ComponentDialog : Form
     private readonly TextBox _brand = new() { Width = 160 };
     private readonly TextBox _name = new() { Width = 220 };
     private readonly TextBox _lot = new() { Width = 120 };
-    private readonly NumericUpDown _qtyInit = new() { DecimalPlaces = 1, Maximum = 1_000_000, Width = 110 };
-    private readonly NumericUpDown _qtyCur = new() { DecimalPlaces = 1, Maximum = 1_000_000, Width = 110 };
+    // Stock goes negative and that is not a corruption: AdjustStock has no floor, the restock
+    // prompt offers "negative to correct down", and logging rounds against a lot you never
+    // recorded buying leaves you owing the ledger. The spinner has to be able to show that,
+    // or the edit dialog throws on the way up and a 0 floor would quietly zero the debt on save.
+    private readonly NumericUpDown _qtyInit = new() { DecimalPlaces = 1, Minimum = -1_000_000, Maximum = 1_000_000, Width = 110 };
+    private readonly NumericUpDown _qtyCur = new() { DecimalPlaces = 1, Minimum = -1_000_000, Maximum = 1_000_000, Width = 110 };
     private readonly NumericUpDown _cost = new() { DecimalPlaces = 2, Maximum = 1_000_000, Width = 110 };
-    private readonly TextBox _currency = new() { Width = 60, Text = "EUR" };
+    private readonly ComboBox _currency = new() { DropDownStyle = ComboBoxStyle.DropDown, Width = 80 };
     private readonly NumericUpDown _expUses = new() { Minimum = 1, Maximum = 100, Width = 70, Value = 1 };
     private readonly NumericUpDown _bulletW = new() { DecimalPlaces = 1, Maximum = 1000, Width = 90 };
     private readonly TextBox _notes = new() { Width = 320 };
@@ -35,12 +39,13 @@ internal sealed class ComponentDialog : Form
         _kind.SelectedItem = c.Kind;
         _kind.SelectedIndexChanged += (_, _) => SyncUnit();
         _brand.Text = c.Brand; _name.Text = c.Name; _lot.Text = c.Lot;
-        _qtyInit.Value = (decimal)Math.Min(1_000_000, c.QtyInitial);
-        _qtyCur.Value = (decimal)Math.Min(1_000_000, c.Id == 0 ? c.QtyInitial : c.QtyCurrent);
-        _cost.Value = (decimal)Math.Min(1_000_000, c.CostTotal);
-        _currency.Text = string.IsNullOrWhiteSpace(c.Currency) ? "EUR" : c.Currency;
+        Ui.NudFix.Set(_qtyInit, c.QtyInitial);
+        Ui.NudFix.Set(_qtyCur, c.Id == 0 ? c.QtyInitial : c.QtyCurrent);
+        Ui.NudFix.Set(_cost, c.CostTotal);
+        foreach (string cur in Money.Common) _currency.Items.Add(cur);
+        _currency.Text = string.IsNullOrWhiteSpace(c.Currency) ? Money.Default : c.Currency;
         _expUses.Value = Math.Clamp(c.ExpectedUses, 1, 100);
-        _bulletW.Value = (decimal)(c.BulletWeightGr ?? 0);
+        Ui.NudFix.Set(_bulletW, c.BulletWeightGr ?? 0);
         _notes.Text = c.Notes;
         _qtyInit.ValueChanged += (_, _) => { if (c.Id == 0) _qtyCur.Value = _qtyInit.Value; };
 
@@ -98,7 +103,10 @@ internal sealed class ComponentDialog : Form
         _c.QtyInitial = (double)_qtyInit.Value;
         _c.QtyCurrent = (double)_qtyCur.Value;
         _c.CostTotal = (double)_cost.Value;
-        _c.Currency = _currency.Text.Trim().ToUpperInvariant();
+        // An empty box means "leave it alone", not "blank the column": the grid and the
+        // cost-per-round line both print this string straight through.
+        string cur = _currency.Text.Trim().ToUpperInvariant();
+        _c.Currency = cur.Length > 0 ? cur : Money.Default;
         _c.ExpectedUses = _c.Kind == ComponentKind.Brass ? (int)_expUses.Value : 1;
         _c.BulletWeightGr = _c.Kind == ComponentKind.Bullet && _bulletW.Value > 0 ? (double)_bulletW.Value : null;
         _c.Notes = _notes.Text.Trim();

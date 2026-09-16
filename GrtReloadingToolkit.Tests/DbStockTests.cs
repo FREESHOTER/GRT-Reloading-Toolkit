@@ -148,4 +148,21 @@ public sealed class DbStockTests : IDisposable
                 try { File.Delete(f); } catch (IOException) { }
         }
     }
+    [Fact]
+    public void StockGoesNegativeAndStaysThere()
+    {
+        // Not a corruption: a component added with no opening count, then loaded against, owes
+        // the ledger. The edit dialog used to throw on exactly this, because NumericUpDown
+        // defaults to a Minimum of 0 -- so the number the store round-trips is the number the
+        // dialog has to be able to show, and zeroing it here would erase a real debt.
+        using var db = NewDb();
+        long id = AddPrimers(db, 0);
+        db.AdjustStock(id, -117, "loaded 117 rounds");
+
+        var c = db.Components().Single(x => x.Id == id);
+        Assert.Equal(-117, c.QtyCurrent, 9);
+        Assert.Equal(-117, LedgerSum(db, id), 9);
+        Assert.Equal(0, c.FractionRemaining);        // guarded on QtyInitial, so no divide by zero
+        Assert.Equal(0, c.CostPerUnit);
+    }
 }
