@@ -92,7 +92,17 @@ internal static class CardRenderer
             ("Date", c.Date),
             ("Notes", string.IsNullOrWhiteSpace(c.LotNote) ? null : c.LotNote),
         };
+        // The label column was a flat 20u, which is narrower than the labels put in it: at the A6
+        // render "Cost / round" measures 293px into 202px of column, so it ran 91px under its own
+        // value, and "MV / SD" at 200px cleared its value by two pixels -- a gap only in arithmetic.
+        // The labels are literals but their widths are a font's business, not a constant's, so the
+        // column is the widest label actually drawn plus a real gap. The old 20u stays as a floor,
+        // which is what a sparse card with only short labels still gets.
         float labelW = 20 * u;
+        foreach (var (k, v) in rows)
+            if (!string.IsNullOrWhiteSpace(v))
+                labelW = Math.Max(labelW, g.MeasureString(k, kFont, int.MaxValue, one).Width + 1.5f * u);
+
         float qrSize = Math.Min(b.Width * 0.30f, b.Height * 0.42f);
         foreach (var (k, v) in rows)
         {
