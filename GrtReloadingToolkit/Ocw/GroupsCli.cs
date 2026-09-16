@@ -11,8 +11,16 @@ internal static class GroupsCli
     {
         var ci = CultureInfo.InvariantCulture;
         string path = args[1];
-        var refU = args.Any(a => a == "cm") ? RefUnit.Cm : args.Any(a => a == "in") ? RefUnit.Inch : RefUnit.Mm;
-        var shootU = args.Any(a => a == "yd") ? ShootUnit.Yards : ShootUnit.Meters;
+        // GRT's own units are the starting point, because that is what the tab was measured in;
+        // naming one on the command line still wins, which is how a file from someone else is read.
+        var (defRef, defShoot) = GrtShotGroups.GrtDefaults();
+        var refU = args.Any(a => a == "mm") ? RefUnit.Mm
+            : args.Any(a => a == "cm") ? RefUnit.Cm
+            : args.Any(a => a == "in") ? RefUnit.Inch
+            : defRef;
+        var shootU = args.Any(a => a == "m") ? ShootUnit.Meters
+            : args.Any(a => a == "yd") ? ShootUnit.Yards
+            : defShoot;
         bool dropFlyers = args.Any(a => a == "--drop-flyers");
 
         var doc = GrtLoadDoc.Load(path);

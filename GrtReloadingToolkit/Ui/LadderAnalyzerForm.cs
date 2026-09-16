@@ -108,8 +108,9 @@ internal abstract class LadderAnalyzerForm : Form
         // not have to re-pick both every session. Build() runs before UiState.Bind, so this is only
         // the default: once they choose for themselves, their choice is what comes back.
         var gu = GrtUnits.Current;
-        _refUnit.SelectedIndex = gu.LengthInInch ? 2 : 0;
-        _shootUnit.SelectedIndex = gu.DistanceInYards ? 1 : 0;
+        var (defRef, defShoot) = GrtShotGroups.GrtDefaults();
+        _refUnit.SelectedIndex = defRef switch { RefUnit.Cm => 1, RefUnit.Inch => 2, _ => 0 };
+        _shootUnit.SelectedIndex = defShoot == ShootUnit.Yards ? 1 : 0;
         foreach (var c in new Control[] { _refUnit, _shootUnit, _noFlyers }) c.Margin = new Padding(6, 8, 0, 0);
         top.Controls.Add(grpBtn);
         top.Controls.Add(new Label { Text = "ref dist", AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
