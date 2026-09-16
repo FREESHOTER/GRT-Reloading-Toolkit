@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS components (
   kind TEXT NOT NULL, brand TEXT DEFAULT '', name TEXT NOT NULL, lot TEXT DEFAULT '',
   unit TEXT NOT NULL, qty_initial REAL NOT NULL, qty_current REAL NOT NULL,
   cost_total REAL DEFAULT 0, currency TEXT DEFAULT 'EUR', expected_uses INTEGER DEFAULT 1,
-  bullet_weight_gr REAL, notes TEXT DEFAULT '', acquired_at TEXT DEFAULT (datetime('now')),
+  bullet_weight_gr REAL, twist_mm REAL, barrel_length_mm REAL,
+  notes TEXT DEFAULT '', acquired_at TEXT DEFAULT (datetime('now')),
   archived INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS journal (
@@ -62,6 +63,11 @@ CREATE TABLE IF NOT EXISTS firearms (
         // additive column migration (older DBs)
         if (!ColumnExists("journal", "firearm_id"))
             Exec("ALTER TABLE journal ADD COLUMN firearm_id INTEGER");
+        // Barrels arrived after the components table did, and they carry two numbers nothing else has.
+        if (!ColumnExists("components", "twist_mm"))
+            Exec("ALTER TABLE components ADD COLUMN twist_mm REAL");
+        if (!ColumnExists("components", "barrel_length_mm"))
+            Exec("ALTER TABLE components ADD COLUMN barrel_length_mm REAL");
     }
 
     private bool ColumnExists(string table, string col)
@@ -99,14 +105,15 @@ CREATE TABLE IF NOT EXISTS firearms (
         using var cmd = _cn.CreateCommand();
         if (c.Id == 0)
             cmd.CommandText = @"INSERT INTO components
-              (kind,brand,name,lot,unit,qty_initial,qty_current,cost_total,currency,expected_uses,bullet_weight_gr,notes,archived)
-              VALUES ($kind,$brand,$name,$lot,$unit,$qi,$qc,$cost,$cur,$exp,$bw,$notes,$arch);
+              (kind,brand,name,lot,unit,qty_initial,qty_current,cost_total,currency,expected_uses,bullet_weight_gr,twist_mm,barrel_length_mm,notes,archived)
+              VALUES ($kind,$brand,$name,$lot,$unit,$qi,$qc,$cost,$cur,$exp,$bw,$twist,$blen,$notes,$arch);
               SELECT last_insert_rowid();";
         else
         {
             cmd.CommandText = @"UPDATE components SET kind=$kind,brand=$brand,name=$name,lot=$lot,unit=$unit,
               qty_initial=$qi,qty_current=$qc,cost_total=$cost,currency=$cur,expected_uses=$exp,
-              bullet_weight_gr=$bw,notes=$notes,archived=$arch WHERE id=$id; SELECT $id;";
+              bullet_weight_gr=$bw,twist_mm=$twist,barrel_length_mm=$blen,
+              notes=$notes,archived=$arch WHERE id=$id; SELECT $id;";
             cmd.Parameters.AddWithValue("$id", c.Id);
         }
         cmd.Parameters.AddWithValue("$kind", c.Kind.ToString());
@@ -120,6 +127,8 @@ CREATE TABLE IF NOT EXISTS firearms (
         cmd.Parameters.AddWithValue("$cur", c.Currency);
         cmd.Parameters.AddWithValue("$exp", Math.Max(1, c.ExpectedUses));
         cmd.Parameters.AddWithValue("$bw", (object?)c.BulletWeightGr ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$twist", (object?)c.TwistMm ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$blen", (object?)c.BarrelLengthMm ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$notes", c.Notes);
         cmd.Parameters.AddWithValue("$arch", c.Archived ? 1 : 0);
         return (long)(cmd.ExecuteScalar() ?? 0L);
@@ -316,6 +325,7 @@ CREATE TABLE IF NOT EXISTS firearms (
         CostTotal = Dbl(r, "cost_total"), Currency = Str(r, "currency"),
         ExpectedUses = (int)Lng(r, "expected_uses"),
         BulletWeightGr = Nul(r, "bullet_weight_gr"),
+        TwistMm = Nul(r, "twist_mm"), BarrelLengthMm = Nul(r, "barrel_length_mm"),
         Notes = Str(r, "notes"), AcquiredAt = Str(r, "acquired_at"),
         Archived = Lng(r, "archived") != 0,
     };

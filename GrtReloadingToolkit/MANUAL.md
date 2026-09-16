@@ -316,6 +316,10 @@ A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`. Three tabs.
   initial*; everything else is counted in pieces. Switching the unit re-labels the lot, it does
   not change it: 1 lb and 453.6 g are the same jug, the grid, the restock prompt and the
   cost-per-unit column all follow, and the journal still burns the same grams per round.
+  A **barrel** takes a *twist* and a *barrel length*, shown in the units GRT is set to (`twistlen`
+  and `oal` in its unit map) and stored metric either way — so a 1:8 tube reads `1:8 in` beside
+  `26.0000 in` on an imperial install and `1:203.2 mm` beside `660.4000 mm` on a metric one. Both
+  are optional; leave them at zero and the row just shows the barrel's name.
   Stock can go **negative** — that just means the lot was entered short, or rounds were logged
   against the wrong lot. It is never silently absorbed, so editing or deleting the entry always
   gives back exactly what it took. Fix it with **Restock** (or **Edit** the lot's quantity).

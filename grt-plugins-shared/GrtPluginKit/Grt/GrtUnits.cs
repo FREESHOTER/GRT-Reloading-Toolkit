@@ -28,9 +28,10 @@ public sealed class GrtUnits
 
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-    private GrtUnits(bool inch, bool fps, bool fahrenheit, bool yards, bool chargeGrams, bool bulletGrams)
+    private GrtUnits(bool inch, bool fps, bool fahrenheit, bool yards, bool chargeGrams, bool bulletGrams, bool twistInch)
     {
         LengthInInch = inch;
+        TwistInInch = twistInch;
         VelocityInFps = fps;
         TemperatureInF = fahrenheit;
         DistanceInYards = yards;
@@ -63,12 +64,19 @@ public sealed class GrtUnits
     public bool BulletMassInGrams { get; }
 
     /// <summary>
+    /// True when GRT shows a twist length in inches. Follows <c>twistlen</c>, its own field in the
+    /// unit map — a barrel is sold as "1:8" in an imperial shop and "1:203" in a metric one, and
+    /// GRT lets that be set apart from the length it shows a COAL in.
+    /// </summary>
+    public bool TwistInInch { get; }
+
+    /// <summary>
     /// Reads a config's opinion on the units we display. A null config — no GRT installed beside
     /// us — gives metric, which is what the toolkit has always displayed.
     /// </summary>
     public static GrtUnits From(GrtConfig? cfg)
     {
-        if (cfg == null) return new GrtUnits(false, false, false, false, false, false);
+        if (cfg == null) return new GrtUnits(false, false, false, false, false, false, false);
         string? v = cfg.UnitFor("velocity");
         bool fps = v is not null
             && (v.StartsWith("ft", StringComparison.OrdinalIgnoreCase) || v.Equals("fps", StringComparison.OrdinalIgnoreCase));
@@ -78,7 +86,10 @@ public sealed class GrtUnits
         string? r = cfg.UnitFor("range");
         bool yards = r is not null
             && (r.StartsWith("yd", StringComparison.OrdinalIgnoreCase) || r.StartsWith("yard", StringComparison.OrdinalIgnoreCase));
-        return new GrtUnits(cfg.IsInch("oal"), fps, fahrenheit, yards, Grams(cfg, "charge"), Grams(cfg, "mp"));
+        // An install that has no twistlen entry at all follows its lengths rather than dropping an
+        // otherwise imperial user into millimetres for this one number.
+        bool twist = cfg.UnitFor("twistlen") is null ? cfg.IsInch("oal") : cfg.IsInch("twistlen");
+        return new GrtUnits(cfg.IsInch("oal"), fps, fahrenheit, yards, Grams(cfg, "charge"), Grams(cfg, "mp"), twist);
 
         // GRT writes "grain" for the imperial side; grams appear as "g" and milligrams as "mg",
         // and only "g" is offered for a charge, so anything that is not a grain is the gram side.
@@ -105,6 +116,29 @@ public sealed class GrtUnits
     public string Length(double mm) => LengthInInch
         ? Str.Len(mm / MmPerInch) + " in"
         : Str.Len(mm) + " mm";
+
+    /// <summary>A stored length as a bare number, for a box the user reads and edits.</summary>
+    public double LengthValue(double mm) => LengthInInch ? mm / MmPerInch : mm;
+
+    /// <summary>The inverse of <see cref="LengthValue"/>: what the user typed, back to stored mm.</summary>
+    public double LengthToMm(double shown) => LengthInInch ? shown * MmPerInch : shown;
+
+    /// <summary>The unit name alone, for a twist the call site prints itself.</summary>
+    public string TwistUnitName => TwistInInch ? "in" : "mm";
+
+    /// <summary>A stored twist length as a bare number, for a box headed with its unit.</summary>
+    public double TwistValue(double mm) => TwistInInch ? mm / MmPerInch : mm;
+
+    /// <summary>The inverse of <see cref="TwistValue"/>: what the user typed, back to stored mm.</summary>
+    public double TwistToMm(double shown) => TwistInInch ? shown * MmPerInch : shown;
+
+    /// <summary>
+    /// A twist the way a barrel is described rather than the way a length is: "1:8 in",
+    /// "1:203.2 mm". Every trailing zero goes, because that barrel is sold as 1:8 and neither
+    /// "1:8.0" nor "1:8.0000" is anybody's idea of a twist rate — but four places stay available
+    /// for the 1:7.875 and 1:203.2 that exist.
+    /// </summary>
+    public string Twist(double mm) => "1:" + TwistValue(mm).ToString("0.####", Inv) + " " + TwistUnitName;
 
     /// <summary>A stored velocity, with its unit. Whole units — no chronograph resolves finer.</summary>
     public string Velocity(double ms) => VelocityInFps

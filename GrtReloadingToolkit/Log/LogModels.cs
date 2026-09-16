@@ -27,6 +27,15 @@ public sealed class Component
     /// <summary>Expected firings before retirement — brass amortisation (1 for consumables).</summary>
     public int ExpectedUses { get; set; } = 1;
     public double? BulletWeightGr { get; set; }
+
+    /// <summary>
+    /// Barrel twist, stored as the length of one full turn in mm — the same metric-inside rule the
+    /// rest of the toolkit follows, and what GRT's <c>twistlen</c> holds. 1:8 in is 203.2 mm.
+    /// </summary>
+    public double? TwistMm { get; set; }
+
+    /// <summary>Barrel length in mm. Null on every other kind, and on a barrel not measured yet.</summary>
+    public double? BarrelLengthMm { get; set; }
     public string Notes { get; set; } = "";
     public string AcquiredAt { get; set; } = "";
     public bool Archived { get; set; }
@@ -54,6 +63,24 @@ public sealed class Component
     public double CostPerUnitIn => CostPerUnit * StockUnit.Factor(Unit);
 
     public string Display => string.Join(" ", new[] { Brand, Name, Lot is "" ? "" : $"[{Lot}]" }.Where(s => s.Length > 0));
+
+    /// <summary>
+    /// Twist and length in GRT's units, as they identify a barrel — the two numbers you would ask
+    /// for if someone said "which tube is that?". Empty for every other kind and for a barrel with
+    /// neither recorded, so a caller can append it unconditionally.
+    /// </summary>
+    public string BarrelSpec
+    {
+        get
+        {
+            if (Kind != ComponentKind.Barrel) return "";
+            var u = GrtPluginKit.Grt.GrtUnits.Current;
+            var parts = new List<string>(2);
+            if (TwistMm is > 0 and { } t) parts.Add(u.Twist(t));
+            if (BarrelLengthMm is > 0 and { } l) parts.Add(u.Length(l));
+            return parts.Count == 0 ? "" : "  " + string.Join("  ", parts);
+        }
+    }
 }
 
 public sealed class JournalEntry

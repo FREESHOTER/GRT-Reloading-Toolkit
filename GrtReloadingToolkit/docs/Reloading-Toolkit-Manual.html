@@ -437,7 +437,12 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           typeable for the ones it misses. Powder is counted in whichever unit you buy it in &mdash;
           <strong>g, gr, lb or kg</strong>, picked next to <em>Qty initial</em>; everything else is
           counted in pieces. Switching the unit re-labels the lot, it does not change it: 1 lb and
-          453.6 g are the same jug, and the journal still burns the same grams per round. Stock can go <strong>negative</strong> &mdash; that just means the lot was
+          453.6 g are the same jug, and the journal still burns the same grams per round. A
+          <strong>barrel</strong> takes a <em>twist</em> and a <em>barrel length</em>, shown in the units
+          GRT is set to (<code>twistlen</code> and <code>oal</code> in its unit map) and stored metric
+          either way &mdash; so a 1:8 tube reads <code>1:8 in</code> beside <code>26.0000 in</code> on an
+          imperial install and <code>1:203.2 mm</code> beside <code>660.4000 mm</code> on a metric one.
+          Both are optional. Stock can go <strong>negative</strong> &mdash; that just means the lot was
           entered short, or rounds were logged against the wrong lot. It is never silently absorbed, so
           editing or deleting the entry always gives back exactly what it took.</li>
         <li><strong>Journal</strong> &mdash; one row per range session or batch: date, load, caliber,

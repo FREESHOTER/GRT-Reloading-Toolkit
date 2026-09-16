@@ -25,6 +25,13 @@ internal sealed class ComponentDialog : Form
     private readonly ComboBox _qtyUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 70 };
     private readonly NumericUpDown _expUses = new() { Minimum = 1, Maximum = 100, Width = 70, Value = 1 };
     private readonly NumericUpDown _bulletW = new() { DecimalPlaces = 1, Maximum = 1000, Width = 90 };
+    // A twist is written as the denominator of 1:n, so this holds n in GRT's twist unit. Three
+    // places carry the 1:7.875 that exists without pretending a barrel is measured to a micron.
+    private readonly NumericUpDown _twist = new() { DecimalPlaces = 3, Maximum = 1000, Width = 90 };
+    // Four places, like every other length the toolkit shows -- GRT does not round one off either.
+    private readonly NumericUpDown _barrelLen = new() { DecimalPlaces = 4, Maximum = 10_000, Width = 110 };
+    private readonly Label _twistUnit = new() { AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) };
+    private readonly Label _lenUnit = new() { AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) };
     private readonly TextBox _notes = new() { Width = 320 };
     private readonly Label _unitInfo = new() { AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) };
 
@@ -45,7 +52,7 @@ internal sealed class ComponentDialog : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = MinimizeBox = false;
-        ClientSize = new Size(470, 340);
+        ClientSize = new Size(470, 400);
 
         foreach (var k in Enum.GetValues<ComponentKind>()) _kind.Items.Add(k);
         _kind.SelectedItem = c.Kind;
@@ -61,6 +68,12 @@ internal sealed class ComponentDialog : Form
         _currency.Text = string.IsNullOrWhiteSpace(c.Currency) ? Money.Default : c.Currency;
         _expUses.Value = Math.Clamp(c.ExpectedUses, 1, 100);
         Ui.NudFix.Set(_bulletW, c.BulletWeightGr ?? 0);
+        // Stored in mm, shown in whatever GRT shows a twist and a length in.
+        var u = GrtPluginKit.Grt.GrtUnits.Current;
+        Ui.NudFix.Set(_twist, c.TwistMm is { } tw ? u.TwistValue(tw) : 0);
+        Ui.NudFix.Set(_barrelLen, c.BarrelLengthMm is { } bl ? u.LengthValue(bl) : 0);
+        _twistUnit.Text = u.TwistUnitName;
+        _lenUnit.Text = u.LengthUnitName;
         _notes.Text = c.Notes;
         _qtyInit.ValueChanged += (_, _) => { if (c.Id == 0) _qtyCur.Value = _qtyInit.Value; };
 
@@ -75,6 +88,8 @@ internal sealed class ComponentDialog : Form
         Row("Lot cost", Flow(_cost, _currency));
         Row("Expected uses", Flow(_expUses, new Label { Text = "(brass: firings before retirement)", AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) }));
         Row("Bullet weight gr", _bulletW);
+        Row("Twist 1:", Flow(_twist, _twistUnit));
+        Row("Barrel length", Flow(_barrelLen, _lenUnit));
         Row("Notes", _notes);
 
         var ok = new Button { Text = "Save", DialogResult = DialogResult.OK, Width = 80 };
@@ -123,6 +138,7 @@ internal sealed class ComponentDialog : Form
 
         ShowUnit();
         _bulletW.Enabled = kind == ComponentKind.Bullet;
+        _twist.Enabled = _barrelLen.Enabled = kind == ComponentKind.Barrel;
         _expUses.Enabled = brass;
         if (!brass && _c.Id == 0) _expUses.Value = 1;
     }
@@ -166,6 +182,12 @@ internal sealed class ComponentDialog : Form
         _c.Currency = cur.Length > 0 ? cur : Money.Default;
         _c.ExpectedUses = _c.Kind == ComponentKind.Brass ? (int)_expUses.Value : 1;
         _c.BulletWeightGr = _c.Kind == ComponentKind.Bullet && _bulletW.Value > 0 ? (double)_bulletW.Value : null;
+        // Zero means "not recorded", the same bargain the bullet weight makes: a barrel with no
+        // twist measured yet is a barrel you still want in the inventory.
+        var units = GrtPluginKit.Grt.GrtUnits.Current;
+        bool barrel = _c.Kind == ComponentKind.Barrel;
+        _c.TwistMm = barrel && _twist.Value > 0 ? units.TwistToMm((double)_twist.Value) : null;
+        _c.BarrelLengthMm = barrel && _barrelLen.Value > 0 ? units.LengthToMm((double)_barrelLen.Value) : null;
         _c.Notes = _notes.Text.Trim();
         if (_c.Name.Length == 0) { DialogResult = DialogResult.None; MessageBox.Show(this, "Name is required."); }
     }

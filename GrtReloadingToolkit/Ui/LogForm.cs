@@ -151,7 +151,7 @@ internal sealed class LogForm : Form
         _inv.Rows.Clear();
         foreach (var c in _db.Components())
         {
-            int i = _inv.Rows.Add(c.Kind.ToString(), c.Display,
+            int i = _inv.Rows.Add(c.Kind.ToString(), c.Display + c.BarrelSpec,
                 c.QtyLeftText,
                 $"{c.FractionRemaining * 100:0}",
                 c.CostPerUnit > 0 ? $"{c.CostPerUnitIn:0.0000} {c.Currency}/{c.Unit}" : "",

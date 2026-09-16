@@ -261,4 +261,48 @@ public class GrtUnitsTests : IDisposable
         Assert.Equal("21.0 °C", u.Temperature(21));
         Assert.Equal(91.44, u.DistanceValue(91.44), 10);
     }
+
+    [Fact]
+    public void ImperialTwistIsTheDenominatorInInches()
+    {
+        // 203.2 mm is exactly 8 in, and a 1:8 barrel is sold as "1:8" -- not "1:8.0000".
+        Assert.Equal("1:8 in", GrtUnits.From(Cfg(Imperial + ";twistlen=in")).Twist(203.2));
+        // The odd twists that exist keep their places: 1:7.875 is a real Bartlein.
+        Assert.Equal("1:7.875 in", GrtUnits.From(Cfg(Imperial + ";twistlen=in")).Twist(7.875 * 25.4));
+    }
+
+    [Fact]
+    public void MetricTwistIsTheSameBarrelInMillimetres()
+        => Assert.Equal("1:203.2 mm", GrtUnits.From(Cfg(Metric + ";twistlen=mm")).Twist(203.2));
+
+    [Fact]
+    public void TwistFollowsItsOwnFieldNotTheLengthOne()
+    {
+        // GRT keeps twistlen apart from oal, so an inch shop that measures twist in mm is a real
+        // config and reading oal for both would show that barrel as 1:8 in.
+        var u = GrtUnits.From(Cfg(Imperial + ";twistlen=mm"));
+        Assert.True(u.LengthInInch);
+        Assert.False(u.TwistInInch);
+        Assert.Equal("1:203.2 mm", u.Twist(203.2));
+    }
+
+    [Fact]
+    public void TwistFallsBackToTheLengthUnitWhenGrtHasNoEntry()
+    {
+        // Absent is not metric: an imperial install with no twistlen key should not show this one
+        // number in millimetres while every other length on screen is in inches.
+        Assert.True(GrtUnits.From(Cfg(Imperial)).TwistInInch);
+        Assert.False(GrtUnits.From(Cfg(Metric)).TwistInInch);
+    }
+
+    [Theory]
+    [InlineData(Imperial)]
+    [InlineData(Metric)]
+    public void ALengthTypedIntoABoxComesBackTheSameMillimetres(string units)
+    {
+        // What the spinner shows and what the store keeps have to be the same barrel.
+        var u = GrtUnits.From(Cfg(units + ";twistlen=in"));
+        Assert.Equal(660.4, u.LengthToMm(u.LengthValue(660.4)), 9);
+        Assert.Equal(203.2, u.TwistToMm(u.TwistValue(203.2)), 9);
+    }
 }
