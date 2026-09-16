@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Grt;
 using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ocw;
@@ -113,16 +114,21 @@ public static class LadderAnalyzer
         // In a seating ladder the step IS a length, so it follows the length rule; in a charge
         // ladder it is a powder weight, which a scale resolves to about 0.02 gr.
         string xf = seat ? Str.LengthFormat : "0.0##";
+        // This table goes into GRT as a note, so it reads in the units GRT is set to. The unit
+        // names go in a legend rather than the headers, which are fixed-width and would shift.
+        var gu = GrtUnits.Current;
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
-        sb.AppendLine($"{xh,7}  n   MV      SD    ES   | dist  POI-Y   grpMR  vert  (MOA)");
+        sb.AppendLine($"MV/SD/ES in {gu.VelocityUnitName}, dist in {gu.DistanceUnitName}, POI-Y/grpMR/vert in MOA");
+        sb.AppendLine($"{xh,7}  n   MV      SD    ES   | dist  POI-Y   grpMR  vert");
         foreach (var x in r.Rows)
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 "{0,7} {1,3} {2,7:0.0} {3,5:0.0} {4,5:0.0} | {5,4:0} {6,7:0.00} {7,6:0.00} {8,5:0.00}",
-                x.X.ToString(xf, CultureInfo.InvariantCulture), x.HasVel ? x.VelN : 0, x.MeanMps, x.SdMps, x.EsMps,
-                x.HasTarget ? x.DistanceM : 0, x.PoiYMoa, x.MeanRadiusMoa, x.VertSpreadMoa));
+                x.X.ToString(xf, CultureInfo.InvariantCulture), x.HasVel ? x.VelN : 0,
+                gu.VelocityValue(x.MeanMps), gu.VelocityValue(x.SdMps), gu.VelocityValue(x.EsMps),
+                x.HasTarget ? gu.DistanceValue(x.DistanceM) : 0, x.PoiYMoa, x.MeanRadiusMoa, x.VertSpreadMoa));
         sb.AppendLine();
         Line(sb, seat ? "Group-size plateau" : "Velocity flat-spot (Satterlee)", r.PrimaryNode, r.XUnit, xf);
         Line(sb, "Vertical-POI node", r.PoiNode, r.XUnit, xf);

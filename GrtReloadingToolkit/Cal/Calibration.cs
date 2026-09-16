@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Grt;
 
 namespace GrtReloadingToolkit.Cal;
 
@@ -38,21 +39,25 @@ public sealed class CalResult
 
     public string BuildReport(string headline, double? baOld, string powderName)
     {
+        // Written into GRT as a note, so it reads in GRT's units; the charge stays in grains.
+        var gu = GrtUnits.Current;
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
-        sb.AppendLine("charge   meas MV   sim MV    d m/s    d %");
+        sb.AppendLine($"charge in gr, velocities in {gu.VelocityUnitName}");
+        sb.AppendLine("charge   meas MV   sim MV     d MV    d %");
         foreach (var p in Points.OrderBy(p => p.ChargeGr))
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 "{0,6:0.0} {1,9:0.0} {2,9:0.0} {3,8:+0.0;-0.0;0.0} {4,7:+0.00;-0.00;0.00}",
-                p.ChargeGr, p.MeasMps, p.SimMps, p.DeltaMps, p.DeltaPct));
+                p.ChargeGr, gu.VelocityValue(p.MeasMps), gu.VelocityValue(p.SimMps),
+                gu.VelocityValue(p.DeltaMps), p.DeltaPct));
         sb.AppendLine();
         if (N == 0) { sb.AppendLine("no valid points captured."); return sb.ToString(); }
 
         sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-            "mean offset: {0:+0.0;-0.0;0.0} m/s  ({1:+0.00;-0.00;0.00} %)   over {2} point(s), spread {3:0.00} %",
-            MeanDeltaMps, MeanDeltaPct, N, SdDeltaPct));
+            "mean offset: {0:+0.0;-0.0;0.0} {1}  ({2:+0.00;-0.00;0.00} %)   over {3} point(s), spread {4:0.00} %",
+            gu.VelocityValue(MeanDeltaMps), gu.VelocityUnitName, MeanDeltaPct, N, SdDeltaPct));
         sb.AppendLine(N >= 2
             ? (Consistent ? "-> consistent across charges: a clean barrel-vs-model offset."
                           : "-> offset varies with charge: the powder model shape is off, not just a scale.")
@@ -64,8 +69,8 @@ public sealed class CalResult
                 powderName, ba * BaMultiplier, ba, BaMultiplier));
         else
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "no Ba in the load; apply the offset mentally: GRT runs {0:0.0} m/s {1} for this barrel.",
-                Math.Abs(MeanDeltaMps), MeanDeltaMps >= 0 ? "slow" : "fast"));
+                "no Ba in the load; apply the offset mentally: GRT runs {0:0.0} {1} {2} for this barrel.",
+                Math.Abs(gu.VelocityValue(MeanDeltaMps)), gu.VelocityUnitName, MeanDeltaMps >= 0 ? "slow" : "fast"));
         sb.AppendLine();
         sb.AppendLine("Method: measured MV = Athlon Rangecraft; sim MV = GRT Get_TabResults for the charge set in GRT.");
         sb.AppendLine("Re-verify after applying, and keep this per barrel + powder lot.");

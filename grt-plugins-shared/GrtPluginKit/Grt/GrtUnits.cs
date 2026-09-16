@@ -116,6 +116,17 @@ public sealed class GrtUnits
     /// <summary>The inverse of <see cref="TemperatureValue"/>: what the user typed, back to stored °C.</summary>
     public double TemperatureToCelsius(double shown) => TemperatureInF ? (shown - 32.0) * 5.0 / 9.0 : shown;
 
+    /// <summary>
+    /// A powder-temperature sensitivity — m/s per °C — in the units being shown. Both axes convert,
+    /// and the temperature one is an interval, not a reading: a degree F spans 5/9 of a degree C,
+    /// with no 32 to add. Dropping that factor overstates an imperial slope by 80%.
+    /// </summary>
+    public double VelocityPerDegreeValue(double mpsPerCelsius) =>
+        VelocityValue(mpsPerCelsius) * (TemperatureInF ? 5.0 / 9.0 : 1.0);
+
+    /// <summary>The unit <see cref="VelocityPerDegreeValue"/> returns, e.g. "ft/s per °F".</summary>
+    public string VelocityPerDegreeUnitName => VelocityUnitName + " per " + TemperatureUnitName;
+
     /// <summary>A stored temperature, with its unit. One decimal — chronograph sensors resolve no finer.</summary>
     public string Temperature(double celsius) =>
         TemperatureValue(celsius).ToString("0.0", Inv) + " " + TemperatureUnitName;

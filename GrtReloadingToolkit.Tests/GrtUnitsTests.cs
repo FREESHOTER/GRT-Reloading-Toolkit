@@ -132,6 +132,27 @@ public class GrtUnitsTests : IDisposable
         => Assert.False(GrtUnits.From(Cfg("oal=mm;pt=" + unit)).TemperatureInF);
 
     [Fact]
+    public void APowderSensitivityConvertsOnBothAxes()
+    {
+        // A typical N550 slope. In ft/s per °F it is NOT 1.2/0.3048 = 3.94: a degree F spans 5/9
+        // of a degree C, so it is 3.94 x 5/9 = 2.19. Getting this wrong reads 80% too sensitive.
+        var i = GrtUnits.From(Cfg(Imperial));
+        Assert.Equal(2.187, i.VelocityPerDegreeValue(1.2), 3);
+        Assert.Equal("ft/s per °F", i.VelocityPerDegreeUnitName);
+
+        var m = GrtUnits.From(Cfg(Metric));
+        Assert.Equal(1.2, m.VelocityPerDegreeValue(1.2), 10);
+        Assert.Equal("m/s per °C", m.VelocityPerDegreeUnitName);
+    }
+
+    [Fact]
+    public void APowderSensitivityIsAnIntervalNotAReading()
+    {
+        // The 32 that TemperatureValue adds must not appear here: no change is no change.
+        Assert.Equal(0.0, GrtUnits.From(Cfg(Imperial)).VelocityPerDegreeValue(0.0), 10);
+    }
+
+    [Fact]
     public void ATemperatureSurvivesTheRoundTrip()
     {
         // The grid shows °F and reads °F back; if these two disagree the load drifts a little
