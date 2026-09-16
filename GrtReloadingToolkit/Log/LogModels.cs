@@ -1,6 +1,11 @@
 namespace GrtReloadingToolkit.Log;
 
-public enum ComponentKind { Powder, Primer, Brass, Bullet }
+/// <summary>
+/// What a lot is. Barrel is last because the value is stored by name, so the order here is free,
+/// and because the four before it are the ones a journal entry consumes per round -- a barrel is
+/// something you own and paid for, not something a round is loaded from.
+/// </summary>
+public enum ComponentKind { Powder, Primer, Brass, Bullet, Barrel }
 
 public sealed class Component
 {
@@ -9,8 +14,12 @@ public sealed class Component
     public string Brand { get; set; } = "";
     public string Name { get; set; } = "";
     public string Lot { get; set; } = "";
-    /// <summary>"g" for powder, "pcs" for the rest.</summary>
-    public string Unit { get; set; } = "pcs";
+    /// <summary>
+    /// The unit this lot is counted in -- grams, grains, pounds or kilos for powder, pieces for
+    /// everything else. Powder stock is stored in grams whatever this says; see
+    /// <see cref="StockUnit"/> for why, and for the arithmetic between the two.
+    /// </summary>
+    public string Unit { get; set; } = StockUnit.Pieces;
     public double QtyInitial { get; set; }
     public double QtyCurrent { get; set; }
     public double CostTotal { get; set; }          // purchase price of this lot, user's currency
@@ -28,6 +37,21 @@ public sealed class Component
         : 0;
 
     public double FractionRemaining => QtyInitial > 0 ? QtyCurrent / QtyInitial : 0;
+
+    /// <summary>Stock left, counted in <see cref="Unit"/> -- what a grid cell or a prompt shows.</summary>
+    public double QtyCurrentIn => StockUnit.FromStore(QtyCurrent, Unit);
+
+    /// <summary>The opening count, in <see cref="Unit"/>.</summary>
+    public double QtyInitialIn => StockUnit.FromStore(QtyInitial, Unit);
+
+    /// <summary>Stock left with its unit, e.g. "1.4 lb" or "250 pcs".</summary>
+    public string QtyLeftText => QtyCurrentIn.ToString(StockUnit.Format(Unit)) + " " + Unit;
+
+    /// <summary>
+    /// <see cref="CostPerUnit"/> priced in <see cref="Unit"/>. Cost per gram is the number the
+    /// round costing needs; cost per pound is the number that means something on a shelf.
+    /// </summary>
+    public double CostPerUnitIn => CostPerUnit * StockUnit.Factor(Unit);
 
     public string Display => string.Join(" ", new[] { Brand, Name, Lot is "" ? "" : $"[{Lot}]" }.Where(s => s.Length > 0));
 }

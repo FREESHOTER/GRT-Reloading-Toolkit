@@ -309,8 +309,13 @@ Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** o
 
 A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`. Three tabs.
 
-- **Inventory** — powder / primer / brass / bullet stock with lot id, price and (for brass) an
-  *expected uses* count that amortises the case cost. **Add / Edit / Restock / Archive**.
+- **Inventory** — powder / primer / brass / bullet / barrel stock with lot id, price and (for
+  brass) an *expected uses* count that amortises the case cost. **Add / Edit / Restock / Archive**.
+  **Brand** offers the usual makers for the kind and stays typeable for the ones it misses.
+  Powder is counted in whichever unit you buy it in — **g, gr, lb or kg**, picked next to *Qty
+  initial*; everything else is counted in pieces. Switching the unit re-labels the lot, it does
+  not change it: 1 lb and 453.6 g are the same jug, the grid, the restock prompt and the
+  cost-per-unit column all follow, and the journal still burns the same grams per round.
   Stock can go **negative** — that just means the lot was entered short, or rounds were logged
   against the wrong lot. It is never silently absorbed, so editing or deleting the entry always
   gives back exactly what it took. Fix it with **Restock** (or **Edit** the lot's quantity).

@@ -13,7 +13,7 @@ every tool is a button there. One background process serves all of them.
 | 🌡 **Powder Temp Coefficients** | Fits `tcc` / `tch` from Athlon strings shot at different temperatures (GRT's `Ba(T) ≈ Ba·(MV(T)/MV₂₁)²` formalism). Writes `tcc`/`tch` into the propellant. |
 | 🔧 **Brass Prep** | *Case volume* — N case water weights (grain H₂O **or** grams) → mean / SD volume, written into the caliber's `casevol`. *Seating depth* — CBTO + case length + BBTO (comparator measurements) → GRT `gdepth`, written into the load. *Neck / bushing* — bullet dia + neck wall + desired interference → bushing & mandrel size, **in inch** by default (toggle to mm). |
 | 🏷 **Load Card / Label** | Printable A6 recipe card / ammo-box labels with a QR of the full recipe. Component-lot dropdowns compute **cost per round**. "Write load-sheet note" puts the recipe + cost breakdown into the load. |
-| 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet) with lot tracking and cost per round, a load/range journal that deducts stock, and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
+| 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet / barrel) with lot tracking, brand pick-lists, powder counted in **g, gr, lb or kg**, and cost per round, a load/range journal that deducts stock, and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
 
 Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes five DokuWiki
 report pages into `GRT\doku\<lang>\report\` and links them from the Reports index —

@@ -165,4 +165,44 @@ public sealed class DbStockTests : IDisposable
         Assert.Equal(0, c.FractionRemaining);        // guarded on QtyInitial, so no divide by zero
         Assert.Equal(0, c.CostPerUnit);
     }
+
+    [Fact]
+    public void ABarrelIsALotLikeAnyOther()
+    {
+        // Barrels went in as a kind so a shooter can record what a tube cost and which one it is;
+        // the journal does not consume them, so the only thing to prove is that the new enum
+        // member survives the round trip through a TEXT column.
+        using var db = NewDb();
+        long id = db.UpsertComponent(new Component
+        {
+            Kind = ComponentKind.Barrel, Brand = "Bartlein", Name = "7mm 1:8 5R", Lot = "B-4471",
+            Unit = "pcs", QtyInitial = 1, QtyCurrent = 1, CostTotal = 450, Currency = "USD",
+        });
+
+        var b = db.Components().Single(x => x.Id == id);
+        Assert.Equal(ComponentKind.Barrel, b.Kind);
+        Assert.Equal("Bartlein 7mm 1:8 5R [B-4471]", b.Display);
+        Assert.Equal("1 pcs", b.QtyLeftText);
+        Assert.Equal(450, b.CostPerUnitIn, 9);
+    }
+
+    [Fact]
+    public void PowderCountedInPoundsStillLosesGramsToTheLedger()
+    {
+        // The unit is a label on the lot, not a change of store: logging 20 rounds of 41.5 gr has
+        // to move the same grams whether the jug is counted in pounds or in grams.
+        using var db = NewDb();
+        long jug = db.UpsertComponent(new Component
+        {
+            Kind = ComponentKind.Powder, Brand = "Hodgdon", Name = "H4831SC", Unit = "lb",
+            QtyInitial = 8 * 453.59237, QtyCurrent = 8 * 453.59237,
+        });
+        db.SaveEntry(new JournalEntry { PowderId = jug, ChargeGr = 41.5, Rounds = 20 }, applyStock: true);
+
+        var c = db.Components().Single(x => x.Id == jug);
+        double burnedG = 41.5 * 0.06479891 * 20;
+        Assert.Equal(8 * 453.59237 - burnedG, c.QtyCurrent, 9);
+        Assert.Equal(8 - burnedG / 453.59237, c.QtyCurrentIn, 9);
+        AssertLedgerAgrees(db, jug);
+    }
 }

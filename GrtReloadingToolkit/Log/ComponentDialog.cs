@@ -7,7 +7,9 @@ internal sealed class ComponentDialog : Form
 {
     private readonly Component _c;
     private readonly ComboBox _kind = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110 };
-    private readonly TextBox _brand = new() { Width = 160 };
+    // Editable, not a whitelist: the shortlist covers the makers most shooters hold and anything
+    // else is still typed in. Same bargain as the currency box.
+    private readonly ComboBox _brand = new() { DropDownStyle = ComboBoxStyle.DropDown, Width = 160 };
     private readonly TextBox _name = new() { Width = 220 };
     private readonly TextBox _lot = new() { Width = 120 };
     // Stock goes negative and that is not a corruption: AdjustStock has no floor, the restock
@@ -18,16 +20,26 @@ internal sealed class ComponentDialog : Form
     private readonly NumericUpDown _qtyCur = new() { DecimalPlaces = 1, Minimum = -1_000_000, Maximum = 1_000_000, Width = 110 };
     private readonly NumericUpDown _cost = new() { DecimalPlaces = 2, Maximum = 1_000_000, Width = 110 };
     private readonly ComboBox _currency = new() { DropDownStyle = ComboBoxStyle.DropDown, Width = 80 };
+    // Powder is stored in grams and bought in pounds or kilos, so the count the user types needs a
+    // unit beside it. Every other kind has exactly one, which is why this disables itself.
+    private readonly ComboBox _qtyUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 70 };
     private readonly NumericUpDown _expUses = new() { Minimum = 1, Maximum = 100, Width = 70, Value = 1 };
     private readonly NumericUpDown _bulletW = new() { DecimalPlaces = 1, Maximum = 1000, Width = 90 };
     private readonly TextBox _notes = new() { Width = 320 };
-    private readonly Label _unitInfo = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
+    private readonly Label _unitInfo = new() { AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) };
+
+    /// <summary>What the two quantity spinners are currently counting in.</summary>
+    private string _unit;
+
+    /// <summary>Set while the combos are being refilled, so their events do not read as user edits.</summary>
+    private bool _loading;
 
     public Component Result => _c;
 
     public ComponentDialog(Component c)
     {
         _c = c;
+        _unit = string.IsNullOrWhiteSpace(c.Unit) ? StockUnit.DefaultFor(c.Kind) : c.Unit.Trim();
         Text = c.Id == 0 ? "Add component" : "Edit component";
         Ui.AppIcon.Apply(this);
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -38,9 +50,12 @@ internal sealed class ComponentDialog : Form
         foreach (var k in Enum.GetValues<ComponentKind>()) _kind.Items.Add(k);
         _kind.SelectedItem = c.Kind;
         _kind.SelectedIndexChanged += (_, _) => SyncUnit();
+        _qtyUnit.SelectedIndexChanged += (_, _) => ChangeUnit();
         _brand.Text = c.Brand; _name.Text = c.Name; _lot.Text = c.Lot;
-        Ui.NudFix.Set(_qtyInit, c.QtyInitial);
-        Ui.NudFix.Set(_qtyCur, c.Id == 0 ? c.QtyInitial : c.QtyCurrent);
+        // The store holds powder in grams; these two boxes hold whatever the lot is counted in.
+        double init = StockUnit.FromStore(c.QtyInitial, _unit);
+        Ui.NudFix.Set(_qtyInit, init);
+        Ui.NudFix.Set(_qtyCur, c.Id == 0 ? init : StockUnit.FromStore(c.QtyCurrent, _unit));
         Ui.NudFix.Set(_cost, c.CostTotal);
         foreach (string cur in Money.Common) _currency.Items.Add(cur);
         _currency.Text = string.IsNullOrWhiteSpace(c.Currency) ? Money.Default : c.Currency;
@@ -55,8 +70,8 @@ internal sealed class ComponentDialog : Form
         Row("Brand", _brand);
         Row("Name", _name);
         Row("Lot", _lot);
-        Row("Qty initial", Flow(_qtyInit, _unitInfo));
-        Row("Qty current", _qtyCur);
+        Row("Qty initial", Flow(_qtyInit, _qtyUnit));
+        Row("Qty current", Flow(_qtyCur, _unitInfo));
         Row("Lot cost", Flow(_cost, _currency));
         Row("Expected uses", Flow(_expUses, new Label { Text = "(brass: firings before retirement)", AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) }));
         Row("Bullet weight gr", _bulletW);
@@ -82,15 +97,57 @@ internal sealed class ComponentDialog : Form
         return f;
     }
 
+    /// <summary>Refills everything that follows the kind: brand suggestions, units, and which
+    /// of the kind-specific fields apply.</summary>
     private void SyncUnit()
     {
-        bool powder = (ComponentKind)_kind.SelectedItem! == ComponentKind.Powder;
-        bool bullet = (ComponentKind)_kind.SelectedItem! == ComponentKind.Bullet;
-        bool brass = (ComponentKind)_kind.SelectedItem! == ComponentKind.Brass;
-        _unitInfo.Text = powder ? "grams" : "pieces";
-        _bulletW.Enabled = bullet;
+        var kind = (ComponentKind)_kind.SelectedItem!;
+        bool brass = kind == ComponentKind.Brass;
+
+        _loading = true;
+        string typed = _brand.Text;              // a brand already typed survives the swap
+        _brand.Items.Clear();
+        foreach (string b in Brands.For(kind)) _brand.Items.Add(b);
+        _brand.Text = typed;
+
+        var units = StockUnit.For(kind);
+        // Match case-insensitively so a row stored as "G" selects "g" instead of nothing, and fall
+        // back when the kind changes out from under a unit that no longer applies.
+        _unit = units.FirstOrDefault(u => string.Equals(u, _unit, StringComparison.OrdinalIgnoreCase))
+                ?? StockUnit.DefaultFor(kind);
+        _qtyUnit.Items.Clear();
+        foreach (string u in units) _qtyUnit.Items.Add(u);
+        _qtyUnit.SelectedItem = _unit;
+        _qtyUnit.Enabled = units.Count > 1;
+        _loading = false;
+
+        ShowUnit();
+        _bulletW.Enabled = kind == ComponentKind.Bullet;
         _expUses.Enabled = brass;
         if (!brass && _c.Id == 0) _expUses.Value = 1;
+    }
+
+    /// <summary>
+    /// The lot did not change, only the label on it: 1 lb and 453.6 g are the same powder, so the
+    /// number in the box is converted rather than reinterpreted.
+    /// </summary>
+    private void ChangeUnit()
+    {
+        if (_loading || _qtyUnit.SelectedItem is not string to || to == _unit) return;
+        double init = StockUnit.FromStore(StockUnit.ToStore((double)_qtyInit.Value, _unit), to);
+        double cur = StockUnit.FromStore(StockUnit.ToStore((double)_qtyCur.Value, _unit), to);
+        _unit = to;
+        ShowUnit();
+        Ui.NudFix.Set(_qtyInit, init);
+        Ui.NudFix.Set(_qtyCur, cur);
+    }
+
+    private void ShowUnit()
+    {
+        _unitInfo.Text = _unit;
+        // A pound of powder goes down by about 0.006 of one per round, so one place would show a
+        // full loading session as no change at all.
+        _qtyInit.DecimalPlaces = _qtyCur.DecimalPlaces = StockUnit.Decimals(_unit);
     }
 
     private void Commit()
@@ -99,9 +156,9 @@ internal sealed class ComponentDialog : Form
         _c.Brand = _brand.Text.Trim();
         _c.Name = _name.Text.Trim();
         _c.Lot = _lot.Text.Trim();
-        _c.Unit = _c.Kind == ComponentKind.Powder ? "g" : "pcs";
-        _c.QtyInitial = (double)_qtyInit.Value;
-        _c.QtyCurrent = (double)_qtyCur.Value;
+        _c.Unit = _unit;
+        _c.QtyInitial = StockUnit.ToStore((double)_qtyInit.Value, _unit);
+        _c.QtyCurrent = StockUnit.ToStore((double)_qtyCur.Value, _unit);
         _c.CostTotal = (double)_cost.Value;
         // An empty box means "leave it alone", not "blank the column": the grid and the
         // cost-per-round line both print this string straight through.

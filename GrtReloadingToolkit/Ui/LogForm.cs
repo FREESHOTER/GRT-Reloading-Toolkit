@@ -152,9 +152,9 @@ internal sealed class LogForm : Form
         foreach (var c in _db.Components())
         {
             int i = _inv.Rows.Add(c.Kind.ToString(), c.Display,
-                $"{c.QtyCurrent:0.#} {c.Unit}",
+                c.QtyLeftText,
                 $"{c.FractionRemaining * 100:0}",
-                c.CostPerUnit > 0 ? $"{c.CostPerUnit:0.0000} {c.Currency}/{(c.Kind == ComponentKind.Powder ? "g" : "pc")}" : "",
+                c.CostPerUnit > 0 ? $"{c.CostPerUnitIn:0.0000} {c.Currency}/{c.Unit}" : "",
                 c.Notes);
             _inv.Rows[i].Tag = c;
             if (c.FractionRemaining <= 0.10) _inv.Rows[i].DefaultCellStyle.BackColor = Color.FromArgb(255, 224, 224);
@@ -186,7 +186,8 @@ internal sealed class LogForm : Form
         // same reason NudFix exists for every NumericUpDown in the app.
         if (GrtPluginKit.Util.Str.ParseNumber(s) is { } d)
         {
-            _db.AdjustStock(c.Id, d, "manual restock");
+            // The prompt asked in the unit the lot is counted in; the ledger moves stored units.
+            _db.AdjustStock(c.Id, StockUnit.ToStore(d, c.Unit), "manual restock");
             RefreshInventory();
         }
     }

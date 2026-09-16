@@ -101,7 +101,7 @@ internal sealed class JournalDialog : Form
     {
         cb.Items.Add(new Item(0, "— none —"));
         foreach (var c in _components.Where(x => x.Kind == kind))
-            cb.Items.Add(new Item(c.Id, $"{c.Display}  ({c.QtyCurrent:0.#} {c.Unit} left)"));
+            cb.Items.Add(new Item(c.Id, $"{c.Display}  ({c.QtyLeftText} left)"));
         cb.SelectedIndex = 0;
         if (selected is { } id)
             for (int i = 0; i < cb.Items.Count; i++)
