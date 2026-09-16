@@ -299,6 +299,11 @@ Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** o
   charge, COAL, seating depth, and MV/SD from the last measurement).
 - **Powder / Primer / Brass / Bullet lot** drop-downs — pick a component lot from the Inventory
   (§10) to compute **cost per round** and stamp the lot on the card.
+- **Barrel** drop-down — pick a barrel from the Inventory (§10) and the card gains a **Barrel**
+  row: its name, its twist and its length, in GRT's units. The same recipe out of a different
+  tube is a different load, so the card, the QR and the load-sheet note all say which one it
+  was. A barrel with no twist or length recorded prints as just its name, and no barrel prints
+  no row at all. A barrel is not consumed, so it never enters the cost per round.
 - Edit any field in the property grid. Choose **Recipe card** or **Box labels** + a count.
 - **Save PNG…**, **Print…** (print-preview), or **Write load-sheet note to GRT** — puts the recipe
   + per-round cost breakdown into the load as a "Load Sheet" note.

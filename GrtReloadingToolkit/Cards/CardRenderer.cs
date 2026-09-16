@@ -69,8 +69,7 @@ internal static class CardRenderer
         using var one = OneLine();
         using var hFont = Fit(g, c.Title, 7.5f * u, FontStyle.Bold, textW, one);
         using var chFont = Fit(g, c.ChargeLine, 9f * u, FontStyle.Bold, textW, one);
-        using var kFont = new Font("Segoe UI", 3.4f * u, FontStyle.Bold, GraphicsUnit.Point);
-        using var vFont = new Font("Segoe UI", 3.6f * u, FontStyle.Regular, GraphicsUnit.Point);
+        using var qFont = new Font("Segoe UI", 2.6f * u, FontStyle.Regular, GraphicsUnit.Point);
         using var black = new SolidBrush(Color.Black);
         using var grey = new SolidBrush(Color.FromArgb(90, 90, 90));
 
@@ -82,6 +81,7 @@ internal static class CardRenderer
         (string k, string? v)[] rows =
         {
             ("Firearm", c.Firearm),
+            ("Barrel", c.BarrelLine),
             ("Bullet", c.Bullet + (c.BulletGr is { } bg ? "  " + U.BulletMass(bg) : "")),
             ("Primer", c.Primer),
             ("Brass", c.Brass),
@@ -92,18 +92,38 @@ internal static class CardRenderer
             ("Date", c.Date),
             ("Notes", string.IsNullOrWhiteSpace(c.LotNote) ? null : c.LotNote),
         };
+        // The rows had no floor under them: each one simply advanced y by a fixed pitch, so a card
+        // with enough of them filled in walked straight down through the QR caption and into the QR
+        // itself. At the A6 render there is 658px between the header and the caption and a row is
+        // 78.6px, so it took nine rows -- which a card with a barrel, a cost line and a lot note has.
+        // The rows now know where they have to stop and take a single scale between them, so the
+        // block stays proportioned rather than one row being squeezed. A sparse card scales by 1 and
+        // is untouched; the 55% floor is far below what even eleven rows need.
+        float qrSize = Math.Min(b.Width * 0.30f, b.Height * 0.42f);
+        float rowsBottom = b.Bottom - pad - qrSize - qFont.GetHeight(g) - 1.5f * u;
+        int shown = rows.Count(r => !string.IsNullOrWhiteSpace(r.v));
+        float scale = 1f;
+        if (shown > 0)
+        {
+            // A font's height is linear in its point size, so scaling the size and the gap together
+            // scales the pitch by exactly the same factor.
+            using var probe = new Font("Segoe UI", 3.6f * u, FontStyle.Regular, GraphicsUnit.Point);
+            scale = Math.Clamp((rowsBottom - y) / (shown * (probe.GetHeight(g) + 1.4f * u)), 0.55f, 1f);
+        }
+        using var kFont = new Font("Segoe UI", 3.4f * u * scale, FontStyle.Bold, GraphicsUnit.Point);
+        using var vFont = new Font("Segoe UI", 3.6f * u * scale, FontStyle.Regular, GraphicsUnit.Point);
+
         // The label column was a flat 20u, which is narrower than the labels put in it: at the A6
         // render "Cost / round" measures 293px into 202px of column, so it ran 91px under its own
         // value, and "MV / SD" at 200px cleared its value by two pixels -- a gap only in arithmetic.
         // The labels are literals but their widths are a font's business, not a constant's, so the
         // column is the widest label actually drawn plus a real gap. The old 20u stays as a floor,
         // which is what a sparse card with only short labels still gets.
-        float labelW = 20 * u;
+        float labelW = 20 * u * scale;
         foreach (var (k, v) in rows)
             if (!string.IsNullOrWhiteSpace(v))
-                labelW = Math.Max(labelW, g.MeasureString(k, kFont, int.MaxValue, one).Width + 1.5f * u);
+                labelW = Math.Max(labelW, g.MeasureString(k, kFont, int.MaxValue, one).Width + 1.5f * u * scale);
 
-        float qrSize = Math.Min(b.Width * 0.30f, b.Height * 0.42f);
         foreach (var (k, v) in rows)
         {
             if (string.IsNullOrWhiteSpace(v)) continue;
@@ -111,13 +131,12 @@ internal static class CardRenderer
             // The labels are a fixed set of short literals, but the values are component names off
             // the user's inventory and have the same room to overrun as the header did.
             g.DrawString(v, vFont, black, new RectangleF(x + labelW, y, textW - labelW, vFont.GetHeight(g) * 1.2f), one);
-            y += vFont.GetHeight(g) + 1.4f * u;
+            y += vFont.GetHeight(g) + 1.4f * u * scale;
         }
 
         // QR bottom-right
         var qrRect = new RectangleF(b.Right - pad - qrSize, b.Bottom - pad - qrSize, qrSize, qrSize);
         g.DrawImage(qr, qrRect);
-        using var qFont = new Font("Segoe UI", 2.6f * u, FontStyle.Regular, GraphicsUnit.Point);
         g.DrawString("scan for full recipe", qFont, grey, qrRect.X, qrRect.Y - qFont.GetHeight(g) - 0.5f * u);
     }
 

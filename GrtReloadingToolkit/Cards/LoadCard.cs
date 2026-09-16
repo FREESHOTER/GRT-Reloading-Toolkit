@@ -14,6 +14,18 @@ public sealed class LoadCard
     public double? ChargeGr { get; set; }
     public string Primer { get; set; } = "";
     public string Brass { get; set; } = "";
+
+    /// <summary>The barrel the load was worked up in, named the way the inventory names it.</summary>
+    public string Barrel { get; set; } = "";
+
+    /// <summary>
+    /// The barrel's twist, as the length of one full turn in mm — the same metric-inside rule
+    /// every other length on this card follows. 1:8 in is 203.2 mm.
+    /// </summary>
+    public double? BarrelTwistMm { get; set; }
+
+    /// <summary>The barrel's length in mm.</summary>
+    public double? BarrelLengthMm { get; set; }
     public double? CoalMm { get; set; }
     public double? CbtoMm { get; set; }
     public double? SeatingDepthMm { get; set; }
@@ -30,6 +42,25 @@ public sealed class LoadCard
         ? $"{GrtUnits.Current.Charge(g)} {Powder}".Trim()
         : Powder;
 
+    /// <summary>
+    /// The barrel as one line: what it is called, then the two numbers that identify it, in GRT's
+    /// units. The same load out of a 1:8 26 in tube and a 1:9 20 in one is two different loads, so
+    /// a card that names the barrel is worth more later than one that does not. Empty when no
+    /// barrel is on the card, which is how a caller decides whether to print the row at all.
+    /// </summary>
+    public string BarrelLine
+    {
+        get
+        {
+            var u = GrtUnits.Current;
+            var parts = new List<string>(3);
+            if (!string.IsNullOrWhiteSpace(Barrel)) parts.Add(Barrel.Trim());
+            if (BarrelTwistMm is > 0 and { } t) parts.Add(u.Twist(t));
+            if (BarrelLengthMm is > 0 and { } l) parts.Add(u.Length(l));
+            return string.Join("  ", parts);
+        }
+    }
+
     /// <summary>Compact human+machine readable block for the QR code.</summary>
     public string QrText()
     {
@@ -43,6 +74,7 @@ public sealed class LoadCard
         if (ChargeGr is { } c) Add(sb, "charge", u.Charge(c));
         Add(sb, "primer", Primer);
         Add(sb, "brass", Brass);
+        Add(sb, "barrel", BarrelLine);
         if (CoalMm is { } o) Add(sb, "COAL", u.Length(o));
         if (CbtoMm is { } t) Add(sb, "CBTO", u.Length(t));
         if (MvMs is { } v) Add(sb, "MV", u.Velocity(v) + (SdMs is { } s ? " SD " + u.VelocitySd(s) : ""));

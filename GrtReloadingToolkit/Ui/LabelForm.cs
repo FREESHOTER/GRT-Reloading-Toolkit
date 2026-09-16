@@ -22,7 +22,7 @@ internal sealed class LabelForm : Form
     private readonly RadioButton _rLabel = new() { Text = "Box labels", AutoSize = true };
     private readonly NumericUpDown _count = new() { Minimum = 1, Maximum = 60, Value = 12, Width = 50 };
     private readonly PropertyGrid _props = new() { Dock = DockStyle.Fill, ToolbarVisible = false, HelpVisible = false };
-    private readonly ComboBox _powder = Combo(), _primer = Combo(), _brass = Combo(), _bullet = Combo();
+    private readonly ComboBox _powder = Combo(), _primer = Combo(), _brass = Combo(), _bullet = Combo(), _barrel = Combo();
     private readonly Label _status = new();
 
     private static ComboBox Combo() => new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
@@ -68,12 +68,16 @@ internal sealed class LabelForm : Form
         FillCombo(_primer, ComponentKind.Primer);
         FillCombo(_brass, ComponentKind.Brass);
         FillCombo(_bullet, ComponentKind.Bullet);
-        foreach (var cb in new[] { _powder, _primer, _brass, _bullet })
+        FillCombo(_barrel, ComponentKind.Barrel);
+        foreach (var (_, cb) in Slots)
             cb.SelectedIndexChanged += (_, _) => { if (!_suppressCombo) { ApplyComponents(); Render(); } };
         Row("Powder lot", _powder);
         Row("Primer lot", _primer);
         Row("Brass lot", _brass);
         Row("Bullet lot", _bullet);
+        // Not a lot: a barrel is the one thing on this panel you own rather than consume. It is
+        // here because the same recipe out of a different tube is a different load.
+        Row("Barrel", _barrel);
         _props.SelectedObject = _card;
         _props.PropertyValueChanged += (_, _) => Render();
         right.Controls.Add(_props);
@@ -106,6 +110,7 @@ internal sealed class LabelForm : Form
         (ComponentKind.Primer, _primer),
         (ComponentKind.Brass,  _brass),
         (ComponentKind.Bullet, _bullet),
+        (ComponentKind.Barrel, _barrel),
     };
 
     private void FillCombo(ComboBox cb, ComponentKind k)
@@ -160,11 +165,16 @@ internal sealed class LabelForm : Form
         var pr = Sel(_primer, ComponentKind.Primer);
         var br = Sel(_brass, ComponentKind.Brass);
         var bu = Sel(_bullet, ComponentKind.Bullet);
+        var ba = Sel(_barrel, ComponentKind.Barrel);
         if (pw != null) _card.Powder = $"{pw.Brand} {pw.Name}".Trim();
         if (pr != null) _card.Primer = $"{pr.Brand} {pr.Name}".Trim();
         if (br != null) _card.Brass = $"{br.Brand} {br.Name}".Trim();
         if (bu != null) { _card.Bullet = $"{bu.Brand} {bu.Name}".Trim(); _card.BulletGr = bu.BulletWeightGr; }
+        if (ba != null) { _card.Barrel = $"{ba.Brand} {ba.Name}".Trim(); _card.BarrelTwistMm = ba.TwistMm; _card.BarrelLengthMm = ba.BarrelLengthMm; }
 
+        // The probe is deliberately the four consumables: a JournalEntry has no BarrelId, because
+        // a barrel is not spent a round at a time, and pricing one into cost-per-round would
+        // charge every round for the whole tube.
         var probe = new JournalEntry { PowderId = pw?.Id, PrimerId = pr?.Id, BrassId = br?.Id, BulletId = bu?.Id, ChargeGr = _card.ChargeGr ?? 0, Rounds = 1 };
         var cb = Costing.PerRound(probe, id => _components.FirstOrDefault(c => c.Id == id));
         _card.CostPerRound = cb.PerRound > 0 ? Costing.Format(cb.PerRound, cb.Currency) + " / rd" : "";
@@ -230,6 +240,7 @@ internal sealed class LabelForm : Form
         void L(string k, string? v) { if (!string.IsNullOrWhiteSpace(v)) sb.Append(k.PadRight(16)).Append(": ").Append(v).Append('\n'); }
         L("Caliber", _card.Caliber);
         L("Firearm", _card.Firearm);
+        L("Barrel", _card.BarrelLine);
         var u = GrtUnits.Current;
         string bw = _card.BulletGr is { } bg && bg > 0 ? " " + u.BulletMass(bg) : "";
         L("Bullet", (_card.Bullet + bw).Trim());
