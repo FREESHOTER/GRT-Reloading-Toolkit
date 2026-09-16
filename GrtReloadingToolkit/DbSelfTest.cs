@@ -1,3 +1,4 @@
+using GrtPluginKit.Grt;
 using GrtReloadingToolkit.Log;
 
 namespace GrtReloadingToolkit;
@@ -41,7 +42,7 @@ internal static class DbSelfTest
         }
         Console.WriteLine($"total rounds: {db.FirearmRoundCount(fa)}  (250 before + {i2}×60)");
         foreach (var h in db.FirearmMvHistory(fa))
-            Console.WriteLine($"  {h.date}  {h.cumRounds,5} rd   {h.mv:0.0} m/s");
+            Console.WriteLine($"  {h.date}  {h.cumRounds,5} rd   {GrtUnits.Current.Velocity(h.mv)}");
     }
 
     [System.Runtime.InteropServices.DllImport("kernel32.dll")]

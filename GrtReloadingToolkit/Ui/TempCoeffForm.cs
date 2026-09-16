@@ -210,7 +210,7 @@ internal sealed class TempCoeffForm : Form
             ? $"WARNING: {charges.Count} different charges selected — temp fit needs ONE charge"
             : haveCoeff
                 ? string.Format(CultureInfo.InvariantCulture, "tcc={0}  tch={1}", _result.Tcc?.ToString("0.######") ?? "–", _result.Tch?.ToString("0.######") ?? "–")
-                : "add strings at 2+ temperatures (ideally cold / 21°C / hot)";
+                : $"add strings at 2+ temperatures (ideally cold / {GrtUnits.Current.Temperature(TempCoeffResult.NormalC)} / hot)";
     }
 
     private async Task WriteAsync()

@@ -337,15 +337,16 @@ internal sealed class BrassForm : Form
             double? coal = GrtLoadDoc.CoalFrom(doc.CaseLenMm, doc.BulletLengthMm, depth);
             string coalNote;
             if (coal is { } oal && doc.SetInput("caliber", "oal", oal.ToString(Exact, CultureInfo.InvariantCulture), "mm"))
-                coalNote = string.Format(CultureInfo.InvariantCulture, ", COAL {0:0.0000} mm", oal);
+                coalNote = ", COAL " + BrassCalc.Both(oal, _sdInInch);
             else
                 coalNote = doc.CaseLenMm is null || doc.BulletLengthMm is null
                     ? " (COAL not updated - the load has no case length or bullet length)"
                     : " (COAL not updated - the load has no 'oal' input)";
 
             await OpenSibling(doc);
-            _status.Text = string.Format(CultureInfo.InvariantCulture,
-                "gdepth {0:0.0000} mm{1} written and opened in GRT.", depth, coalNote);
+            // The file holds mm, as the comment above says; the shooter is about to see this load
+            // in GRT, so the line they read leads with the unit they are working in.
+            _status.Text = $"gdepth {BrassCalc.Both(depth, _sdInInch)}{coalNote} written and opened in GRT.";
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Seating depth", MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
@@ -358,11 +359,11 @@ internal sealed class BrassForm : Form
         var sb = new System.Text.StringBuilder();
         sb.Append(string.Format(CultureInfo.InvariantCulture,
             "Seating Depth (geometry) {0:yyyy-MM-dd}\n" + new string('-', 24) + "\n\n" +
-            "CBTO - case length = DIFF        : {1:0.0000} mm ({2:0.0000} in)\n" +
-            "seating depth = BBTO - DIFF      : {3:0.0000} mm ({4:0.0000} in)   <- written to gdepth\n\n" +
+            "CBTO - case length = DIFF        : {1}\n" +
+            "seating depth = BBTO - DIFF      : {2}   <- written to gdepth\n\n" +
             "GRT seating depth = bullet base to case mouth.\n" +
             "COAL is rewritten with it: oal = case length + bullet length - seating depth.\n",
-            DateTime.Now, r.DiffMm, r.DiffIn, r.SeatingDepthMm, r.SeatingDepthIn));
+            DateTime.Now, BrassCalc.Both(r.DiffMm, _sdInInch), BrassCalc.Both(r.SeatingDepthMm, _sdInInch)));
         foreach (var n in r.Notes) sb.Append("! ").Append(n).Append('\n');
         return sb.ToString();
     }
