@@ -31,6 +31,7 @@ internal static class CalCli
         double? ba = doc.PropellantBa;
         Console.WriteLine($"caliber={doc.CaliberName}  powder={doc.PropellantName}  Ba={ba}");
 
+        var gu = GrtUnits.Current;
         var meas = new SortedDictionary<double, double>();
         foreach (var m in doc.Measurements())
             foreach (var c in m.Charges)
@@ -58,7 +59,9 @@ internal static class CalCli
             }
             double measMv = meas.TryGetValue(Math.Round(chg, 2), out double mv) ? mv : 0;
             result.Points.Add(new CalPoint { ChargeGr = chg, SimMps = simMv, MeasMps = measMv });
-            Console.WriteLine($"  {chg} gr: sim {simMv:0.0}, meas {measMv:0.0}"
+            // simMv is typed in m/s (see the summary above); both go through the same conversion
+            // so the pair stays comparable, which is the only thing this line is for.
+            Console.WriteLine($"  {chg} gr: sim {gu.VelocityValue(simMv):0.0}, meas {gu.VelocityValue(measMv):0.0} {gu.VelocityUnitName}"
                 + (measMv > 0 ? "" : "   (no measured velocity at this charge in the load)"));
         }
 

@@ -23,6 +23,8 @@ internal static class GroupsCli
             : defShoot;
         bool dropFlyers = args.Any(a => a == "--drop-flyers");
 
+        // Read in GRT's units above, and printed back in them here.
+        var gu = GrtUnits.Current;
         var doc = GrtLoadDoc.Load(path);
         var (groups, log) = GrtShotGroups.FromDoc(doc, new GrtShotGroups.Options(refU, shootU, dropFlyers));
         foreach (var l in log) Console.WriteLine("  " + l);
@@ -30,11 +32,13 @@ internal static class GroupsCli
 
         foreach (var g in groups)
         {
-            Console.WriteLine($"{g.SourceFile}  charge/step={g.ChargeGrains?.ToString(Str.StepFormat, ci) ?? "?"}  dist={g.DistanceM.ToString("0", ci)} m");
+            string dist = $"{gu.DistanceValue(g.DistanceM).ToString("0", ci)} {gu.DistanceUnitName}";
+            Console.WriteLine($"{g.SourceFile}  charge/step={g.ChargeGrains?.ToString(Str.StepFormat, ci) ?? "?"}  dist={dist}");
             Console.WriteLine($"  n={g.Impacts.Count}  center=({g.CenterXMoa.ToString("0.00", ci)}, {g.CenterYMoa.ToString("0.00", ci)}) MOA");
             Console.WriteLine($"  mean radius={g.MeanRadiusMoa.ToString("0.00", ci)} MOA   ES={g.GroupEsMoa.ToString("0.00", ci)} MOA   vertical={g.VerticalSpreadMoa.ToString("0.00", ci)} MOA");
+            // The MOA figures above are unitless; this line is the same group as a size on paper.
             double moaMm = GrtShotGroups.MoaMm(g.DistanceM);
-            Console.WriteLine($"  (= {(g.MeanRadiusMoa * moaMm).ToString("0.0", ci)} mm MR, {(g.GroupEsMoa * moaMm).ToString("0.0", ci)} mm ES at {g.DistanceM.ToString("0", ci)} m)");
+            Console.WriteLine($"  (= {gu.Length(g.MeanRadiusMoa * moaMm)} MR, {gu.Length(g.GroupEsMoa * moaMm)} ES at {dist})");
         }
     }
 }

@@ -1,3 +1,5 @@
+using GrtPluginKit.Grt;
+
 namespace GrtReloadingToolkit.Cards;
 
 /// <summary>Console harness:  --card &lt;base.grtload&gt; [outDir]</summary>
@@ -9,7 +11,11 @@ internal static class CardCli
         outDir ??= Path.GetDirectoryName(Path.GetFullPath(basePath)) ?? ".";
 
         var card = LoadCard.FromGrtload(basePath);
-        Console.WriteLine($"caliber={card.Caliber}  powder={card.Powder}  charge={card.ChargeGr}  MV={card.MvMs}");
+        // The card and the QR below it are already drawn in GRT's units; this line is a
+        // summary of the same card, so printing metric here would contradict both.
+        var gu = GrtUnits.Current;
+        Console.WriteLine($"caliber={card.Caliber}  powder={card.Powder}  charge={card.ChargeLine}  "
+            + $"MV={(card.MvMs is { } mv ? gu.Velocity(mv) : "?")}");
         Console.WriteLine("--- QR text ---");
         Console.WriteLine(card.QrText());
 

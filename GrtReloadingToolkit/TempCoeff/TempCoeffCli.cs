@@ -1,6 +1,7 @@
 using System.Globalization;
 using GrtReloadingToolkit.Athlon;
 using GrtPluginKit.Analysis;
+using GrtPluginKit.Grt;
 
 namespace GrtReloadingToolkit.TempCoeff;
 
@@ -12,6 +13,7 @@ internal static class TempCoeffCli
         try { AttachConsole(-1); } catch { }
         double ba = double.Parse(args[1], CultureInfo.InvariantCulture);
 
+        var gu = GrtUnits.Current;
         var pts = new List<TempPoint>();
         foreach (string spec in args.Skip(2))
         {
@@ -21,7 +23,9 @@ internal static class TempCoeffCli
             var a = AthlonParser.Parse(file);
             var st = StringStats.From(a.Velocities.ToList());
             pts.Add(new TempPoint { File = file, ChargeGr = a.ChargeGrains ?? 0, TempC = temp, N = st.N, MeanMps = st.Mean, SdMps = st.Sd });
-            Console.WriteLine($"  {Path.GetFileName(file)} @ {temp}°C : {st.N} shots, {st.Mean:0.0} m/s");
+            // The temperature is echoed as typed — the argument is documented in °C — but the
+            // mean comes out of the file, so it reads in whatever GRT shows velocities in.
+            Console.WriteLine($"  {Path.GetFileName(file)} @ {temp}°C : {st.N} shots, {gu.Velocity(st.Mean)}");
         }
 
         var r = TempCoeffResult.Fit(pts, ba, "N550");
