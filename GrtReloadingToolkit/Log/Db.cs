@@ -255,6 +255,36 @@ CREATE TABLE IF NOT EXISTS firearms (
     }
 
     /// <summary>
+    /// Journal rows carrying no Ba but naming a .grtload -- the shape of a journal written before
+    /// the ba column existed. These are the backfill's candidates; opening the loads is
+    /// <see cref="BaBackfill"/>'s job, not a database's.
+    /// </summary>
+    public List<JournalEntry> EntriesMissingBa()
+    {
+        var list = new List<JournalEntry>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "SELECT * FROM journal WHERE ba IS NULL AND COALESCE(grtload_path,'') <> '' ORDER BY date, id";
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) list.Add(ReadEntry(r));
+        return list;
+    }
+
+    /// <summary>
+    /// Puts a Ba (and an a0 beside it) on one entry, and only on an entry that has none. The
+    /// <c>ba IS NULL</c> guard is what makes the backfill re-runnable and unable to overwrite a
+    /// number the user typed; a0 is COALESCEd for the same reason. True when the row took it.
+    /// </summary>
+    public bool FillBa(long id, double ba, double? a0)
+    {
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "UPDATE journal SET ba=$ba, a0=COALESCE(a0,$a0) WHERE id=$id AND ba IS NULL";
+        cmd.Parameters.AddWithValue("$ba", ba);
+        cmd.Parameters.AddWithValue("$a0", (object?)a0 ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$id", id);
+        return cmd.ExecuteNonQuery() == 1;
+    }
+
+    /// <summary>
     /// sign −1 deducts, +1 restores. Applies rounds×(1 per primer/brass/bullet) and charge×rounds grams of powder.
     /// Deductions are deliberately not clamped at zero: a clamp loses the overshoot while the matching
     /// reversal (edit or delete the entry) still restores the full amount, so logging 200 rounds against
