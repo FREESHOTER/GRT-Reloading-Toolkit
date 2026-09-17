@@ -408,7 +408,9 @@ internal static class Lang
         ["New journal entry"] = "Nuova voce diario",
         ["Edit journal entry"] = "Modifica voce diario",
         ["Load name"] = "Nome carico",
-        ["Distance m"] = "Distanza m",
+        // The dialog names the unit itself now (GRT's own, not always metres), so the label is
+        // the bare word with the unit appended after translation.
+        ["Distance"] = "Distanza",
         ["Temperature"] = "Temperatura",
         ["Pressure"] = "Pressione",
         ["Humidity %"] = "Umidità %",

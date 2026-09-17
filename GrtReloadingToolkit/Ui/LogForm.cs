@@ -236,7 +236,8 @@ internal sealed class LogForm : Form
         _jrn.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _jrn.CellDoubleClick += (_, _) => EditEntry();
         foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("cal", Lang.T("Caliber")), ("chg", Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName),
-                     ("rnd", Lang.T("Rounds")), ("mv", "MV"), ("sd", "SD"), ("grp", "MOA"), ("cpr", Lang.T("Cost/rd")), ("tot", Lang.T("Total")) })
+                     ("rnd", Lang.T("Rounds")), ("mv", "MV " + GrtUnits.Current.VelocityUnitName),
+                     ("sd", "SD " + GrtUnits.Current.VelocityUnitName), ("grp", "MOA"), ("cpr", Lang.T("Cost/rd")), ("tot", Lang.T("Total")) })
             _jrn.Columns.Add(n, h);
 
         page.Controls.Add(_jrn);
@@ -255,8 +256,8 @@ internal sealed class LogForm : Form
             int i = _jrn.Rows.Add(e.Date, e.LoadName, e.Caliber,
                 e.ChargeGr > 0 ? gu.ChargeValue(e.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture) : "",
                 e.Rounds,
-                e.VelocityAvgMs?.ToString("0", CultureInfo.InvariantCulture) ?? "",
-                e.SdMs?.ToString("0.0", CultureInfo.InvariantCulture) ?? "",
+                e.VelocityAvgMs is { } v ? gu.VelocityValue(v).ToString("0", CultureInfo.InvariantCulture) : "",
+                e.SdMs is { } sd ? gu.VelocitySd(sd) : "",
                 e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
                 cb.PerRoundText,
                 cb.Mixed ? cb.MixedNote

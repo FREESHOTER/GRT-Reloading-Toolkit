@@ -14,16 +14,29 @@ internal sealed class JournalDialog : Form
     private readonly TextBox _cal = new() { Width = 160 };
     private readonly TextBox _firearm = new() { Width = 160 };
     private readonly ComboBox _powder = Combo(), _primer = Combo(), _brass = Combo(), _bullet = Combo();
-    private readonly NumericUpDown _charge = new() { DecimalPlaces = 2, Maximum = 500, Width = 90 };
     private readonly NumericUpDown _rounds = new() { Maximum = 100000, Width = 90 };
     // Entered and shown in GRT's unit, stored in m/s. The ceilings convert with the boxes, or a
     // ft/s shooter could not type a 3000 ft/s load.
     private static readonly GrtUnits U = GrtUnits.Current;
     private static readonly decimal MvMax = (decimal)U.VelocityValue(3000), SdMax = (decimal)U.VelocityValue(500);
+    // The charge and the distance went in raw while the velocities converted, so a grams or yards
+    // shooter typed one unit into a box and read another back out of the journal grid -- and the
+    // wrong number was the one that reached the database. Both now follow the velocities.
+    //
+    // Grams need four places where grains need two: 0.02 gr is a good scale's last digit and also
+    // 0.0013 g, which two places would round away. Same reason GrtUnits.ChargeFormat splits.
+    private static readonly decimal ChargeMax = (decimal)U.ChargeValue(500), DistMax = (decimal)U.DistanceValue(3000);
+    private readonly NumericUpDown _charge = new()
+    {
+        DecimalPlaces = U.ChargeInGrams ? 4 : 2,
+        Increment = U.ChargeInGrams ? 0.01m : 0.1m,
+        Maximum = ChargeMax,
+        Width = 90,
+    };
     private readonly NumericUpDown _mv = new() { DecimalPlaces = 1, Maximum = MvMax, Width = 90 };
     private readonly NumericUpDown _sd = new() { DecimalPlaces = 1, Maximum = SdMax, Width = 80 };
     private readonly NumericUpDown _grp = new() { DecimalPlaces = 2, Maximum = 50, Width = 80 };
-    private readonly NumericUpDown _dist = new() { Maximum = 3000, Width = 90 };
+    private readonly NumericUpDown _dist = new() { Maximum = DistMax, Width = 90 };
     private readonly TextBox _notes = new() { Width = 380, Multiline = true, Height = 44, ScrollBars = ScrollBars.Vertical };
     private readonly CheckBox _applyStock = new() { Text = Ui.Lang.T("deduct components from inventory on save"), Checked = true, AutoSize = true };
     private readonly Label _cost = new() { AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
@@ -73,12 +86,12 @@ internal sealed class JournalDialog : Form
 
         _date.Text = e.Date;
         _load.Text = e.LoadName; _cal.Text = e.Caliber; _firearm.Text = e.Firearm;
-        _charge.Value = (decimal)Math.Min(500, e.ChargeGr);
+        _charge.Value = Math.Min(ChargeMax, (decimal)U.ChargeValue(e.ChargeGr));
         _rounds.Value = Math.Min(100000, e.Rounds);
         if (e.VelocityAvgMs is { } v) _mv.Value = Math.Min(MvMax, (decimal)U.VelocityValue(v));
         if (e.SdMs is { } s) _sd.Value = Math.Min(SdMax, (decimal)U.VelocityValue(s));
         if (e.GroupMoa is { } g) _grp.Value = (decimal)Math.Min(50, g);
-        if (e.DistanceM is { } d) _dist.Value = (decimal)Math.Min(3000, d);
+        if (e.DistanceM is { } d) _dist.Value = Math.Min(DistMax, (decimal)U.DistanceValue(d));
         _envRecorded.Checked = e.TemperatureC.HasValue || e.PressureHpa.HasValue || e.HumidityPct.HasValue;
         _tempUnit.SelectedIndex = 0; _pressureUnit.SelectedIndex = 0;
         if (e.TemperatureC is { } tc) _temp.Value = (decimal)Math.Clamp(tc, (double)_temp.Minimum, (double)_temp.Maximum);
@@ -110,12 +123,12 @@ internal sealed class JournalDialog : Form
         Row(Ui.Lang.T("Primer"), _primer);
         Row(Ui.Lang.T("Brass"), _brass);
         Row(Ui.Lang.T("Bullet"), _bullet);
-        Row(Ui.Lang.T("Charge gr"), _charge);
+        Row(Ui.Lang.T("Charge") + " " + U.ChargeUnitName, _charge);
         Row(Ui.Lang.T("Rounds"), _rounds);
         Row("MV " + U.VelocityUnitName, _mv);
         Row("SD " + U.VelocityUnitName, _sd);
         Row(Ui.Lang.T("Group MOA"), _grp);
-        Row(Ui.Lang.T("Distance m"), _dist);
+        Row(Ui.Lang.T("Distance") + " " + U.DistanceUnitName, _dist);
         Row("", _envRecorded);
         Row(Ui.Lang.T("Temperature"), UnitField(_temp, _tempUnit));
         Row(Ui.Lang.T("Pressure"), UnitField(_pressure, _pressureUnit));
@@ -213,7 +226,7 @@ internal sealed class JournalDialog : Form
         var probe = new JournalEntry
         {
             PowderId = Sel(_powder), PrimerId = Sel(_primer), BrassId = Sel(_brass), BulletId = Sel(_bullet),
-            ChargeGr = (double)_charge.Value, Rounds = (int)_rounds.Value,
+            ChargeGr = U.ChargeToGrains((double)_charge.Value), Rounds = (int)_rounds.Value,
         };
         var cb = Costing.PerRound(probe, id => _components.FirstOrDefault(c => c.Id == id));
         double total = cb.PerRound * probe.Rounds;
@@ -233,12 +246,12 @@ internal sealed class JournalDialog : Form
         _e.Caliber = _cal.Text.Trim();
         _e.Firearm = _firearm.Text.Trim();
         _e.PowderId = Sel(_powder); _e.PrimerId = Sel(_primer); _e.BrassId = Sel(_brass); _e.BulletId = Sel(_bullet);
-        _e.ChargeGr = (double)_charge.Value;
+        _e.ChargeGr = U.ChargeToGrains((double)_charge.Value);
         _e.Rounds = (int)_rounds.Value;
         _e.VelocityAvgMs = _mv.Value > 0 ? U.VelocityToMps((double)_mv.Value) : null;
         _e.SdMs = _sd.Value > 0 ? U.VelocityToMps((double)_sd.Value) : null;
         _e.GroupMoa = _grp.Value > 0 ? (double)_grp.Value : null;
-        _e.DistanceM = _dist.Value > 0 ? (double)_dist.Value : null;
+        _e.DistanceM = _dist.Value > 0 ? U.DistanceToMetres((double)_dist.Value) : null;
         _e.TemperatureC = _envRecorded.Checked ? CurrentTempC() : null;
         _e.PressureHpa = _envRecorded.Checked ? CurrentPressureHpa() : null;
         _e.HumidityPct = _envRecorded.Checked ? (double)_humidity.Value : null;

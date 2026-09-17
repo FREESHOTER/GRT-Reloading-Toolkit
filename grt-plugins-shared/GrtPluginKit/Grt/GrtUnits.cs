@@ -163,6 +163,9 @@ public sealed class GrtUnits
     /// <summary>A stored shooting distance as a bare number, for a column headed with its unit.</summary>
     public double DistanceValue(double m) => DistanceInYards ? m / MetresPerYard : m;
 
+    /// <summary>The inverse of <see cref="DistanceValue"/>: what the user typed, back to stored metres.</summary>
+    public double DistanceToMetres(double shown) => DistanceInYards ? shown * MetresPerYard : shown;
+
     /// <summary>A stored temperature as a bare number, for a cell the user reads and edits.</summary>
     public double TemperatureValue(double celsius) => TemperatureInF ? celsius * 9.0 / 5.0 + 32.0 : celsius;
 
