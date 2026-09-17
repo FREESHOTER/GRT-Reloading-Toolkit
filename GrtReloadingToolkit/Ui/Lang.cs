@@ -365,6 +365,10 @@ internal static class Lang
         ["Total"] = "Totale",
         ["Delete '{0}' ({1})? Deducted stock will be restored."] = "Eliminare '{0}' ({1})? Le scorte scalate saranno ripristinate.",
         ["Find best Ba"] = "Trova miglior Ba",
+        ["No journal entry carries a Ba yet, so there is no caliber to pick. Use Journal -> Log from GRT "
+        + "(it reads Ba from the load open in GRT), or open an entry and type it into 'Ba (calibrated)'."] =
+            "Nessuna voce del diario porta ancora un Ba, quindi non c'è alcun calibro da scegliere. Usa Diario -> "
+            + "Registra da GRT (legge il Ba dal load aperto in GRT), oppure apri una voce e scrivilo in 'Ba (calibrato)'.",
         ["Tightest group (MOA)"] = "Gruppo più stretto (MOA)",
         ["Closest velocity to target"] = "Velocità più vicina al target",
         ["Closest temperature to target"] = "Temperatura più vicina al target",
@@ -378,8 +382,6 @@ internal static class Lang
         ["Charge gr"] = "Carica gr",
         ["Group MOA"] = "Gruppo MOA",
         ["-- any --"] = "-- qualsiasi --",
-        ["No calibrated journal entries yet -- log a Ba from Barrel Calibration first."] =
-            "Nessuna voce di diario calibrata ancora -- registra prima un Ba da Calibrazione Canna.",
         ["No calibrated entries match this caliber/powder/bullet combo yet."] =
             "Nessuna voce calibrata corrisponde ancora a questa combinazione calibro/polvere/proiettile.",
         ["{0} matching calibration(s), best first."] = "{0} calibrazione/i corrispondente/i, la migliore per prima.",

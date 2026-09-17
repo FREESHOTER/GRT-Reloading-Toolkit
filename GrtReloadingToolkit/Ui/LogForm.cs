@@ -394,6 +394,12 @@ internal sealed class LogForm : Form
         if (keepCal != null && _fbCaliber.Items.Contains(keepCal)) _fbCaliber.SelectedItem = keepCal;
         else if (_fbCaliber.Items.Count > 0) _fbCaliber.SelectedIndex = 0;
 
+        // The caliber list is a DropDownList fed only by journal entries that carry a Ba, so on a
+        // journal written before the Ba column existed it comes up empty -- an unfillable box with
+        // no way to type into it and, until this, nothing on screen saying why. Say it here rather
+        // than only after a Search the user has no reason to press on an empty form.
+        _fbStatus.Text = _fbCaliber.Items.Count == 0 ? NoBaHint : "";
+
         var powders = _db.Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Powder).ToList();
         var bullets = _db.Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Bullet).ToList();
         FillFbCombo(_fbPowder, powders);
@@ -418,7 +424,7 @@ internal sealed class LogForm : Form
     {
         if (_fbCaliber.SelectedItem is not string caliber)
         {
-            _fbStatus.Text = Lang.T("No calibrated journal entries yet -- log a Ba from Barrel Calibration first.");
+            _fbStatus.Text = NoBaHint;
             _fb.Rows.Clear();
             _fbLastResults = new List<JournalEntry>();
             UpdateFindBaChart();
@@ -458,6 +464,13 @@ internal sealed class LogForm : Form
             : string.Format(Lang.T("{0} matching calibration(s), best first."), list.Count);
         UpdateFindBaChart();
     }
+
+    /// <summary>Why the caliber list can be empty, and the two ways to fill it. Barrel Calibration
+    /// writes Ba into the .grtload, never into the journal -- the old text sent the user there and
+    /// they came back with the box still empty.</summary>
+    private static string NoBaHint => Lang.T(
+        "No journal entry carries a Ba yet, so there is no caliber to pick. Use Journal -> Log from GRT "
+        + "(it reads Ba from the load open in GRT), or open an entry and type it into 'Ba (calibrated)'.");
 
     private double TargetTempC() => _fbTargetTempUnit.SelectedIndex == 1 ? FToC((double)_fbTargetTemp.Value) : (double)_fbTargetTemp.Value;
     private static double CToF(double c) => c * 9.0 / 5.0 + 32.0;

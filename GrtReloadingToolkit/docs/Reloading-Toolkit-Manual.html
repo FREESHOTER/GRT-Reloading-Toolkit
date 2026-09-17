@@ -564,7 +564,10 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           &ldquo;best&rdquo; means for you: <strong>tightest group (MOA)</strong>, <strong>closest
           velocity to a target</strong>, or <strong>closest temperature to a target</strong> (also
           takes C or F). Read-only &mdash; it searches what the Journal has already recorded, it
-          doesn&#39;t take new data.</li>
+          doesn&#39;t take new data. The caliber list is built from journal entries that carry a
+          <code>Ba</code>, so an entry logged before that field existed puts nothing in it: fill in
+          its <strong>Ba (calibrated)</strong> (see <em>Journal</em> above) and its caliber
+          appears.</li>
         <li><strong>Firearms</strong> &mdash; one row per barrel: total round count
           (<code>rounds before</code> + journal rounds), number of MV entries, last used. Add / Edit /
           Retire, and an <strong>MV-drift chart</strong> (muzzle velocity vs cumulative rounds with a

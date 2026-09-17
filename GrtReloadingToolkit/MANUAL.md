@@ -430,7 +430,10 @@ A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`. Four tabs.
   caliber + powder + bullet combo (a `Ba` from a different combo isn't comparable), ranked by
   whichever "best" means for you: **tightest group (MOA)**, **closest velocity to a target**, or
   **closest temperature to a target** (target temperature also takes C or F). Read-only — it's a
-  search over what the Journal has already recorded, not a place to enter new data.
+  search over what the Journal has already recorded, not a place to enter new data. The caliber
+  list is built from journal entries that carry a `Ba`, so an entry logged before that field
+  existed puts nothing in it: fill in its **Ba (calibrated)** (see *Journal* above) and its caliber
+  appears.
 - **Firearms** — one row per barrel: total round count (`rounds before` + journal rounds), number
   of MV entries, last used. **Add / Edit / Retire**, and a **MV-drift chart** (muzzle velocity vs
   cumulative rounds with a trend line — "+X m/s per 100 rd").
