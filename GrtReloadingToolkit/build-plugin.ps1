@@ -17,33 +17,27 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
-
-# A `dotnet.exe` with no SDK registered (a bare host - e.g. a 32-bit stub left behind by some
-# other product's install, sitting on PATH ahead of the real one) loads fine as a command but
-# can't run `publish`. Take the first PATH match that actually reports an SDK, not just the
-# first one PATH happens to list first.
-function HasSdk($path) {
-    try { return [bool](& $path --list-sdks 2>$null) } catch { return $false }
-}
-# dotnet off PATH: the hardcoded "C:\Program Files\dotnet\dotnet.exe" broke every install that
-# isn't the default x64 machine-wide one - winget, per-user, ARM64, side-by-side.
-$dotnet = Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue |
-          Select-Object -ExpandProperty Source -Unique |
-          Where-Object { HasSdk $_ } | Select-Object -First 1
-if (-not $dotnet) {
-    $dotnet = @("$env:ProgramFiles\dotnet\dotnet.exe",
-                "${env:ProgramFiles(x86)}\dotnet\dotnet.exe",
-                "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe") |
-              Where-Object { $_ -and (Test-Path $_) -and (HasSdk $_) } | Select-Object -First 1
-}
-if (-not $dotnet) { throw "no dotnet install with an SDK found on PATH or in the usual install locations. Install the .NET 8 SDK: https://dotnet.microsoft.com/download/dotnet/8.0" }
+$dotnet = "C:\Program Files\dotnet\dotnet.exe"
 $csproj = Join-Path $root "GrtReloadingToolkit.csproj"
 
 # The version lives in Directory.Build.props and nowhere else: the assemblies get it from the
 # compiler, the window titles read it back off the assembly, and the shipped manifest is stamped
-# with it below. GRT reads com.grt.plugin.xml, so an unstamped copy is how a 0.1.5 build ends up
-# announcing itself as 0.1.0.
-$propsPath = Join-Path $root "..\Directory.Build.props"
+# with it below. GRT reads com.grt.plugin.xml, so an unstamped copy is how a build ends up
+# announcing an old version.
+#
+# Found by walking up from $root rather than a fixed relative path, because this script is
+# shared between two differently-shaped trees: the GitHub-tracked repo nests GrtReloadingToolkit
+# inside one repo root that also holds grt-plugins-shared (props one level up), while the local
+# working copy keeps them as siblings directly under a shared parent alongside unrelated projects
+# (props right here in $root, deliberately NOT hoisted to that shared parent, which would leak it
+# into those unrelated projects). A hardcoded "..\..\Directory.Build.props" would silently pick
+# the wrong (or no) file the moment this script is copied between the two.
+$propsDir = $root
+while ($propsDir -and -not (Test-Path (Join-Path $propsDir "Directory.Build.props"))) {
+    $propsDir = Split-Path $propsDir -Parent
+}
+if (-not $propsDir) { throw "no Directory.Build.props found above $root" }
+$propsPath = Join-Path $propsDir "Directory.Build.props"
 $version = ([xml](Get-Content $propsPath -Raw -Encoding UTF8)).SelectSingleNode("/Project/PropertyGroup/Version").InnerText.Trim()
 if (-not $version) { throw "no <Version> in $propsPath" }
 Write-Host "==> version $version"
@@ -51,16 +45,7 @@ Write-Host "==> version $version"
 # Rewrites the manifest's version attribute in place. Line-anchored so it can't hit the
 # `<?xml version="1.0"?>` declaration, and the result is re-parsed and checked, because a
 # silently unstamped manifest is exactly the drift this is here to stop.
-#
-# Every read and write below names its encoding. The manifest is BOM-less UTF-8 holding one
-# non-ASCII character - the ellipsis in the menu label - and Windows PowerShell 5.1 reads a
-# BOM-less file as the system ANSI code page, so a bare Get-Content mangles that label and
-# writes the mojibake straight into the shipped plugin. Set-Content -Encoding UTF8 is no good
-# either: on 5.1 it prepends a BOM the source does not have, so the same script would ship a
-# different manifest on Windows than on pwsh. WriteAllText with an explicit BOM-less
-# UTF8Encoding is the one spelling that means the same thing on both.
 function Stamp($manifest) {
-    # .NET resolves relative paths against the process working directory, not PowerShell's.
     $manifest = (Resolve-Path $manifest).Path
     $txt = [regex]::Replace((Get-Content $manifest -Raw -Encoding UTF8), '(?m)^(\s*version\s*=\s*")[^"]*(")', "`${1}$version`${2}")
     [System.IO.File]::WriteAllText($manifest, $txt, (New-Object System.Text.UTF8Encoding $false))

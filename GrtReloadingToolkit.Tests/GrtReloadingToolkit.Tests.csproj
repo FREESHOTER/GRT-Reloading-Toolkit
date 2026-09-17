@@ -32,6 +32,8 @@
     <!-- Same story for the log store: SQLite and arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\Log\LogModels.cs" Link="Log\LogModels.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Db.cs" Link="Log\Db.cs" />
+    <!-- Same story again: the chrono-statistics math is plain arithmetic, no WinForms. -->
+    <Compile Include="..\GrtReloadingToolkit\ChronoStats\ChronoStatsCalc.cs" Link="ChronoStats\ChronoStatsCalc.cs" />
   </ItemGroup>
 
 </Project>

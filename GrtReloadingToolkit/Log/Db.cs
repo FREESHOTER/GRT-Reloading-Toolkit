@@ -62,6 +62,14 @@ CREATE TABLE IF NOT EXISTS firearms (
         // additive column migration (older DBs)
         if (!ColumnExists("journal", "firearm_id"))
             Exec("ALTER TABLE journal ADD COLUMN firearm_id INTEGER");
+        // Environmental conditions (GRT itself tracks none of these -- checked its own .grtload
+        // field list, no temperature/pressure/humidity tag anywhere -- so they're plain manual
+        // entry) + the propellant coefficients a calibration session actually produced, so a later
+        // search can find "what Ba worked for this powder+bullet near this temperature" instead of
+        // digging through old .grtload files by hand.
+        foreach (var col in new[] { "temperature_c", "pressure_hpa", "humidity_pct", "ba", "a0" })
+            if (!ColumnExists("journal", col))
+                Exec($"ALTER TABLE journal ADD COLUMN {col} REAL");
     }
 
     private bool ColumnExists(string table, string col)
@@ -164,15 +172,17 @@ CREATE TABLE IF NOT EXISTS firearms (
             if (e.Id == 0)
                 cmd.CommandText = @"INSERT INTO journal
                   (date,load_name,caliber,firearm,firearm_id,powder_id,primer_id,brass_id,bullet_id,charge_gr,coal_mm,cbto_mm,rounds,
-                   velocity_avg_ms,sd_ms,es_ms,group_moa,distance_m,notes,grtload_path,stock_applied)
-                  VALUES ($date,$ln,$cal,$fa,$fid,$pw,$pr,$br,$bu,$chg,$coal,$cbto,$rnd,$v,$sd,$es,$grp,$dist,$notes,$path,$sa);
+                   velocity_avg_ms,sd_ms,es_ms,group_moa,distance_m,notes,grtload_path,stock_applied,
+                   temperature_c,pressure_hpa,humidity_pct,ba,a0)
+                  VALUES ($date,$ln,$cal,$fa,$fid,$pw,$pr,$br,$bu,$chg,$coal,$cbto,$rnd,$v,$sd,$es,$grp,$dist,$notes,$path,$sa,
+                          $temp,$pres,$hum,$ba,$a0);
                   SELECT last_insert_rowid();";
             else
             {
                 cmd.CommandText = @"UPDATE journal SET date=$date,load_name=$ln,caliber=$cal,firearm=$fa,firearm_id=$fid,powder_id=$pw,
                   primer_id=$pr,brass_id=$br,bullet_id=$bu,charge_gr=$chg,coal_mm=$coal,cbto_mm=$cbto,rounds=$rnd,
                   velocity_avg_ms=$v,sd_ms=$sd,es_ms=$es,group_moa=$grp,distance_m=$dist,notes=$notes,grtload_path=$path,
-                  stock_applied=$sa WHERE id=$id; SELECT $id;";
+                  stock_applied=$sa,temperature_c=$temp,pressure_hpa=$pres,humidity_pct=$hum,ba=$ba,a0=$a0 WHERE id=$id; SELECT $id;";
                 cmd.Parameters.AddWithValue("$id", e.Id);
             }
             void Q(string n, object? v) => cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
@@ -182,6 +192,7 @@ CREATE TABLE IF NOT EXISTS firearms (
             Q("$v", e.VelocityAvgMs); Q("$sd", e.SdMs); Q("$es", e.EsMs); Q("$grp", e.GroupMoa); Q("$dist", e.DistanceM);
             Q("$notes", e.Notes); Q("$path", e.GrtloadPath);
             Q("$sa", applyStock ? 1 : 0);
+            Q("$temp", e.TemperatureC); Q("$pres", e.PressureHpa); Q("$hum", e.HumidityPct); Q("$ba", e.Ba); Q("$a0", e.A0);
             id = Convert.ToInt64(cmd.ExecuteScalar());
         }
 
@@ -198,6 +209,40 @@ CREATE TABLE IF NOT EXISTS firearms (
         if (old is { StockApplied: true }) ApplyStock(old, +1, tx, $"delete journal:{id}");
         Exec("DELETE FROM journal WHERE id=$id", tx, ("$id", id));
         tx.Commit();
+    }
+
+    /// <summary>
+    /// Journal entries that carry a calibrated Ba (i.e. someone ran Barrel Calibration and saved
+    /// the result here), for THIS caliber + powder + bullet combination -- Ba/a0 from a different
+    /// component combo aren't comparable. Caller sorts by whichever "best" means for them: tightest
+    /// group, closest velocity, closest temperature.
+    /// </summary>
+    public List<JournalEntry> FindCalibrations(string caliber, long? powderId, long? bulletId)
+    {
+        var list = new List<JournalEntry>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = @"SELECT * FROM journal
+            WHERE ba IS NOT NULL AND caliber = $cal COLLATE NOCASE
+              AND (powder_id IS $pw) AND (bullet_id IS $bu)
+            ORDER BY date DESC, id DESC";
+        cmd.Parameters.AddWithValue("$cal", caliber);
+        cmd.Parameters.AddWithValue("$pw", (object?)powderId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$bu", (object?)bulletId ?? DBNull.Value);
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) list.Add(ReadEntry(r));
+        return list;
+    }
+
+    /// <summary>Distinct calibers that have at least one calibrated (Ba-bearing) journal entry, for
+    /// the "Find best Ba" search's own dropdown.</summary>
+    public List<string> CalibratedCalibers()
+    {
+        var list = new List<string>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "SELECT DISTINCT caliber FROM journal WHERE ba IS NOT NULL AND caliber <> '' ORDER BY caliber";
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) list.Add(r.GetString(0));
+        return list;
     }
 
     /// <summary>
@@ -262,6 +307,24 @@ CREATE TABLE IF NOT EXISTS firearms (
         cmd.Parameters.AddWithValue("$n", name.Trim());
         if (cmd.ExecuteScalar() is { } o && o != DBNull.Value) return Convert.ToInt64(o);
         return UpsertFirearm(new Firearm { Name = name.Trim(), Caliber = caliber });
+    }
+
+    /// <summary>Best-effort match of a powder name coming from GRT (its propellant "pname") against
+    /// an existing inventory Component, so "Log from GRT" can pre-select "Find best Ba"'s powder
+    /// filter target -- unlike ResolveFirearm this never auto-creates: an inventory entry stands for
+    /// real physical stock the user tracks, and GRT knows nothing about lot/brand/quantity, so a
+    /// wrong guess is worse than leaving it as "— none —" for the user to pick by hand.</summary>
+    public long? ResolvePowderId(string powderName)
+    {
+        if (string.IsNullOrWhiteSpace(powderName)) return null;
+        string needle = powderName.Trim();
+        var powders = Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Powder).ToList();
+        var exact = powders.FirstOrDefault(c => string.Equals(c.Name, needle, StringComparison.OrdinalIgnoreCase));
+        if (exact != null) return exact.Id;
+        var partial = powders.FirstOrDefault(c =>
+            c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
+            needle.Contains(c.Name, StringComparison.OrdinalIgnoreCase));
+        return partial?.Id;
     }
 
     /// <summary>Total rounds through a firearm = rounds_before + Σ journal.rounds.</summary>
@@ -342,6 +405,8 @@ CREATE TABLE IF NOT EXISTS firearms (
         GroupMoa = Nul(r, "group_moa"), DistanceM = Nul(r, "distance_m"),
         Notes = Str(r, "notes"), GrtloadPath = Str(r, "grtload_path"), CreatedAt = Str(r, "created_at"),
         StockApplied = Lng(r, "stock_applied") != 0,
+        TemperatureC = Nul(r, "temperature_c"), PressureHpa = Nul(r, "pressure_hpa"), HumidityPct = Nul(r, "humidity_pct"),
+        Ba = Nul(r, "ba"), A0 = Nul(r, "a0"),
     };
 
     private static string Str(SqliteDataReader r, string c) { int i = r.GetOrdinal(c); return r.IsDBNull(i) ? "" : r.GetString(i); }

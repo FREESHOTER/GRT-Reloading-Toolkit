@@ -24,11 +24,30 @@ public sealed class GrtResults
     /// export). Not confirmed obtainable via Get_TabResults.</summary>
     public double? LoadRatio { get; init; }
     /// <summary>GRT's own classic (generic, length+caliber-only) optimal barrel time, ms - the
-    /// number the "Tempo di canna ottimale (OBT #n)" field in GRT's UI shows.</summary>
+    /// number the "Tempo di canna ottimale (OBT #n)" field in GRT's UI shows. Per GRT's own doku
+    /// (obtconcept.txt), this models LONGITUDINAL muzzle-diameter oscillation (Christopher Long's
+    /// 2003 theory) - explicitly NOT "barrel whip/harmonic" (transverse bending). See
+    /// reference_grt_obt_concept memory before comparing this against a transverse-bending model.</summary>
     public double? OptimalBarrelTimeMs { get; init; }
-    /// <summary>The node label GRT prints next to its own OBT value, e.g. "#5" or "#5 ½".</summary>
+    /// <summary>The node label GRT prints next to its own OBT value, e.g. "#5" or "#5 ½" - GRT reports
+    /// whichever candidate node (from its own length-derived family) is nearest the current charge's
+    /// BulletLeadTime10Pmax, confirmed to change across a charge ladder (not a fixed value per barrel).</summary>
     public string OptimalBarrelTimeNode { get; init; } = "";
+    /// <summary>Bullet lead time referenced from when pressure crosses 10% of Pmax (IPC field
+    /// "BulletLeadTime10Pmax") - the specific timing value GRT's OWN OBT node-matching uses, per
+    /// obtconcept.txt. NOT the same number as <see cref="BarrelTimeMs"/> (general barrel time, timed
+    /// from absolute simulation start) - confirmed live to differ by ~0.07 ms on a real load.</summary>
+    public double? BulletLeadTime10PmaxMs { get; init; }
 }
+
+/// <summary>One point of GRT's own pressure/velocity/time curve for one simulated shot - read from
+/// the chunk stream Get_TabResults opens but (via <see cref="GrtClient.GetTabResultsAsync"/>) normally
+/// closes unread. <see cref="TimeMs"/> is timed from true ignition (t=0 at the very first point) -
+/// GRT's own unambiguous physical time origin, unlike "BarrelTime"/"BulletLeadTime10Pmax" which are
+/// each referenced from a different, less obvious epoch (see reference_grt_obt_concept memory).</summary>
+public sealed record GrtCurvePoint(
+    double PositionMm, double ProjectilePositionMm, double BurnedFraction,
+    double PressureBar, double VelocityMps, double EnergyJoule, double TimeMs);
 
 /// <summary>
 /// Minimal client for the GRT plugin IPC channel (plain TCP on 127.0.0.1,
@@ -259,9 +278,90 @@ public sealed class GrtClient : IDisposable
             LoadRatio = ValueOf(d, "LoadRatio"),
             OptimalBarrelTimeMs = ValueOf(d, "OptimalBarrelTime"),
             OptimalBarrelTimeNode = Str(d, "OptimalBarrelTimeNode") ?? "",
+            BulletLeadTime10PmaxMs = ValueOf(d, "BulletLeadTime10Pmax"),
         };
     }
 
+    /// <summary>
+    /// Same scalar results as <see cref="GetTabResultsAsync"/>, but also reads every chunk of the
+    /// P/V/t curve before closing the stream (that method closes it unread, since it only wants the
+    /// scalars - see its own comment). Reads chunks by index up to the reported <c>chunkCount</c>,
+    /// stopping early if a chunk comes back with an empty <c>data</c> array or <c>EOF</c> - GRT is
+    /// explicit that chunks can be read "in any order", so index order isn't required, but reading
+    /// 0..n-1 in sequence is simplest and matches how every other plugin (Trajectory) does it.
+    /// </summary>
+    public async Task<(GrtResults Results, GrtCurvePoint[] Curve)> GetTabResultsWithCurveAsync(long tabHandle)
+    {
+        JsonElement result = await RequestAsync(
+            "{\"Get_TabResults\":{\"tabhandle\":\"" + tabHandle.ToString(CultureInfo.InvariantCulture) + "\"}}",
+            TimeSpan.FromSeconds(6));
+        if (GetStatus(result) != "success")
+            throw new InvalidOperationException("Get_TabResults failed: " + GetMessage(result));
+
+        JsonElement v = result.GetProperty("values");
+        JsonElement d = v.TryGetProperty("data", out var dd) ? dd : v;
+
+        var curve = new List<GrtCurvePoint>();
+        if (Str(v, "chunkStreamHandle") is { } cs && cs != "0")
+        {
+            int chunkCount = int.TryParse(Str(v, "chunkCount"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n) ? n : 0;
+            for (int i = 0; i < chunkCount; i++)
+            {
+                JsonElement chunkResult;
+                try
+                {
+                    chunkResult = await RequestAsync(
+                        "{\"Get_Chunk\":{\"chunkStreamHandle\":\"" + cs + "\",\"chunkIndex\":\"" + i.ToString(CultureInfo.InvariantCulture) + "\"}}",
+                        TimeSpan.FromSeconds(5));
+                }
+                catch { break; }
+                if (GetStatus(chunkResult) != "success") break;
+                JsonElement cv = chunkResult.GetProperty("values");
+                if (!cv.TryGetProperty("data", out var arr) || arr.ValueKind != JsonValueKind.Array) break;
+                bool any = false;
+                foreach (JsonElement pt in arr.EnumerateArray())
+                {
+                    any = true;
+                    curve.Add(new GrtCurvePoint(
+                        Num(pt, "x"), Num(pt, "xp"), Num(pt, "z"), Num(pt, "p"), Num(pt, "v"), Num(pt, "e"), Num(pt, "t")));
+                }
+                bool eof = cv.TryGetProperty("EOF", out var eofEl) && (eofEl.ValueKind == JsonValueKind.True ||
+                    (eofEl.ValueKind == JsonValueKind.String && string.Equals(eofEl.GetString(), "true", StringComparison.OrdinalIgnoreCase)));
+                if (!any || eof) break;
+            }
+
+            try { await RequestAsync("{\"Close_ChunkStream\":{\"chunkStreamHandle\":\"" + cs + "\"}}", TimeSpan.FromSeconds(3)); }
+            catch { /* best effort */ }
+        }
+
+        var results = new GrtResults
+        {
+            MuzzleVelocityMps = ValueOf(d, "MuzzleVelocity") ?? ValueOf(d, "EndVelocity"),
+            MaxPressure = ValueOf(d, "MaxPressure"),
+            MaxPressureUnit = UnitOf(d, "MaxPressure"),
+            BarrelTimeMs = ValueOf(d, "MuzzleTime") ?? ValueOf(d, "BarrelTime") ?? ValueOf(d, "EndTime"),
+            BurnRatio = ValueOf(d, "BurnRatio"),
+            LoadRatio = ValueOf(d, "LoadRatio"),
+            OptimalBarrelTimeMs = ValueOf(d, "OptimalBarrelTime"),
+            OptimalBarrelTimeNode = Str(d, "OptimalBarrelTimeNode") ?? "",
+            BulletLeadTime10PmaxMs = ValueOf(d, "BulletLeadTime10Pmax"),
+        };
+        return (results, curve.ToArray());
+    }
+
+    /// <summary>Reads a JSON number field regardless of whether GRT encoded it as a raw number or a
+    /// string (see the "field types are loose" note in reference_grt_plugin_ipc) - Get_Chunk's own
+    /// documented example uses raw numbers, unlike most other GRT fields.</summary>
+    private static double Num(JsonElement obj, string name)
+    {
+        if (!obj.TryGetProperty(name, out JsonElement e)) return 0;
+        return e.ValueKind switch
+        {
+            JsonValueKind.Number => e.GetDouble(),
+            JsonValueKind.String => double.TryParse(e.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) ? v : 0,
+            _ => 0,
+        };
+    }
 
     /// <summary>"850.5 m/s" → 850.5, "2,850 fps" → 2850 (first numeric token, unit stripped).</summary>
     private static double? ValueOf(JsonElement obj, string name)

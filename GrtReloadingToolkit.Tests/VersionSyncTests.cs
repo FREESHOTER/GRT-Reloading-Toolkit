@@ -26,9 +26,19 @@ public class VersionSyncTests
     /// <summary>"0.1.7" — the &lt;Version&gt; every project in the tree is built with.</summary>
     private static string DeclaredVersion()
     {
-        var props = XDocument.Load(Path.Combine(RepoRoot(), "Directory.Build.props"));
+        // This file is shared between two differently-shaped trees: the GitHub-tracked repo
+        // nests GrtReloadingToolkit inside one repo root that also holds grt-plugins-shared
+        // (Directory.Build.props sits at that shared RepoRoot()), while the local working copy
+        // keeps them as siblings directly under a shared parent alongside unrelated projects
+        // (props lives inside GrtReloadingToolkit itself there, deliberately NOT hoisted up —
+        // that would silently apply it to those unrelated sibling projects too). Check both
+        // rather than hardcoding either, so the same file is correct in both trees.
+        string atRoot = Path.Combine(RepoRoot(), "Directory.Build.props");
+        string atToolkit = Path.Combine(RepoRoot(), "GrtReloadingToolkit", "Directory.Build.props");
+        string path = File.Exists(atRoot) ? atRoot : atToolkit;
+        var props = XDocument.Load(path);
         string? v = props.Descendants("Version").SingleOrDefault()?.Value.Trim();
-        Assert.False(string.IsNullOrEmpty(v), "no single <Version> in Directory.Build.props");
+        Assert.False(string.IsNullOrEmpty(v), $"no single <Version> in {path}");
         return v!;
     }
 

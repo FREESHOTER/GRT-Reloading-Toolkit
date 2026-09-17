@@ -43,9 +43,11 @@ internal sealed class LauncherForm : Form
 
         Section("PLAN & PREPARE");
         B("🔧  Brass prep (case vol / seating / neck)", Tool.Brass);
+        B("⚖️  Seating force estimate (QC)", Tool.SeatingForce);
 
         Section("RANGE DAY");
         B("🎯  Chronograph import (Athlon / Garmin)", Tool.Athlon);
+        B("📐  Chronograph statistics", Tool.ChronoStats);
         B("📈  Ladder / OCW analyzer", Tool.Ocw);
         B("📏  Seating-depth analyzer", Tool.Seating);
 

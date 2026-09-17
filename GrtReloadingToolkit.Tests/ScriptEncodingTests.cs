@@ -32,11 +32,19 @@ public class ScriptEncodingTests
         return dir!.FullName;
     }
 
-    /// <summary>Every .ps1 in the repo, build output aside.</summary>
+    /// <summary>Every .ps1 belonging to this repo, build output aside.</summary>
     private static List<string> Scripts(string root)
     {
-        List<string> scripts = Directory
-            .EnumerateFiles(root, "*.ps1", SearchOption.AllDirectories)
+        // Restricted to this repo's own three project folders rather than everything under
+        // RepoRoot(): the working tree keeps GrtReloadingToolkit as a sibling of unrelated
+        // projects (GrtSensitivityLab, GrtModelOBT, ...) directly under the same parent
+        // directory, instead of GitHub's clean repo root that holds nothing else. Scanning the
+        // whole parent would flag scripts belonging to other repos entirely.
+        string[] repoDirs = { "GrtReloadingToolkit", "grt-plugins-shared", "GrtReloadingToolkit.Tests" };
+        List<string> scripts = repoDirs
+            .Select(d => Path.Combine(root, d))
+            .Where(Directory.Exists)
+            .SelectMany(d => Directory.EnumerateFiles(d, "*.ps1", SearchOption.AllDirectories))
             .Where(p => !p[root.Length..].Split(Path.DirectorySeparatorChar)
                           .Any(s => s is "bin" or "obj" or ".git"))
             .OrderBy(p => p)

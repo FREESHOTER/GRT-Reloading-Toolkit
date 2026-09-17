@@ -59,6 +59,19 @@ public sealed class JournalEntry
 
     /// <summary>Stock already deducted for this entry (so edits/deletes can reconcile).</summary>
     public bool StockApplied { get; set; }
+
+    // Environmental conditions at test time -- GRT tracks none of these itself (checked every
+    // field in a real .grtload: no temperature/pressure/humidity tag anywhere), so they're always
+    // manual entry, never auto-filled from a load.
+    public double? TemperatureC { get; set; }
+    public double? PressureHpa { get; set; }
+    public double? HumidityPct { get; set; }
+
+    /// <summary>The propellant coefficients THIS session was calibrated to (e.g. via Barrel
+    /// Calibration's Ba or Ba+a0 fit) -- lets a later search find "what worked before" for this
+    /// exact powder+bullet combo, filtered/sorted by group size, velocity or temperature.</summary>
+    public double? Ba { get; set; }
+    public double? A0 { get; set; }
 }
 
 public sealed class Firearm

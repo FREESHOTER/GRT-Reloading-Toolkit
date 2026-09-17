@@ -17,6 +17,12 @@ internal static class Program
     {
         if (args.Length >= 1 && args[0] == "--dbtest") { DbSelfTest.Run(args); return; }
         if (args.Length >= 3 && args[0] == "--ladder") { LadderCli.Run(args[1], args[2], args.Length >= 4 ? args[3] : null); return; }
+        if (args.Length >= 2 && args[0] == "--chronostats")
+        {
+            double margin = args.Length >= 4 && double.TryParse(args[3], System.Globalization.CultureInfo.InvariantCulture, out double m) ? m : 3.0;
+            ChronoStats.ChronoStatsCli.Run(args[1], args.Length >= 3 ? args[2] : null, margin);
+            return;
+        }
         if (args.Length >= 4 && args[0] == "--cal") { Cal.CalCli.RunAsync(args).GetAwaiter().GetResult(); return; }
         if (args.Length >= 4 && args[0] == "--tcoeff") { TempCoeffCli.Run(args); return; }
         if (args.Length >= 2 && args[0] == "--card") { Cards.CardCli.Run(args[1], args.Length >= 3 ? args[2] : null); return; }
@@ -56,7 +62,7 @@ internal static class Program
     }
 }
 
-internal enum Tool { Launcher, Athlon, Ocw, Seating, Cal, Temp, Brass, Label, Log, Reports }
+internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Reports }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -88,11 +94,13 @@ internal sealed class ToolkitContext : ApplicationContext
 
     public static Tool FromId(string id) =>
         id.EndsWith(".athlon", StringComparison.Ordinal) ? Tool.Athlon :
+        id.EndsWith(".chronostats", StringComparison.Ordinal) ? Tool.ChronoStats :
         id.EndsWith(".ocw", StringComparison.Ordinal) ? Tool.Ocw :
         id.EndsWith(".seating", StringComparison.Ordinal) ? Tool.Seating :
         id.EndsWith(".calibration", StringComparison.Ordinal) ? Tool.Cal :
         id.EndsWith(".tempcoeff", StringComparison.Ordinal) ? Tool.Temp :
         id.EndsWith(".brass", StringComparison.Ordinal) ? Tool.Brass :
+        id.EndsWith(".seatingforce", StringComparison.Ordinal) ? Tool.SeatingForce :
         id.EndsWith(".label", StringComparison.Ordinal) ? Tool.Label :
         id.EndsWith(".inventory", StringComparison.Ordinal) ? Tool.Log :
         id.EndsWith(".reports", StringComparison.Ordinal) ? Tool.Reports :
@@ -114,11 +122,13 @@ internal sealed class ToolkitContext : ApplicationContext
         Form f = AppIcon.Apply<Form>(t switch
         {
             Tool.Athlon => new AthlonForm(_grt),
+            Tool.ChronoStats => new ChronoStatsForm(_grt),
             Tool.Ocw => new OcwForm(_grt),
             Tool.Seating => new SeatingForm(_grt),
             Tool.Cal => new CalibrationForm(_grt),
             Tool.Temp => new TempCoeffForm(_grt),
             Tool.Brass => new BrassForm(_grt),
+            Tool.SeatingForce => new SeatingForceForm(),
             Tool.Label => new LabelForm(_grt, _db),
             Tool.Log => new LogForm(_grt, _db),
             _ => new LauncherForm(Open),

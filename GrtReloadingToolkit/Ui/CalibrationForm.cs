@@ -8,7 +8,9 @@ namespace GrtReloadingToolkit.Ui;
 
 /// <summary>
 /// Barrel calibration: compare GRT's simulated muzzle velocity to what the barrel actually
-/// does, over one or more charges, and suggest a Ba tweak / offset.
+/// does, over one or more charges, and suggest a Ba tweak / offset. When the offset varies with
+/// charge (a burn-shape mismatch, not just a scale one), a second sweep at a nudged "a0" lets
+/// <see cref="CalResult.FitBaAndA0"/> fit both Ba and a0 at once -- see that method's own doc.
 /// </summary>
 internal sealed class CalibrationForm : Form
 {
@@ -17,14 +19,21 @@ internal sealed class CalibrationForm : Form
     private readonly GrtClient? _grt;
     private readonly DataGridView _grid = new();
     private readonly TextBox _summary = new();
-    private readonly TextBox _log = UiLog.NewLogBox();
     private readonly Label _status = new();
     private readonly Button _writeNote = new() { Text = "Write calibration note", AutoSize = true, Enabled = false };
     private readonly Button _writeBa = new() { Text = "Write Ba-corrected .grtload", AutoSize = true, Enabled = false };
+    private readonly Button _writeBaA0 = new() { Text = "Write Ba+a0-corrected .grtload", AutoSize = true, Enabled = false };
 
+    // a0 (prog/deg burn-shape coefficient) fit -- the two-parameter extension of the Ba-only fit
+    // above, for when the offset varies with charge (see CalResult.FitBaAndA0's own doc for why a0,
+    // not GRT's "k", is the right second knob).
+    private const double A0PerturbFrac = 0.05;
     private readonly CalResult _result = new();
     private readonly Action<string> _logHandler;
     private double? _baOld;
+    private double? _a0Old;
+    private double _a0Delta;
+    private CalResult.ShapeFit? _shapeFit;
     private string _powder = "powder";
     private string? _basePath;
     private bool _suppressGrid;
@@ -34,9 +43,13 @@ internal sealed class CalibrationForm : Form
         _grt = grt;
         _logHandler = AppendLog;
         Text = AppVersion.Title("GRT Barrel Calibration");
-        Width = 820; Height = 650;
+        // Wider than the original 820: the new shape-fit button pushed "Remove row" onto a second,
+        // clipped row of the toolbar's fixed 40px height -- caught by rendering the actual window,
+        // not from reading the FlowLayoutPanel code. The toolbar itself is now tall enough for two
+        // rows regardless, so a narrower resize wraps visibly instead of clipping silently.
+        Width = 960; Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(640, 510);
+        MinimumSize = new Size(640, 420);
         Build();
         NudFix.ApplyTo(this);
         if (_grt != null) _grt.Log += _logHandler;
@@ -57,7 +70,7 @@ internal sealed class CalibrationForm : Form
 
     private void Build()
     {
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 76, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
         var loadBtn = new Button { Text = "Load measured from GRT load", AutoSize = true };
         loadBtn.Click += async (_, _) => await LoadMeasuredAsync();
         top.Controls.Add(loadBtn);
@@ -67,6 +80,9 @@ internal sealed class CalibrationForm : Form
         var capBtn = new Button { Text = "Capture current charge only", AutoSize = true, Margin = new Padding(6, 2, 0, 0) };
         capBtn.Click += async (_, _) => await CaptureCurrentAsync();
         top.Controls.Add(capBtn);
+        var capShapeBtn = new Button { Text = "Capture shape-fit sweep (a0)", AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
+        capShapeBtn.Click += async (_, _) => await CaptureAllPertA0Async();
+        top.Controls.Add(capShapeBtn);
         var delBtn = new Button { Text = "Remove row", AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         delBtn.Click += (_, _) => RemoveRow();
         top.Controls.Add(delBtn);
@@ -97,21 +113,17 @@ internal sealed class CalibrationForm : Form
         split.Panel1.Controls.Add(_grid);
         split.Panel2.Controls.Add(_summary);
 
-        // Diagnostics get their own box: the summary is rewritten wholesale on every
-        // analysis, so anything appended to it is wiped milliseconds later.
-        _log.Dock = DockStyle.Bottom;
-        _log.Height = 90;
-
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _writeNote.Click += async (_, _) => await WriteAsync(false);
         _writeBa.Click += async (_, _) => await WriteAsync(true);
+        _writeBaA0.Click += async (_, _) => await WriteShapeAsync();
+        bottom.Controls.Add(_writeBaA0);
         bottom.Controls.Add(_writeBa);
         bottom.Controls.Add(_writeNote);
 
         _status.Dock = DockStyle.Bottom; _status.Height = 20; _status.ForeColor = SystemColors.GrayText; _status.Padding = new Padding(8, 2, 0, 0);
 
         Controls.Add(split);
-        Controls.Add(_log);
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(top);
@@ -137,6 +149,7 @@ internal sealed class CalibrationForm : Form
         string pristine = GrtLoadDoc.PristineBasePath(top.file);
         var pdoc = GrtLoadDoc.Load(File.Exists(pristine) ? pristine : top.file);
         _baOld = pdoc.PropellantBa is > 0 ? pdoc.PropellantBa : null;
+        _a0Old = pdoc.InputNumber("propellant", "a0") is { } a0 && a0 > 0 ? a0 : null;
         _powder = string.IsNullOrWhiteSpace(pdoc.PropellantName) ? "powder" : pdoc.PropellantName;
         // Measurements / everything else from the accumulator sibling if it exists (that's where
         // a chrono import lands).
@@ -252,11 +265,79 @@ internal sealed class CalibrationForm : Form
         catch (Exception ex) { Err(ex); }
     }
 
+    /// <summary>
+    /// Second sweep for the Ba+a0 shape fit: same one-charge-per-tab mechanism as
+    /// <see cref="CaptureAllAsync"/>, but with the propellant's "a0" nudged by
+    /// <see cref="A0PerturbFrac"/> (5%) on top of each charge, at the SAME charges already captured
+    /// at baseline -- <see cref="CalResult.FitBaAndA0"/> needs both series for the same points to
+    /// estimate d(MV)/d(a0) numerically.
+    /// </summary>
+    private async Task CaptureAllPertA0Async()
+    {
+        var measured = _result.Points.Where(p => p.Valid).Select(p => p.ChargeGr).OrderBy(x => x).ToList();
+        if (measured.Count == 0) { MessageBox.Show(this, "Capture the baseline sim MV first ('Capture ALL sim MV')."); return; }
+        if (_a0Old is not { } a0Old || a0Old <= 0) { MessageBox.Show(this, "No 'a0' input found in this load."); return; }
+        if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+
+        try
+        {
+            var top = await _grt.GetTabOnTopAsync();
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            string basePath = GrtLoadDoc.PristineBasePath(top.file);
+            if (!File.Exists(basePath)) basePath = top.file;
+
+            if (MessageBox.Show(this,
+                    $"This will briefly open {measured.Count} more tabs in GRT (a0 nudged by {A0PerturbFrac:0%} at each already-captured charge), then reopen your load.\n\nContinue?",
+                    "Capture shape-fit sweep", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                return;
+
+            _a0Delta = a0Old * A0PerturbFrac;
+            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_a0");
+            Directory.CreateDirectory(tmpDir);
+            const double grToG = 0.06479891;
+
+            int i = 0;
+            foreach (double chg in measured)
+            {
+                var doc = GrtLoadDoc.Load(basePath);
+                doc.SetInput("propellant", "mc", (chg * grToG).ToString("0.############", CultureInfo.InvariantCulture), "g");
+                doc.SetInput("propellant", "laddercnt", "0");     // ladder off — single charge
+                doc.SetInput("propellant", "a0", (a0Old + _a0Delta).ToString("0.############", CultureInfo.InvariantCulture));
+                string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "calsweep_a0_{0}_{1:000}.grtload", i++, chg * 100));
+                doc.Save(tmp);
+
+                await _grt.LoadFileAsync(tmp);
+                await Task.Delay(1400);                            // let GRT compute
+                var t2 = await _grt.GetTabOnTopAsync();
+                var res = await _grt.GetTabResultsAsync(t2.handle);
+                if (res.MuzzleVelocityMps is { } sim && sim > 0)
+                {
+                    SetSimPertA0(chg, sim);
+                    AppendLog($"{chg:0.00} gr @ a0+{A0PerturbFrac:0%} -> sim {sim:0.0} m/s");
+                }
+                else AppendLog($"{chg:0.00} gr @ a0+{A0PerturbFrac:0%} -> no sim MV (skipped)");
+                Recompute();
+            }
+
+            await _grt.LoadFileAsync(basePath);                    // back to the user's load
+            try { Directory.Delete(tmpDir, true); } catch { }
+            _status.Text = $"swept {measured.Count} charges at a0+{A0PerturbFrac:0%} — close the extra GRT tabs when done.";
+        }
+        catch (Exception ex) { Err(ex); }
+    }
+
     private void SetSim(double chargeGr, double simMps)
     {
         var pt = _result.Points.FirstOrDefault(p => Math.Abs(p.ChargeGr - chargeGr) < 0.03);
         if (pt is null) { pt = new CalPoint { ChargeGr = Math.Round(chargeGr, 2) }; _result.Points.Add(pt); }
         pt.SimMps = simMps;
+    }
+
+    private void SetSimPertA0(double chargeGr, double simMps)
+    {
+        var pt = _result.Points.FirstOrDefault(p => Math.Abs(p.ChargeGr - chargeGr) < 0.03);
+        if (pt is null) return;                              // shape-fit sweep only nudges charges already captured at baseline
+        pt.SimMpsPertA0 = simMps;
     }
 
     private void RemoveRow()
@@ -299,10 +380,20 @@ internal sealed class CalibrationForm : Form
     private void Recompute()
     {
         string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
-        _summary.Text = _result.BuildReport(headline, _baOld, _powder).Replace("\n", "\r\n");
+        string report = _result.BuildReport(headline, _baOld, _powder);
+
+        _shapeFit = null;
+        if (_result.NPert >= 2 && _baOld is { } ba0 && _a0Old is { } a00 && _a0Delta > 0)
+        {
+            _shapeFit = _result.FitBaAndA0(ba0, a00, _a0Delta);
+            if (_shapeFit is { } fit) report += _result.BuildShapeReport(fit, ba0, a00, _powder);
+        }
+        _summary.Text = report.Replace("\n", "\r\n");
+
         bool ok = _result.N >= 1 && _grt is { Connected: true } && _basePath != null;
         _writeNote.Enabled = ok;
         _writeBa.Enabled = ok && _baOld is > 0;
+        _writeBaA0.Enabled = ok && _shapeFit is { Ok: true };
         _status.Text = _result.N >= 1
             ? string.Format(CultureInfo.InvariantCulture, "{0} point(s), mean offset {1:+0.0;-0.0} m/s ({2:+0.0;-0.0} %)", _result.N, _result.MeanDeltaMps, _result.MeanDeltaPct)
             : "capture at least one charge";
@@ -333,6 +424,30 @@ internal sealed class CalibrationForm : Form
         catch (Exception ex) { Err(ex); }
     }
 
+    private async Task WriteShapeAsync()
+    {
+        try
+        {
+            if (_basePath is null || _grt is not { Connected: true } || _shapeFit is not { Ok: true } fit || _baOld is not { } ba || _a0Old is not { } a0) return;
+            var doc = GrtLoadDoc.OpenForToolkitEdit(_basePath);
+            doc.RemoveByTitlePrefix(NoteTitle);
+            string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
+            doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder) + _result.BuildShapeReport(fit, ba, a0, _powder));
+
+            string suffix = "cal_ba_a0";
+            bool wroteBa = doc.SetInput("propellant", "Ba", fit.NewBa.ToString("0.###############", CultureInfo.InvariantCulture));
+            bool wroteA0 = doc.SetInput("propellant", "a0", fit.NewA0.ToString("0.###############", CultureInfo.InvariantCulture));
+            if (wroteBa && wroteA0) AppendLog($"set Ba {ba:0.######} -> {fit.NewBa:0.######}, a0 {a0:0.####} -> {fit.NewA0:0.####}");
+            else { AppendLog("note written, but Ba/a0 inputs missing in the load"); suffix = "cal"; }
+
+            string outPath = doc.SaveSibling(suffix);
+            AppendLog("wrote " + outPath);
+            await _grt.LoadFileAsync(outPath);
+            _status.Text = "Ba+a0-corrected load written and opened in GRT.";
+        }
+        catch (Exception ex) { Err(ex); }
+    }
+
     private static double? D(object? v) => GrtPluginKit.Util.Str.ParseNumber(Convert.ToString(v, CultureInfo.InvariantCulture));
 
     private void Err(Exception ex)
@@ -341,5 +456,5 @@ internal sealed class CalibrationForm : Form
         MessageBox.Show(this, ex.Message, "Calibration", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
-    private void AppendLog(string line) => _log.SafeAppend(line);
+    private void AppendLog(string line) => _summary.SafeAppend(line);
 }
