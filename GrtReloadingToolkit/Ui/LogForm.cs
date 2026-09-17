@@ -22,7 +22,7 @@ internal sealed class LogForm : Form
     private readonly ComboBox _fbCaliber = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
     private readonly ComboBox _fbPowder = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, DisplayMember = "Text", ValueMember = "Id" };
     private readonly ComboBox _fbBullet = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, DisplayMember = "Text", ValueMember = "Id" };
-    private readonly ComboBox _fbSortBy = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Items = { "Tightest group (MOA)", "Closest velocity to target", "Closest temperature to target" } };
+    private readonly ComboBox _fbSortBy = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Items = { Lang.T("Tightest group (MOA)"), Lang.T("Closest velocity to target"), Lang.T("Closest temperature to target") } };
     private readonly NumericUpDown _fbTargetMv = new() { DecimalPlaces = 0, Maximum = 3000, Width = 70 };
     private readonly NumericUpDown _fbTargetTemp = new() { DecimalPlaces = 1, Minimum = -40, Maximum = 60, Width = 70 };
     private readonly ComboBox _fbTargetTempUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 50, Items = { "C", "F" } };
@@ -35,7 +35,7 @@ internal sealed class LogForm : Form
     {
         _grt = grt;
         _db = db;
-        Text = AppVersion.Title("GRT Inventory & Load Journal");
+        Text = AppVersion.Title(Lang.T("GRT Inventory & Load Journal"));
         Width = 1080; Height = 640;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(860, 480);
@@ -50,7 +50,7 @@ internal sealed class LogForm : Form
         _status.Height = 20;
         _status.ForeColor = SystemColors.GrayText;
         _status.Padding = new Padding(8, 2, 0, 0);
-        _status.Text = $"DB: {_db.Path}   " + (_grt == null ? "stand-alone" : _grt.Connected ? $"GRT :{_grt.Port}" : "GRT lost");
+        _status.Text = $"DB: {_db.Path}   " + (_grt == null ? Lang.T("stand-alone") : _grt.Connected ? $"GRT :{_grt.Port}" : Lang.T("GRT lost"));
 
         Controls.Add(tabs);
         Controls.Add(_status);
@@ -66,12 +66,12 @@ internal sealed class LogForm : Form
 
     private TabPage BuildFirearmsTab()
     {
-        var page = new TabPage("Firearms");
+        var page = new TabPage(Lang.T("Firearms"));
         var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(6, 6, 0, 0) };
         void B(string t, Action a) { var b = new Button { Text = t, AutoSize = true }; b.Click += (_, _) => a(); bar.Controls.Add(b); }
-        B("Add", () => EditFirearm(new Firearm()));
-        B("Edit", () => { if (_fa.CurrentRow?.Tag is Firearm f) EditFirearm(f); });
-        B("Retire", () => { if (_fa.CurrentRow?.Tag is Firearm f) { f.Retired = true; _db.UpsertFirearm(f); RefreshFirearms(); } });
+        B(Lang.T("Add"), () => EditFirearm(new Firearm()));
+        B(Lang.T("Edit"), () => { if (_fa.CurrentRow?.Tag is Firearm f) EditFirearm(f); });
+        B(Lang.T("Retire"), () => { if (_fa.CurrentRow?.Tag is Firearm f) { f.Retired = true; _db.UpsertFirearm(f); RefreshFirearms(); } });
 
         _fa.ReadOnly = true; _fa.AllowUserToAddRows = false; _fa.RowHeadersVisible = false;
         _fa.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
@@ -79,7 +79,7 @@ internal sealed class LogForm : Form
         _fa.Dock = DockStyle.Fill;
         _fa.CellDoubleClick += (_, _) => { if (_fa.CurrentRow?.Tag is Firearm f) EditFirearm(f); };
         _fa.SelectionChanged += (_, _) => ShowBarrelChart();
-        foreach (var (n, h) in new[] { ("name", "Firearm"), ("cal", "Caliber"), ("tot", "Total rounds"), ("ent", "MV entries"), ("last", "Last used") })
+        foreach (var (n, h) in new[] { ("name", Lang.T("Firearm")), ("cal", Lang.T("Caliber")), ("tot", Lang.T("Total rounds")), ("ent", Lang.T("MV entries")), ("last", Lang.T("Last used")) })
             _fa.Columns.Add(n, h);
 
         var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(180);
@@ -112,15 +112,15 @@ internal sealed class LogForm : Form
 
     private void EditFirearm(Firearm f)
     {
-        using var d = new Form { Text = f.Id == 0 ? "Add firearm" : "Edit firearm", ClientSize = new Size(320, 210), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false };
+        using var d = new Form { Text = Lang.T(f.Id == 0 ? "Add firearm" : "Edit firearm"), ClientSize = new Size(320, 210), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false };
         var name = new TextBox { Left = 110, Top = 12, Width = 190, Text = f.Name };
         var cal = new TextBox { Left = 110, Top = 42, Width = 190, Text = f.Caliber };
         var rb = new NumericUpDown { Left = 110, Top = 72, Width = 90, Maximum = 1_000_000, Value = f.RoundsBefore };
         var notes = new TextBox { Left = 110, Top = 102, Width = 190, Height = 44, Multiline = true, Text = f.Notes };
         void L(string t, int y) => d.Controls.Add(new Label { Text = t, Left = 12, Top = y + 3, AutoSize = true });
-        L("Name", 12); L("Caliber", 42); L("Rounds before", 72); L("Notes", 102);
-        var ok = new Button { Text = "Save", DialogResult = DialogResult.OK, Left = 145, Top = 160, Width = 75 };
-        var ca = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 225, Top = 160, Width = 75 };
+        L(Lang.T("Name"), 12); L(Lang.T("Caliber"), 42); L(Lang.T("Rounds before"), 72); L(Lang.T("Notes"), 102);
+        var ok = new Button { Text = Lang.T("Save"), DialogResult = DialogResult.OK, Left = 145, Top = 160, Width = 75 };
+        var ca = new Button { Text = Lang.T("Cancel"), DialogResult = DialogResult.Cancel, Left = 225, Top = 160, Width = 75 };
         d.Controls.AddRange(new Control[] { name, cal, rb, notes, ok, ca });
         d.AcceptButton = ok; d.CancelButton = ca;
         NudFix.ApplyTo(d);
@@ -142,20 +142,20 @@ internal sealed class LogForm : Form
 
     private TabPage BuildInventoryTab()
     {
-        var page = new TabPage("Inventory");
+        var page = new TabPage(Lang.T("Inventory"));
         var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(6, 6, 0, 0) };
         Button B(string t, Action a) { var b = new Button { Text = t, AutoSize = true }; b.Click += (_, _) => a(); bar.Controls.Add(b); return b; }
-        B("Add", AddComponent);
-        B("Edit", EditComponent);
-        B("Restock", RestockComponent);
-        B("Archive", ArchiveComponent);
+        B(Lang.T("Add"), AddComponent);
+        B(Lang.T("Edit"), EditComponent);
+        B(Lang.T("Restock"), RestockComponent);
+        B(Lang.T("Archive"), ArchiveComponent);
 
         _inv.Dock = DockStyle.Fill;
         _inv.ReadOnly = true; _inv.AllowUserToAddRows = false; _inv.RowHeadersVisible = false;
         _inv.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _inv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _inv.CellDoubleClick += (_, _) => EditComponent();
-        foreach (var (n, h) in new[] { ("k", "Kind"), ("d", "Component"), ("qty", "Left"), ("pct", "%"), ("cu", "Cost/unit"), ("note", "Notes") })
+        foreach (var (n, h) in new[] { ("k", Lang.T("Kind")), ("d", Lang.T("Component")), ("qty", Lang.T("Left")), ("pct", "%"), ("cu", Lang.T("Cost/unit")), ("note", Lang.T("Notes")) })
             _inv.Columns.Add(n, h);
 
         page.Controls.Add(_inv);
@@ -197,7 +197,7 @@ internal sealed class LogForm : Form
     private void RestockComponent()
     {
         if (SelectedComponent is not { } c) return;
-        string? s = Prompt($"Add how many {c.Unit} to '{c.Display}'? (negative to correct down)");
+        string? s = Prompt(string.Format(Lang.T("Add how many {0} to '{1}'? (negative to correct down)"), c.Unit, c.Display));
         if (s != null && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double d))
         {
             // The prompt asked in the unit the lot is counted in; the ledger moves stored units.
@@ -218,22 +218,22 @@ internal sealed class LogForm : Form
 
     private TabPage BuildJournalTab()
     {
-        var page = new TabPage("Journal");
+        var page = new TabPage(Lang.T("Journal"));
         var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(6, 6, 0, 0) };
         Button B(string t, Action a) { var b = new Button { Text = t, AutoSize = true }; b.Click += (_, _) => a(); bar.Controls.Add(b); return b; }
-        B("New", () => NewEntry(null));
-        var g = B("Log from GRT", async () => await LogFromGrtAsync());
+        B(Lang.T("New"), () => NewEntry(null));
+        var g = B(Lang.T("Log from GRT"), async () => await LogFromGrtAsync());
         g.Enabled = _grt is { Connected: true };
-        B("Edit", EditEntry);
-        B("Delete", DeleteEntry);
+        B(Lang.T("Edit"), EditEntry);
+        B(Lang.T("Delete"), DeleteEntry);
 
         _jrn.Dock = DockStyle.Fill;
         _jrn.ReadOnly = true; _jrn.AllowUserToAddRows = false; _jrn.RowHeadersVisible = false;
         _jrn.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _jrn.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _jrn.CellDoubleClick += (_, _) => EditEntry();
-        foreach (var (n, h) in new[] { ("date", "Date"), ("load", "Load"), ("cal", "Caliber"), ("chg", "Charge " + GrtUnits.Current.ChargeUnitName),
-                     ("rnd", "Rounds"), ("mv", "MV"), ("sd", "SD"), ("grp", "MOA"), ("cpr", "Cost/rd"), ("tot", "Total") })
+        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("cal", Lang.T("Caliber")), ("chg", Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName),
+                     ("rnd", Lang.T("Rounds")), ("mv", "MV"), ("sd", "SD"), ("grp", "MOA"), ("cpr", Lang.T("Cost/rd")), ("tot", Lang.T("Total")) })
             _jrn.Columns.Add(n, h);
 
         page.Controls.Add(_jrn);
@@ -291,7 +291,7 @@ internal sealed class LogForm : Form
     private void DeleteEntry()
     {
         if (SelectedEntry is not { } e) return;
-        if (MessageBox.Show(this, $"Delete '{e.LoadName}' ({e.Date})? Deducted stock will be restored.", "Delete",
+        if (MessageBox.Show(this, string.Format(Lang.T("Delete '{0}' ({1})? Deducted stock will be restored."), e.LoadName, e.Date), Lang.T("Delete"),
                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
         {
             _db.DeleteEntry(e.Id);
@@ -303,7 +303,7 @@ internal sealed class LogForm : Form
 
     private TabPage BuildFindBaTab()
     {
-        var page = new TabPage("Find best Ba");
+        var page = new TabPage(Lang.T("Find best Ba"));
         // WrapContents=true can split a label from its own control onto different lines if they're
         // added as separate top-level children -- caught by rendering the real tab (the "Rank by"
         // label stranded on the row above its own dropdown), not from reading the code. Grouping
@@ -317,20 +317,20 @@ internal sealed class LogForm : Form
             return g;
         }
 
-        bar.Controls.Add(Group("Caliber", _fbCaliber));
-        bar.Controls.Add(Group("Powder", _fbPowder));
-        bar.Controls.Add(Group("Bullet", _fbBullet));
-        bar.Controls.Add(Group("Rank by", _fbSortBy));
+        bar.Controls.Add(Group(Lang.T("Caliber"), _fbCaliber));
+        bar.Controls.Add(Group(Lang.T("Powder"), _fbPowder));
+        bar.Controls.Add(Group(Lang.T("Bullet"), _fbBullet));
+        bar.Controls.Add(Group(Lang.T("Rank by"), _fbSortBy));
 
-        var targetMvGroup = (FlowLayoutPanel)Group("Target MV m/s", _fbTargetMv);
+        var targetMvGroup = (FlowLayoutPanel)Group(Lang.T("Target MV m/s"), _fbTargetMv);
         _fbTargetMvPanel.Controls.Add(targetMvGroup);
         bar.Controls.Add(_fbTargetMvPanel);
 
-        var targetTempGroup = (FlowLayoutPanel)Group("Target temp", _fbTargetTemp, _fbTargetTempUnit);
+        var targetTempGroup = (FlowLayoutPanel)Group(Lang.T("Target temp"), _fbTargetTemp, _fbTargetTempUnit);
         _fbTargetTempPanel.Controls.Add(targetTempGroup);
         bar.Controls.Add(_fbTargetTempPanel);
 
-        var searchBtn = new Button { Text = "Search", AutoSize = true, Margin = new Padding(10, 8, 0, 0) };
+        var searchBtn = new Button { Text = Lang.T("Search"), AutoSize = true, Margin = new Padding(10, 8, 0, 0) };
         searchBtn.Click += (_, _) => RunFindBa();
         bar.Controls.Add(searchBtn);
 
@@ -343,8 +343,8 @@ internal sealed class LogForm : Form
         _fb.ReadOnly = true; _fb.AllowUserToAddRows = false; _fb.RowHeadersVisible = false;
         _fb.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _fb.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        foreach (var (n, h) in new[] { ("date", "Date"), ("load", "Load"), ("chg", "Charge gr"), ("ba", "Ba"), ("a0", "a0"),
-                     ("mv", "MV m/s"), ("sd", "SD"), ("grp", "Group MOA"), ("temp", "Temp"), ("notes", "Notes") })
+        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("chg", Lang.T("Charge gr")), ("ba", "Ba"), ("a0", "a0"),
+                     ("mv", "MV m/s"), ("sd", "SD"), ("grp", Lang.T("Group MOA")), ("temp", Lang.T("Temp")), ("notes", Lang.T("Notes")) })
             _fb.Columns.Add(n, h);
 
         _fbStatus.Dock = DockStyle.Bottom; _fbStatus.Padding = new Padding(8, 4, 0, 4);
@@ -382,7 +382,7 @@ internal sealed class LogForm : Form
     {
         long? keep = (cb.SelectedItem as FbItem)?.Id;
         cb.Items.Clear();
-        cb.Items.Add(new FbItem(0, "-- any --"));
+        cb.Items.Add(new FbItem(0, Lang.T("-- any --")));
         foreach (var c in items) cb.Items.Add(new FbItem(c.Id, c.Display));
         cb.SelectedIndex = 0;
         if (keep is { } id)
@@ -396,7 +396,7 @@ internal sealed class LogForm : Form
     {
         if (_fbCaliber.SelectedItem is not string caliber)
         {
-            _fbStatus.Text = "No calibrated journal entries yet -- log a Ba from Barrel Calibration first.";
+            _fbStatus.Text = Lang.T("No calibrated journal entries yet -- log a Ba from Barrel Calibration first.");
             _fb.Rows.Clear();
             return;
         }
@@ -429,8 +429,8 @@ internal sealed class LogForm : Form
             _fb.Rows[i].Tag = e;
         }
         _fbStatus.Text = list.Count == 0
-            ? "No calibrated entries match this caliber/powder/bullet combo yet."
-            : $"{list.Count} matching calibration(s), best first.";
+            ? Lang.T("No calibrated entries match this caliber/powder/bullet combo yet.")
+            : string.Format(Lang.T("{0} matching calibration(s), best first."), list.Count);
     }
 
     private double TargetTempC() => _fbTargetTempUnit.SelectedIndex == 1 ? FToC((double)_fbTargetTemp.Value) : (double)_fbTargetTemp.Value;
@@ -445,7 +445,7 @@ internal sealed class LogForm : Form
             var top = await _grt.GetTabOnTopAsync();
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
             {
-                MessageBox.Show(this, "No saved load is open in GRT.", "Log from GRT");
+                MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Log from GRT"));
                 return;
             }
             var snap = LoadSnapshot.FromGrtload(top.file);
@@ -455,7 +455,7 @@ internal sealed class LogForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Log from GRT", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, ex.Message, Lang.T("Log from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -464,7 +464,7 @@ internal sealed class LogForm : Form
         using var f = new Form { Text = text, ClientSize = new Size(320, 90), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false };
         var tb = new TextBox { Left = 12, Top = 12, Width = 296 };
         var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 148, Top = 46, Width = 75 };
-        var ca = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 233, Top = 46, Width = 75 };
+        var ca = new Button { Text = Lang.T("Cancel"), DialogResult = DialogResult.Cancel, Left = 233, Top = 46, Width = 75 };
         f.Controls.AddRange(new Control[] { tb, ok, ca });
         f.AcceptButton = ok; f.CancelButton = ca;
         return f.ShowDialog() == DialogResult.OK ? tb.Text.Trim() : null;

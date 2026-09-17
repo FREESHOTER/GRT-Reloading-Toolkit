@@ -46,12 +46,12 @@ internal sealed class SeatingForceForm : Form
     private readonly ComboBox _neckSizing = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
     private readonly ComboBox _lube = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
     private readonly ComboBox _coating = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 260 };
-    private readonly CheckBox _boatTail = new() { Text = "Boat-tail", Checked = true, AutoSize = true };
+    private readonly CheckBox _boatTail = new() { Text = Lang.T("Boat-tail"), Checked = true, AutoSize = true };
     private readonly Label _out = new() { AutoSize = true, Font = new Font(FontFamily.GenericMonospace, 9f) };
 
     public SeatingForceForm()
     {
-        Text = AppVersion.Title("GRT Seating Force Estimate (QC)");
+        Text = AppVersion.Title(Lang.T("GRT Seating Force Estimate (QC)"));
         // Tall enough that every row fits without the panel's own vertical scrollbar at the
         // default size (checked by rendering the real window, same lesson as GRT Sensitivity
         // Lab's WhatIfForm/SensitivitySweepForm layout fix).
@@ -139,13 +139,13 @@ internal sealed class SeatingForceForm : Form
             return row;
         }
 
-        SectionLabel("From this bore (bullet + prepped neck)");
-        Row("Bullet diameter", FieldRow(_bulletDia));
-        Row("Neck ID after sizing", FieldRow(_neckId));
-        Row("Actual seating depth", FieldRow(_seatingDepth));
+        SectionLabel(Lang.T("From this bore (bullet + prepped neck)"));
+        Row(Lang.T("Bullet diameter"), FieldRow(_bulletDia));
+        Row(Lang.T("Neck ID after sizing"), FieldRow(_neckId));
+        Row(Lang.T("Actual seating depth"), FieldRow(_seatingDepth));
 
-        SectionLabel("Baseline for a \"typical\" setup in this bore");
-        _reference.Items.Add("-- custom / type your own --");
+        SectionLabel(Lang.T("Baseline for a \"typical\" setup in this bore"));
+        _reference.Items.Add(Lang.T("-- custom / type your own --"));
         foreach (var r in SeatingForceCalc.ReferenceBaselines) _reference.Items.Add(r.Caliber);
         _reference.SelectedIndex = 0;
         _reference.SelectedIndexChanged += (_, _) =>
@@ -159,23 +159,23 @@ internal sealed class SeatingForceForm : Form
             SetMm(_typicalDepth, r.SeatingDepthMm);
             Recalc();
         };
-        Row("Quick-fill reference (optional)", _reference);
-        Row("Baseline force, typical prep (kg)", _baselineForce);
-        Row("Baseline std dev (kg)", _baselineStd);
-        Row("...at this typical interference", FieldRow(_typicalInterf));
-        Row("...and this typical seating depth", FieldRow(_typicalDepth));
+        Row(Lang.T("Quick-fill reference (optional)"), _reference);
+        Row(Lang.T("Baseline force, typical prep (kg)"), _baselineForce);
+        Row(Lang.T("Baseline std dev (kg)"), _baselineStd);
+        Row(Lang.T("...at this typical interference"), FieldRow(_typicalInterf));
+        Row(Lang.T("...and this typical seating depth"), FieldRow(_typicalDepth));
 
-        SectionLabel("Actual prep for this batch");
+        SectionLabel(Lang.T("Actual prep for this batch"));
         foreach (var cb in new[] { _annealing, _neckSizing, _lube, _coating })
             cb.SelectedIndexChanged += (_, _) => Recalc();
         FillFactorCombo(_annealing, SeatingForceCalc.AnnealingOptions, "annealed_5plus");
         FillFactorCombo(_neckSizing, SeatingForceCalc.NeckSizingOptions, "bushing");
         FillFactorCombo(_lube, SeatingForceCalc.LubeOptions, "graphite");
         FillFactorCombo(_coating, SeatingForceCalc.CoatingOptions, "copper_bare");
-        Row("Annealing", _annealing);
-        Row("Neck sizing", _neckSizing);
-        Row("Neck lube", _lube);
-        Row("Bullet coating", _coating);
+        Row(Lang.T("Annealing"), _annealing);
+        Row(Lang.T("Neck sizing"), _neckSizing);
+        Row(Lang.T("Neck lube"), _lube);
+        Row(Lang.T("Bullet coating"), _coating);
         _boatTail.CheckedChanged += (_, _) => Recalc();
         t.Controls.Add(_boatTail); Skip();
 
@@ -185,8 +185,8 @@ internal sealed class SeatingForceForm : Form
         var help = new Label
         {
             Dock = DockStyle.Bottom, AutoSize = false, Height = 50, ForeColor = SystemColors.GrayText, Padding = new Padding(10, 4, 10, 4),
-            Text = "Empirical estimate, not a measurement -- a QC baseline for THIS bore. The bar/psi " +
-                   "figure is just the same force expressed over the bullet's cross-section, not a GRT input.",
+            Text = Lang.T("Empirical estimate, not a measurement -- a QC baseline for THIS bore. The bar/psi " +
+                   "figure is just the same force expressed over the bullet's cross-section, not a GRT input."),
         };
         _out.Location = new Point(10, 4);
         var outBox = new Panel { Dock = DockStyle.Top, Height = 160, Padding = new Padding(6) };
@@ -200,7 +200,7 @@ internal sealed class SeatingForceForm : Form
 
     private static void FillFactorCombo(ComboBox cb, IReadOnlyList<(string Key, string Label, SeatingForceCalc.Factor F)> options, string defaultKey)
     {
-        foreach (var (key, label, _) in options) cb.Items.Add(new FactorItem(key, label));
+        foreach (var (key, label, _) in options) cb.Items.Add(new FactorItem(key, Lang.T(label)));
         int idx = options.ToList().FindIndex(o => o.Key == defaultKey);
         cb.SelectedIndex = idx >= 0 ? idx : 0;
     }
@@ -225,7 +225,7 @@ internal sealed class SeatingForceForm : Form
         if (bulletDiaMm <= 0 || neckIdMm <= 0 || seatingDepthMm <= 0
             || _baselineForce.Value <= 0 || typicalInterfMm <= 0 || typicalDepthMm <= 0)
         {
-            _out.Text = "fill in bullet diameter, neck ID, seating depth and the baseline fields";
+            _out.Text = Lang.T("fill in bullet diameter, neck ID, seating depth and the baseline fields");
             return;
         }
 
@@ -242,12 +242,12 @@ internal sealed class SeatingForceForm : Form
 
         var ci = CultureInfo.InvariantCulture;
         var sb = new System.Text.StringBuilder();
-        sb.Append(string.Format(ci, "interference           : {0:0.000} mm\n", est.InterferenceMm));
-        sb.Append(string.Format(ci, "estimated mean force   : {0:0.0} kg  (+/- {1:0.0} kg SD)\n", est.MeanKg, est.StdKg));
-        sb.Append(string.Format(ci, "  68% band (1-sigma)    : {0:0.0} - {1:0.0} kg\n", est.P1LowKg, est.P1HighKg));
-        sb.Append(string.Format(ci, "  95% band (2-sigma)    : {0:0.0} - {1:0.0} kg\n", est.P2LowKg, est.P2HighKg));
-        sb.Append(string.Format(ci, "  suggested max (QC)    : {0:0.0} kg\n\n", est.MaxRecommendedKg));
-        sb.Append(string.Format(ci, "equivalent pressure     : {0:0} bar  ({1:0} psi)\n", est.EquivalentPressureBar, est.EquivalentPressurePsi));
+        sb.Append(string.Format(ci, Lang.T("interference           : {0:0.000} mm\n"), est.InterferenceMm));
+        sb.Append(string.Format(ci, Lang.T("estimated mean force   : {0:0.0} kg  (+/- {1:0.0} kg SD)\n"), est.MeanKg, est.StdKg));
+        sb.Append(string.Format(ci, Lang.T("  68% band (1-sigma)    : {0:0.0} - {1:0.0} kg\n"), est.P1LowKg, est.P1HighKg));
+        sb.Append(string.Format(ci, Lang.T("  95% band (2-sigma)    : {0:0.0} - {1:0.0} kg\n"), est.P2LowKg, est.P2HighKg));
+        sb.Append(string.Format(ci, Lang.T("  suggested max (QC)    : {0:0.0} kg\n\n"), est.MaxRecommendedKg));
+        sb.Append(string.Format(ci, Lang.T("equivalent pressure     : {0:0} bar  ({1:0} psi)\n"), est.EquivalentPressureBar, est.EquivalentPressurePsi));
         foreach (var note in est.Notes) sb.Append("  ! ").Append(note).Append('\n');
         _out.Text = sb.ToString();
     }

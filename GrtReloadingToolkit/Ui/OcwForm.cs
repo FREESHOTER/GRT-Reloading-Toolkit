@@ -9,8 +9,8 @@ internal sealed class OcwForm : LadderAnalyzerForm
     public OcwForm(GrtClient? grt) : base(grt) => Init();
 
     protected override LadderMode Mode => LadderMode.Charge;
-    protected override string WindowTitle => AppVersion.Title("GRT Ladder / OCW Analyzer");
-    protected override string XHeader => "Charge " + GrtUnits.Current.ChargeUnitName;
+    protected override string WindowTitle => AppVersion.Title(Lang.T("GRT Ladder / OCW Analyzer"));
+    protected override string XHeader => Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName;
     protected override string NoteTitle => "OCW Analysis";
     protected override string GalleryPictureName => "ocw_chart";
     protected override string SiblingSuffix => "ocw";

@@ -47,7 +47,7 @@ internal sealed class ComponentDialog : Form
     {
         _c = c;
         _unit = string.IsNullOrWhiteSpace(c.Unit) ? StockUnit.DefaultFor(c.Kind) : c.Unit.Trim();
-        Text = c.Id == 0 ? "Add component" : "Edit component";
+        Text = Ui.Lang.T(c.Id == 0 ? "Add component" : "Edit component");
         Ui.AppIcon.Apply(this);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
@@ -79,21 +79,21 @@ internal sealed class ComponentDialog : Form
 
         var t = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(10), AutoSize = true };
         void Row(string l, Control ctl) { t.Controls.Add(new Label { Text = l, AutoSize = true, Anchor = AnchorStyles.Left, Padding = new Padding(0, 6, 8, 0) }); t.Controls.Add(ctl); }
-        Row("Kind", _kind);
-        Row("Brand", _brand);
-        Row("Name", _name);
-        Row("Lot", _lot);
-        Row("Qty initial", Flow(_qtyInit, _qtyUnit));
-        Row("Qty current", Flow(_qtyCur, _unitInfo));
-        Row("Lot cost", Flow(_cost, _currency));
-        Row("Expected uses", Flow(_expUses, new Label { Text = "(brass: firings before retirement)", AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) }));
-        Row("Bullet weight gr", _bulletW);
-        Row("Twist 1:", Flow(_twist, _twistUnit));
-        Row("Barrel length", Flow(_barrelLen, _lenUnit));
-        Row("Notes", _notes);
+        Row(Ui.Lang.T("Kind"), _kind);
+        Row(Ui.Lang.T("Brand"), _brand);
+        Row(Ui.Lang.T("Name"), _name);
+        Row(Ui.Lang.T("Lot"), _lot);
+        Row(Ui.Lang.T("Qty initial"), Flow(_qtyInit, _qtyUnit));
+        Row(Ui.Lang.T("Qty current"), Flow(_qtyCur, _unitInfo));
+        Row(Ui.Lang.T("Lot cost"), Flow(_cost, _currency));
+        Row(Ui.Lang.T("Expected uses"), Flow(_expUses, new Label { Text = Ui.Lang.T("(brass: firings before retirement)"), AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) }));
+        Row(Ui.Lang.T("Bullet weight gr"), _bulletW);
+        Row(Ui.Lang.T("Twist 1:"), Flow(_twist, _twistUnit));
+        Row(Ui.Lang.T("Barrel length"), Flow(_barrelLen, _lenUnit));
+        Row(Ui.Lang.T("Notes"), _notes);
 
-        var ok = new Button { Text = "Save", DialogResult = DialogResult.OK, Width = 80 };
-        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Width = 80 };
+        var ok = new Button { Text = Ui.Lang.T("Save"), DialogResult = DialogResult.OK, Width = 80 };
+        var cancel = new Button { Text = Ui.Lang.T("Cancel"), DialogResult = DialogResult.Cancel, Width = 80 };
         ok.Click += (_, _) => Commit();
         var buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, Height = 40, Padding = new Padding(8) };
         buttons.Controls.AddRange(new Control[] { cancel, ok });
@@ -189,6 +189,6 @@ internal sealed class ComponentDialog : Form
         _c.TwistMm = barrel && _twist.Value > 0 ? units.TwistToMm((double)_twist.Value) : null;
         _c.BarrelLengthMm = barrel && _barrelLen.Value > 0 ? units.LengthToMm((double)_barrelLen.Value) : null;
         _c.Notes = _notes.Text.Trim();
-        if (_c.Name.Length == 0) { DialogResult = DialogResult.None; MessageBox.Show(this, "Name is required."); }
+        if (_c.Name.Length == 0) { DialogResult = DialogResult.None; MessageBox.Show(this, Ui.Lang.T("Name is required.")); }
     }
 }

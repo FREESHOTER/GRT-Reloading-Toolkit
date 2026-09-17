@@ -20,9 +20,9 @@ internal sealed class CalibrationForm : Form
     private readonly DataGridView _grid = new();
     private readonly TextBox _summary = new();
     private readonly Label _status = new();
-    private readonly Button _writeNote = new() { Text = "Write calibration note", AutoSize = true, Enabled = false };
-    private readonly Button _writeBa = new() { Text = "Write Ba-corrected .grtload", AutoSize = true, Enabled = false };
-    private readonly Button _writeBaA0 = new() { Text = "Write Ba+a0-corrected .grtload", AutoSize = true, Enabled = false };
+    private readonly Button _writeNote = new() { Text = Lang.T("Write calibration note"), AutoSize = true, Enabled = false };
+    private readonly Button _writeBa = new() { Text = Lang.T("Write Ba-corrected .grtload"), AutoSize = true, Enabled = false };
+    private readonly Button _writeBaA0 = new() { Text = Lang.T("Write Ba+a0-corrected .grtload"), AutoSize = true, Enabled = false };
 
     // a0 (prog/deg burn-shape coefficient) fit -- the two-parameter extension of the Ba-only fit
     // above, for when the offset varies with charge (see CalResult.FitBaAndA0's own doc for why a0,
@@ -42,7 +42,7 @@ internal sealed class CalibrationForm : Form
     {
         _grt = grt;
         _logHandler = AppendLog;
-        Text = AppVersion.Title("GRT Barrel Calibration");
+        Text = AppVersion.Title(Lang.T("GRT Barrel Calibration"));
         // Wider than the original 820: the new shape-fit button pushed "Remove row" onto a second,
         // clipped row of the toolbar's fixed 40px height -- caught by rendering the actual window,
         // not from reading the FlowLayoutPanel code. The toolbar itself is now tall enough for two
@@ -53,7 +53,7 @@ internal sealed class CalibrationForm : Form
         Build();
         NudFix.ApplyTo(this);
         if (_grt != null) _grt.Log += _logHandler;
-        _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
+        _status.Text = _grt is { Connected: true } ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port) : Lang.T("stand-alone (no GRT)");
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
@@ -71,19 +71,19 @@ internal sealed class CalibrationForm : Form
     private void Build()
     {
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 76, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
-        var loadBtn = new Button { Text = "Load measured from GRT load", AutoSize = true };
+        var loadBtn = new Button { Text = Lang.T("Load measured from GRT load"), AutoSize = true };
         loadBtn.Click += async (_, _) => await LoadMeasuredAsync();
         top.Controls.Add(loadBtn);
-        var capAllBtn = new Button { Text = "Capture ALL sim MV (sweeps GRT)", AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
+        var capAllBtn = new Button { Text = Lang.T("Capture ALL sim MV (sweeps GRT)"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         capAllBtn.Click += async (_, _) => await CaptureAllAsync();
         top.Controls.Add(capAllBtn);
-        var capBtn = new Button { Text = "Capture current charge only", AutoSize = true, Margin = new Padding(6, 2, 0, 0) };
+        var capBtn = new Button { Text = Lang.T("Capture current charge only"), AutoSize = true, Margin = new Padding(6, 2, 0, 0) };
         capBtn.Click += async (_, _) => await CaptureCurrentAsync();
         top.Controls.Add(capBtn);
-        var capShapeBtn = new Button { Text = "Capture shape-fit sweep (a0)", AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
+        var capShapeBtn = new Button { Text = Lang.T("Capture shape-fit sweep (a0)"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         capShapeBtn.Click += async (_, _) => await CaptureAllPertA0Async();
         top.Controls.Add(capShapeBtn);
-        var delBtn = new Button { Text = "Remove row", AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
+        var delBtn = new Button { Text = Lang.T("Remove row"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         delBtn.Click += (_, _) => RemoveRow();
         top.Controls.Add(delBtn);
 
@@ -92,12 +92,12 @@ internal sealed class CalibrationForm : Form
         _grid.RowHeadersVisible = false;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = "Charge gr" });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = Lang.T("Charge gr") });
         // Velocities are stored in m/s; these three columns show and accept GRT's unit instead, so
         // a shooter reading ft/s off their chronograph types the number they are looking at.
         string vu = GrtUnits.Current.VelocityUnitName;
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "meas", HeaderText = "Meas MV " + vu });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sim", HeaderText = "Sim MV " + vu });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "meas", HeaderText = Lang.T("Meas MV") + " " + vu });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sim", HeaderText = Lang.T("Sim MV") + " " + vu });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "dm", HeaderText = "Δ " + vu, ReadOnly = true });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "dp", HeaderText = "Δ %", ReadOnly = true });
         // Rebuild after the edit-control teardown completes — clearing rows inside CellEndEdit
@@ -134,15 +134,15 @@ internal sealed class CalibrationForm : Form
 
     private async Task<GrtLoadDoc?> OpenBaseAsync()
     {
-        if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return null; }
+        if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return null; }
         var top = await _grt.GetTabOnTopAsync();
         if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
         {
-            MessageBox.Show(this, "No saved load is open in GRT.", "Calibration"); return null;
+            MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Calibration")); return null;
         }
         if (GrtLoadDoc.LooksLikeGeneratedSibling(top.file))
         {
-            MessageBox.Show(this, "The active tab is a generated file — switch to your real load in GRT.", "Calibration",
+            MessageBox.Show(this, Lang.T("The active tab is a generated file — switch to your real load in GRT."), Lang.T("Calibration"),
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return null;
         }
@@ -191,12 +191,12 @@ internal sealed class CalibrationForm : Form
     {
         try
         {
-            if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+            if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
 
             double? chg = GrtLoadDoc.Load(top.file).PropellantChargeGr;
-            if (chg is not { } c || c <= 0) { MessageBox.Show(this, "Could not read the current charge (mc) from the load."); return; }
+            if (chg is not { } c || c <= 0) { MessageBox.Show(this, Lang.T("Could not read the current charge (mc) from the load.")); return; }
 
             var res = await _grt.GetTabResultsAsync(top.handle);
             if (res.MuzzleVelocityMps is not { } sim || sim <= 0)
@@ -219,19 +219,19 @@ internal sealed class CalibrationForm : Form
     private async Task CaptureAllAsync()
     {
         var measured = _result.Points.Where(p => p.MeasMps > 0).Select(p => p.ChargeGr).OrderBy(x => x).ToList();
-        if (measured.Count == 0) { MessageBox.Show(this, "Load the measured charges first."); return; }
-        if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+        if (measured.Count == 0) { MessageBox.Show(this, Lang.T("Load the measured charges first.")); return; }
+        if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
 
         try
         {
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
             string basePath = GrtLoadDoc.PristineBasePath(top.file);
             if (!File.Exists(basePath)) basePath = top.file;
 
             if (MessageBox.Show(this,
-                    $"This will briefly open {measured.Count} tabs in GRT (one per charge) to read each simulated MV, then reopen your load.\n\nContinue?",
-                    "Capture all", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                    string.Format(Lang.T("This will briefly open {0} tabs in GRT (one per charge) to read each simulated MV, then reopen your load.\n\nContinue?"), measured.Count),
+                    Lang.T("Capture all"), MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
                 return;
 
             string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep");
@@ -263,7 +263,7 @@ internal sealed class CalibrationForm : Form
 
             await _grt.LoadFileAsync(basePath);                    // back to the user's load
             try { Directory.Delete(tmpDir, true); } catch { }
-            _status.Text = $"swept {measured.Count} charges — close the extra GRT tabs when done.";
+            _status.Text = string.Format(Lang.T("swept {0} charges — close the extra GRT tabs when done."), measured.Count);
         }
         catch (Exception ex) { Err(ex); }
     }
@@ -278,20 +278,20 @@ internal sealed class CalibrationForm : Form
     private async Task CaptureAllPertA0Async()
     {
         var measured = _result.Points.Where(p => p.Valid).Select(p => p.ChargeGr).OrderBy(x => x).ToList();
-        if (measured.Count == 0) { MessageBox.Show(this, "Capture the baseline sim MV first ('Capture ALL sim MV')."); return; }
-        if (_a0Old is not { } a0Old || a0Old <= 0) { MessageBox.Show(this, "No 'a0' input found in this load."); return; }
-        if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+        if (measured.Count == 0) { MessageBox.Show(this, Lang.T("Capture the baseline sim MV first ('Capture ALL sim MV').")); return; }
+        if (_a0Old is not { } a0Old || a0Old <= 0) { MessageBox.Show(this, Lang.T("No 'a0' input found in this load.")); return; }
+        if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
 
         try
         {
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
             string basePath = GrtLoadDoc.PristineBasePath(top.file);
             if (!File.Exists(basePath)) basePath = top.file;
 
             if (MessageBox.Show(this,
-                    $"This will briefly open {measured.Count} more tabs in GRT (a0 nudged by {A0PerturbFrac:0%} at each already-captured charge), then reopen your load.\n\nContinue?",
-                    "Capture shape-fit sweep", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                    string.Format(Lang.T("This will briefly open {0} more tabs in GRT (a0 nudged by {1:0%} at each already-captured charge), then reopen your load.\n\nContinue?"), measured.Count, A0PerturbFrac),
+                    Lang.T("Capture shape-fit sweep"), MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
                 return;
 
             _a0Delta = a0Old * A0PerturbFrac;
@@ -324,7 +324,7 @@ internal sealed class CalibrationForm : Form
 
             await _grt.LoadFileAsync(basePath);                    // back to the user's load
             try { Directory.Delete(tmpDir, true); } catch { }
-            _status.Text = $"swept {measured.Count} charges at a0+{A0PerturbFrac:0%} — close the extra GRT tabs when done.";
+            _status.Text = string.Format(Lang.T("swept {0} charges at a0+{1:0%} — close the extra GRT tabs when done."), measured.Count, A0PerturbFrac);
         }
         catch (Exception ex) { Err(ex); }
     }
@@ -401,8 +401,8 @@ internal sealed class CalibrationForm : Form
         _writeBa.Enabled = ok && _baOld is > 0;
         _writeBaA0.Enabled = ok && _shapeFit is { Ok: true };
         _status.Text = _result.N >= 1
-            ? string.Format(CultureInfo.InvariantCulture, "{0} point(s), mean offset {1:+0.0;-0.0} {2} ({3:+0.0;-0.0} %)", _result.N, GrtUnits.Current.VelocityValue(_result.MeanDeltaMps), GrtUnits.Current.VelocityUnitName, _result.MeanDeltaPct)
-            : "capture at least one charge";
+            ? string.Format(CultureInfo.InvariantCulture, Lang.T("{0} point(s), mean offset {1:+0.0;-0.0} {2} ({3:+0.0;-0.0} %)"), _result.N, GrtUnits.Current.VelocityValue(_result.MeanDeltaMps), GrtUnits.Current.VelocityUnitName, _result.MeanDeltaPct)
+            : Lang.T("capture at least one charge");
     }
 
     private async Task WriteAsync(bool withBa)
@@ -425,7 +425,7 @@ internal sealed class CalibrationForm : Form
             string outPath = doc.SaveSibling(suffix);
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
-            _status.Text = withBa ? "Ba-corrected load written and opened in GRT." : "Calibration note written.";
+            _status.Text = withBa ? Lang.T("Ba-corrected load written and opened in GRT.") : Lang.T("Calibration note written.");
         }
         catch (Exception ex) { Err(ex); }
     }
@@ -449,7 +449,7 @@ internal sealed class CalibrationForm : Form
             string outPath = doc.SaveSibling(suffix);
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
-            _status.Text = "Ba+a0-corrected load written and opened in GRT.";
+            _status.Text = Lang.T("Ba+a0-corrected load written and opened in GRT.");
         }
         catch (Exception ex) { Err(ex); }
     }
@@ -459,7 +459,7 @@ internal sealed class CalibrationForm : Form
     private void Err(Exception ex)
     {
         AppendLog("ERROR: " + ex.Message);
-        MessageBox.Show(this, ex.Message, "Calibration", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        MessageBox.Show(this, ex.Message, Lang.T("Calibration"), MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
     private void AppendLog(string line) => _summary.SafeAppend(line);

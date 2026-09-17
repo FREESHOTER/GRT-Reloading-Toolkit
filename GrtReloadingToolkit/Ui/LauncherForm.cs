@@ -41,26 +41,26 @@ internal sealed class LauncherForm : Form
         }
         void Divider() => flow.Controls.Add(new Panel { Width = 252, Height = 1, BackColor = SystemColors.ControlDark, Margin = new Padding(0, 8, 0, 10) });
 
-        Section("PLAN & PREPARE");
-        B("🔧  Brass prep (case vol / seating / neck)", Tool.Brass);
-        B("⚖️  Seating force estimate (QC)", Tool.SeatingForce);
+        Section(Lang.T("PLAN & PREPARE"));
+        B(Lang.T("🔧  Brass prep (case vol / seating / neck)"), Tool.Brass);
+        B(Lang.T("⚖️  Seating force estimate (QC)"), Tool.SeatingForce);
 
-        Section("RANGE DAY");
-        B("🎯  Chronograph import (Athlon / Garmin)", Tool.Athlon);
-        B("📐  Chronograph statistics", Tool.ChronoStats);
-        B("📈  Ladder / OCW analyzer", Tool.Ocw);
-        B("📏  Seating-depth analyzer", Tool.Seating);
+        Section(Lang.T("RANGE DAY"));
+        B(Lang.T("🎯  Chronograph import (Athlon / Garmin)"), Tool.Athlon);
+        B(Lang.T("📐  Chronograph statistics"), Tool.ChronoStats);
+        B(Lang.T("📈  Ladder / OCW analyzer"), Tool.Ocw);
+        B(Lang.T("📏  Seating-depth analyzer"), Tool.Seating);
 
-        Section("TUNE TO YOUR BARREL");
-        B("🎚  Barrel calibration", Tool.Cal);
-        B("🌡  Powder temp coefficients", Tool.Temp);
+        Section(Lang.T("TUNE TO YOUR BARREL"));
+        B(Lang.T("🎚  Barrel calibration"), Tool.Cal);
+        B(Lang.T("🌡  Powder temp coefficients"), Tool.Temp);
 
-        Section("WRAP UP");
-        B("🏷  Load card / label", Tool.Label);
-        B("📒  Inventory & load journal", Tool.Log);
+        Section(Lang.T("WRAP UP"));
+        B(Lang.T("🏷  Load card / label"), Tool.Label);
+        B(Lang.T("📒  Inventory & load journal"), Tool.Log);
 
         Divider();
-        B("📄  Install GRT report templates", Tool.Reports);
+        B(Lang.T("📄  Install GRT report templates"), Tool.Reports);
 
         Controls.Add(flow);
         AutoSize = true;

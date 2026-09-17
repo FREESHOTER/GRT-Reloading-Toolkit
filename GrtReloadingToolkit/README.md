@@ -17,7 +17,7 @@ every tool is a button there. One background process serves all of them.
 | 🏷 **Load Card / Label** | Printable A6 recipe card / ammo-box labels with a QR of the full recipe. Component-lot dropdowns compute **cost per round**, and a barrel pick adds its twist and length to the card. "Write load-sheet note" puts the recipe + cost breakdown into the load. |
 | 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet / barrel) with lot tracking, brand pick-lists, powder counted in **g, gr, lb or kg**, twist and length on barrels, and cost per round, a load/range journal that deducts stock and records the session's environment (temperature/pressure/humidity, own units) plus the calibrated `Ba`/`a0`, a **Find best Ba** search (filter by caliber+powder+bullet, rank by tightest group / closest velocity / closest temperature), and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
 
-Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes six DokuWiki
+Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes nine DokuWiki
 report pages into `GRT\doku\<lang>\report\` and links them from the Reports index —
 
 - *Toolkit — Full load workup* (recipe + predicted results + every section below, in one page)
@@ -25,7 +25,13 @@ report pages into `GRT\doku\<lang>\report\` and links them from the Reports inde
 - *Toolkit — Ladder / OCW report* (pulls the OCW note + chart)
 - *Toolkit — Seating-depth report*
 - *Toolkit — Barrel calibration report* (calibration note — `Ba`, or the `Ba`+`a0` shape fit — + temp-coefficient note)
+- *Toolkit — Powder temp-coefficients report*
+- *Toolkit — Case volume report*
+- *Toolkit — Seating depth (geometry) report*
 - *Toolkit — Load sheet* (recipe + predicted results + cost)
+
+Every note-writing tool has its own dedicated page now, except Seating Force Estimate (QC) — it has
+no GRT linkage at all, so there's nothing for a report to pull.
 
 Run it once after installing the plugin. It is idempotent and non-destructive; delete a page by
 saving it empty in GRT.

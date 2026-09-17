@@ -25,7 +25,7 @@ internal sealed class AthlonForm : Form
     {
         _grt = grt;
         _logHandler = AppendLog;
-        Text = AppVersion.Title("Chronograph import (Athlon / Garmin)");
+        Text = AppVersion.Title(Lang.T("Chronograph import (Athlon / Garmin)"));
         Width = 900;
         Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
@@ -53,16 +53,16 @@ internal sealed class AthlonForm : Form
     private void BuildLayout()
     {
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6, 6, 6, 0) };
-        var addBtn = new Button { Text = "Add chrono files…", AutoSize = true };
-        var addFolderBtn = new Button { Text = "Add folder…", AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
-        var removeBtn = new Button { Text = "Remove selected", AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
+        var addBtn = new Button { Text = Lang.T("Add chrono files…"), AutoSize = true };
+        var addFolderBtn = new Button { Text = Lang.T("Add folder…"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
+        var removeBtn = new Button { Text = Lang.T("Remove selected"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
         addBtn.Click += (_, _) => AddFiles();
         addFolderBtn.Click += (_, _) => AddFolder();
         removeBtn.Click += (_, _) => RemoveSelected();
-        _perShotTemp.Text = "TEMP= on every shot";
+        _perShotTemp.Text = Lang.T("TEMP= on every shot");
         _perShotTemp.AutoSize = true;
         _perShotTemp.Margin = new Padding(16, 6, 0, 0);
-        _replacePrev.Text = "replace previous chrono import in this load";
+        _replacePrev.Text = Lang.T("replace previous chrono import in this load");
         _replacePrev.AutoSize = true;
         _replacePrev.Margin = new Padding(12, 6, 0, 0);
         top.Controls.AddRange(new Control[] { addBtn, addFolderBtn, removeBtn, _perShotTemp, _replacePrev });
@@ -94,18 +94,18 @@ internal sealed class AthlonForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _grid.EditMode = DataGridViewEditMode.EditOnEnter;
 
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "inc", HeaderText = "Use", FillWeight = 6 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "file", HeaderText = "File", ReadOnly = true, FillWeight = 30 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = "Charge (gr)", FillWeight = 12,
-            ToolTipText = "Editable — type the charge here when the session note and file name don't carry it." });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "n", HeaderText = "Shots", ReadOnly = true, FillWeight = 8 });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "inc", HeaderText = Lang.T("Use"), FillWeight = 6 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "file", HeaderText = Lang.T("File"), ReadOnly = true, FillWeight = 30 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = Lang.T("Charge (gr)"), FillWeight = 12,
+            ToolTipText = Lang.T("Editable — type the charge here when the session note and file name don't carry it.") });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "n", HeaderText = Lang.T("Shots"), ReadOnly = true, FillWeight = 8 });
         // Velocities and temperatures are stored in m/s and °C whatever the chronograph file said,
         // so the headers name the unit the cells are actually shown in — GRT's.
         var u = GrtUnits.Current;
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "avg", HeaderText = "AVG " + u.VelocityUnitName, ReadOnly = true, FillWeight = 12 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sd", HeaderText = "SD", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "es", HeaderText = "ES", ReadOnly = true, FillWeight = 8 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = "Temp " + u.TemperatureUnitName, FillWeight = 10 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = Lang.T("Temp") + " " + u.TemperatureUnitName, FillWeight = 10 });
 
         // The charge is guessed from the session note / file name and shows "?" when neither
         // carries it. Writing the corrected value back into the parsed string is what the
@@ -124,7 +124,7 @@ internal sealed class AthlonForm : Form
         _log.Dock = DockStyle.Fill;
 
         var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 44, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
-        _importBtn.Text = "Import into GRT";
+        _importBtn.Text = Lang.T("Import into GRT");
         _importBtn.AutoSize = true;
         _importBtn.Enabled = false;
         _importBtn.Click += async (_, _) => await DoImportAsync();
@@ -150,7 +150,7 @@ internal sealed class AthlonForm : Form
         {
             Multiselect = true,
             Filter = "Chronograph export (*.xlsx;*.csv)|*.xlsx;*.csv|All files (*.*)|*.*",
-            Title = "Select one chrono file (Athlon or Garmin) per charge",
+            Title = Lang.T("Select one chrono file (Athlon or Garmin) per charge"),
         };
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
         AddPaths(dlg.FileNames, showErrorDialog: true);
@@ -158,7 +158,7 @@ internal sealed class AthlonForm : Form
 
     private void AddFolder()
     {
-        using var d = new FolderBrowserDialog { Description = "Folder with one chrono file (Athlon / Garmin, .xlsx / .csv) per charge" };
+        using var d = new FolderBrowserDialog { Description = Lang.T("Folder with one chrono file (Athlon / Garmin, .xlsx / .csv) per charge") };
         if (d.ShowDialog(this) != DialogResult.OK) return;
 
         var exts = new[] { ".xlsx", ".csv", ".tsv" };
@@ -166,7 +166,7 @@ internal sealed class AthlonForm : Form
             .Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        if (files.Count == 0) { MessageBox.Show(this, "No .xlsx / .csv files in that folder.", "Add folder"); return; }
+        if (files.Count == 0) { MessageBox.Show(this, Lang.T("No .xlsx / .csv files in that folder."), Lang.T("Add folder")); return; }
 
         int before = _strings.Count;
         AddPaths(files, showErrorDialog: false);      // a folder may hold target CSVs etc. — just skip those
@@ -192,7 +192,7 @@ internal sealed class AthlonForm : Form
                     ? "ERROR " + Path.GetFileName(path) + ": " + ex.Message
                     : "skipped " + Path.GetFileName(path) + " (not a chrono export)");
                 if (showErrorDialog)
-                    MessageBox.Show(this, ex.Message, "Could not read file", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(this, ex.Message, Lang.T("Could not read file"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
         UpdateStatus();
@@ -241,7 +241,7 @@ internal sealed class AthlonForm : Form
                 double? temp = shown is { } sv ? GrtUnits.Current.TemperatureToCelsius(sv) : null;
                 rows.Add(new ImportBuilder.Row(s, temp, inc));
             }
-            if (rows.All(r => !r.Include)) { MessageBox.Show(this, "Nothing selected.", "Import"); return; }
+            if (rows.All(r => !r.Include)) { MessageBox.Show(this, Lang.T("Nothing selected."), Lang.T("Import")); return; }
 
             string? basePath = null;
             if (_grt is { Connected: true })
@@ -259,9 +259,9 @@ internal sealed class AthlonForm : Form
             if (basePath != null && GrtLoadDoc.LooksLikeGeneratedSibling(basePath))
             {
                 MessageBox.Show(this,
-                    "The tab active in GRT is a generated file, not your load.\n\n" +
-                    "Switch to your real load tab in GRT, then import again.",
-                    "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    Lang.T("The tab active in GRT is a generated file, not your load.\n\n" +
+                    "Switch to your real load tab in GRT, then import again."),
+                    Lang.T("Import"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -281,7 +281,7 @@ internal sealed class AthlonForm : Form
             {
                 using var save = new SaveFileDialog
                 {
-                    Title = "No load open in GRT — choose where to save the imported strings",
+                    Title = Lang.T("No load open in GRT — choose where to save the imported strings"),
                     Filter = "GRT load (*.grtload)|*.grtload",
                     FileName = $"Athlon_{DateTime.Now:yyyyMMdd_HHmm}.grtload",
                 };
@@ -307,18 +307,18 @@ internal sealed class AthlonForm : Form
             {
                 await _grt.LoadFileAsync(outPath);
                 AppendLog("asked GRT to open it");
-                _status.Text = $"Imported {charges.Count} charge(s) into GRT.";
+                _status.Text = string.Format(Lang.T("Imported {0} charge(s) into GRT."), charges.Count);
             }
             else
             {
-                _status.Text = "Wrote " + Path.GetFileName(outPath) + " (not connected to GRT).";
-                MessageBox.Show(this, "Saved:\n" + outPath, "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                _status.Text = Lang.T("Wrote") + " " + Path.GetFileName(outPath) + " " + Lang.T("(not connected to GRT).");
+                MessageBox.Show(this, Lang.T("Saved:") + "\n" + outPath, Lang.T("Done"), MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
         catch (Exception ex)
         {
             AppendLog("IMPORT FAILED: " + ex);
-            MessageBox.Show(this, ex.Message, "Import failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, ex.Message, Lang.T("Import failed"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
         {
@@ -329,10 +329,10 @@ internal sealed class AthlonForm : Form
     private void UpdateStatus()
     {
         _importBtn.Enabled = _strings.Count > 0;
-        string conn = _grt == null ? "stand-alone (no GRT)"
-            : _grt.Connected ? $"connected to GRT :{_grt.Port}"
-            : "GRT connection lost";
-        _status.Text = $"{_strings.Count} file(s) loaded — {conn}";
+        string conn = _grt == null ? Lang.T("stand-alone (no GRT)")
+            : _grt.Connected ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port)
+            : Lang.T("GRT connection lost");
+        _status.Text = string.Format(Lang.T("{0} file(s) loaded"), _strings.Count) + " — " + conn;
     }
 
     private void AppendLog(string line) => _log.SafeAppend(line);

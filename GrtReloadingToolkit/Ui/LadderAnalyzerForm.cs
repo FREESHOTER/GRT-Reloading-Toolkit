@@ -26,12 +26,12 @@ internal abstract class LadderAnalyzerForm : Form
     private readonly NumericUpDown _wPoi = new() { DecimalPlaces = 1, Increment = 0.1M, Minimum = 0, Maximum = 5, Width = 55 };
     private readonly NumericUpDown _wPrim = new() { DecimalPlaces = 1, Increment = 0.1M, Minimum = 0, Maximum = 5, Width = 55 };
     private readonly NumericUpDown _win = new() { Minimum = 3, Maximum = 5, Value = 3, Width = 45 };
-    private readonly Button _writeBtn = new() { Text = "Write note to GRT load", AutoSize = true, Enabled = false };
+    private readonly Button _writeBtn = new() { Text = Lang.T("Write note to GRT load"), AutoSize = true, Enabled = false };
 
     // GRT shot-group source
     private readonly ComboBox _refUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 55, Items = { "mm", "cm", "in" } };
     private readonly ComboBox _shootUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 45, Items = { "m", "yd" } };
-    private readonly CheckBox _noFlyers = new() { Text = "drop flyers", AutoSize = true };
+    private readonly CheckBox _noFlyers = new() { Text = Lang.T("drop flyers"), AutoSize = true };
 
     private string? _folderPath;
     private List<TargetGroup>? _grtGroups;   // set when the source is GRT shot-group tabs
@@ -84,22 +84,22 @@ internal abstract class LadderAnalyzerForm : Form
     private void Build()
     {
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 66, Padding = new Padding(6, 6, 6, 0), WrapContents = true };
-        var pick = new Button { Text = "Pick ladder folder…", AutoSize = true };
+        var pick = new Button { Text = Lang.T("Pick ladder folder…"), AutoSize = true };
         pick.Click += async (_, _) => await PickFolderAsync();
         top.Controls.Add(pick);
         top.Controls.Add(_folder);
-        top.Controls.Add(new Label { Text = "  w POI", AutoSize = true, Padding = new Padding(10, 6, 0, 0) });
+        top.Controls.Add(new Label { Text = "  " + Lang.T("w POI"), AutoSize = true, Padding = new Padding(10, 6, 0, 0) });
         top.Controls.Add(_wPoi);
-        top.Controls.Add(new Label { Text = Mode == LadderMode.Seating ? "w group" : "w MV", AutoSize = true, Padding = new Padding(6, 6, 0, 0) });
+        top.Controls.Add(new Label { Text = Lang.T(Mode == LadderMode.Seating ? "w group" : "w MV"), AutoSize = true, Padding = new Padding(6, 6, 0, 0) });
         top.Controls.Add(_wPrim);
-        top.Controls.Add(new Label { Text = "window", AutoSize = true, Padding = new Padding(6, 6, 0, 0) });
+        top.Controls.Add(new Label { Text = Lang.T("window"), AutoSize = true, Padding = new Padding(6, 6, 0, 0) });
         top.Controls.Add(_win);
-        var re = new Button { Text = "Re-analyze", AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
+        var re = new Button { Text = Lang.T("Re-analyze"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         re.Click += (_, _) => Reanalyze();
         top.Controls.Add(re);
 
         top.SetFlowBreak(pick, false);
-        var grpBtn = new Button { Text = "Groups from GRT load", AutoSize = true, Margin = new Padding(0, 6, 0, 0) };
+        var grpBtn = new Button { Text = Lang.T("Groups from GRT load"), AutoSize = true, Margin = new Padding(0, 6, 0, 0) };
         top.SetFlowBreak(re, true);   // start a new row
         grpBtn.Click += async (_, _) => await LoadGrtGroupsAsync();
         // Open on the units GRT is showing — someone measuring a target in inches at yards should
@@ -111,9 +111,9 @@ internal abstract class LadderAnalyzerForm : Form
         _shootUnit.SelectedIndex = defShoot == ShootUnit.Yards ? 1 : 0;
         foreach (var c in new Control[] { _refUnit, _shootUnit, _noFlyers }) c.Margin = new Padding(6, 8, 0, 0);
         top.Controls.Add(grpBtn);
-        top.Controls.Add(new Label { Text = "ref dist", AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
+        top.Controls.Add(new Label { Text = Lang.T("ref dist"), AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
         top.Controls.Add(_refUnit);
-        top.Controls.Add(new Label { Text = "shoot dist", AutoSize = true, Padding = new Padding(6, 8, 0, 0) });
+        top.Controls.Add(new Label { Text = Lang.T("shoot dist"), AutoSize = true, Padding = new Padding(6, 8, 0, 0) });
         top.Controls.Add(_shootUnit);
         top.Controls.Add(_noFlyers);
 
@@ -126,7 +126,7 @@ internal abstract class LadderAnalyzerForm : Form
         // and get headed with whatever GRT is showing, so a node never reads in a unit the load
         // was never worked up in.
         foreach (var (n, h) in new[] { ("x", XHeader), ("vn", "n"), ("mv", "MV " + gu.VelocityUnitName), ("sd", "SD"), ("es", "ES"),
-                     ("d", "Dist " + gu.DistanceUnitName), ("poi", "POI-Y MOA"), ("mr", "Grp MR MOA"), ("vs", "Vert MOA") })
+                     ("d", Lang.T("Dist") + " " + gu.DistanceUnitName), ("poi", "POI-Y MOA"), ("mr", Lang.T("Grp MR MOA")), ("vs", Lang.T("Vert MOA")) })
             _grid.Columns.Add(n, h);
 
         _chart.Dock = DockStyle.Fill;
@@ -161,7 +161,7 @@ internal abstract class LadderAnalyzerForm : Form
 
     private async Task PickFolderAsync()
     {
-        using var d = new FolderBrowserDialog { Description = "Folder with chrono *.xlsx (Athlon/Garmin) and Ballistic-X *.csv for one ladder" };
+        using var d = new FolderBrowserDialog { Description = Lang.T("Folder with chrono *.xlsx (Athlon/Garmin) and Ballistic-X *.csv for one ladder") };
         if (d.ShowDialog(this) != DialogResult.OK) return;
         _folderPath = d.SelectedPath;
         _folder.Text = _folderPath;
@@ -196,14 +196,14 @@ internal abstract class LadderAnalyzerForm : Form
 
     private async Task LoadGrtGroupsAsync()
     {
-        if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+        if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
         try
         {
             var top = await _grt.GetTabOnTopAsync();
             AppendLog($"reading shot groups from: {top.caption} [{top.file}]");
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
             {
-                MessageBox.Show(this, "No saved load is open in GRT.", "Groups from GRT"); return;
+                MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Groups from GRT")); return;
             }
             var doc = GrtLoadDoc.Load(top.file);
             var opt = new GrtShotGroups.Options(
@@ -212,19 +212,19 @@ internal abstract class LadderAnalyzerForm : Form
                 _noFlyers.Checked);
             var (groups, log) = GrtShotGroups.FromDoc(doc, opt);
             foreach (var l in log) AppendLog(l);
-            if (groups.Count == 0) { MessageBox.Show(this, "No usable shot groups in that load.", "Groups from GRT"); return; }
+            if (groups.Count == 0) { MessageBox.Show(this, Lang.T("No usable shot groups in that load."), Lang.T("Groups from GRT")); return; }
 
             // so the MV flat-spot appears without also pointing at a chrono folder
             await RefreshLoadVelocitiesAsync();
 
             _grtGroups = groups;
-            _folder.Text = $"GRT shot groups ({groups.Count}) — {Path.GetFileName(top.file)}";
+            _folder.Text = $"{Lang.T("GRT shot groups")} ({groups.Count}) — {Path.GetFileName(top.file)}";
             Reanalyze();
         }
         catch (Exception ex)
         {
             AppendLog("GROUPS FAILED: " + ex.Message);
-            MessageBox.Show(this, ex.Message, "Groups from GRT", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, ex.Message, Lang.T("Groups from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -272,15 +272,15 @@ internal abstract class LadderAnalyzerForm : Form
             _writeBtn.Enabled = _result.BestNode != null && _grt is { Connected: true };
             string xf = Mode.XFormat();
             _status.Text = _result.BestNode is { } n
-                ? string.Format(CultureInfo.InvariantCulture, "Recommended node {0}–{1} {2}",
+                ? string.Format(CultureInfo.InvariantCulture, Lang.T("Recommended node {0}–{1} {2}"),
                     Mode.XValue(n.Low).ToString(xf, CultureInfo.InvariantCulture),
                     Mode.XValue(n.High).ToString(xf, CultureInfo.InvariantCulture), XUnit)
-                : "analysis done";
+                : Lang.T("analysis done");
         }
         catch (Exception ex)
         {
             AppendLog("ANALYZE FAILED: " + ex.Message);
-            MessageBox.Show(this, ex.Message, "Analyze failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, ex.Message, Lang.T("Analyze failed"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -296,11 +296,11 @@ internal abstract class LadderAnalyzerForm : Form
             AppendLog($"active load: {top.caption} [{top.file}]");
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
             {
-                MessageBox.Show(this, "No saved load is open in GRT.", "Write note"); return;
+                MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Write note")); return;
             }
             if (GrtLoadDoc.LooksLikeGeneratedSibling(top.file))
             {
-                MessageBox.Show(this, "The active tab is a generated file — switch to your real load in GRT first.", "Write note",
+                MessageBox.Show(this, Lang.T("The active tab is a generated file — switch to your real load in GRT first."), Lang.T("Write note"),
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -318,21 +318,21 @@ internal abstract class LadderAnalyzerForm : Form
             if (removed > 0) AppendLog($"replaced {removed} earlier '{NoteTitle}' note(s)");
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
-            _status.Text = "Note written — opened in GRT as a new tab.";
+            _status.Text = Lang.T("Note written — opened in GRT as a new tab.");
         }
         catch (Exception ex)
         {
             AppendLog("WRITE FAILED: " + ex);
-            MessageBox.Show(this, ex.Message, "Write failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, ex.Message, Lang.T("Write failed"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally { _writeBtn.Enabled = _result?.BestNode != null && _grt is { Connected: true }; }
     }
 
     private void UpdateStatus()
     {
-        string conn = _grt == null ? "stand-alone (no GRT)"
-            : _grt.Connected ? $"connected to GRT :{_grt.Port}" : "GRT connection lost";
-        _status.Text = "Pick a ladder folder — " + conn;
+        string conn = _grt == null ? Lang.T("stand-alone (no GRT)")
+            : _grt.Connected ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port) : Lang.T("GRT connection lost");
+        _status.Text = Lang.T("Pick a ladder folder") + " — " + conn;
     }
 
     private void AppendLog(string line) => _summary.SafeAppend(line);

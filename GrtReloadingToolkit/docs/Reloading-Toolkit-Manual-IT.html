@@ -610,7 +610,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 
     <section id="reports">
       <h2><span class="no">13</span>Template report GRT</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive sei pagine
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive nove pagine
         di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
         dei report. Va lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
         stesso). È idempotente e non distruttivo; per cancellare una pagina la salvi vuota in GRT.</p>
@@ -620,8 +620,14 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Ladder / OCW report</td><td>la nota OCW + grafico</td></tr>
         <tr><td>Seating-depth report</td><td>la nota seating + grafico</td></tr>
         <tr><td>Barrel calibration report</td><td>la nota calibrazione (Ba, o shape fit Ba+a0) + nota coefficienti temperatura</td></tr>
+        <tr><td>Powder temp-coefficients report</td><td>la nota coefficienti temperatura da sola</td></tr>
+        <tr><td>Case volume report</td><td>la nota volume bossolo</td></tr>
+        <tr><td>Seating depth (geometry) report</td><td>la nota profondità di seduta da comparatore</td></tr>
         <tr><td>Load sheet</td><td>ricetta + predetto + nota costo</td></tr>
       </tbody></table>
+      <p>Ogni strumento che scrive una nota ha ora una sua pagina dedicata, tranne <strong>Stima
+        forza di seduta (QC)</strong> — non ha alcun collegamento a GRT (§10), quindi non c&#39;è
+        nulla da recuperare in un report.</p>
       <div class="callout"><b>Per vedere un report:</b> pannello Risultati → <strong>+</strong> (nuovo
         tab) → <strong>Add report</strong> → scegli una pagina &laquo;Toolkit — …&raquo;. Aprilo
         <strong>sullo snapshot <code>…_toolkit_…grtload</code></strong> — è lì che stanno le note e i

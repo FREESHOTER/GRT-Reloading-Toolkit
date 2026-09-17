@@ -16,7 +16,7 @@ internal sealed class BrassForm : Form
     private readonly DataGridView _cv = new();
     private readonly ComboBox _cvUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 70, Items = { "grain", "gram" } };
     private readonly Label _cvOut = new() { AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
-    private readonly Button _cvWrite = new() { Text = "Write casevol to GRT load", AutoSize = true, Enabled = false };
+    private readonly Button _cvWrite = new() { Text = Lang.T("Write casevol to GRT load"), AutoSize = true, Enabled = false };
     private BrassCalc.CaseVolumeResult? _cvResult;
 
     // neck — inch by default (bushing dies are sold in inch); toggle to mm if wanted
@@ -37,7 +37,7 @@ internal sealed class BrassForm : Form
     private readonly NumericUpDown _sdCase = new() { DecimalPlaces = 4, Increment = 0.01M, Maximum = 200, Value = 0M, Width = 100 };
     private readonly NumericUpDown _sdBbto = new() { DecimalPlaces = 4, Increment = 0.01M, Maximum = 100, Value = 0M, Width = 100 };
     private readonly Label _sdOut = new() { AutoSize = true, Font = new Font(FontFamily.GenericMonospace, 9f) };
-    private readonly Button _sdWrite = new() { Text = "Write seating depth to GRT load", AutoSize = true, Enabled = false };
+    private readonly Button _sdWrite = new() { Text = Lang.T("Write seating depth to GRT load"), AutoSize = true, Enabled = false };
     private BrassCalc.SeatingResult? _sdResult;
     private bool _sdInInch;
     private bool _suppressSdUnit;
@@ -45,7 +45,7 @@ internal sealed class BrassForm : Form
     public BrassForm(GrtClient? grt)
     {
         _grt = grt;
-        Text = AppVersion.Title("GRT Brass Prep");
+        Text = AppVersion.Title(Lang.T("GRT Brass Prep"));
         Width = 640; Height = 520;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(520, 400);
@@ -60,7 +60,7 @@ internal sealed class BrassForm : Form
             ("sd.unit", _sdUnit), ("sd.cbto", _sdCbto), ("sd.case", _sdCase), ("sd.bbto", _sdBbto),
             ("neck.unit", _neckUnit), ("neck.bulletDia", _bulletDia), ("neck.wall", _wall),
             ("neck.interference", _interf), ("neck.loadedOd", _loadedOd));
-        _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
+        _status.Text = _grt is { Connected: true } ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port) : Lang.T("stand-alone (no GRT)");
         RecalcNeck();
         RecalcSeating();
     }
@@ -86,23 +86,23 @@ internal sealed class BrassForm : Form
 
     private TabPage BuildCaseVolTab()
     {
-        var page = new TabPage("Case volume");
+        var page = new TabPage(Lang.T("Case volume"));
         var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(6, 4, 0, 0) };
-        var addRow = new Button { Text = "Add 5 rows", AutoSize = true };
+        var addRow = new Button { Text = Lang.T("Add 5 rows"), AutoSize = true };
         addRow.Click += (_, _) => { for (int i = 0; i < 5; i++) _cv.Rows.Add(); };
-        var clr = new Button { Text = "Clear", AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
+        var clr = new Button { Text = Lang.T("Clear"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
         clr.Click += (_, _) => { _cv.Rows.Clear(); Recalc(); };
         _cvUnit.SelectedIndex = 0;
         _cvUnit.SelectedIndexChanged += (_, _) => { SetCvHeaders(); Recalc(); };
-        bar.Controls.AddRange(new Control[] { addRow, clr, new Label { Text = "  water weighed in:", AutoSize = true, Padding = new Padding(8, 6, 4, 0) }, _cvUnit });
+        bar.Controls.AddRange(new Control[] { addRow, clr, new Label { Text = "  " + Lang.T("water weighed in:"), AutoSize = true, Padding = new Padding(8, 6, 4, 0) }, _cvUnit });
 
         _cv.Dock = DockStyle.Fill;
         _cv.AllowUserToAddRows = true;
         _cv.RowHeadersVisible = false;
         _cv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        _cv.Columns.Add("empty", "Empty case");
-        _cv.Columns.Add("full", "Full w/ water");
-        _cv.Columns.Add("water", "→ water");
+        _cv.Columns.Add("empty", Lang.T("Empty case"));
+        _cv.Columns.Add("full", Lang.T("Full w/ water"));
+        _cv.Columns.Add("water", Lang.T("→ water"));
         _cv.Columns["water"].ReadOnly = true;
         _cv.CellEndEdit += (_, _) => Recalc();
         _cv.CellValueChanged += (_, e) => { if (e.RowIndex >= 0 && e.ColumnIndex != _cv.Columns["water"].Index) BeginInvoke(new Action(Recalc)); };
@@ -127,9 +127,9 @@ internal sealed class BrassForm : Form
     private void SetCvHeaders()
     {
         string u = CvInGrains ? "gr" : "g";
-        _cv.Columns["empty"].HeaderText = $"Empty case ({u})";
-        _cv.Columns["full"].HeaderText = $"Full w/ water ({u})";
-        _cv.Columns["water"].HeaderText = $"→ water ({u})";
+        _cv.Columns["empty"].HeaderText = $"{Lang.T("Empty case")} ({u})";
+        _cv.Columns["full"].HeaderText = $"{Lang.T("Full w/ water")} ({u})";
+        _cv.Columns["water"].HeaderText = $"{Lang.T("→ water")} ({u})";
     }
 
     private void Recalc()
@@ -147,9 +147,9 @@ internal sealed class BrassForm : Form
         _cvResult = BrassCalc.CaseVolume(waterGrains);
         var r = _cvResult;
         _cvOut.Text = r.N == 0
-            ? "enter empty + full weights (or the water weight directly) for 3+ cases"
+            ? Lang.T("enter empty + full weights (or the water weight directly) for 3+ cases")
             : string.Format(CultureInfo.InvariantCulture,
-                "n={0}   mean case volume = {1:0.00} grain H2O   ({2:0.000} cm3)   SD {3:0.00} gr ({4:0.0}%)   range {5:0.00}-{6:0.00} gr",
+                Lang.T("n={0}   mean case volume = {1:0.00} grain H2O   ({2:0.000} cm3)   SD {3:0.00} gr ({4:0.0}%)   range {5:0.00}-{6:0.00} gr"),
                 r.N, r.MeanGr, r.MeanCm3, r.SdGr, r.SdPct, r.MinGr, r.MaxGr);
         _cvWrite.Enabled = r.N >= 1 && _grt is { Connected: true };
     }
@@ -160,10 +160,10 @@ internal sealed class BrassForm : Form
         {
             if (_cvResult is null || _grt is not { Connected: true }) return;
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
             if (GrtLoadDoc.LooksLikeGeneratedSibling(top.file))
             {
-                MessageBox.Show(this, "The active tab is a generated file — switch to your real load.", "Case volume", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, Lang.T("The active tab is a generated file — switch to your real load."), Lang.T("Case volume"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             var doc = GrtLoadDoc.OpenForToolkitEdit(top.file);
@@ -176,13 +176,13 @@ internal sealed class BrassForm : Form
             double val = asGrains ? _cvResult.MeanGr : _cvResult.MeanCm3;
             string unit = asGrains ? existingUnit : "cm3";
             if (!doc.SetInput("caliber", "casevol", val.ToString("0.#########", CultureInfo.InvariantCulture), unit))
-                _status.Text = "note written, but no 'casevol' input in the load";
+                _status.Text = Lang.T("note written, but no 'casevol' input in the load");
             string outPath = doc.SaveSibling("casevol");
             await _grt.LoadFileAsync(outPath);
-            _status.Text = string.Format(CultureInfo.InvariantCulture, "casevol = mean {0:0.00} gr H2O ({1:0.000} cm3, unit={2}) written and opened in GRT.",
+            _status.Text = string.Format(CultureInfo.InvariantCulture, Lang.T("casevol = mean {0:0.00} gr H2O ({1:0.000} cm3, unit={2}) written and opened in GRT."),
                 _cvResult.MeanGr, _cvResult.MeanCm3, unit);
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Case volume", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Case volume"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private string CaseVolReport()
@@ -203,23 +203,23 @@ internal sealed class BrassForm : Form
 
     private TabPage BuildSeatingTab()
     {
-        var page = new TabPage("Seating depth");
+        var page = new TabPage(Lang.T("Seating depth"));
         var t = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 2, AutoSize = true, Padding = new Padding(10) };
         void Row(string l, Control c) { t.Controls.Add(new Label { Text = l, AutoSize = true, Padding = new Padding(0, 5, 8, 0) }); t.Controls.Add(c); }
         _sdUnit.SelectedIndex = 0;
         _sdUnit.SelectedIndexChanged += (_, _) => SwitchSdUnit();
-        Row("Working units", _sdUnit);
-        Row("CBTO  (loaded round, base -> ogive)", _sdCbto);
-        Row("Case length  (L3 / CL, trimmed)", _sdCase);
-        Row("BBTO  (bare bullet, base -> ogive)", _sdBbto);
+        Row(Lang.T("Working units"), _sdUnit);
+        Row(Lang.T("CBTO  (loaded round, base -> ogive)"), _sdCbto);
+        Row(Lang.T("Case length  (L3 / CL, trimmed)"), _sdCase);
+        Row(Lang.T("BBTO  (bare bullet, base -> ogive)"), _sdBbto);
         foreach (var n in new[] { _sdCbto, _sdCase, _sdBbto }) n.ValueChanged += (_, _) => RecalcSeating();
 
         var help = new Label
         {
             Dock = DockStyle.Bottom, Height = 66, ForeColor = SystemColors.GrayText, Padding = new Padding(10, 4, 10, 4),
-            Text = "GRT seating depth = distance from the bullet base to the case mouth.\n" +
+            Text = Lang.T("GRT seating depth = distance from the bullet base to the case mouth.\n" +
                    "DIFF = CBTO - case length ;  seating depth = BBTO - DIFF.\n" +
-                   "Measure CBTO and BBTO to the SAME comparator / ogive insert.",
+                   "Measure CBTO and BBTO to the SAME comparator / ogive insert."),
         };
         var bottom = new Panel { Dock = DockStyle.Bottom, Height = 96, Padding = new Padding(8, 6, 8, 6) };
         _sdOut.Location = new Point(10, 4);
@@ -288,15 +288,15 @@ internal sealed class BrassForm : Form
         if (cbto <= 0 || cl <= 0 || bbto <= 0)
         {
             _sdResult = null;
-            _sdOut.Text = "enter CBTO, case length and BBTO";
+            _sdOut.Text = Lang.T("enter CBTO, case length and BBTO");
             _sdWrite.Enabled = false;
             return;
         }
         _sdResult = BrassCalc.Seating(cbto, cl, bbto);
         var r = _sdResult;
         var sb = new System.Text.StringBuilder();
-        sb.Append("DIFF (ogive above case mouth) : ").Append(BrassCalc.Both(r.DiffMm, _sdInInch)).Append('\n');
-        sb.Append("SEATING DEPTH (GRT gdepth)    : ").Append(BrassCalc.Both(r.SeatingDepthMm, _sdInInch));
+        sb.Append(Lang.T("DIFF (ogive above case mouth) : ")).Append(BrassCalc.Both(r.DiffMm, _sdInInch)).Append('\n');
+        sb.Append(Lang.T("SEATING DEPTH (GRT gdepth)    : ")).Append(BrassCalc.Both(r.SeatingDepthMm, _sdInInch));
         foreach (var note in r.Notes) sb.Append("\n  ! ").Append(note);
         _sdOut.Text = sb.ToString();
         _sdWrite.Enabled = r.SeatingDepthMm > 0 && _grt is { Connected: true };
@@ -308,10 +308,10 @@ internal sealed class BrassForm : Form
         {
             if (_sdResult is null || _grt is not { Connected: true }) return;
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
             if (GrtLoadDoc.LooksLikeGeneratedSibling(top.file))
             {
-                MessageBox.Show(this, "The active tab is a generated file - switch to your real load.", "Seating depth", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, Lang.T("The active tab is a generated file - switch to your real load."), Lang.T("Seating depth"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             var doc = GrtLoadDoc.OpenForToolkitEdit(top.file);
@@ -327,7 +327,7 @@ internal sealed class BrassForm : Form
             double depth = _sdResult.SeatingDepthMm;
             if (!doc.SetInput("projectile", "gdepth", depth.ToString(Exact, CultureInfo.InvariantCulture), "mm"))
             {
-                _status.Text = "note written, but no 'gdepth' input in the load";
+                _status.Text = Lang.T("note written, but no 'gdepth' input in the load");
                 await OpenSibling(doc);
                 return;
             }
@@ -340,15 +340,15 @@ internal sealed class BrassForm : Form
                 coalNote = ", COAL " + BrassCalc.Both(oal, _sdInInch);
             else
                 coalNote = doc.CaseLenMm is null || doc.BulletLengthMm is null
-                    ? " (COAL not updated - the load has no case length or bullet length)"
-                    : " (COAL not updated - the load has no 'oal' input)";
+                    ? Lang.T(" (COAL not updated - the load has no case length or bullet length)")
+                    : Lang.T(" (COAL not updated - the load has no 'oal' input)");
 
             await OpenSibling(doc);
             // The file holds mm, as the comment above says; the shooter is about to see this load
             // in GRT, so the line they read leads with the unit they are working in.
-            _status.Text = $"gdepth {BrassCalc.Both(depth, _sdInInch)}{coalNote} written and opened in GRT.";
+            _status.Text = $"gdepth {BrassCalc.Both(depth, _sdInInch)}{coalNote} " + Lang.T("written and opened in GRT.");
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Seating depth", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Seating depth"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private async Task OpenSibling(GrtLoadDoc doc) => await _grt!.LoadFileAsync(doc.SaveSibling("seatdepth"));
@@ -372,7 +372,7 @@ internal sealed class BrassForm : Form
 
     private TabPage BuildNeckTab()
     {
-        var page = new TabPage("Neck / bushing");
+        var page = new TabPage(Lang.T("Neck / bushing"));
         var t = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 3, AutoSize = true, Padding = new Padding(10) };
         void Row(string l, Control c, Control? c3 = null)
         {
@@ -382,18 +382,18 @@ internal sealed class BrassForm : Form
         }
         _neckUnit.SelectedIndex = 0;
         _neckUnit.SelectedIndexChanged += (_, _) => SwitchNeckUnit();
-        Row("Working units", _neckUnit);
-        Row("Bullet diameter", _bulletDia);
-        Row("Neck wall thickness", _wall);
-        Row("Desired interference (grip)", _interf);
-        Row("Measured loaded neck OD  (0 = estimate)", _loadedOd);
+        Row(Lang.T("Working units"), _neckUnit);
+        Row(Lang.T("Bullet diameter"), _bulletDia);
+        Row(Lang.T("Neck wall thickness"), _wall);
+        Row(Lang.T("Desired interference (grip)"), _interf);
+        Row(Lang.T("Measured loaded neck OD  (0 = estimate)"), _loadedOd);
         foreach (var n in new[] { _bulletDia, _wall, _interf, _loadedOd }) n.ValueChanged += (_, _) => RecalcNeck();
 
         var help = new Label
         {
             Dock = DockStyle.Bottom, Height = 60, ForeColor = SystemColors.GrayText, Padding = new Padding(10, 4, 10, 4),
-            Text = "0.002\" (~0.05 mm) is a common target grip. Bushing dies: order 2-3 bushings around the value. " +
-                   "A mandrel as the last step sets the ID directly and evens out wall runout.",
+            Text = Lang.T("0.002\" (~0.05 mm) is a common target grip. Bushing dies: order 2-3 bushings around the value. " +
+                   "A mandrel as the last step sets the ID directly and evens out wall runout."),
         };
         _neckOut.Location = new Point(12, 4);
         var box = new Panel { Dock = DockStyle.Fill, Padding = new Padding(6) };
@@ -438,11 +438,11 @@ internal sealed class BrassForm : Form
         double d = _neckInInch ? BrassCalc.MmPerInch * 0.001 : 0.025;
 
         _neckOut.Text = string.Format(CultureInfo.InvariantCulture,
-            "loaded neck OD    : {0}{1}\n\n" +
+            Lang.T("loaded neck OD    : {0}{1}\n\n" +
             "BUSHING die OD    : {2}\n" +
             "  also try        : {3}  and  {4}   (+/- {5})\n\n" +
             "MANDREL / exp. OD : {6}\n" +
-            "  final neck ID   = bullet dia - interference\n",
+            "  final neck ID   = bullet dia - interference\n"),
             U(r.LoadedNeckOdMm), r.Notes.Length > 0 ? "   - " + r.Notes : "",
             U(r.BushingOdMm),
             U(r.BushingOdMm - d), U(r.BushingOdMm + d), step,

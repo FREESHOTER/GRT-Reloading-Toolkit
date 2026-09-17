@@ -20,7 +20,7 @@ internal sealed class TempCoeffForm : Form
     private readonly TextBox _summary = new();
     private readonly Label _status = new();
     private readonly NumericUpDown _ba = new() { DecimalPlaces = 6, Increment = 0.001M, Maximum = 100, Width = 90 };
-    private readonly Button _write = new() { Text = "Write tcc/tch to GRT load", AutoSize = true, Enabled = false };
+    private readonly Button _write = new() { Text = Lang.T("Write tcc/tch to GRT load"), AutoSize = true, Enabled = false };
 
     private readonly List<TempPoint> _points = new();
     private double _baManual;
@@ -34,7 +34,7 @@ internal sealed class TempCoeffForm : Form
     {
         _grt = grt;
         _logHandler = AppendLog;
-        Text = AppVersion.Title("GRT Powder Temp-Coefficient Fitter");
+        Text = AppVersion.Title(Lang.T("GRT Powder Temp-Coefficient Fitter"));
         Width = 860; Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(660, 420);
@@ -42,7 +42,7 @@ internal sealed class TempCoeffForm : Form
         NudFix.ApplyTo(this);
         UiState.Bind(this, "tempcoeff", ("ba", _ba));
         if (_grt != null) _grt.Log += _logHandler;
-        _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
+        _status.Text = _grt is { Connected: true } ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port) : Lang.T("stand-alone (no GRT)");
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
@@ -60,16 +60,16 @@ internal sealed class TempCoeffForm : Form
     private void Build()
     {
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
-        var pick = new Button { Text = "Add Athlon strings…", AutoSize = true };
+        var pick = new Button { Text = Lang.T("Add Athlon strings…"), AutoSize = true };
         pick.Click += (_, _) => AddFiles();
         top.Controls.Add(pick);
-        var loadBa = new Button { Text = "Load Ba from GRT load", AutoSize = true, Margin = new Padding(8, 2, 0, 0) };
+        var loadBa = new Button { Text = Lang.T("Load Ba from GRT load"), AutoSize = true, Margin = new Padding(8, 2, 0, 0) };
         loadBa.Click += async (_, _) => await LoadBaAsync();
         top.Controls.Add(loadBa);
         top.Controls.Add(new Label { Text = "  Ba", AutoSize = true, Padding = new Padding(8, 6, 0, 0) });
         top.Controls.Add(_ba);
         _ba.ValueChanged += (_, _) => { _baManual = (double)_ba.Value; Recompute(); };
-        var re = new Button { Text = "Fit", AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
+        var re = new Button { Text = Lang.T("Fit"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         re.Click += (_, _) => Recompute();
         top.Controls.Add(re);
 
@@ -77,14 +77,14 @@ internal sealed class TempCoeffForm : Form
         _grid.AllowUserToAddRows = false;
         _grid.RowHeadersVisible = false;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "use", HeaderText = "Use", FillWeight = 7 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "file", HeaderText = "File", ReadOnly = true, FillWeight = 34 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = "Charge " + GrtUnits.Current.ChargeUnitName, ReadOnly = true, FillWeight = 13 });
+        _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "use", HeaderText = Lang.T("Use"), FillWeight = 7 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "file", HeaderText = Lang.T("File"), ReadOnly = true, FillWeight = 34 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName, ReadOnly = true, FillWeight = 13 });
         // The fit, and tcc/tch, are defined in GRT's own terms (ΔBa/ΔT about a 21 °C normal
         // point), so the analysis stays metric; these two columns are what the shooter reads and
         // types, and follow GRT's display units.
         var gu = GrtUnits.Current;
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = "Temp " + gu.TemperatureUnitName, FillWeight = 13 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = Lang.T("Temp") + " " + gu.TemperatureUnitName, FillWeight = 13 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "n", HeaderText = "n", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "mv", HeaderText = "MV " + gu.VelocityUnitName, ReadOnly = true, FillWeight = 13 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sd", HeaderText = "SD", ReadOnly = true, FillWeight = 8 });
@@ -114,7 +114,7 @@ internal sealed class TempCoeffForm : Form
 
     private void AddFiles()
     {
-        using var d = new OpenFileDialog { Multiselect = true, Filter = "Athlon export (*.xlsx)|*.xlsx|All files|*.*", Title = "Athlon strings — same charge, different temperatures" };
+        using var d = new OpenFileDialog { Multiselect = true, Filter = "Athlon export (*.xlsx)|*.xlsx|All files|*.*", Title = Lang.T("Athlon strings — same charge, different temperatures") };
         if (d.ShowDialog(this) != DialogResult.OK) return;
         foreach (string f in d.FileNames)
         {
@@ -142,12 +142,12 @@ internal sealed class TempCoeffForm : Form
     {
         try
         {
-            if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+            if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
             if (GrtLoadDoc.LooksLikeGeneratedSibling(top.file))
             {
-                MessageBox.Show(this, "The active tab is a generated file — switch to your real load.", "Temp coefficients", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, Lang.T("The active tab is a generated file — switch to your real load."), Lang.T("Temp coefficients"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             _basePath = top.file;
@@ -200,10 +200,10 @@ internal sealed class TempCoeffForm : Form
         var used = _points.Where(p => p.Use && p.MeanMps > 0).ToList();
         var charges = used.Select(p => Math.Round(p.ChargeGr, 2)).Distinct().ToList();
         _status.Text = charges.Count > 1
-            ? $"WARNING: {charges.Count} different charges selected — temp fit needs ONE charge"
+            ? string.Format(Lang.T("WARNING: {0} different charges selected — temp fit needs ONE charge"), charges.Count)
             : haveCoeff
                 ? string.Format(CultureInfo.InvariantCulture, "tcc={0}  tch={1}", _result.Tcc?.ToString("0.######") ?? "–", _result.Tch?.ToString("0.######") ?? "–")
-                : $"add strings at 2+ temperatures (ideally cold / {GrtUnits.Current.Temperature(TempCoeffResult.NormalC)} / hot)";
+                : string.Format(Lang.T("add strings at 2+ temperatures (ideally cold / {0} / hot)"), GrtUnits.Current.Temperature(TempCoeffResult.NormalC));
     }
 
     private async Task WriteAsync()
@@ -219,12 +219,12 @@ internal sealed class TempCoeffForm : Form
             string outPath = doc.SaveSibling("tcoeff");
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
-            _status.Text = "tcc/tch written and opened in GRT.";
+            _status.Text = Lang.T("tcc/tch written and opened in GRT.");
         }
         catch (Exception ex) { Err(ex); }
     }
 
-    private void Err(Exception ex) { AppendLog("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, "Temp coefficients", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    private void Err(Exception ex) { AppendLog("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, Lang.T("Temp coefficients"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
 
     private void AppendLog(string line) => _summary.SafeAppend(line);
 }

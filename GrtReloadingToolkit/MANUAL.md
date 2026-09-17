@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit — Manual
 
-A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles nine reloading tools plus a
+A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles ten reloading tools plus a
 set of printable GRT report templates into one window.
 
 - **Author:** community
@@ -456,7 +456,7 @@ the image aspect ratio (1 MOA = 29.0888 mm at 100 m).
 
 ## 13. GRT report templates
 
-**Install GRT report templates** (launcher / Plugin menu) writes six DokuWiki report pages into
+**Install GRT report templates** (launcher / Plugin menu) writes nine DokuWiki report pages into
 `GRT\doku\<language>\report\` and links them in the report index. Run it once per GRT install
 (and tell anyone you share the plugin with to do the same). It is idempotent and non-destructive;
 delete a page by saving it empty in GRT.
@@ -468,7 +468,13 @@ delete a page by saving it empty in GRT.
 | **Toolkit — Ladder / OCW report** | the OCW note + chart |
 | **Toolkit — Seating-depth report** | the seating note + chart |
 | **Toolkit — Barrel calibration report** | the calibration note (Ba, or Ba+a0 shape fit) + temp-coefficient note |
+| **Toolkit — Powder temp-coefficients report** | the temp-coefficient note on its own |
+| **Toolkit — Case volume report** | the case-volume note |
+| **Toolkit — Seating depth (geometry) report** | the seating-depth-from-comparator note |
 | **Toolkit — Load sheet** | recipe + predicted + cost note |
+
+Every tool that writes a note has its own dedicated page now, except **Seating Force Estimate
+(QC)** — it has no GRT linkage at all (§10), so there is nothing for a report to pull.
 
 **To view a report in GRT:** Results panel → **+** (new tab) → **Add report** → pick a "Toolkit —
 …" page. Open it **on the `…_toolkit_…grtload` snapshot** (that's where the notes and charts live),

@@ -18,8 +18,8 @@ internal sealed class LabelForm : Form
     private bool _suppressCombo;
 
     private readonly PictureBox _preview = new() { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White };
-    private readonly RadioButton _rCard = new() { Text = "Recipe card (A6)", Checked = true, AutoSize = true };
-    private readonly RadioButton _rLabel = new() { Text = "Box labels", AutoSize = true };
+    private readonly RadioButton _rCard = new() { Text = Lang.T("Recipe card (A6)"), Checked = true, AutoSize = true };
+    private readonly RadioButton _rLabel = new() { Text = Lang.T("Box labels"), AutoSize = true };
     private readonly NumericUpDown _count = new() { Minimum = 1, Maximum = 60, Value = 12, Width = 50 };
     private readonly PropertyGrid _props = new() { Dock = DockStyle.Fill, ToolbarVisible = false, HelpVisible = false };
     private readonly ComboBox _powder = Combo(), _primer = Combo(), _brass = Combo(), _bullet = Combo(), _barrel = Combo();
@@ -32,7 +32,7 @@ internal sealed class LabelForm : Form
         _grt = grt;
         _db = db;
         _components = db.Components();
-        Text = AppVersion.Title("GRT Load Card / Label");
+        Text = AppVersion.Title(Lang.T("GRT Load Card / Label"));
         Width = 940; Height = 620;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(760, 480);
@@ -40,7 +40,7 @@ internal sealed class LabelForm : Form
         NudFix.ApplyTo(this);
         Activated += (_, _) => RefreshComponents();
         Render();
-        _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
+        _status.Text = _grt is { Connected: true } ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port) : Lang.T("stand-alone (no GRT)");
     }
 
     public void BringForward()
@@ -52,12 +52,12 @@ internal sealed class LabelForm : Form
     private void Build()
     {
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
-        var load = new Button { Text = "Load from GRT", AutoSize = true };
+        var load = new Button { Text = Lang.T("Load from GRT"), AutoSize = true };
         load.Click += async (_, _) => await LoadAsync();
         top.Controls.Add(load);
         top.Controls.Add(_rCard); _rCard.Margin = new Padding(14, 6, 0, 0);
         top.Controls.Add(_rLabel); _rLabel.Margin = new Padding(8, 6, 0, 0);
-        top.Controls.Add(new Label { Text = "count", AutoSize = true, Padding = new Padding(8, 6, 0, 0) });
+        top.Controls.Add(new Label { Text = Lang.T("count"), AutoSize = true, Padding = new Padding(8, 6, 0, 0) });
         top.Controls.Add(_count);
         _rCard.CheckedChanged += (_, _) => Render();
         _count.ValueChanged += (_, _) => Render();
@@ -71,13 +71,13 @@ internal sealed class LabelForm : Form
         FillCombo(_barrel, ComponentKind.Barrel);
         foreach (var (_, cb) in Slots)
             cb.SelectedIndexChanged += (_, _) => { if (!_suppressCombo) { ApplyComponents(); Render(); } };
-        Row("Powder lot", _powder);
-        Row("Primer lot", _primer);
-        Row("Brass lot", _brass);
-        Row("Bullet lot", _bullet);
+        Row(Lang.T("Powder lot"), _powder);
+        Row(Lang.T("Primer lot"), _primer);
+        Row(Lang.T("Brass lot"), _brass);
+        Row(Lang.T("Bullet lot"), _bullet);
         // Not a lot: a barrel is the one thing on this panel you own rather than consume. It is
         // here because the same recipe out of a different tube is a different load.
-        Row("Barrel", _barrel);
+        Row(Lang.T("Barrel"), _barrel);
         _props.SelectedObject = _card;
         _props.PropertyValueChanged += (_, _) => Render();
         right.Controls.Add(_props);
@@ -85,11 +85,11 @@ internal sealed class LabelForm : Form
         _props.Height = 320;
 
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
-        var print = new Button { Text = "Print…", AutoSize = true };
+        var print = new Button { Text = Lang.T("Print…"), AutoSize = true };
         print.Click += (_, _) => Print();
-        var png = new Button { Text = "Save PNG…", AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
+        var png = new Button { Text = Lang.T("Save PNG…"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
         png.Click += (_, _) => SavePng();
-        var note = new Button { Text = "Write load-sheet note to GRT", AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
+        var note = new Button { Text = Lang.T("Write load-sheet note to GRT"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
         note.Click += async (_, _) => await WriteLoadSheetNoteAsync();
         bottom.Controls.Add(print);
         bottom.Controls.Add(png);
@@ -116,7 +116,7 @@ internal sealed class LabelForm : Form
     private void FillCombo(ComboBox cb, ComponentKind k)
     {
         cb.Items.Clear();
-        cb.Items.Add("— none —");
+        cb.Items.Add(Lang.T("— none —"));
         foreach (var c in _components.Where(x => x.Kind == k)) cb.Items.Add(c.Display);
         cb.SelectedIndex = 0;
     }
@@ -189,30 +189,30 @@ internal sealed class LabelForm : Form
     {
         try
         {
-            if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+            if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
             var loaded = LoadCard.FromGrtload(GrtLoadDoc.EffectiveReadPath(top.file));
             foreach (var p in typeof(LoadCard).GetProperties().Where(p => p.CanWrite))
                 p.SetValue(_card, p.GetValue(loaded));
             _props.Refresh();
             ApplyComponents();
             Render();
-            _status.Text = $"loaded {_card.Caliber}";
+            _status.Text = string.Format(Lang.T("loaded {0}"), _card.Caliber);
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Load", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Load"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private async Task WriteLoadSheetNoteAsync()
     {
         try
         {
-            if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+            if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
             if (GrtLoadDoc.LooksLikeGeneratedSibling(top.file))
             {
-                MessageBox.Show(this, "The active tab is a generated file — switch to your real load in GRT first.", "Load sheet",
+                MessageBox.Show(this, Lang.T("The active tab is a generated file — switch to your real load in GRT first."), Lang.T("Load sheet"),
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -221,9 +221,9 @@ internal sealed class LabelForm : Form
             doc.AddNote("Load Sheet", BuildLoadSheetNote());
             string outPath = doc.SaveSibling("loadsheet");
             await _grt.LoadFileAsync(outPath);
-            _status.Text = "load-sheet note written — opened in GRT.";
+            _status.Text = Lang.T("load-sheet note written — opened in GRT.");
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Load sheet", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Load sheet"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private string BuildLoadSheetNote()
@@ -312,7 +312,7 @@ internal sealed class LabelForm : Form
     private void Render()
     {
         try { _preview.Image?.Dispose(); _preview.Image = RenderBitmap(); }
-        catch (Exception ex) { _status.Text = "render error: " + ex.Message; }
+        catch (Exception ex) { _status.Text = Lang.T("render error:") + " " + ex.Message; }
     }
 
     private void SavePng()
@@ -321,7 +321,7 @@ internal sealed class LabelForm : Form
         if (d.ShowDialog(this) != DialogResult.OK) return;
         using var bmp = RenderBitmap();
         bmp.Save(d.FileName, System.Drawing.Imaging.ImageFormat.Png);
-        _status.Text = "saved " + Path.GetFileName(d.FileName);
+        _status.Text = Lang.T("saved") + " " + Path.GetFileName(d.FileName);
     }
 
     private void Print()

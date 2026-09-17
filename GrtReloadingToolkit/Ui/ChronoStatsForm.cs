@@ -33,7 +33,7 @@ internal sealed class ChronoStatsForm : Form
     private readonly ComboBox _cmpB = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170 };
     private readonly TextBox _cmpResult = new();
     private readonly Label _status = new();
-    private readonly Button _write = new() { Text = "Write note to GRT load", AutoSize = true, Enabled = false };
+    private readonly Button _write = new() { Text = Lang.T("Write note to GRT load"), AutoSize = true, Enabled = false };
 
     private string? _basePath;
     private (string a, string b, TwoSampleResult r)? _lastCompare;
@@ -43,14 +43,14 @@ internal sealed class ChronoStatsForm : Form
     {
         _grt = grt;
         _logHandler = AppendLog;
-        Text = AppVersion.Title("Chronograph Statistics");
+        Text = AppVersion.Title(Lang.T("Chronograph Statistics"));
         Width = 920; Height = 620;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(760, 480);
         Build();
         NudFix.ApplyTo(this);
         if (_grt != null) _grt.Log += _logHandler;
-        _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
+        _status.Text = _grt is { Connected: true } ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port) : Lang.T("stand-alone (no GRT)");
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
@@ -69,30 +69,30 @@ internal sealed class ChronoStatsForm : Form
     {
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 70, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
 
-        var addFiles = new Button { Text = "Add chrono files…", AutoSize = true };
+        var addFiles = new Button { Text = Lang.T("Add chrono files…"), AutoSize = true };
         addFiles.Click += (_, _) => AddFiles();
         top.Controls.Add(addFiles);
-        var addFolder = new Button { Text = "Add folder…", AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
+        var addFolder = new Button { Text = Lang.T("Add folder…"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
         addFolder.Click += (_, _) => AddFolder();
         top.Controls.Add(addFolder);
-        var fromLoad = new Button { Text = "From GRT load's Measurement", AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
+        var fromLoad = new Button { Text = Lang.T("From GRT load's Measurement"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
         fromLoad.Click += async (_, _) => await AddFromLoadAsync();
         top.Controls.Add(fromLoad);
-        top.Controls.Add(new Label { Text = "  confidence", AutoSize = true, Padding = new Padding(10, 8, 0, 0) });
+        top.Controls.Add(new Label { Text = "  " + Lang.T("confidence"), AutoSize = true, Padding = new Padding(10, 8, 0, 0) });
         _confidence.Items.AddRange(new object[] { "90%", "95%", "99%" });
         _confidence.SelectedIndex = 1;
         _confidence.SelectedIndexChanged += (_, _) => Recompute();
         top.Controls.Add(_confidence);
-        top.Controls.Add(new Label { Text = "target ± m/s", AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
+        top.Controls.Add(new Label { Text = Lang.T("target ± m/s"), AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
         _targetMargin.ValueChanged += (_, _) => Recompute();
         top.Controls.Add(_targetMargin);
 
         top.SetFlowBreak(_targetMargin, true);   // start a second row
-        top.Controls.Add(new Label { Text = "Compare", AutoSize = true, Padding = new Padding(0, 8, 4, 0) });
+        top.Controls.Add(new Label { Text = Lang.T("Compare"), AutoSize = true, Padding = new Padding(0, 8, 4, 0) });
         top.Controls.Add(_cmpA);
-        top.Controls.Add(new Label { Text = " vs ", AutoSize = true, Padding = new Padding(4, 8, 4, 0) });
+        top.Controls.Add(new Label { Text = " " + Lang.T("vs") + " ", AutoSize = true, Padding = new Padding(4, 8, 4, 0) });
         top.Controls.Add(_cmpB);
-        var cmpBtn = new Button { Text = "Compare", AutoSize = true, Margin = new Padding(8, 2, 0, 0) };
+        var cmpBtn = new Button { Text = Lang.T("Compare"), AutoSize = true, Margin = new Padding(8, 2, 0, 0) };
         cmpBtn.Click += (_, _) => Compare();
         top.Controls.Add(cmpBtn);
 
@@ -101,8 +101,8 @@ internal sealed class ChronoStatsForm : Form
         _grid.AllowUserToAddRows = false;
         _grid.RowHeadersVisible = false;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        foreach (var (n, h) in new[] { ("lbl", "String"), ("n", "n"), ("mean", "Mean m/s"), ("sd", "SD"), ("es", "ES"),
-                     ("ci", "CI ± (mean)"), ("need", "shots for target"), ("out", "outliers") })
+        foreach (var (n, h) in new[] { ("lbl", Lang.T("String")), ("n", "n"), ("mean", Lang.T("Mean m/s")), ("sd", "SD"), ("es", "ES"),
+                     ("ci", Lang.T("CI ± (mean)")), ("need", Lang.T("shots for target")), ("out", Lang.T("outliers")) })
             _grid.Columns.Add(n, h);
 
         _cmpResult.Multiline = true; _cmpResult.ReadOnly = true; _cmpResult.ScrollBars = ScrollBars.Vertical;
@@ -130,21 +130,21 @@ internal sealed class ChronoStatsForm : Form
 
     private void AddFiles()
     {
-        using var d = new OpenFileDialog { Multiselect = true, Filter = "Chronograph export (*.xlsx;*.csv)|*.xlsx;*.csv|All files (*.*)|*.*", Title = "One chrono file per string" };
+        using var d = new OpenFileDialog { Multiselect = true, Filter = "Chronograph export (*.xlsx;*.csv)|*.xlsx;*.csv|All files (*.*)|*.*", Title = Lang.T("One chrono file per string") };
         if (d.ShowDialog(this) != DialogResult.OK) return;
         AddPaths(d.FileNames, showErrorDialog: true);
     }
 
     private void AddFolder()
     {
-        using var d = new FolderBrowserDialog { Description = "Folder with chrono files (Athlon / Garmin, .xlsx / .csv), one per string" };
+        using var d = new FolderBrowserDialog { Description = Lang.T("Folder with chrono files (Athlon / Garmin, .xlsx / .csv), one per string") };
         if (d.ShowDialog(this) != DialogResult.OK) return;
         var exts = new[] { ".xlsx", ".csv", ".tsv" };
         var files = Directory.EnumerateFiles(d.SelectedPath)
             .Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        if (files.Count == 0) { MessageBox.Show(this, "No .xlsx / .csv files in that folder.", "Add folder"); return; }
+        if (files.Count == 0) { MessageBox.Show(this, Lang.T("No .xlsx / .csv files in that folder."), Lang.T("Add folder")); return; }
         int before = _rows.Count;
         AddPaths(files, showErrorDialog: false);   // the folder may hold target CSVs etc. — just skip those
         AppendLog($"folder: {_rows.Count - before} of {files.Count} file(s) added from {Path.GetFileName(d.SelectedPath)}");
@@ -176,11 +176,11 @@ internal sealed class ChronoStatsForm : Form
 
     private async Task AddFromLoadAsync()
     {
-        if (_grt is not { Connected: true }) { MessageBox.Show(this, "Not connected to GRT."); return; }
+        if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
         try
         {
             var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, "No saved load is open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load is open in GRT.")); return; }
             var doc = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
             _basePath ??= top.file;
             int added = 0;
@@ -219,7 +219,7 @@ internal sealed class ChronoStatsForm : Form
                 s.Es.ToString("0.0", CultureInfo.InvariantCulture),
                 FormattableString.Invariant($"±{s.CiMarginMps:0.0}"),
                 needTxt,
-                flagged > 0 ? $"{flagged} flagged" : "–");
+                flagged > 0 ? string.Format(Lang.T("{0} flagged"), flagged) : "–");
         }
 
         string? selA = _cmpA.SelectedItem as string, selB = _cmpB.SelectedItem as string;
@@ -233,11 +233,11 @@ internal sealed class ChronoStatsForm : Form
 
     private void Compare()
     {
-        if (_cmpA.SelectedItem is not string la || _cmpB.SelectedItem is not string lb) { MessageBox.Show(this, "Pick two strings first."); return; }
+        if (_cmpA.SelectedItem is not string la || _cmpB.SelectedItem is not string lb) { MessageBox.Show(this, Lang.T("Pick two strings first.")); return; }
         var ra = _rows.FirstOrDefault(r => r.Label == la);
         var rb = _rows.FirstOrDefault(r => r.Label == lb);
         if (ra is null || rb is null) return;
-        if (ReferenceEquals(ra, rb)) { MessageBox.Show(this, "Pick two different strings."); return; }
+        if (ReferenceEquals(ra, rb)) { MessageBox.Show(this, Lang.T("Pick two different strings.")); return; }
 
         var result = ChronoStatsCalc.Compare(ra.Values, rb.Values);
         _lastCompare = (la, lb, result);
@@ -251,7 +251,7 @@ internal sealed class ChronoStatsForm : Form
             if (_grt is not { Connected: true }) return;
             var top = await _grt.GetTabOnTopAsync();
             string basePath = _basePath ?? top.file;
-            if (string.IsNullOrWhiteSpace(basePath) || !File.Exists(basePath)) { MessageBox.Show(this, "No saved load is open in GRT."); return; }
+            if (string.IsNullOrWhiteSpace(basePath) || !File.Exists(basePath)) { MessageBox.Show(this, Lang.T("No saved load is open in GRT.")); return; }
 
             var report = new System.Text.StringBuilder();
             report.AppendLine($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}");
@@ -270,12 +270,12 @@ internal sealed class ChronoStatsForm : Form
             string outPath = doc.SaveSibling("chronostats");
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
-            _status.Text = "Chrono Statistics note written and opened in GRT.";
+            _status.Text = Lang.T("Chrono Statistics note written and opened in GRT.");
         }
         catch (Exception ex) { Err(ex); }
     }
 
-    private void Err(Exception ex) { AppendLog("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, "Chrono Statistics", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    private void Err(Exception ex) { AppendLog("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, Lang.T("Chrono Statistics"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
 
     private void AppendLog(string line) => _cmpResult.SafeAppend(line);
 }

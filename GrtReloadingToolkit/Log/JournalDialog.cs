@@ -25,7 +25,7 @@ internal sealed class JournalDialog : Form
     private readonly NumericUpDown _grp = new() { DecimalPlaces = 2, Maximum = 50, Width = 80 };
     private readonly NumericUpDown _dist = new() { Maximum = 3000, Width = 90 };
     private readonly TextBox _notes = new() { Width = 380, Multiline = true, Height = 44, ScrollBars = ScrollBars.Vertical };
-    private readonly CheckBox _applyStock = new() { Text = "deduct components from inventory on save", Checked = true, AutoSize = true };
+    private readonly CheckBox _applyStock = new() { Text = Ui.Lang.T("deduct components from inventory on save"), Checked = true, AutoSize = true };
     private readonly Label _cost = new() { AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
 
     // Environmental conditions (GRT tracks none of these -- always manual) + the propellant
@@ -36,7 +36,7 @@ internal sealed class JournalDialog : Form
     // Ba/pressure/humidity, where 0 is never a valid value and can safely mean "not entered").
     // Caught before it shipped, not after: a normal "> 0 ? value : null" pattern here would have
     // silently discarded every entry someone logged at exactly 0C.
-    private readonly CheckBox _envRecorded = new() { Text = "environment recorded", AutoSize = true };
+    private readonly CheckBox _envRecorded = new() { Text = Ui.Lang.T("environment recorded"), AutoSize = true };
     // Metric AND imperial, per-field toggle -- same convention as every other unit choice this
     // session (GRT Sensitivity Lab, Seating Force): temperature in C or F, pressure in hPa or
     // inHg, each with its own dropdown, not one global switch.
@@ -59,7 +59,7 @@ internal sealed class JournalDialog : Form
     {
         _e = e;
         _components = components;
-        Text = e.Id == 0 ? "New journal entry" : "Edit journal entry";
+        Text = Ui.Lang.T(e.Id == 0 ? "New journal entry" : "Edit journal entry");
         Ui.AppIcon.Apply(this);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -102,32 +102,32 @@ internal sealed class JournalDialog : Form
 
         var t = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(10), AutoSize = true };
         void Row(string l, Control ctl) { t.Controls.Add(new Label { Text = l, AutoSize = true, Padding = new Padding(0, 6, 8, 0) }); t.Controls.Add(ctl); }
-        Row("Date", _date);
-        Row("Load name", _load);
-        Row("Caliber", _cal);
-        Row("Firearm", _firearm);
-        Row("Powder", _powder);
-        Row("Primer", _primer);
-        Row("Brass", _brass);
-        Row("Bullet", _bullet);
-        Row("Charge gr", _charge);
-        Row("Rounds", _rounds);
+        Row(Ui.Lang.T("Date"), _date);
+        Row(Ui.Lang.T("Load name"), _load);
+        Row(Ui.Lang.T("Caliber"), _cal);
+        Row(Ui.Lang.T("Firearm"), _firearm);
+        Row(Ui.Lang.T("Powder"), _powder);
+        Row(Ui.Lang.T("Primer"), _primer);
+        Row(Ui.Lang.T("Brass"), _brass);
+        Row(Ui.Lang.T("Bullet"), _bullet);
+        Row(Ui.Lang.T("Charge gr"), _charge);
+        Row(Ui.Lang.T("Rounds"), _rounds);
         Row("MV " + U.VelocityUnitName, _mv);
         Row("SD " + U.VelocityUnitName, _sd);
-        Row("Group MOA", _grp);
-        Row("Distance m", _dist);
+        Row(Ui.Lang.T("Group MOA"), _grp);
+        Row(Ui.Lang.T("Distance m"), _dist);
         Row("", _envRecorded);
-        Row("Temperature", UnitField(_temp, _tempUnit));
-        Row("Pressure", UnitField(_pressure, _pressureUnit));
-        Row("Humidity %", _humidity);
-        Row("Ba (calibrated)", _ba);
-        Row("a0 (calibrated)", _a0);
-        Row("Notes", _notes);
+        Row(Ui.Lang.T("Temperature"), UnitField(_temp, _tempUnit));
+        Row(Ui.Lang.T("Pressure"), UnitField(_pressure, _pressureUnit));
+        Row(Ui.Lang.T("Humidity %"), _humidity);
+        Row(Ui.Lang.T("Ba (calibrated)"), _ba);
+        Row(Ui.Lang.T("a0 (calibrated)"), _a0);
+        Row(Ui.Lang.T("Notes"), _notes);
         Row("", _applyStock);
-        Row("Cost", _cost);
+        Row(Ui.Lang.T("Cost"), _cost);
 
-        var ok = new Button { Text = "Save", DialogResult = DialogResult.OK, Width = 80 };
-        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Width = 80 };
+        var ok = new Button { Text = Ui.Lang.T("Save"), DialogResult = DialogResult.OK, Width = 80 };
+        var cancel = new Button { Text = Ui.Lang.T("Cancel"), DialogResult = DialogResult.Cancel, Width = 80 };
         ok.Click += (_, _) => Commit();
         var buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, Height = 40, Padding = new Padding(8) };
         buttons.Controls.AddRange(new Control[] { cancel, ok });
@@ -141,9 +141,9 @@ internal sealed class JournalDialog : Form
 
     private void FillCombo(ComboBox cb, ComponentKind kind, long? selected)
     {
-        cb.Items.Add(new Item(0, "— none —"));
+        cb.Items.Add(new Item(0, Ui.Lang.T("— none —")));
         foreach (var c in _components.Where(x => x.Kind == kind))
-            cb.Items.Add(new Item(c.Id, $"{c.Display}  ({c.QtyLeftText} left)"));
+            cb.Items.Add(new Item(c.Id, $"{c.Display}  ({c.QtyLeftText} {Ui.Lang.T("left")})"));
         cb.SelectedIndex = 0;
         if (selected is { } id)
             for (int i = 0; i < cb.Items.Count; i++)
@@ -219,11 +219,11 @@ internal sealed class JournalDialog : Form
         double total = cb.PerRound * probe.Rounds;
         // The bare component figures stay either way -- they are each right in their own lot's
         // currency, and this is the window where you can see which lot to change.
-        string lines = $"(powder {cb.Powder:0.000}  primer {cb.Primer:0.000}  bullet {cb.Bullet:0.000}  brass {cb.Brass:0.000})";
+        string lines = string.Format(Ui.Lang.T("(powder {0:0.000}  primer {1:0.000}  bullet {2:0.000}  brass {3:0.000})"), cb.Powder, cb.Primer, cb.Bullet, cb.Brass);
         _cost.Text = cb.Mixed
-            ? $"{cb.MixedNote} — no total until the lots match   {lines}"
-            : $"{Costing.Format(cb.PerRound, cb.Currency)} / round   " + lines +
-              (probe.Rounds > 0 ? $"   →  {Costing.Format(total, cb.Currency)} for {probe.Rounds}" : "");
+            ? $"{cb.MixedNote} {Ui.Lang.T("— no total until the lots match")}   {lines}"
+            : $"{Costing.Format(cb.PerRound, cb.Currency)} {Ui.Lang.T("/ round")}   " + lines +
+              (probe.Rounds > 0 ? string.Format(Ui.Lang.T("   →  {0} for {1}"), Costing.Format(total, cb.Currency), probe.Rounds) : "");
     }
 
     private void Commit()
