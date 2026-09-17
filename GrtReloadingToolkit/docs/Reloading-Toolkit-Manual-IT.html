@@ -199,7 +199,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         m/s, temperature in &deg;C — qualunque unità stia mostrando GRT. GRT tiene la tua scelta a
         parte, in <code>ValueUnits</code> dentro <code>GordonsReloadingTool.cfg</code>, e converte solo
         al momento di mostrarla a schermo.</p>
-      <p>Il toolkit fa lo stesso. All&#39;avvio legge quella riga dal GRT che ha accanto e segue quattro
+      <p>Il toolkit fa lo stesso. All&#39;avvio legge quella riga dal GRT che ha accanto e segue sette
         delle sue impostazioni:</p>
       <table><thead><tr><th>Campo GRT</th><th>Che cosa lo segue</th></tr></thead><tbody>
         <tr><td><code>oal</code></td><td>ogni lunghezza: COAL, profondità di seating, OD colletto,
@@ -208,6 +208,11 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           e il blocco QR</td></tr>
         <tr><td><code>pt</code></td><td>ogni temperatura</td></tr>
         <tr><td><code>range</code></td><td>ogni distanza di tiro</td></tr>
+        <tr><td><code>charge</code></td><td>ogni carica di polvere: il ladder, il diario, Find best
+          Ba, il costo di un colpo</td></tr>
+        <tr><td><code>mp</code></td><td>ogni peso del proiettile</td></tr>
+        <tr><td><code>twistlen</code></td><td>la rigatura della canna, con ritorno a <code>oal</code>
+          dove GRT non ha una voce sua</td></tr>
       </tbody></table>
       <p>Quindi se GRT è impostato su pollici e ft/s, lo è anche il toolkit: intestazioni di colonna,
         assi dei grafici, la card del load, l&#39;etichetta della scatola e le note che riscrive in GRT
@@ -227,7 +232,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       </ul>
       <p>Dove una scheda ha un suo selettore di unità (le schede bossoli, le unità bersaglio del ladder)
         comanda il selettore: l&#39;impostazione di GRT è solo quella con cui si apre la prima volta.
-        Dopo, viene ricordata la tua scelta.</p>
+        Dopo, viene ricordata la tua scelta. Il selettore della temperatura bersaglio di <em>Find best
+        Ba</em> è l&#39;unico che non lo fa: si apre ogni volta sull&#39;unità di GRT, perché
+        quella finestra non conserva niente fra una sessione e l&#39;altra.</p>
 
       <h3>Quello che scrivi resta</h3>
       <p>Ogni casella che compili viene salvata mentre lavori e torna quando riapri la finestra: chiudere

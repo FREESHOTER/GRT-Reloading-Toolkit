@@ -331,7 +331,15 @@ internal sealed class LogForm : Form
         bar.Controls.Add(Group(Lang.T("Rank by"), _fbSortBy));
         bar.Controls.Add(Group(Lang.T("Plot vs temperature"), _fbYAxis));
 
-        var targetMvGroup = (FlowLayoutPanel)Group(Lang.T("Target MV m/s"), _fbTargetMv);
+        // Both target boxes take a number the user reads off the grid beside them, so they take it
+        // in the grid's unit: an ft/s shooter typing 2900 means 2900 ft/s, not 2900 m/s. The ceilings
+        // are the same physical limits in whatever unit is showing -- 3000 m/s, and -40 C to 60 C,
+        // whose Fahrenheit span is -40 to 140. Capped at 60 no Fahrenheit user could enter a warm day.
+        var fbU = GrtUnits.Current;
+        _fbTargetMv.Maximum = (decimal)Math.Ceiling(fbU.VelocityValue(3000));
+        _fbTargetTemp.Minimum = -40;
+        _fbTargetTemp.Maximum = 140;
+        var targetMvGroup = (FlowLayoutPanel)Group(Lang.T("Target MV") + " " + fbU.VelocityUnitName, _fbTargetMv);
         _fbTargetMvPanel.Controls.Add(targetMvGroup);
         bar.Controls.Add(_fbTargetMvPanel);
 
@@ -345,7 +353,7 @@ internal sealed class LogForm : Form
 
         _fbSortBy.SelectedIndex = 0;
         _fbSortBy.SelectedIndexChanged += (_, _) => UpdateFindBaTargetVisibility();
-        _fbTargetTempUnit.SelectedIndex = 0;
+        _fbTargetTempUnit.SelectedIndex = fbU.TemperatureInF ? 1 : 0;
         _fbYAxis.SelectedIndex = 0;
         _fbYAxis.SelectedIndexChanged += (_, _) => UpdateFindBaChart();
         UpdateFindBaTargetVisibility();
@@ -354,8 +362,12 @@ internal sealed class LogForm : Form
         _fb.ReadOnly = true; _fb.AllowUserToAddRows = false; _fb.RowHeadersVisible = false;
         _fb.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _fb.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("chg", Lang.T("Charge gr")), ("ba", "Ba"), ("a0", "a0"),
-                     ("mv", "MV m/s"), ("sd", "SD"), ("grp", Lang.T("Group MOA")), ("temp", Lang.T("Temp")), ("notes", Lang.T("Notes")) })
+        // Every column that carries a unit names it in the header and prints a bare number in the
+        // cell, the way the rest of the toolkit does -- and names the unit GRT is configured for,
+        // not the one the numbers happen to be stored in.
+        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("chg", Lang.T("Charge") + " " + fbU.ChargeUnitName), ("ba", "Ba"), ("a0", "a0"),
+                     ("mv", "MV " + fbU.VelocityUnitName), ("sd", "SD " + fbU.VelocityUnitName), ("grp", Lang.T("Group MOA")),
+                     ("temp", Lang.T("Temp") + " " + fbU.TemperatureUnitName), ("notes", Lang.T("Notes")) })
             _fb.Columns.Add(n, h);
 
         var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(260);
@@ -432,13 +444,14 @@ internal sealed class LogForm : Form
         long? powderId = (_fbPowder.SelectedItem as FbItem)?.Id is > 0 ? (_fbPowder.SelectedItem as FbItem)!.Id : null;
         long? bulletId = (_fbBullet.SelectedItem as FbItem)?.Id is > 0 ? (_fbBullet.SelectedItem as FbItem)!.Id : null;
 
+        var u = GrtUnits.Current;
         var results = _db.FindCalibrations(caliber, powderId, bulletId);
         _fbLastResults = results;
 
         IEnumerable<JournalEntry> ranked = _fbSortBy.SelectedIndex switch
         {
             1 => results.Where(e => e.VelocityAvgMs.HasValue)
-                        .OrderBy(e => Math.Abs(e.VelocityAvgMs!.Value - (double)_fbTargetMv.Value)),
+                        .OrderBy(e => Math.Abs(e.VelocityAvgMs!.Value - u.VelocityToMps((double)_fbTargetMv.Value))),
             2 => results.Where(e => e.TemperatureC.HasValue)
                         .OrderBy(e => Math.Abs(e.TemperatureC!.Value - TargetTempC())),
             _ => results.Where(e => e.GroupMoa.HasValue).OrderBy(e => e.GroupMoa),
@@ -448,12 +461,14 @@ internal sealed class LogForm : Form
         _fb.Rows.Clear();
         foreach (var e in list)
         {
-            string temp = e.TemperatureC is { } tc ? $"{tc:0.#} C ({CToF(tc):0.#} F)" : "";
-            int i = _fb.Rows.Add(e.Date, e.LoadName, e.ChargeGr.ToString("0.00", CultureInfo.InvariantCulture),
+            // Invariant digits under translated headers: this grid is read next to GRT's own
+            // numbers, and a comma decimal on an Italian machine would not match them.
+            string temp = e.TemperatureC is { } tc ? u.TemperatureValue(tc).ToString("0.0", CultureInfo.InvariantCulture) : "";
+            int i = _fb.Rows.Add(e.Date, e.LoadName, u.ChargeValue(e.ChargeGr).ToString(u.ChargeFormat, CultureInfo.InvariantCulture),
                 e.Ba?.ToString("0.######", CultureInfo.InvariantCulture) ?? "",
                 e.A0?.ToString("0.####", CultureInfo.InvariantCulture) ?? "",
-                e.VelocityAvgMs?.ToString("0", CultureInfo.InvariantCulture) ?? "",
-                e.SdMs?.ToString("0.0", CultureInfo.InvariantCulture) ?? "",
+                e.VelocityAvgMs is { } mv ? u.VelocityValue(mv).ToString("0", CultureInfo.InvariantCulture) : "",
+                e.SdMs is { } sd ? u.VelocitySd(sd) : "",
                 e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
                 temp, e.Notes);
             _fb.Rows[i].Tag = e;
@@ -465,7 +480,6 @@ internal sealed class LogForm : Form
     }
 
     private double TargetTempC() => _fbTargetTempUnit.SelectedIndex == 1 ? FToC((double)_fbTargetTemp.Value) : (double)_fbTargetTemp.Value;
-    private static double CToF(double c) => c * 9.0 / 5.0 + 32.0;
     private static double FToC(double f) => (f - 32.0) * 5.0 / 9.0;
 
     private async Task LogFromGrtAsync()

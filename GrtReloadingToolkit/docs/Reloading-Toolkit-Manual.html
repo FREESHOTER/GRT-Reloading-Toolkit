@@ -199,7 +199,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         your choice separately, in <code>ValueUnits</code> in <code>GordonsReloadingTool.cfg</code>,
         and converts on the way to the screen.</p>
       <p>The toolkit does the same. At startup it reads that line from the GRT beside it and follows
-        four of its settings:</p>
+        seven of its settings:</p>
       <table><thead><tr><th>GRT field</th><th>What follows it</th></tr></thead><tbody>
         <tr><td><code>oal</code></td><td>every length: COAL, seating depth, neck OD, case length, the
           card, the label</td></tr>
@@ -207,6 +207,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           notes and the QR block</td></tr>
         <tr><td><code>pt</code></td><td>every temperature</td></tr>
         <tr><td><code>range</code></td><td>every shooting distance</td></tr>
+        <tr><td><code>charge</code></td><td>every powder charge: the ladder, the journal, Find best Ba,
+          the cost of a round</td></tr>
+        <tr><td><code>mp</code></td><td>every bullet weight</td></tr>
+        <tr><td><code>twistlen</code></td><td>the barrel twist, falling back to <code>oal</code> where
+          GRT has no entry for it</td></tr>
       </tbody></table>
       <p>So if GRT is set to inches and ft/s, so is the toolkit: column headers, chart axes, the load
         card, the box label and the notes it writes back all say <code>in</code> and <code>ft/s</code>.
@@ -226,7 +231,8 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       </ul>
       <p>Where a tab has its own unit picker (the brass tabs, the ladder&#39;s target units) the picker
         still wins: GRT&#39;s setting is only what it opens on the first time. After that, your choice
-        is remembered.</p>
+        is remembered. <em>Find best Ba</em>&#39;s target-temperature picker is the one that is not: it
+        opens on GRT&#39;s unit every time, because that window keeps nothing between sessions.</p>
 
       <h3>Your typing is kept</h3>
       <p>Every box you fill in is saved as you go and comes back when you reopen the window &mdash;
