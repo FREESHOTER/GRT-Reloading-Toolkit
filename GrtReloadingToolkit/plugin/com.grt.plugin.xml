@@ -6,9 +6,9 @@
   <plugin
     name           = "Reloading Toolkit"
     id             = "com.grt.plugin.reloadingtoolkit"
-    version        = "0.1.7"
+    version        = "0.2.0"
     provider       = "community"
-    description    = "Reloading tools in one window: Athlon Rangecraft chrono import, Ladder / OCW analyzer, Seating-depth analyzer, barrel calibration, powder temp-coefficient fitter, brass prep (case volume + neck tension), load card / label, component inventory + load journal with cost per round, and installable GRT report templates."
+    description    = "Reloading tools in one window: Athlon Rangecraft chrono import, Chronograph statistics, Ladder / OCW analyzer, Seating-depth analyzer, barrel calibration (Ba, or Ba+a0 shape fit), powder temp-coefficient fitter, brass prep (case volume + neck tension), seating force estimate (QC), load card / label, component inventory + load journal (cost per round, environment, calibrated Ba/a0, best-Ba search), and installable GRT report templates."
     launch-windows = "GRT_Reloading_Toolkit.exe"
     launch-type    = "onDemand"
     launch-args    = ""
@@ -26,9 +26,7 @@
 
     <!-- icon_colorize="false" everywhere the icon appears: it now ships in colour rather than as
          white line art for GRT to tint. GRT does not tint in the plugin dropdown, so the white
-         version was white on a white menu and invisible there. The three plugins GRT ships
-         (chrono, miller, seating) all use false with full-colour artwork; they leave the attribute
-         off <menuitem>, but spelling it out costs nothing and does not rely on the default. -->
+         version was white on a white menu and invisible there. -->
     <menu autoenable="true" icon="media/icons/icn_toolkit_16x16.png" icon_colorize="false">
       <menuitem id="open" label="Reloading Toolkit…" enabled="true" icon="media/icons/icn_toolkit_16x16.png" icon_colorize="false" />
     </menu>

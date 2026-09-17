@@ -19,6 +19,8 @@ public sealed class LoadSnapshot
     public double? EsMs { get; init; }
     public int Shots { get; init; }
     public string Path { get; init; } = "";
+    public double? Ba { get; init; }
+    public double? A0 { get; init; }
 
     public JournalEntry ToEntry() => new()
     {
@@ -32,6 +34,8 @@ public sealed class LoadSnapshot
         EsMs = EsMs,
         Rounds = Shots > 0 ? Shots : 0,
         GrtloadPath = Path,
+        Ba = Ba,
+        A0 = A0,
     };
 
     public static LoadSnapshot FromGrtload(string path)
@@ -51,11 +55,14 @@ public sealed class LoadSnapshot
             LoadName = System.IO.Path.GetFileNameWithoutExtension(path),
             Caliber = doc.CaliberName,
             Firearm = doc.GunName,
+            PowderName = doc.PropellantName,
             ChargeGr = chg,
             VelocityAvgMs = st is { N: > 0 } ? st.Value.Mean : null,
             SdMs = st is { N: > 0 } ? st.Value.Sd : null,
             EsMs = st is { N: > 0 } ? st.Value.Es : null,
             Shots = st?.N ?? 0,
+            Ba = doc.PropellantBa is > 0 ? doc.PropellantBa : null,
+            A0 = doc.InputNumber("propellant", "a0") is { } a0 && a0 > 0 ? a0 : null,
         };
     }
 }

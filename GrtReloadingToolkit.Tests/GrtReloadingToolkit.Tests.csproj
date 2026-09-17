@@ -45,6 +45,8 @@
     <!-- And for the card model, which decides what a printed card and its QR actually say.
          CardRenderer next door is GDI+ and stays out; LoadCard itself is plain data. -->
     <Compile Include="..\GrtReloadingToolkit\Cards\LoadCard.cs" Link="Cards\LoadCard.cs" />
+    <!-- Same story again: the chrono-statistics math is plain arithmetic, no WinForms. -->
+    <Compile Include="..\GrtReloadingToolkit\ChronoStats\ChronoStatsCalc.cs" Link="ChronoStats\ChronoStatsCalc.cs" />
   </ItemGroup>
 
 </Project>

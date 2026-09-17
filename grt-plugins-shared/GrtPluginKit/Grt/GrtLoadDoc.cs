@@ -461,6 +461,9 @@ public sealed class GrtLoadDoc
         return "";
     }
 
+    /// <summary>Raw numeric value of an input, in whatever unit the file stores it (see <see cref="InputUnit"/>).</summary>
+    public double? InputNumber(string section, string name) => ParseInput(section, name);
+
     private double? ParseInput(string section, string name)
         => double.TryParse(InputValue(section, name), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) ? v : null;
 

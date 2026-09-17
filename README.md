@@ -1,12 +1,12 @@
 # GRT Reloading Toolkit
 
-A community plugin for [Gordon's Reloading Tool](https://grtools.de) that bundles eight small
+A community plugin for [Gordon's Reloading Tool](https://grtools.de) that bundles ten small
 reloading tools into one window and writes their results back into your load — as notes, charts,
-and corrected inputs (`Ba`, `casevol`, `gdepth`, `tcc`/`tch`) — plus a set of installable GRT
+and corrected inputs (`Ba`, `a0`, `casevol`, `gdepth`, `tcc`/`tch`) — plus a set of installable GRT
 report templates.
 
-> **Status: v0.1, beta.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path
-> with every export format has been exercised. Bug reports and Garmin sample exports very welcome —
+> **Status: v0.2.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
+> every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
 ## Tools
@@ -14,14 +14,16 @@ report templates.
 | | |
 |---|---|
 | **Chronograph Import** | Athlon Rangecraft and Garmin Xero C1 Pro / ShotView exports (`.xlsx` / `.csv`), one file or a whole folder → a GRT Imported Measurement. Auto-detects fps vs m/s. |
+| **Chronograph Statistics** | Confidence interval on the true mean, shots needed for a target margin, Chauvenet-flagged outliers, Welch t-test / F-test comparing any two strings. |
 | **Ladder / OCW Analyzer** | Velocity flat-spot (Satterlee) + vertical-POI node (OCW / Audette) + a weighted best node → an *OCW Analysis* note and chart. Groups from Ballistic-X CSV or GRT's own shot-group tabs. |
 | **Seating-Depth Analyzer** | Group-size plateau + vertical-POI node for a seating / jump test. |
-| **Barrel Calibration** | Sweeps GRT for the simulated MV at every measured charge, compares to your chrono, suggests a `Ba` tweak (`Ba × (meas ÷ sim)²`). |
+| **Barrel Calibration** | Sweeps GRT for the simulated MV at every measured charge, compares to your chrono, suggests a `Ba` tweak (`Ba × (meas ÷ sim)²`); when the offset varies with charge, an optional `a0` shape-fit sweep fits `Ba` and `a0` together. |
 | **Powder Temp Coefficients** | Fits `tcc` / `tch` from one charge shot cold, normal and hot. |
 | **Brass Prep** | Case volume (grain H₂O) → `casevol`; CBTO / case length / BBTO → `gdepth`; bushing & mandrel sizing for a target neck grip. |
+| **Seating Force Estimate (QC)** | Standalone estimator for expected bullet-seating force, for a QC press's own max-pressure threshold — not a GRT input. |
 | **Load Card / Label** | Printable A6 recipe card or box labels with a QR of the recipe; cost per round from component lots. |
-| **Inventory & Load Journal** | Component stock with lot tracking and cost/round, a range journal that deducts it, and per-barrel round count + MV-drift chart. SQLite. |
-| **Install GRT report templates** | Writes five DokuWiki report pages into `GRT\doku\<lang>\report\`. |
+| **Inventory & Load Journal** | Component stock with lot tracking and cost/round, a range journal (with environment + calibrated `Ba`/`a0` per entry) that deducts stock, a **Find best Ba** search, and per-barrel round count + MV-drift chart. SQLite. |
+| **Install GRT report templates** | Writes six DokuWiki report pages into `GRT\doku\<lang>\report\`. |
 
 Full details: **[MANUAL.md](GrtReloadingToolkit/MANUAL.md)**.
 
@@ -86,7 +88,7 @@ grt-plugins-shared/
   make-icons.ps1
 ```
 
-Debug CLIs (headless, on the built exe) are listed in [MANUAL.md §12](GrtReloadingToolkit/MANUAL.md).
+Debug CLIs (headless, on the built exe) are listed in [MANUAL.md §14](GrtReloadingToolkit/MANUAL.md).
 
 ## Credits
 

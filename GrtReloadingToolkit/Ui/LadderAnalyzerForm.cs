@@ -22,7 +22,6 @@ internal abstract class LadderAnalyzerForm : Form
     private readonly DataGridView _grid = new();
     private readonly LadderChart _chart = new();
     private readonly TextBox _summary = new();
-    private readonly TextBox _log = UiLog.NewLogBox();
     private readonly Label _status = new();
     private readonly NumericUpDown _wPoi = new() { DecimalPlaces = 1, Increment = 0.1M, Minimum = 0, Maximum = 5, Width = 55 };
     private readonly NumericUpDown _wPrim = new() { DecimalPlaces = 1, Increment = 0.1M, Minimum = 0, Maximum = 5, Width = 55 };
@@ -145,11 +144,6 @@ internal abstract class LadderAnalyzerForm : Form
         rightSplit.Panel2.Controls.Add(_summary);
         split.Panel2.Controls.Add(rightSplit);
 
-        // Diagnostics get their own box: the summary is rewritten wholesale on every
-        // analysis, so anything appended to it is wiped milliseconds later.
-        _log.Dock = DockStyle.Bottom;
-        _log.Height = 90;
-
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _writeBtn.Click += async (_, _) => await WriteNoteAsync();
         bottom.Controls.Add(_writeBtn);
@@ -160,7 +154,6 @@ internal abstract class LadderAnalyzerForm : Form
         _status.Padding = new Padding(8, 2, 0, 0);
 
         Controls.Add(split);
-        Controls.Add(_log);
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(top);
@@ -342,5 +335,5 @@ internal abstract class LadderAnalyzerForm : Form
         _status.Text = "Pick a ladder folder — " + conn;
     }
 
-    private void AppendLog(string line) => _log.SafeAppend(line);
+    private void AppendLog(string line) => _summary.SafeAppend(line);
 }

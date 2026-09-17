@@ -449,5 +449,7 @@ internal sealed class BrassForm : Form
             U(r.MandrelOdMm));
     }
 
+    // ---- seating force estimate (neck tension -> QC force baseline, kg + equivalent bar/psi) ---
+
     private static double? D(object? v) => GrtPluginKit.Util.Str.ParseNumber(Convert.ToString(v, CultureInfo.InvariantCulture));
 }

@@ -1,26 +1,30 @@
 # GRT Reloading Toolkit
 
-Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, eight tools.
+Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, ten tools.
 GRT shows a **single toolbar / menu entry** ("Reloading Toolkit") that opens a launcher window;
 every tool is a button there. One background process serves all of them.
 
 | Tool | What it does |
 |---|---|
 | 🎯 **Chronograph Import** | **Athlon Rangecraft** and **Garmin Xero C1 Pro / ShotView** exports (`.xlsx` / `.csv`) → GRT Measurements tab (a batch = a ladder). Pick files or **a whole folder** (one file per charge). Auto-detects fps vs m/s (from the header, or the velocity magnitude), tolerates EU/US number formats and the summary footer. Per-string °C (Athlon) is carried into the charge note for GRT's temp-coefficient assistant. |
-| 📈 **Ladder / OCW Analyzer** | Charge ladder (chrono velocities + target groups) → velocity flat-spot (Satterlee) + vertical-POI node (OCW/Audette) + weighted best node → an *OCW Analysis* note **and a chart** in the load. Groups come from Ballistic-X `.csv` **or straight from GRT's own "Shot group" tabs** in the load ("Groups from GRT load", with reference/shooting-distance units and an optional drop-flyers toggle). |
+| 📐 **Chronograph Statistics** | Confidence interval on the true mean, shots needed for a target margin, Chauvenet-flagged outliers, and a Welch t-test / F-test comparing any two strings — everything GRT's own AVG/SD/ES line doesn't tell you. Reads the same chrono files, or pulls strings straight from the load's Measurement. |
+| 📈 **Ladder / OCW Analyzer** | Charge ladder (chrono velocities + target groups) → velocity flat-spot (Satterlee) + vertical-POI node (OCW/Audette) + weighted best node → an *OCW Analysis* note **and a chart** in the load. Groups come from Ballistic-X `.csv` **or straight from GRT's own "Shot group" tabs** in the load ("Groups from GRT load", with reference/shooting-distance units and an optional drop-flyers toggle). Missing velocities are filled in from the load's own chrono Measurement. |
 | 📏 **Seating-Depth Analyzer** | Seating / jump test → group-size plateau + vertical-POI node → *Seating Depth Analysis* note + chart. Same group sources as the OCW analyzer. |
-| 🎚 **Barrel Calibration** | Compares GRT's simulated MV (captured live via IPC) to your measured MV over one or more charges → mean offset, scale-vs-shape verdict, suggested `Ba` tweak. Can write a `Ba`-corrected `.grtload`. |
+| 🎚 **Barrel Calibration** | Compares GRT's simulated MV (captured live via IPC) to your measured MV over one or more charges → mean offset, scale-vs-shape verdict, suggested `Ba` tweak. Can write a `Ba`-corrected `.grtload`. When the offset varies with charge (a shape error `Ba` alone can't fix), an optional **a0 shape-fit sweep** fits `Ba` **and** `a0` together and can write a `Ba`+`a0`-corrected `.grtload`. |
 | 🌡 **Powder Temp Coefficients** | Fits `tcc` / `tch` from Athlon strings shot at different temperatures (GRT's `Ba(T) ≈ Ba·(MV(T)/MV₂₁)²` formalism). Writes `tcc`/`tch` into the propellant. |
 | 🔧 **Brass Prep** | *Case volume* — N case water weights (grain H₂O **or** grams) → mean / SD volume, written into the caliber's `casevol`. *Seating depth* — CBTO + case length + BBTO (comparator measurements) → GRT `gdepth`, written into the load. *Neck / bushing* — bullet dia + neck wall + desired interference → bushing & mandrel size, **in inch** by default (toggle to mm). |
+| ⚖️ **Seating Force Estimate (QC)** | Standalone estimator for expected bullet-seating (press-fit) force, for a QC press's own max-pressure safety threshold — baseline force for a "typical" setup plus your actual prep (annealing, sizing, lube, coating, boat-tail) → mean force, 1σ/2σ bands, suggested max. Every length field has its own mm/in toggle. The bar/psi figure alongside it is the same force over the bullet's cross-section, **not** a GRT input and not a substitute for GRT's own Initial Pressure. |
 | 🏷 **Load Card / Label** | Printable A6 recipe card / ammo-box labels with a QR of the full recipe. Component-lot dropdowns compute **cost per round**, and a barrel pick adds its twist and length to the card. "Write load-sheet note" puts the recipe + cost breakdown into the load. |
-| 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet / barrel) with lot tracking, brand pick-lists, powder counted in **g, gr, lb or kg**, twist and length on barrels, and cost per round, a load/range journal that deducts stock, and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
+| 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet / barrel) with lot tracking, brand pick-lists, powder counted in **g, gr, lb or kg**, twist and length on barrels, and cost per round, a load/range journal that deducts stock and records the session's environment (temperature/pressure/humidity, own units) plus the calibrated `Ba`/`a0`, a **Find best Ba** search (filter by caliber+powder+bullet, rank by tightest group / closest velocity / closest temperature), and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
 
-Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes five DokuWiki
+Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes six DokuWiki
 report pages into `GRT\doku\<lang>\report\` and links them from the Reports index —
 
+- *Toolkit — Full load workup* (recipe + predicted results + every section below, in one page)
+- *Toolkit — Chronograph statistics report*
 - *Toolkit — Ladder / OCW report* (pulls the OCW note + chart)
 - *Toolkit — Seating-depth report*
-- *Toolkit — Barrel calibration report* (calibration + temp-coefficient notes)
+- *Toolkit — Barrel calibration report* (calibration note — `Ba`, or the `Ba`+`a0` shape fit — + temp-coefficient note)
 - *Toolkit — Load sheet* (recipe + predicted results + cost)
 
 Run it once after installing the plugin. It is idempotent and non-destructive; delete a page by
@@ -71,14 +75,16 @@ GRT_Reloading_Toolkit.exe --tcoeff <Ba> <file.xlsx:tempC> ...
 GRT_Reloading_Toolkit.exe --card <base.grtload> [outDir]
 GRT_Reloading_Toolkit.exe --brass vol gr|g <w> ...  |  --brass neck <dia> <wall> <interf> [loadedOd]  |  --brass seat <cbto> <caselen> <bbto> [mm|in]
 GRT_Reloading_Toolkit.exe --athlon <folder> <base> [tempC]
+GRT_Reloading_Toolkit.exe --chronostats <folder> [base.grtload] [marginMps]
 GRT_Reloading_Toolkit.exe --reports [grtRoot]
 ```
 
-Env: `OCW_FOLDER` / `SEATING_FOLDER` auto-load a ladder; `RELOADING_LOG_DB` overrides the DB path.
+Env: `OCW_FOLDER` / `SEATING_FOLDER` auto-load a ladder; `RELOADING_LOG_DB` overrides the DB path;
+`GRT_OCW_CHART_SIZE=WxH` sets the exported OCW/seating chart pixel size (default `1400x1040`).
 
 ## Status
 
-Every tool verified headless (parsers, analysis, DB + cost model, chart rendering) and each window
-opens and routes correctly in one process. The merged build has **not yet been clicked through a
-running GRT** — toolbar id routing and the `Load_File` round-trip for this build are unverified
-live (the earlier standalone Athlon build's manifest + IPC round-trip did work).
+Live in the community — see the repo root [README](../README.md) and
+[releases](https://github.com/FREESHOTER/GRT-Reloading-Toolkit/releases) for the current version
+and what changed. `dotnet test` covers the ladder/OCW node analysis, the chrono statistics, the
+inventory ledger and the xlsx reader; see `GrtReloadingToolkit.Tests/`.
