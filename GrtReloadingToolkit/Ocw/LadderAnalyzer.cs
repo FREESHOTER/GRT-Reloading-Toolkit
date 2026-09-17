@@ -42,7 +42,8 @@ public static class LadderAnalyzer
             {
                 var best = velW.OrderBy(x => x.VelRange).First();
                 r.PrimaryNode = Node(xs, best,
-                    string.Format(CultureInfo.InvariantCulture, "MV varies only {0:0.0} m/s across {1} steps", best.VelRange, win));
+                    string.Format(CultureInfo.InvariantCulture, "MV varies only {0} across {1} steps",
+                        GrtUnits.Current.VelocitySd(best.VelRange), win));
             }
         }
         else

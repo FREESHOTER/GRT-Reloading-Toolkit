@@ -237,6 +237,18 @@ public class GrtUnitsTests : IDisposable
         Assert.Equal(91.44, GrtUnits.From(Cfg(Metric)).DistanceToMetres(91.44), 10);
     }
 
+    [Fact]
+    public void ABulletWeightSurvivesTheRoundTrip()
+    {
+        // Same shape as the distance, for the component dialog's bullet-weight box: GRT weighs a
+        // projectile under its own key (mp), which a user can set to grams while the powder charge
+        // stays in grains, so the box needs both directions of its own axis.
+        var g = GrtUnits.From(Cfg("oal=mm;charge=grain;mp=g"));
+        Assert.Equal(140.0, g.BulletMassToGrains(g.BulletMassValue(140.0)), 8);
+        Assert.Equal(140.0, g.BulletMassToGrains(9.0718474), 6);
+        Assert.Equal(140.0, GrtUnits.From(Cfg("oal=mm;charge=g;mp=grain")).BulletMassToGrains(140.0), 8);
+    }
+
     [Theory]
     [InlineData("yd")]
     [InlineData("yard")]

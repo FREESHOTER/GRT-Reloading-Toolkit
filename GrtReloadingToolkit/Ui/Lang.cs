@@ -219,7 +219,6 @@ internal static class Lang
         ["Remove selected"] = "Rimuovi selezionati",
         ["TEMP= on every shot"] = "TEMP= su ogni colpo",
         ["replace previous chrono import in this load"] = "sostituisci il precedente import cronografo in questo load",
-        ["Charge (gr)"] = "Carica (gr)",
         ["Editable — type the charge here when the session note and file name don't carry it."] =
             "Modificabile — digita la carica qui quando né gli appunti né il nome file la riportano.",
         ["Shots"] = "Colpi",
@@ -397,7 +396,9 @@ internal static class Lang
         ["Lot cost"] = "Costo lotto",
         ["Expected uses"] = "Usi previsti",
         ["(brass: firings before retirement)"] = "(bossolo: sparate prima del ritiro)",
-        ["Bullet weight gr"] = "Peso proiettile gr",
+        // The dialog appends GRT's own weight unit (mp, which can be grams while powder is in
+        // grains), so the label is the bare words.
+        ["Bullet weight"] = "Peso proiettile",
         ["Twist 1:"] = "Torsione 1:",
         ["Barrel length"] = "Lunghezza canna",
         ["Name is required."] = "Il nome è obbligatorio.",

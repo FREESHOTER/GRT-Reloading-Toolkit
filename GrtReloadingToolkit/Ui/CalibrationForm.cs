@@ -92,7 +92,9 @@ internal sealed class CalibrationForm : Form
         _grid.RowHeadersVisible = false;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = Lang.T("Charge gr") });
+        // Charges are stored in grains and this column, like the velocities below it, shows and
+        // accepts GRT's unit. It was the one cell here still taking raw grains under a "gr" label.
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName });
         // Velocities are stored in m/s; these three columns show and accept GRT's unit instead, so
         // a shooter reading ft/s off their chronograph types the number they are looking at.
         string vu = GrtUnits.Current.VelocityUnitName;
@@ -205,7 +207,7 @@ internal sealed class CalibrationForm : Form
                 return;
             }
             SetSim(c, sim);
-            AppendLog($"captured sim MV {GrtUnits.Current.Velocity(sim)} for {c:0.00} gr (GRT's current charge)  Pmax {res.MaxPressure:0} {res.MaxPressureUnit}");
+            AppendLog($"captured sim MV {GrtUnits.Current.Velocity(sim)} for {GrtUnits.Current.Charge(c)} (GRT's current charge)  Pmax {res.MaxPressure:0} {res.MaxPressureUnit}");
             RefreshGrid();
             Recompute();
         }
@@ -254,9 +256,9 @@ internal sealed class CalibrationForm : Form
                 if (res.MuzzleVelocityMps is { } sim && sim > 0)
                 {
                     SetSim(chg, sim);
-                    AppendLog($"{chg:0.00} gr -> sim {GrtUnits.Current.Velocity(sim)}");
+                    AppendLog($"{GrtUnits.Current.Charge(chg)} -> sim {GrtUnits.Current.Velocity(sim)}");
                 }
-                else AppendLog($"{chg:0.00} gr -> no sim MV (skipped)");
+                else AppendLog($"{GrtUnits.Current.Charge(chg)} -> no sim MV (skipped)");
                 RefreshGrid();
                 Recompute();
             }
@@ -361,7 +363,7 @@ internal sealed class CalibrationForm : Form
         var u = GrtUnits.Current;
         foreach (var p in _result.Points.OrderBy(p => p.ChargeGr))
             _grid.Rows.Add(
-                p.ChargeGr.ToString("0.00", CultureInfo.InvariantCulture),
+                u.ChargeValue(p.ChargeGr).ToString(u.ChargeFormat, CultureInfo.InvariantCulture),
                 p.MeasMps > 0 ? u.VelocityValue(p.MeasMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
                 p.SimMps > 0 ? u.VelocityValue(p.SimMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
                 p.Valid ? u.VelocityValue(p.DeltaMps).ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture) : "",
@@ -375,9 +377,10 @@ internal sealed class CalibrationForm : Form
         for (int i = 0; i < _grid.Rows.Count && i < ordered.Count; i++)
         {
             var p = ordered[i];
-            if (D(_grid.Rows[i].Cells["chg"].Value) is { } c) p.ChargeGr = c;
-            // The inverse of RefreshGrid: the cells are in GRT's unit, the point is always m/s.
+            // The inverse of RefreshGrid: the cells are in GRT's units, the point is always
+            // grains and m/s.
             var u = GrtUnits.Current;
+            if (D(_grid.Rows[i].Cells["chg"].Value) is { } c) p.ChargeGr = u.ChargeToGrains(c);
             if (D(_grid.Rows[i].Cells["meas"].Value) is { } m) p.MeasMps = u.VelocityToMps(m);
             if (D(_grid.Rows[i].Cells["sim"].Value) is { } s) p.SimMps = u.VelocityToMps(s);
         }
@@ -420,7 +423,11 @@ internal sealed class CalibrationForm : Form
             {
                 double baNew = ba * _result.BaMultiplier;
                 if (doc.SetInput("propellant", "Ba", baNew.ToString("0.###############", CultureInfo.InvariantCulture)))
-                { AppendLog($"set Ba {ba:0.######} -> {baNew:0.######}"); suffix = "cal_ba"; }
+                {
+                    AppendLog("set Ba " + ba.ToString("0.######", CultureInfo.InvariantCulture)
+                              + " -> " + baNew.ToString("0.######", CultureInfo.InvariantCulture));
+                    suffix = "cal_ba";
+                }
             }
             string outPath = doc.SaveSibling(suffix);
             AppendLog("wrote " + outPath);

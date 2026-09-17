@@ -109,5 +109,12 @@ public static class Costing
             string.IsNullOrWhiteSpace(c.Currency) ? Money.Default : c.Currency.Trim().ToUpperInvariant();
     }
 
-    public static string Format(double v, string currency) => $"{v:0.000} {currency}";
+    /// <summary>
+    /// A cost with its currency. Invariant, like every other number the toolkit prints: the
+    /// lengths, velocities and charges beside it all come through GrtUnits, which pins the
+    /// decimal point. Left to the machine's locale this one line put "0,412 EUR" under
+    /// "57.1500 mm" on the same card.
+    /// </summary>
+    public static string Format(double v, string currency) =>
+        v.ToString("0.000", CultureInfo.InvariantCulture) + " " + currency;
 }

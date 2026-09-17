@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Globalization;
+using GrtPluginKit.Grt;
 using GrtPluginKit.Util;
 using GrtReloadingToolkit.Athlon;
 using GrtPluginKit.Analysis;
@@ -52,7 +53,7 @@ public static class LadderLoader
             {
                 var t = BallisticXCsv.Parse(f);
                 double? x = StepValue(mode, t.ChargeGrains, null, f);
-                if (x is { } v) { tgts[Key(v)] = t; rep.Log.Add($"target {Path.GetFileName(f)} -> {StepText(mode, v)}, {t.Impacts.Count} impacts @ {t.DistanceM:0} m"); }
+                if (x is { } v) { tgts[Key(v)] = t; rep.Log.Add($"target {Path.GetFileName(f)} -> {StepText(mode, v)}, {t.Impacts.Count} impacts @ {GrtUnits.Current.Distance(t.DistanceM)}"); }
                 else rep.Log.Add($"target {Path.GetFileName(f)}: no step value, skipped");
             }
             catch (Exception) when (chronoFiles.Contains(f))

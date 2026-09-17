@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Grt;
 using GrtReloadingToolkit.Log;
 
 namespace GrtReloadingToolkit.Log;
@@ -24,7 +25,17 @@ internal sealed class ComponentDialog : Form
     // unit beside it. Every other kind has exactly one, which is why this disables itself.
     private readonly ComboBox _qtyUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 70 };
     private readonly NumericUpDown _expUses = new() { Minimum = 1, Maximum = 100, Width = 70, Value = 1 };
-    private readonly NumericUpDown _bulletW = new() { DecimalPlaces = 1, Maximum = 1000, Width = 90 };
+    // Stored in grains, shown and typed in whatever GRT weighs a projectile in -- mp, which a
+    // user sets apart from the powder charge. Grams want two places where grains want one: a
+    // bullet comes in whole grains, or tenths of a gram.
+    private static readonly GrtUnits BulletU = GrtUnits.Current;
+    private static readonly decimal BulletWMax = (decimal)BulletU.BulletMassValue(1000);
+    private readonly NumericUpDown _bulletW = new()
+    {
+        DecimalPlaces = BulletU.BulletMassInGrams ? 2 : 1,
+        Maximum = BulletWMax,
+        Width = 90,
+    };
     // A twist is written as the denominator of 1:n, so this holds n in GRT's twist unit. Three
     // places carry the 1:7.875 that exists without pretending a barrel is measured to a micron.
     private readonly NumericUpDown _twist = new() { DecimalPlaces = 3, Maximum = 1000, Width = 90 };
@@ -67,7 +78,7 @@ internal sealed class ComponentDialog : Form
         foreach (string cur in Money.Common) _currency.Items.Add(cur);
         _currency.Text = string.IsNullOrWhiteSpace(c.Currency) ? Money.Default : c.Currency;
         _expUses.Value = Math.Clamp(c.ExpectedUses, 1, 100);
-        Ui.NudFix.Set(_bulletW, c.BulletWeightGr ?? 0);
+        Ui.NudFix.Set(_bulletW, c.BulletWeightGr is { } bw ? BulletU.BulletMassValue(bw) : 0);
         // Stored in mm, shown in whatever GRT shows a twist and a length in.
         var u = GrtPluginKit.Grt.GrtUnits.Current;
         Ui.NudFix.Set(_twist, c.TwistMm is { } tw ? u.TwistValue(tw) : 0);
@@ -87,7 +98,7 @@ internal sealed class ComponentDialog : Form
         Row(Ui.Lang.T("Qty current"), Flow(_qtyCur, _unitInfo));
         Row(Ui.Lang.T("Lot cost"), Flow(_cost, _currency));
         Row(Ui.Lang.T("Expected uses"), Flow(_expUses, new Label { Text = Ui.Lang.T("(brass: firings before retirement)"), AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) }));
-        Row(Ui.Lang.T("Bullet weight gr"), _bulletW);
+        Row(Ui.Lang.T("Bullet weight") + " " + BulletU.BulletMassUnitName, _bulletW);
         Row(Ui.Lang.T("Twist 1:"), Flow(_twist, _twistUnit));
         Row(Ui.Lang.T("Barrel length"), Flow(_barrelLen, _lenUnit));
         Row(Ui.Lang.T("Notes"), _notes);
@@ -181,7 +192,7 @@ internal sealed class ComponentDialog : Form
         string cur = _currency.Text.Trim().ToUpperInvariant();
         _c.Currency = cur.Length > 0 ? cur : Money.Default;
         _c.ExpectedUses = _c.Kind == ComponentKind.Brass ? (int)_expUses.Value : 1;
-        _c.BulletWeightGr = _c.Kind == ComponentKind.Bullet && _bulletW.Value > 0 ? (double)_bulletW.Value : null;
+        _c.BulletWeightGr = _c.Kind == ComponentKind.Bullet && _bulletW.Value > 0 ? BulletU.BulletMassToGrains((double)_bulletW.Value) : null;
         // Zero means "not recorded", the same bargain the bullet weight makes: a barrel with no
         // twist measured yet is a barrel you still want in the inventory.
         var units = GrtPluginKit.Grt.GrtUnits.Current;

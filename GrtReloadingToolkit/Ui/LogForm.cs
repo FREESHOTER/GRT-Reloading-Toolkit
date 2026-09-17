@@ -173,8 +173,10 @@ internal sealed class LogForm : Form
         {
             int i = _inv.Rows.Add(c.Kind.ToString(), c.Display + c.BarrelSpec,
                 c.QtyLeftText,
-                $"{c.FractionRemaining * 100:0}",
-                c.CostPerUnit > 0 ? $"{c.CostPerUnitIn:0.0000} {c.Currency}/{c.Unit}" : "",
+                (c.FractionRemaining * 100).ToString("0", CultureInfo.InvariantCulture),
+                c.CostPerUnit > 0
+                    ? c.CostPerUnitIn.ToString("0.0000", CultureInfo.InvariantCulture) + $" {c.Currency}/{c.Unit}"
+                    : "",
                 c.Notes);
             _inv.Rows[i].Tag = c;
             if (c.FractionRemaining <= 0.10) _inv.Rows[i].DefaultCellStyle.BackColor = Color.FromArgb(255, 224, 224);
@@ -261,7 +263,9 @@ internal sealed class LogForm : Form
                 e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
                 cb.PerRoundText,
                 cb.Mixed ? cb.MixedNote
-                    : cb.PerRound > 0 && e.Rounds > 0 ? $"{cb.PerRound * e.Rounds:0.00} {cb.Currency}" : "");
+                    : cb.PerRound > 0 && e.Rounds > 0
+                        ? (cb.PerRound * e.Rounds).ToString("0.00", CultureInfo.InvariantCulture) + " " + cb.Currency
+                        : "");
             _jrn.Rows[i].Tag = e;
         }
     }

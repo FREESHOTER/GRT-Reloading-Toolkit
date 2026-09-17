@@ -232,7 +232,12 @@ internal sealed class JournalDialog : Form
         double total = cb.PerRound * probe.Rounds;
         // The bare component figures stay either way -- they are each right in their own lot's
         // currency, and this is the window where you can see which lot to change.
-        string lines = string.Format(Ui.Lang.T("(powder {0:0.000}  primer {1:0.000}  bullet {2:0.000}  brass {3:0.000})"), cb.Powder, cb.Primer, cb.Bullet, cb.Brass);
+        // Money, so the digits are invariant even though the words around them are translated:
+        // a plain string.Format would print an Italian machine's costs as "0,042" beside a total
+        // this app writes with a dot.
+        string lines = string.Format(CultureInfo.InvariantCulture,
+            Ui.Lang.T("(powder {0:0.000}  primer {1:0.000}  bullet {2:0.000}  brass {3:0.000})"),
+            cb.Powder, cb.Primer, cb.Bullet, cb.Brass);
         _cost.Text = cb.Mixed
             ? $"{cb.MixedNote} {Ui.Lang.T("— no total until the lots match")}   {lines}"
             : $"{Costing.Format(cb.PerRound, cb.Currency)} {Ui.Lang.T("/ round")}   " + lines +
