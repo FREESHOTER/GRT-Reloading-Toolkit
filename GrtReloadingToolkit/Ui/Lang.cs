@@ -383,6 +383,9 @@ internal static class Lang
         ["No calibrated entries match this caliber/powder/bullet combo yet."] =
             "Nessuna voce calibrata corrisponde ancora a questa combinazione calibro/polvere/proiettile.",
         ["{0} matching calibration(s), best first."] = "{0} calibrazione/i corrispondente/i, la migliore per prima.",
+        ["Plot vs temperature"] = "Grafico vs temperatura",
+        ["No entries with both temperature and this value logged yet."] =
+            "Nessuna voce con sia la temperatura sia questo valore registrati.",
 
         // ComponentDialog
         ["Add component"] = "Aggiungi componente",

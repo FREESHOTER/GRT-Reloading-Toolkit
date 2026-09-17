@@ -28,7 +28,10 @@ internal sealed class LogForm : Form
     private readonly ComboBox _fbTargetTempUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 50, Items = { "C", "F" } };
     private readonly Panel _fbTargetMvPanel = new() { AutoSize = true };
     private readonly Panel _fbTargetTempPanel = new() { AutoSize = true };
+    private readonly ComboBox _fbYAxis = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130, Items = { "Ba", "MV m/s", Lang.T("Group MOA") } };
     private readonly DataGridView _fb = new();
+    private readonly FindBaChart _fbChart = new();
+    private List<JournalEntry> _fbLastResults = new();
     private readonly Label _fbStatus = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
 
     public LogForm(GrtClient? grt, Db db)
@@ -321,6 +324,7 @@ internal sealed class LogForm : Form
         bar.Controls.Add(Group(Lang.T("Powder"), _fbPowder));
         bar.Controls.Add(Group(Lang.T("Bullet"), _fbBullet));
         bar.Controls.Add(Group(Lang.T("Rank by"), _fbSortBy));
+        bar.Controls.Add(Group(Lang.T("Plot vs temperature"), _fbYAxis));
 
         var targetMvGroup = (FlowLayoutPanel)Group(Lang.T("Target MV m/s"), _fbTargetMv);
         _fbTargetMvPanel.Controls.Add(targetMvGroup);
@@ -337,6 +341,8 @@ internal sealed class LogForm : Form
         _fbSortBy.SelectedIndex = 0;
         _fbSortBy.SelectedIndexChanged += (_, _) => UpdateFindBaTargetVisibility();
         _fbTargetTempUnit.SelectedIndex = 0;
+        _fbYAxis.SelectedIndex = 0;
+        _fbYAxis.SelectedIndexChanged += (_, _) => UpdateFindBaChart();
         UpdateFindBaTargetVisibility();
 
         _fb.Dock = DockStyle.Fill;
@@ -347,12 +353,28 @@ internal sealed class LogForm : Form
                      ("mv", "MV m/s"), ("sd", "SD"), ("grp", Lang.T("Group MOA")), ("temp", Lang.T("Temp")), ("notes", Lang.T("Notes")) })
             _fb.Columns.Add(n, h);
 
+        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(260);
+        split.Panel1.Controls.Add(_fb);
+        _fbChart.Dock = DockStyle.Fill;
+        split.Panel2.Controls.Add(_fbChart);
+
         _fbStatus.Dock = DockStyle.Bottom; _fbStatus.Padding = new Padding(8, 4, 0, 4);
 
-        page.Controls.Add(_fb);
+        page.Controls.Add(split);
         page.Controls.Add(_fbStatus);
         page.Controls.Add(bar);
         return page;
+    }
+
+    private void UpdateFindBaChart()
+    {
+        var axis = _fbYAxis.SelectedIndex switch
+        {
+            1 => FindBaChart.YAxis.Velocity,
+            2 => FindBaChart.YAxis.Group,
+            _ => FindBaChart.YAxis.Ba,
+        };
+        _fbChart.SetData(_fbLastResults, axis);
     }
 
     private void UpdateFindBaTargetVisibility()
@@ -398,12 +420,15 @@ internal sealed class LogForm : Form
         {
             _fbStatus.Text = Lang.T("No calibrated journal entries yet -- log a Ba from Barrel Calibration first.");
             _fb.Rows.Clear();
+            _fbLastResults = new List<JournalEntry>();
+            UpdateFindBaChart();
             return;
         }
         long? powderId = (_fbPowder.SelectedItem as FbItem)?.Id is > 0 ? (_fbPowder.SelectedItem as FbItem)!.Id : null;
         long? bulletId = (_fbBullet.SelectedItem as FbItem)?.Id is > 0 ? (_fbBullet.SelectedItem as FbItem)!.Id : null;
 
         var results = _db.FindCalibrations(caliber, powderId, bulletId);
+        _fbLastResults = results;
 
         IEnumerable<JournalEntry> ranked = _fbSortBy.SelectedIndex switch
         {
@@ -431,6 +456,7 @@ internal sealed class LogForm : Form
         _fbStatus.Text = list.Count == 0
             ? Lang.T("No calibrated entries match this caliber/powder/bullet combo yet.")
             : string.Format(Lang.T("{0} matching calibration(s), best first."), list.Count);
+        UpdateFindBaChart();
     }
 
     private double TargetTempC() => _fbTargetTempUnit.SelectedIndex == 1 ? FToC((double)_fbTargetTemp.Value) : (double)_fbTargetTemp.Value;
