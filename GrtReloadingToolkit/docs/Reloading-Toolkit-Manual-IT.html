@@ -193,6 +193,48 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <em>Ctrl+S</em> su un vecchio tab <code>…_toolkit.grtload</code> a nome fisso che GRT aveva
         aperto prima di uno snapshot più recente — GRT ci scriverebbe sopra la sua copia vecchia in
         memoria.</div>
+
+      <h3>Unità: il toolkit mostra quello che mostra GRT</h3>
+      <p>Un file <code>.grtload</code> è <strong>sempre metrico</strong> — lunghezze in mm, velocità in
+        m/s, temperature in &deg;C — qualunque unità stia mostrando GRT. GRT tiene la tua scelta a
+        parte, in <code>ValueUnits</code> dentro <code>GordonsReloadingTool.cfg</code>, e converte solo
+        al momento di mostrarla a schermo.</p>
+      <p>Il toolkit fa lo stesso. All&#39;avvio legge quella riga dal GRT che ha accanto e segue quattro
+        delle sue impostazioni:</p>
+      <table><thead><tr><th>Campo GRT</th><th>Che cosa lo segue</th></tr></thead><tbody>
+        <tr><td><code>oal</code></td><td>ogni lunghezza: COAL, profondità di seating, OD colletto,
+          lunghezza bossolo, la card, l&#39;etichetta</td></tr>
+        <tr><td><code>velocity</code></td><td>ogni velocità iniziale, SD ed ES — tabelle, grafici, note
+          e il blocco QR</td></tr>
+        <tr><td><code>pt</code></td><td>ogni temperatura</td></tr>
+        <tr><td><code>range</code></td><td>ogni distanza di tiro</td></tr>
+      </tbody></table>
+      <p>Quindi se GRT è impostato su pollici e ft/s, lo è anche il toolkit: intestazioni di colonna,
+        assi dei grafici, la card del load, l&#39;etichetta della scatola e le note che riscrive in GRT
+        dicono tutte <code>in</code> e <code>ft/s</code>. Se accanto non c&#39;è nessun GRT installato
+        (uso autonomo, o una macchina di prova) resta metrico, come ha sempre fatto. Il file salvato non
+        cambia: è metrico in entrambi i casi, così un load resta leggibile da chiunque.</p>
+      <p>Tre cose deliberatamente <strong>non</strong> seguono GRT:</p>
+      <ul>
+        <li><strong>MOA</strong> è un angolo. Il numero è lo stesso in qualsiasi sistema di unità,
+          quindi non viene mai convertito.</li>
+        <li><strong><code>UNIT=</code></strong> in una nota del cronografo registra l&#39;unità del
+          <em>tuo file di export</em>. È provenienza del dato, non una scelta di visualizzazione.</li>
+        <li><strong>La colonna X del ladder</strong> (carica, oppure seat/jump). Quel numero viene letto
+          dai nomi dei tuoi file e dalle note di carica, quindi niente registra in che unità l&#39;hai
+          scritto — convertirlo sarebbe tirare a indovinare. L&#39;intestazione segue GRT così sai qual
+          è la convenzione, ma il numero è esattamente quello che hai scritto tu.</li>
+      </ul>
+      <p>Dove una scheda ha un suo selettore di unità (le schede bossoli, le unità bersaglio del ladder)
+        comanda il selettore: l&#39;impostazione di GRT è solo quella con cui si apre la prima volta.
+        Dopo, viene ricordata la tua scelta.</p>
+
+      <h3>Quello che scrivi resta</h3>
+      <p>Ogni casella che compili viene salvata mentre lavori e torna quando riapri la finestra: chiudere
+        uno strumento non è più una misura persa. Vale anche per i valori che prima sparivano, fra cui
+        <em>measure loaded neck OD</em> e la <em>profondità di seating</em>. Lo stato sta in
+        <code>%APPDATA%\GRTPlugins\toolkit-ui.json</code>; cancella quel file per ripartire con tutte
+        le schede vuote.</p>
     </section>
 
     <section id="chrono">
@@ -485,6 +527,12 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <li>Menù a tendina <strong>lotto Polvere / InneSco / Bossolo / Palla</strong> — scegli un lotto
           dall&#39;inventario (§12) per calcolare il <strong>costo per colpo</strong> e stampare il
           lotto sul cartellino.</li>
+        <li>Menù a tendina <strong>Barrel</strong> — scegli una canna dall&#39;inventario (§10) e il
+          cartellino guadagna una riga <strong>Barrel</strong>: nome, passo di rigatura e lunghezza,
+          nelle unità di GRT. La stessa ricetta sparata da una canna diversa è un load diverso, quindi
+          il cartellino, il QR e la nota load-sheet dicono quale era. Una canna senza passo né lunghezza
+          registrati stampa solo il nome, e senza canna la riga non compare affatto. Una canna non si
+          consuma, quindi non entra mai nel costo per colpo.</li>
         <li>Modifica qualsiasi campo nella griglia proprietà. Scegli <strong>Recipe card</strong> o
           <strong>Box labels</strong> + un numero.</li>
         <li><strong>Save PNG…</strong>, <strong>Print…</strong> (anteprima di stampa), o <strong>Write
@@ -497,13 +545,23 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <h2><span class="no">12</span>Inventario e diario</h2>
       <p>Un piccolo database SQLite in <code>%AppData%\GRTPlugins\reloading_log.db</code>. Quattro tab.</p>
       <ul>
-        <li><strong>Inventory</strong> — scorte di polvere / inneschi / bossoli / palle con id lotto,
+        <li><strong>Inventory</strong> — scorte di polvere / inneschi / bossoli / palle / canne con id lotto,
           prezzo e (per i bossoli) un contatore <em>usi previsti</em> che ammortizza il costo del
           bossolo. Add / Edit / Restock / Archive. Le scorte possono andare in <strong>negativo</strong>
           — significa solo che il lotto è stato inserito con una quantità inferiore a quella reale, o che
           i colpi sono stati registrati sul lotto sbagliato. Lo scarto non viene mai assorbito in
           silenzio: modificando o cancellando la riga del journal viene restituito esattamente quanto
-          era stato tolto.</li>
+          era stato tolto. <strong>Brand</strong> propone i marchi pi&ugrave; comuni per il tipo scelto e
+          resta comunque scrivibile a mano. La polvere si conta nell&#39;unit&agrave; in cui la compri
+          &mdash; <strong>g, gr, lb o kg</strong>, da scegliere accanto a <em>Qty initial</em>; tutto il
+          resto si conta a pezzi. Cambiare unit&agrave; cambia l&#39;etichetta, non il lotto: 1 lb e
+          453,6 g sono lo stesso barattolo, e il journal continua a scalare gli stessi grammi per
+          colpo. Una <strong>canna</strong> accetta una <em>rigatura</em> (twist) e una
+          <em>lunghezza</em>, mostrate nelle unit&agrave; impostate in GRT (<code>twistlen</code> e
+          <code>oal</code> nella sua mappa di unit&agrave;) e memorizzate comunque in metrico &mdash;
+          quindi una canna 1:8 appare come <code>1:8 in</code> accanto a <code>26.0000 in</code> su
+          un&#39;installazione imperiale e come <code>1:203.2 mm</code> accanto a
+          <code>660.4000 mm</code> su una metrica. Entrambe sono facoltative.</li>
         <li><strong>Journal</strong> — una riga per sessione al poligono o lotto caricato: data, load,
           calibro, arma, carica, colpi, MV, SD, gruppo MOA, distanza, note, <strong>costo per
           colpo</strong> dai lotti collegati, e le <strong>condizioni ambientali + i coefficienti di

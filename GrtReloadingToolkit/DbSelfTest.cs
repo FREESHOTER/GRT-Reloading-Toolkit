@@ -1,3 +1,4 @@
+using GrtPluginKit.Grt;
 using GrtReloadingToolkit.Log;
 
 namespace GrtReloadingToolkit;
@@ -21,7 +22,7 @@ internal static class DbSelfTest
 
         var comps = db.Components().ToDictionary(c => c.Id);
         var cb = Costing.PerRound(e, i => comps.GetValueOrDefault(i));
-        Console.WriteLine($"cost/round = {Costing.Format(cb.PerRound, cb.Currency)}  (pw {cb.Powder:0.0000} pr {cb.Primer:0.0000} bu {cb.Bullet:0.0000} br {cb.Brass:0.0000})");
+        Console.WriteLine($"cost/round = {cb.PerRoundText}  (pw {cb.Powder:0.0000} pr {cb.Primer:0.0000} bu {cb.Bullet:0.0000} br {cb.Brass:0.0000})");
         foreach (var c in db.Components()) Console.WriteLine($"  {c.Kind,-7} {c.Display,-26} {c.QtyCurrent:0.###}/{c.QtyInitial:0.###} {c.Unit}");
         db.DeleteEntry(id);
         Console.WriteLine("after delete (restored):");
@@ -41,7 +42,7 @@ internal static class DbSelfTest
         }
         Console.WriteLine($"total rounds: {db.FirearmRoundCount(fa)}  (250 before + {i2}×60)");
         foreach (var h in db.FirearmMvHistory(fa))
-            Console.WriteLine($"  {h.date}  {h.cumRounds,5} rd   {h.mv:0.0} m/s");
+            Console.WriteLine($"  {h.date}  {h.cumRounds,5} rd   {GrtUnits.Current.Velocity(h.mv)}");
     }
 
     [System.Runtime.InteropServices.DllImport("kernel32.dll")]

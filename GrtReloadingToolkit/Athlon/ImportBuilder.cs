@@ -41,7 +41,7 @@ internal static class ImportBuilder
                 var pieces = new List<string>();
                 if (!string.IsNullOrWhiteSpace(m.Time)) pieces.Add("TIME=" + m.Time!.Trim());
                 if (!string.IsNullOrWhiteSpace(m.Note)) pieces.Add("NOTE=" + m.Note!.Trim());
-                if (perShotTemp && row.TempC is { } tc) pieces.Add("TEMP=" + S.Num(tc, 1) + "°C");
+                if (perShotTemp && row.TempC is { } tc) pieces.Add("TEMP=" + TempToken(tc));
                 c.Shots.Add(new GrtShot(m.VelocityMps, pieces.Count > 0 ? string.Join(' ', pieces) : null));
             }
             charges.Add(c);
@@ -51,10 +51,23 @@ internal static class ImportBuilder
 
     private static string BuildName(AthlonString s, double? grains, double? tempC)
     {
+        // A label, like TempToken below: the charge's real value is ValueKg, so this reads in
+        // whatever GRT weighs powder in without anything downstream depending on the number.
         string head = grains is { } g
-            ? g.ToString("0.0#", CultureInfo.InvariantCulture) + " gr"
+            ? GrtUnits.Current.Charge(g)
             : Path.GetFileNameWithoutExtension(s.SourceFile);
-        return tempC is { } t ? $"{head} @ {S.Num(t, 1)} °C" : head;
+        return tempC is { } t ? $"{head} @ {GrtUnits.Current.Temperature(t)}" : head;
+    }
+
+    /// <summary>
+    /// A temperature for a <c>KEY=value</c> token in a GRT note — no space, because the tokens are
+    /// joined by spaces. These notes are ours to write and nothing reads them back, so they are a
+    /// display choice like the card: a shooter working in °F should not find °C in their notes.
+    /// </summary>
+    private static string TempToken(double celsius)
+    {
+        var u = GrtUnits.Current;
+        return S.Num(u.TemperatureValue(celsius), 1) + u.TemperatureUnitName;
     }
 
     private static string BuildChargeNote(AthlonString s, StringStats stats, double? tempC)
@@ -71,11 +84,13 @@ internal static class ImportBuilder
         };
         if (!string.IsNullOrWhiteSpace(s.DevicePowerFactor)) p.Add("PF=" + s.DevicePowerFactor!.Trim());
         if (!string.IsNullOrWhiteSpace(s.DeviceEnergy)) p.Add("KE=" + s.DeviceEnergy!.Trim());
-        if (tempC is { } t) p.Add("T=" + S.Num(t, 1) + "°C");
+        if (tempC is { } t) p.Add("T=" + TempToken(t));
         if (!string.IsNullOrWhiteSpace(s.SessionNote)) p.Add("SESSION=" + s.SessionNote!.Trim());
         p.Add("SRC=Athlon Rangecraft");
         return string.Join(' ', p);
     }
 
-    private static double ToFileUnit(double mps, string unit) => unit == "fps" ? mps * 3.28084 : mps;
+    /// <summary>Back to the unit the chronograph's own file used — <c>UNIT=</c> reports which, so
+    /// this follows the source file and not what GRT happens to be displaying.</summary>
+    private static double ToFileUnit(double mps, string unit) => unit == "fps" ? mps / GrtUnits.MetresPerFoot : mps;
 }

@@ -1,3 +1,4 @@
+using GrtPluginKit.Grt;
 using GrtReloadingToolkit.Ocw;
 using Xunit;
 
@@ -78,6 +79,28 @@ public class LadderAnalyzerTests
 
         Assert.Equal((2.05, 2.15), Bounds(r.BestNode));
         Assert.DoesNotContain(r.Warnings, w => w.Contains(BestEffort));
+    }
+
+    [Fact]
+    public void ASeatingStepIsNeverConverted()
+    {
+        // LadderModes.XUnitName says why: the loader parses a seating step out of file names and
+        // charge notes ("jump 0.020", "salto 1.5"), so nothing records which unit it was written
+        // in. Whatever GRT is set to, dividing an inch ladder by 25.4 would corrupt it.
+        foreach (double x in new[] { 0.020, 1.5, 2.850, -0.015 })
+            Assert.Equal(x, LadderMode.Seating.XValue(x), 12);
+        Assert.Equal(GrtUnits.Current.LengthUnitName, LadderMode.Seating.XUnitName());
+    }
+
+    [Fact]
+    public void AChargeStepFollowsGrtsPowderUnit()
+    {
+        // The other half of the same rule: a charge step IS known to be grains, so it converts,
+        // and it converts by the one method every other charge in the toolkit goes through.
+        var u = GrtUnits.Current;
+        Assert.Equal(u.ChargeValue(41.3), LadderMode.Charge.XValue(41.3), 12);
+        Assert.Equal(u.ChargeUnitName, LadderMode.Charge.XUnitName());
+        Assert.Equal(u.ChargeFormat, LadderMode.Charge.XFormat());
     }
 
     [Fact]

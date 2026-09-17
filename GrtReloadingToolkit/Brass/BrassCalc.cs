@@ -1,5 +1,6 @@
-using System.Globalization;
 using GrtPluginKit.Analysis;
+using GrtPluginKit.Grt;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Brass;
 
@@ -53,7 +54,8 @@ public static class BrassCalc
         return new NeckResult(bushing, mandrel, neckIdAfter, interferenceMm, loadedNeckOd, notes);
     }
 
-    public const double MmPerInch = 25.4;
+    /// <summary>Kept under the brass-prep name its callers already use; defined once in the kit.</summary>
+    public const double MmPerInch = GrtUnits.MmPerInch;
 
     public sealed record SeatingResult(double SeatingDepthMm, double DiffMm, IReadOnlyList<string> Notes)
     {
@@ -91,7 +93,15 @@ public static class BrassCalc
         return new SeatingResult(depth, diff, notes);
     }
 
+    /// <summary>A brass-prep length in one unit. Four decimals, per <see cref="Str.LengthFormat"/>.</summary>
     public static string Fmt(double mm, string unit) => unit == "in"
-        ? (mm / 25.4).ToString("0.0000", CultureInfo.InvariantCulture) + " in"
-        : mm.ToString("0.000", CultureInfo.InvariantCulture) + " mm";
+        ? Str.Len(mm / MmPerInch) + " in"
+        : Str.Len(mm) + " mm";
+
+    /// <summary>A length in the working unit, with the other unit in parentheses.</summary>
+    public static string Both(double mm, bool inchFirst)
+    {
+        string m = Fmt(mm, "mm"), i = Fmt(mm, "in");
+        return inchFirst ? $"{i}  ({m})" : $"{m}  ({i})";
+    }
 }

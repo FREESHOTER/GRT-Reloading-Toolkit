@@ -56,6 +56,48 @@ Key points:
 - Do **not** press *Ctrl+S* on an old fixed-name `…_toolkit.grtload` tab that GRT opened before a
   newer snapshot was written — GRT would save its stale in-memory copy over the file.
 
+### Units: the toolkit shows what GRT shows
+
+A `.grtload` file is **always metric** — lengths in mm, velocities in m/s, temperatures in °C —
+whatever units GRT is displaying. GRT keeps your choice of units separately, in `ValueUnits` in
+`GordonsReloadingTool.cfg`, and converts on the way to the screen.
+
+The toolkit does the same. At startup it reads that line from the GRT beside it and follows four
+of its settings:
+
+| GRT field | What follows it |
+|---|---|
+| `oal` | every length: COAL, seating depth, neck OD, case length, the card, the label |
+| `velocity` | every muzzle velocity, SD and ES, in grids, charts, notes and the QR block |
+| `pt` | every temperature |
+| `range` | every shooting distance |
+
+So if GRT is set to inches and ft/s, so is the toolkit — column headers, chart axes, the load
+card, the box label and the notes it writes back all say `in` and `ft/s`. If there is no GRT
+installed beside it (stand-alone, or a test box) it stays metric, which is what it has always
+done. The stored file never changes: it is metric either way, so a load stays readable by anyone.
+
+Three things deliberately do **not** follow GRT:
+
+- **MOA** is an angle. The number is the same in every unit system, so it is never converted.
+- **`UNIT=`** in a chronograph note records what unit *your export file* used. That is provenance,
+  not a display choice.
+- **The ladder X column** (charge or seat/jump). That number is read out of your own file names
+  and charge notes, so nothing records which unit you wrote it in — converting it would be a
+  guess. The heading follows GRT so you know the convention, but the number is exactly as you
+  typed it.
+
+Where a tab has its own unit picker (the brass tabs, the ladder's target units), the picker still
+wins — GRT's setting is only what it opens on the first time. After that, your choice is
+remembered.
+
+### Your typing is kept
+
+Every box you fill in is saved as you go and comes back when you reopen the window — closing a
+tool is no longer a lost measurement. That covers the values that used to vanish, including
+*measure loaded neck OD* and *seating depth*. The state lives in
+`%APPDATA%\GRTPlugins\toolkit-ui.json`; delete that file to start every tab fresh.
+
 ---
 
 ## 3. Chronograph Import  🎯
@@ -342,6 +384,11 @@ Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** o
   charge, COAL, seating depth, and MV/SD from the last measurement).
 - **Powder / Primer / Brass / Bullet lot** drop-downs — pick a component lot from the Inventory
   (§12) to compute **cost per round** and stamp the lot on the card.
+- **Barrel** drop-down — pick a barrel from the Inventory (§12) and the card gains a **Barrel**
+  row: its name, its twist and its length, in GRT's units. The same recipe out of a different
+  tube is a different load, so the card, the QR and the load-sheet note all say which one it
+  was. A barrel with no twist or length recorded prints as just its name, and no barrel prints
+  no row at all. A barrel is not consumed, so it never enters the cost per round.
 - Edit any field in the property grid. Choose **Recipe card** or **Box labels** + a count.
 - **Save PNG…**, **Print…** (print-preview), or **Write load-sheet note to GRT** — puts the recipe
   + per-round cost breakdown into the load as a "Load Sheet" note.
@@ -352,8 +399,17 @@ Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** o
 
 A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`. Four tabs.
 
-- **Inventory** — powder / primer / brass / bullet stock with lot id, price and (for brass) an
-  *expected uses* count that amortises the case cost. **Add / Edit / Restock / Archive**.
+- **Inventory** — powder / primer / brass / bullet / barrel stock with lot id, price and (for
+  brass) an *expected uses* count that amortises the case cost. **Add / Edit / Restock / Archive**.
+  **Brand** offers the usual makers for the kind and stays typeable for the ones it misses.
+  Powder is counted in whichever unit you buy it in — **g, gr, lb or kg**, picked next to *Qty
+  initial*; everything else is counted in pieces. Switching the unit re-labels the lot, it does
+  not change it: 1 lb and 453.6 g are the same jug, the grid, the restock prompt and the
+  cost-per-unit column all follow, and the journal still burns the same grams per round.
+  A **barrel** takes a *twist* and a *barrel length*, shown in the units GRT is set to (`twistlen`
+  and `oal` in its unit map) and stored metric either way — so a 1:8 tube reads `1:8 in` beside
+  `26.0000 in` on an imperial install and `1:203.2 mm` beside `660.4000 mm` on a metric one. Both
+  are optional; leave them at zero and the row just shows the barrel's name.
   Stock can go **negative** — that just means the lot was entered short, or rounds were logged
   against the wrong lot. It is never silently absorbed, so editing or deleting the entry always
   gives back exactly what it took. Fix it with **Restock** (or **Edit** the lot's quantity).

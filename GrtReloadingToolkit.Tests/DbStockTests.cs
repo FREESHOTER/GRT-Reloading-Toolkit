@@ -148,4 +148,141 @@ public sealed class DbStockTests : IDisposable
                 try { File.Delete(f); } catch (IOException) { }
         }
     }
+    [Fact]
+    public void StockGoesNegativeAndStaysThere()
+    {
+        // Not a corruption: a component added with no opening count, then loaded against, owes
+        // the ledger. The edit dialog used to throw on exactly this, because NumericUpDown
+        // defaults to a Minimum of 0 -- so the number the store round-trips is the number the
+        // dialog has to be able to show, and zeroing it here would erase a real debt.
+        using var db = NewDb();
+        long id = AddPrimers(db, 0);
+        db.AdjustStock(id, -117, "loaded 117 rounds");
+
+        var c = db.Components().Single(x => x.Id == id);
+        Assert.Equal(-117, c.QtyCurrent, 9);
+        Assert.Equal(-117, LedgerSum(db, id), 9);
+        Assert.Equal(0, c.FractionRemaining);        // guarded on QtyInitial, so no divide by zero
+        Assert.Equal(0, c.CostPerUnit);
+    }
+
+    [Fact]
+    public void ABarrelIsALotLikeAnyOther()
+    {
+        // Barrels went in as a kind so a shooter can record what a tube cost and which one it is;
+        // the journal does not consume them, so the only thing to prove is that the new enum
+        // member survives the round trip through a TEXT column.
+        using var db = NewDb();
+        long id = db.UpsertComponent(new Component
+        {
+            Kind = ComponentKind.Barrel, Brand = "Bartlein", Name = "7mm 1:8 5R", Lot = "B-4471",
+            Unit = "pcs", QtyInitial = 1, QtyCurrent = 1, CostTotal = 450, Currency = "USD",
+        });
+
+        var b = db.Components().Single(x => x.Id == id);
+        Assert.Equal(ComponentKind.Barrel, b.Kind);
+        Assert.Equal("Bartlein 7mm 1:8 5R [B-4471]", b.Display);
+        Assert.Equal("1 pcs", b.QtyLeftText);
+        Assert.Equal(450, b.CostPerUnitIn, 9);
+    }
+
+    [Fact]
+    public void PowderCountedInPoundsStillLosesGramsToTheLedger()
+    {
+        // The unit is a label on the lot, not a change of store: logging 20 rounds of 41.5 gr has
+        // to move the same grams whether the jug is counted in pounds or in grams.
+        using var db = NewDb();
+        long jug = db.UpsertComponent(new Component
+        {
+            Kind = ComponentKind.Powder, Brand = "Hodgdon", Name = "H4831SC", Unit = "lb",
+            QtyInitial = 8 * 453.59237, QtyCurrent = 8 * 453.59237,
+        });
+        db.SaveEntry(new JournalEntry { PowderId = jug, ChargeGr = 41.5, Rounds = 20 }, applyStock: true);
+
+        var c = db.Components().Single(x => x.Id == jug);
+        double burnedG = 41.5 * 0.06479891 * 20;
+        Assert.Equal(8 * 453.59237 - burnedG, c.QtyCurrent, 9);
+        Assert.Equal(8 - burnedG / 453.59237, c.QtyCurrentIn, 9);
+        AssertLedgerAgrees(db, jug);
+    }
+
+    [Fact]
+    public void ABarrelKeepsItsTwistAndLengthInMillimetres()
+    {
+        // Both are stored metric and shown in GRT's units, so the store has to give back the
+        // exact millimetres it was handed -- 1:8 in is 203.2 mm and a 26 in tube is 660.4 mm.
+        using var db = NewDb();
+        long id = db.UpsertComponent(new Component
+        {
+            Kind = ComponentKind.Barrel, Brand = "Krieger", Name = "6.5mm 5R", Unit = "pcs",
+            QtyInitial = 1, QtyCurrent = 1, TwistMm = 203.2, BarrelLengthMm = 660.4,
+        });
+
+        var b = db.Components().Single(x => x.Id == id);
+        Assert.Equal(203.2, b.TwistMm!.Value, 9);
+        Assert.Equal(660.4, b.BarrelLengthMm!.Value, 9);
+
+        // The grid appends this to the name, so it carries both numbers in whatever GRT shows.
+        var u = GrtPluginKit.Grt.GrtUnits.Current;
+        Assert.Contains(u.Twist(203.2), b.BarrelSpec);
+        Assert.Contains(u.Length(660.4), b.BarrelSpec);
+    }
+
+    [Fact]
+    public void OnlyABarrelHasABarrelSpecAndAnUnmeasuredOneHasNone()
+    {
+        // The cell appends this unconditionally, so every other kind and every barrel with
+        // nothing recorded has to render as nothing at all rather than a stray "1:0".
+        using var db = NewDb();
+        long bullet = db.UpsertComponent(new Component
+        {
+            Kind = ComponentKind.Bullet, Name = "140 Hybrid", Unit = "pcs",
+            QtyInitial = 100, QtyCurrent = 100, TwistMm = 203.2, BarrelLengthMm = 660.4,
+        });
+        long blank = db.UpsertComponent(new Component
+        {
+            Kind = ComponentKind.Barrel, Name = "take-off", Unit = "pcs", QtyInitial = 1, QtyCurrent = 1,
+        });
+
+        Assert.Equal("", db.Components().Single(x => x.Id == bullet).BarrelSpec);
+        Assert.Equal("", db.Components().Single(x => x.Id == blank).BarrelSpec);
+    }
+
+    [Fact]
+    public void AnOlderDatabaseGainsTheBarrelColumns()
+    {
+        // The user's log predates barrels, so the two columns arrive by ALTER on a table that
+        // already holds rows. Nothing else about those rows may move.
+        string path = Path.Combine(_dir, Guid.NewGuid().ToString("N") + ".db");
+        long id;
+        using (var cn = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path }.ToString()))
+        {
+            cn.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"CREATE TABLE components(
+              id INTEGER PRIMARY KEY, kind TEXT, brand TEXT DEFAULT '', name TEXT, lot TEXT DEFAULT '',
+              unit TEXT DEFAULT 'pcs', qty_initial REAL DEFAULT 0, qty_current REAL DEFAULT 0,
+              cost_total REAL DEFAULT 0, currency TEXT DEFAULT 'USD', expected_uses INTEGER DEFAULT 1,
+              bullet_weight_gr REAL, notes TEXT DEFAULT '', acquired_at TEXT DEFAULT (datetime('now')),
+              archived INTEGER DEFAULT 0);
+              INSERT INTO components(kind,brand,name,unit,qty_initial,qty_current)
+              VALUES('Primer','CCI','BR-4','pcs',1000,1000);
+              SELECT last_insert_rowid();";
+            id = Convert.ToInt64(cmd.ExecuteScalar());
+        }
+        SqliteConnection.ClearAllPools();
+
+        using var db = new Db(path);
+        var c = db.Components().Single(x => x.Id == id);
+        Assert.Equal("CCI BR-4", c.Display);
+        Assert.Equal(1000, c.QtyCurrent, 9);
+        Assert.Null(c.TwistMm);
+        Assert.Null(c.BarrelLengthMm);
+
+        // And the new columns take a write on that same old row.
+        c.Kind = ComponentKind.Barrel;
+        c.TwistMm = 203.2;
+        db.UpsertComponent(c);
+        Assert.Equal(203.2, db.Components().Single(x => x.Id == id).TwistMm!.Value, 9);
+    }
 }

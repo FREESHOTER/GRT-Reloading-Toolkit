@@ -20,7 +20,6 @@ internal sealed class BrassForm : Form
     private BrassCalc.CaseVolumeResult? _cvResult;
 
     // neck — inch by default (bushing dies are sold in inch); toggle to mm if wanted
-    private const double MmPerIn = 25.4;
     private readonly ComboBox _neckUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 60, Items = { "inch", "mm" } };
     private readonly NumericUpDown _bulletDia = new() { DecimalPlaces = 4, Increment = 0.0005M, Maximum = 2, Value = 0.2640M, Width = 90 };
     private readonly NumericUpDown _wall = new() { DecimalPlaces = 4, Increment = 0.0005M, Maximum = 0.1M, Value = 0.0140M, Width = 90 };
@@ -32,9 +31,11 @@ internal sealed class BrassForm : Form
 
     // seating depth from comparator measurements -> GRT gdepth
     private readonly ComboBox _sdUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 60, Items = { "mm", "inch" } };
-    private readonly NumericUpDown _sdCbto = new() { DecimalPlaces = 3, Increment = 0.01M, Maximum = 200, Value = 0M, Width = 100 };
-    private readonly NumericUpDown _sdCase = new() { DecimalPlaces = 3, Increment = 0.01M, Maximum = 200, Value = 0M, Width = 100 };
-    private readonly NumericUpDown _sdBbto = new() { DecimalPlaces = 3, Increment = 0.01M, Maximum = 100, Value = 0M, Width = 100 };
+    // 4 decimals in mm as well as inch: a comparator reads to 0.0001 in, which is finer than
+    // 0.001 mm, so a 3-decimal mm box would round the measurement as it was typed.
+    private readonly NumericUpDown _sdCbto = new() { DecimalPlaces = 4, Increment = 0.01M, Maximum = 200, Value = 0M, Width = 100 };
+    private readonly NumericUpDown _sdCase = new() { DecimalPlaces = 4, Increment = 0.01M, Maximum = 200, Value = 0M, Width = 100 };
+    private readonly NumericUpDown _sdBbto = new() { DecimalPlaces = 4, Increment = 0.01M, Maximum = 100, Value = 0M, Width = 100 };
     private readonly Label _sdOut = new() { AutoSize = true, Font = new Font(FontFamily.GenericMonospace, 9f) };
     private readonly Button _sdWrite = new() { Text = "Write seating depth to GRT load", AutoSize = true, Enabled = false };
     private BrassCalc.SeatingResult? _sdResult;
@@ -50,6 +51,15 @@ internal sealed class BrassForm : Form
         MinimumSize = new Size(520, 400);
         Build();
         NudFix.ApplyTo(this);
+        ApplyGrtUnits();
+        // After ApplyGrtUnits, so a unit you picked yourself outlives GRT's default; and unit
+        // pickers before the boxes they convert, since restoring one rescales whatever is in them.
+        // It has to act on the defaults, not on the measurements we are about to put back.
+        UiState.Bind(this, "brass",
+            ("cv.unit", _cvUnit),
+            ("sd.unit", _sdUnit), ("sd.cbto", _sdCbto), ("sd.case", _sdCase), ("sd.bbto", _sdBbto),
+            ("neck.unit", _neckUnit), ("neck.bulletDia", _bulletDia), ("neck.wall", _wall),
+            ("neck.interference", _interf), ("neck.loadedOd", _loadedOd));
         _status.Text = _grt is { Connected: true } ? $"connected to GRT :{_grt.Port}" : "stand-alone (no GRT)";
         RecalcNeck();
         RecalcSeating();
@@ -226,6 +236,28 @@ internal sealed class BrassForm : Form
         return page;
     }
 
+    /// <summary>
+    /// Opens each tab in the unit GRT is showing that quantity in, so a number read here and a
+    /// number read in GRT are the same number. GRT's unit map is per-field and per-user: an
+    /// imperial install reads gdepth=in, a metric one gdepth=mm. Without an install to ask
+    /// (stand-alone, or a dev box) the built-in defaults stand.
+    /// </summary>
+    private void ApplyGrtUnits()
+    {
+        var cfg = GrtConfig.Load();
+        if (cfg == null) return;
+
+        // seating depth: GRT writes it as gdepth, which is what this tab produces
+        _sdUnit.SelectedIndex = cfg.IsInch("gdepth") ? 1 : 0;
+
+        // neck work is sized off the bullet, so follow the unit GRT shows the bullet diameter in
+        if (cfg.UnitFor("Dbul") is not null) _neckUnit.SelectedIndex = cfg.IsInch("Dbul") ? 0 : 1;
+
+        // case volume is water weight in both systems — grain H2O or gram
+        if (cfg.UnitFor("casevol") is { } cv)
+            _cvUnit.SelectedIndex = cv.Contains("grain", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+    }
+
     private bool SdInInch => _sdUnit.SelectedIndex == 1;
 
     private void SwitchSdUnit()
@@ -240,7 +272,6 @@ internal sealed class BrassForm : Form
             // afterwards would convert the clamped number, not what the user typed.
             decimal v = n.Value;
             n.Maximum = toInch ? 8m : 200m;
-            n.DecimalPlaces = toInch ? 4 : 3;
             n.Increment = toInch ? 0.0005M : 0.01M;
             n.Value = Math.Round(Math.Clamp(v * f, n.Minimum, n.Maximum), n.DecimalPlaces);
         }
@@ -263,12 +294,9 @@ internal sealed class BrassForm : Form
         }
         _sdResult = BrassCalc.Seating(cbto, cl, bbto);
         var r = _sdResult;
-        string U(double mm) => _sdInInch
-            ? (mm / BrassCalc.MmPerInch).ToString("0.0000", CultureInfo.InvariantCulture) + " in  (" + mm.ToString("0.000", CultureInfo.InvariantCulture) + " mm)"
-            : mm.ToString("0.000", CultureInfo.InvariantCulture) + " mm  (" + (mm / BrassCalc.MmPerInch).ToString("0.0000", CultureInfo.InvariantCulture) + " in)";
         var sb = new System.Text.StringBuilder();
-        sb.Append("DIFF (ogive above case mouth) : ").Append(U(r.DiffMm)).Append('\n');
-        sb.Append("SEATING DEPTH (GRT gdepth)    : ").Append(U(r.SeatingDepthMm));
+        sb.Append("DIFF (ogive above case mouth) : ").Append(BrassCalc.Both(r.DiffMm, _sdInInch)).Append('\n');
+        sb.Append("SEATING DEPTH (GRT gdepth)    : ").Append(BrassCalc.Both(r.SeatingDepthMm, _sdInInch));
         foreach (var note in r.Notes) sb.Append("\n  ! ").Append(note);
         _sdOut.Text = sb.ToString();
         _sdWrite.Enabled = r.SeatingDepthMm > 0 && _grt is { Connected: true };
@@ -289,14 +317,41 @@ internal sealed class BrassForm : Form
             var doc = GrtLoadDoc.OpenForToolkitEdit(top.file);
             doc.RemoveByTitlePrefix("Seating Depth (geometry)");
             doc.AddNote("Seating Depth (geometry)", SeatingReport());
-            if (!doc.SetInput("projectile", "gdepth", _sdResult.SeatingDepthMm.ToString("0.####", CultureInfo.InvariantCulture), "mm"))
+
+            // Full precision, not the 4 decimals we display: GRT stores these as doubles and
+            // derives the combustion chamber from them, so there is nothing to gain by truncating.
+            //
+            // And mm, whatever this tab is showing. A .grtload is metric even on an install
+            // configured entirely in inches — ValueUnits only decides what GRT draws on screen.
+            const string Exact = "0.#########";
+            double depth = _sdResult.SeatingDepthMm;
+            if (!doc.SetInput("projectile", "gdepth", depth.ToString(Exact, CultureInfo.InvariantCulture), "mm"))
+            {
                 _status.Text = "note written, but no 'gdepth' input in the load";
-            string outPath = doc.SaveSibling("seatdepth");
-            await _grt.LoadFileAsync(outPath);
-            _status.Text = string.Format(CultureInfo.InvariantCulture, "gdepth {0:0.###} mm written and opened in GRT.", _sdResult.SeatingDepthMm);
+                await OpenSibling(doc);
+                return;
+            }
+
+            // COAL is a stored input, not one GRT recalculates on load: leaving it alone would
+            // hand back a file whose oal still described the old seating depth.
+            double? coal = GrtLoadDoc.CoalFrom(doc.CaseLenMm, doc.BulletLengthMm, depth);
+            string coalNote;
+            if (coal is { } oal && doc.SetInput("caliber", "oal", oal.ToString(Exact, CultureInfo.InvariantCulture), "mm"))
+                coalNote = ", COAL " + BrassCalc.Both(oal, _sdInInch);
+            else
+                coalNote = doc.CaseLenMm is null || doc.BulletLengthMm is null
+                    ? " (COAL not updated - the load has no case length or bullet length)"
+                    : " (COAL not updated - the load has no 'oal' input)";
+
+            await OpenSibling(doc);
+            // The file holds mm, as the comment above says; the shooter is about to see this load
+            // in GRT, so the line they read leads with the unit they are working in.
+            _status.Text = $"gdepth {BrassCalc.Both(depth, _sdInInch)}{coalNote} written and opened in GRT.";
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Seating depth", MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
+
+    private async Task OpenSibling(GrtLoadDoc doc) => await _grt!.LoadFileAsync(doc.SaveSibling("seatdepth"));
 
     private string SeatingReport()
     {
@@ -304,10 +359,11 @@ internal sealed class BrassForm : Form
         var sb = new System.Text.StringBuilder();
         sb.Append(string.Format(CultureInfo.InvariantCulture,
             "Seating Depth (geometry) {0:yyyy-MM-dd}\n" + new string('-', 24) + "\n\n" +
-            "CBTO - case length = DIFF        : {1:0.###} mm ({2:0.0000} in)\n" +
-            "seating depth = BBTO - DIFF      : {3:0.###} mm ({4:0.0000} in)   <- written to gdepth\n\n" +
-            "GRT seating depth = bullet base to case mouth.\n",
-            DateTime.Now, r.DiffMm, r.DiffIn, r.SeatingDepthMm, r.SeatingDepthIn));
+            "CBTO - case length = DIFF        : {1}\n" +
+            "seating depth = BBTO - DIFF      : {2}   <- written to gdepth\n\n" +
+            "GRT seating depth = bullet base to case mouth.\n" +
+            "COAL is rewritten with it: oal = case length + bullet length - seating depth.\n",
+            DateTime.Now, BrassCalc.Both(r.DiffMm, _sdInInch), BrassCalc.Both(r.SeatingDepthMm, _sdInInch)));
         foreach (var n in r.Notes) sb.Append("! ").Append(n).Append('\n');
         return sb.ToString();
     }
@@ -354,14 +410,13 @@ internal sealed class BrassForm : Form
         bool toInch = _neckUnit.SelectedIndex == 0;
         if (toInch == _neckInInch) return;
         _suppressNeckUnit = true;
-        decimal f = toInch ? 1m / (decimal)MmPerIn : (decimal)MmPerIn;
+        decimal f = toInch ? 1m / (decimal)BrassCalc.MmPerInch : (decimal)BrassCalc.MmPerInch;
         foreach (var n in new[] { _bulletDia, _wall, _interf, _loadedOd })
         {
             // read first: lowering Maximum clamps Value on the spot, so converting
             // afterwards would convert the clamped number, not what the user typed.
             decimal v = n.Value;
             n.Maximum = toInch ? 2m : 60m;                    // generous; exact value not important
-            n.DecimalPlaces = toInch ? 4 : 3;
             n.Increment = toInch ? 0.0005M : 0.001M;
             n.Value = Math.Round(Math.Clamp(v * f, n.Minimum, n.Maximum), n.DecimalPlaces);
         }
@@ -373,16 +428,14 @@ internal sealed class BrassForm : Form
     private void RecalcNeck()
     {
         if (_suppressNeckUnit) return;
-        double toMm = _neckInInch ? MmPerIn : 1.0;
+        double toMm = _neckInInch ? BrassCalc.MmPerInch : 1.0;
         double dia = (double)_bulletDia.Value * toMm, wall = (double)_wall.Value * toMm, interf = (double)_interf.Value * toMm;
         double? loaded = _loadedOd.Value > 0 ? (double)_loadedOd.Value * toMm : null;
         var r = BrassCalc.Neck(dia, wall, interf, loaded);
 
-        string U(double mm) => _neckInInch
-            ? (mm / MmPerIn).ToString("0.0000", CultureInfo.InvariantCulture) + " in  (" + mm.ToString("0.000", CultureInfo.InvariantCulture) + " mm)"
-            : mm.ToString("0.000", CultureInfo.InvariantCulture) + " mm  (" + (mm / MmPerIn).ToString("0.0000", CultureInfo.InvariantCulture) + " in)";
+        string U(double mm) => BrassCalc.Both(mm, _neckInInch);
         string step = _neckInInch ? "0.001 in" : "0.025 mm";
-        double d = _neckInInch ? MmPerIn * 0.001 : 0.025;
+        double d = _neckInInch ? BrassCalc.MmPerInch * 0.001 : 0.025;
 
         _neckOut.Text = string.Format(CultureInfo.InvariantCulture,
             "loaded neck OD    : {0}{1}\n\n" +

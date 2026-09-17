@@ -16,7 +16,7 @@ internal static class LadderCli
         }
 
         var mode = modeArg.StartsWith("seat", StringComparison.OrdinalIgnoreCase) ? LadderMode.Seating : LadderMode.Charge;
-        string unit = mode == LadderMode.Seating ? "mm" : "gr";
+        string unit = mode.XUnitName();
 
         var loaded = LadderLoader.FromFolder(folder, mode);
 
@@ -64,7 +64,7 @@ internal static class LadderCli
     private static void Synthetic(string modeArg, string? outPng)
     {
         var mode = modeArg.StartsWith("seat", StringComparison.OrdinalIgnoreCase) ? LadderMode.Seating : LadderMode.Charge;
-        string unit = mode == LadderMode.Seating ? "mm" : "gr";
+        string unit = mode.XUnitName();
         var rows = new List<LadderStep>();
         // a flat spot / plateau in the middle
         double[] xs = mode == LadderMode.Seating

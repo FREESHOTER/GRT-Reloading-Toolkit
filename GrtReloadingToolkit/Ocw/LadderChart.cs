@@ -1,5 +1,6 @@
 using System.Drawing.Imaging;
 using System.Globalization;
+using GrtPluginKit.Grt;
 
 namespace GrtReloadingToolkit.Ocw;
 
@@ -62,7 +63,8 @@ internal sealed class LadderChart : Panel
         g.Clear(BackColor);
         if (_r is null || _r.Rows.Count < 2) return;
 
-        bool seat = _r.Mode == LadderMode.Seating;
+        var mode = _r.Mode;
+        bool seat = mode == LadderMode.Seating;
         var rows = _r.Rows;
         float s = Math.Max(1f, width / 900f);              // scale everything up for big export PNGs
         float ml = 60 * s, mr = 58 * s, mt = 30 * s, mb = 38 * s;
@@ -74,10 +76,13 @@ internal sealed class LadderChart : Panel
         float X(double c) => ml + (float)((c - cMin) / Math.Max(1e-9, cMax - cMin)) * pw;
 
         // primary series
+        // MOA is an angle, so it is the same number everywhere; a velocity is stored in m/s and has
+        // to be drawn in whatever GRT is showing, or the node reads in units the load never used.
+        var u = GrtUnits.Current;
         Func<LadderStep, bool> hasP = seat ? x => x.HasTarget : x => x.HasVel;
-        Func<LadderStep, double> valP = seat ? x => x.MeanRadiusMoa : x => x.MeanMps;
+        Func<LadderStep, double> valP = seat ? x => x.MeanRadiusMoa : x => u.VelocityValue(x.MeanMps);
         string pName = seat ? "group MOA" : "MV";
-        string pUnitLo = seat ? "MOA" : "m/s";
+        string pUnitLo = seat ? "MOA" : u.VelocityUnitName;
 
         var pr = rows.Where(hasP).ToList();
         var po = rows.Where(x => x.HasTarget).ToList();
@@ -123,7 +128,9 @@ internal sealed class LadderChart : Panel
 
         foreach (var x in rows)
         {
-            g.DrawString(x.X.ToString(seat ? "0.0##" : "0.0", ci), fnt, tb, X(x.X) - 12 * s, mt + ph + 5 * s);
+            // The tick sits at the stored X so the node band and the points still line up; only
+            // the label converts, by the same rule the grid and the note follow.
+            g.DrawString(mode.XValue(x.X).ToString(mode.XFormat(), ci), fnt, tb, X(x.X) - 12 * s, mt + ph + 5 * s);
             g.DrawLine(axis, X(x.X), mt + ph, X(x.X), mt + ph + 4 * s);
         }
 

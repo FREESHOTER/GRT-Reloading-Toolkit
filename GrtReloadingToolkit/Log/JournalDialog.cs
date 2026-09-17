@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtPluginKit.Grt;
 using GrtReloadingToolkit.Log;
 
 namespace GrtReloadingToolkit.Log;
@@ -15,8 +16,12 @@ internal sealed class JournalDialog : Form
     private readonly ComboBox _powder = Combo(), _primer = Combo(), _brass = Combo(), _bullet = Combo();
     private readonly NumericUpDown _charge = new() { DecimalPlaces = 2, Maximum = 500, Width = 90 };
     private readonly NumericUpDown _rounds = new() { Maximum = 100000, Width = 90 };
-    private readonly NumericUpDown _mv = new() { DecimalPlaces = 1, Maximum = 3000, Width = 90 };
-    private readonly NumericUpDown _sd = new() { DecimalPlaces = 1, Maximum = 500, Width = 80 };
+    // Entered and shown in GRT's unit, stored in m/s. The ceilings convert with the boxes, or a
+    // ft/s shooter could not type a 3000 ft/s load.
+    private static readonly GrtUnits U = GrtUnits.Current;
+    private static readonly decimal MvMax = (decimal)U.VelocityValue(3000), SdMax = (decimal)U.VelocityValue(500);
+    private readonly NumericUpDown _mv = new() { DecimalPlaces = 1, Maximum = MvMax, Width = 90 };
+    private readonly NumericUpDown _sd = new() { DecimalPlaces = 1, Maximum = SdMax, Width = 80 };
     private readonly NumericUpDown _grp = new() { DecimalPlaces = 2, Maximum = 50, Width = 80 };
     private readonly NumericUpDown _dist = new() { Maximum = 3000, Width = 90 };
     private readonly TextBox _notes = new() { Width = 380, Multiline = true, Height = 44, ScrollBars = ScrollBars.Vertical };
@@ -70,8 +75,8 @@ internal sealed class JournalDialog : Form
         _load.Text = e.LoadName; _cal.Text = e.Caliber; _firearm.Text = e.Firearm;
         _charge.Value = (decimal)Math.Min(500, e.ChargeGr);
         _rounds.Value = Math.Min(100000, e.Rounds);
-        if (e.VelocityAvgMs is { } v) _mv.Value = (decimal)Math.Min(3000, v);
-        if (e.SdMs is { } s) _sd.Value = (decimal)Math.Min(500, s);
+        if (e.VelocityAvgMs is { } v) _mv.Value = Math.Min(MvMax, (decimal)U.VelocityValue(v));
+        if (e.SdMs is { } s) _sd.Value = Math.Min(SdMax, (decimal)U.VelocityValue(s));
         if (e.GroupMoa is { } g) _grp.Value = (decimal)Math.Min(50, g);
         if (e.DistanceM is { } d) _dist.Value = (decimal)Math.Min(3000, d);
         _envRecorded.Checked = e.TemperatureC.HasValue || e.PressureHpa.HasValue || e.HumidityPct.HasValue;
@@ -107,8 +112,8 @@ internal sealed class JournalDialog : Form
         Row("Bullet", _bullet);
         Row("Charge gr", _charge);
         Row("Rounds", _rounds);
-        Row("MV m/s", _mv);
-        Row("SD m/s", _sd);
+        Row("MV " + U.VelocityUnitName, _mv);
+        Row("SD " + U.VelocityUnitName, _sd);
         Row("Group MOA", _grp);
         Row("Distance m", _dist);
         Row("", _envRecorded);
@@ -138,7 +143,7 @@ internal sealed class JournalDialog : Form
     {
         cb.Items.Add(new Item(0, "— none —"));
         foreach (var c in _components.Where(x => x.Kind == kind))
-            cb.Items.Add(new Item(c.Id, $"{c.Display}  ({c.QtyCurrent:0.#} {c.Unit} left)"));
+            cb.Items.Add(new Item(c.Id, $"{c.Display}  ({c.QtyLeftText} left)"));
         cb.SelectedIndex = 0;
         if (selected is { } id)
             for (int i = 0; i < cb.Items.Count; i++)
@@ -212,9 +217,13 @@ internal sealed class JournalDialog : Form
         };
         var cb = Costing.PerRound(probe, id => _components.FirstOrDefault(c => c.Id == id));
         double total = cb.PerRound * probe.Rounds;
-        _cost.Text = $"{Costing.Format(cb.PerRound, cb.Currency)} / round   " +
-                     $"(powder {cb.Powder:0.000}  primer {cb.Primer:0.000}  bullet {cb.Bullet:0.000}  brass {cb.Brass:0.000})" +
-                     (probe.Rounds > 0 ? $"   →  {Costing.Format(total, cb.Currency)} for {probe.Rounds}" : "");
+        // The bare component figures stay either way -- they are each right in their own lot's
+        // currency, and this is the window where you can see which lot to change.
+        string lines = $"(powder {cb.Powder:0.000}  primer {cb.Primer:0.000}  bullet {cb.Bullet:0.000}  brass {cb.Brass:0.000})";
+        _cost.Text = cb.Mixed
+            ? $"{cb.MixedNote} — no total until the lots match   {lines}"
+            : $"{Costing.Format(cb.PerRound, cb.Currency)} / round   " + lines +
+              (probe.Rounds > 0 ? $"   →  {Costing.Format(total, cb.Currency)} for {probe.Rounds}" : "");
     }
 
     private void Commit()
@@ -226,8 +235,8 @@ internal sealed class JournalDialog : Form
         _e.PowderId = Sel(_powder); _e.PrimerId = Sel(_primer); _e.BrassId = Sel(_brass); _e.BulletId = Sel(_bullet);
         _e.ChargeGr = (double)_charge.Value;
         _e.Rounds = (int)_rounds.Value;
-        _e.VelocityAvgMs = _mv.Value > 0 ? (double)_mv.Value : null;
-        _e.SdMs = _sd.Value > 0 ? (double)_sd.Value : null;
+        _e.VelocityAvgMs = _mv.Value > 0 ? U.VelocityToMps((double)_mv.Value) : null;
+        _e.SdMs = _sd.Value > 0 ? U.VelocityToMps((double)_sd.Value) : null;
         _e.GroupMoa = _grp.Value > 0 ? (double)_grp.Value : null;
         _e.DistanceM = _dist.Value > 0 ? (double)_dist.Value : null;
         _e.TemperatureC = _envRecorded.Checked ? CurrentTempC() : null;

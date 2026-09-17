@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using GrtPluginKit.Grt;
+using GrtPluginKit.Util;
 
 namespace GrtReloadingToolkit.Ocw;
 
@@ -26,11 +28,33 @@ public static class GrtShotGroups
     public static double RefToMm(double v, RefUnit u) => u switch
     {
         RefUnit.Cm => v * 10.0,
-        RefUnit.Inch => v * 25.4,
+        RefUnit.Inch => v * GrtUnits.MmPerInch,
         _ => v,
     };
 
-    public static double ShootToM(double v, ShootUnit u) => u == ShootUnit.Yards ? v * 0.9144 : v;
+    public static double ShootToM(double v, ShootUnit u) => u == ShootUnit.Yards ? v * GrtUnits.MetresPerYard : v;
+
+    /// <summary>
+    /// The units GRT wrote the two unlabelled shot-group numbers in — its <c>refdistance</c> and
+    /// its <c>range</c>. Unlike a &lt;input&gt;, neither carries a unit attribute in the file, so
+    /// the only way to read them back correctly is to ask the GRT that wrote them: a target
+    /// measured in inches and shot at yards otherwise comes back as millimetres at metres, which
+    /// is a silently wrong scale rather than a visibly wrong one. Metric when there is no install
+    /// to ask, which is what this assumed before it asked.
+    /// </summary>
+    public static (RefUnit Ref, ShootUnit Shoot) GrtDefaults() => GrtDefaults(GrtConfig.Current);
+
+    /// <inheritdoc cref="GrtDefaults()"/>
+    /// <param name="cfg">The install that wrote the tab, or null for no install at all.</param>
+    public static (RefUnit Ref, ShootUnit Shoot) GrtDefaults(GrtConfig? cfg)
+    {
+        RefUnit r =
+            cfg == null ? RefUnit.Mm :
+            cfg.IsInch("refdistance") ? RefUnit.Inch :
+            cfg.UnitFor("refdistance")?.StartsWith("cm", StringComparison.OrdinalIgnoreCase) == true ? RefUnit.Cm :
+            RefUnit.Mm;
+        return (r, GrtUnits.From(cfg).DistanceInYards ? ShootUnit.Yards : ShootUnit.Meters);
+    }
 
     public sealed record Options(RefUnit Ref = RefUnit.Mm, ShootUnit Shoot = ShootUnit.Meters, bool ExcludeFlyers = false);
 
@@ -92,7 +116,8 @@ public static class GrtShotGroups
                 tg.ChargeGrains = step;
 
                 int flyers = set.Points.Count(p => p.Flyer && !p.PointOfAim);
-                string tag = step is { } s ? $"step {s:0.0##}" : $"ordinal {groupIdx}";
+                // No LadderMode here — a shot-group tab is read the same way for both ladders.
+                string tag = step is { } s ? "step " + s.ToString(Str.StepFormat, CultureInfo.InvariantCulture) : $"ordinal {groupIdx}";
                 log.Add($"'{sg.Title}' / {set.Name}: {tg.Impacts.Count} hits @ {distM:0} m, {tag}"
                         + (flyers > 0 ? $" ({flyers} flyer{(flyers > 1 ? "s" : "")}{(opt.ExcludeFlyers ? " excluded" : " kept")})" : ""));
                 outp.Add(tg);

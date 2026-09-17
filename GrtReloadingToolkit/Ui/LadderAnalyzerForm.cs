@@ -11,7 +11,7 @@ internal abstract class LadderAnalyzerForm : Form
     protected abstract LadderMode Mode { get; }
     protected abstract string WindowTitle { get; }
     protected abstract string XHeader { get; }          // grid column header
-    protected abstract string XUnit { get; }            // "gr" / "mm" / "in"
+    private string XUnit => Mode.XUnitName();           // "gr"/"g" (charge) or "mm"/"in" (seating)
     protected abstract string NoteTitle { get; }        // stable, e.g. "OCW Analysis"
     protected abstract string GalleryPictureName { get; } // stable, e.g. "ocw_chart" — for ~~result.picture.<name>~~
     protected abstract string SiblingSuffix { get; }    // e.g. "ocw" / "seating"
@@ -62,6 +62,11 @@ internal abstract class LadderAnalyzerForm : Form
         _wPrim.Value = (decimal)(Mode == LadderMode.Seating ? dw.Group : dw.Velocity);
         Build();
         NudFix.ApplyTo(this);
+        // Keyed by mode: a charge ladder and a seating ladder have their own weights, and the
+        // defaults above differ between them, so one shared key would hand each the other's.
+        UiState.Bind(this, "ladder." + Mode,
+            ("wPoi", _wPoi), ("wPrim", _wPrim), ("window", _win),
+            ("refUnit", _refUnit), ("shootUnit", _shootUnit), ("noFlyers", _noFlyers));
         if (_grt != null) { _logHandler = AppendLog; _grt.Log += _logHandler; }
         UpdateStatus();
 
@@ -97,7 +102,13 @@ internal abstract class LadderAnalyzerForm : Form
         var grpBtn = new Button { Text = "Groups from GRT load", AutoSize = true, Margin = new Padding(0, 6, 0, 0) };
         top.SetFlowBreak(re, true);   // start a new row
         grpBtn.Click += async (_, _) => await LoadGrtGroupsAsync();
-        _refUnit.SelectedIndex = 0; _shootUnit.SelectedIndex = 0;
+        // Open on the units GRT is showing — someone measuring a target in inches at yards should
+        // not have to re-pick both every session. Build() runs before UiState.Bind, so this is only
+        // the default: once they choose for themselves, their choice is what comes back.
+        var gu = GrtUnits.Current;
+        var (defRef, defShoot) = GrtShotGroups.GrtDefaults();
+        _refUnit.SelectedIndex = defRef switch { RefUnit.Cm => 1, RefUnit.Inch => 2, _ => 0 };
+        _shootUnit.SelectedIndex = defShoot == ShootUnit.Yards ? 1 : 0;
         foreach (var c in new Control[] { _refUnit, _shootUnit, _noFlyers }) c.Margin = new Padding(6, 8, 0, 0);
         top.Controls.Add(grpBtn);
         top.Controls.Add(new Label { Text = "ref dist", AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
@@ -111,8 +122,11 @@ internal abstract class LadderAnalyzerForm : Form
         _grid.AllowUserToAddRows = false;
         _grid.RowHeadersVisible = false;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        foreach (var (n, h) in new[] { ("x", XHeader), ("vn", "n"), ("mv", "MV m/s"), ("sd", "SD"), ("es", "ES"),
-                     ("d", "Dist m"), ("poi", "POI-Y MOA"), ("mr", "Grp MR MOA"), ("vs", "Vert MOA") })
+        // MOA is an angle and reads the same everywhere; velocity and distance are stored metric
+        // and get headed with whatever GRT is showing, so a node never reads in a unit the load
+        // was never worked up in.
+        foreach (var (n, h) in new[] { ("x", XHeader), ("vn", "n"), ("mv", "MV " + gu.VelocityUnitName), ("sd", "SD"), ("es", "ES"),
+                     ("d", "Dist " + gu.DistanceUnitName), ("poi", "POI-Y MOA"), ("mr", "Grp MR MOA"), ("vs", "Vert MOA") })
             _grid.Columns.Add(n, h);
 
         _chart.Dock = DockStyle.Fill;
@@ -233,29 +247,34 @@ internal abstract class LadderAnalyzerForm : Form
             _result = LadderAnalyzer.Analyze(loaded.Rows, Mode, XUnit, w);
 
             _grid.Rows.Clear();
+            var u = GrtUnits.Current;
             foreach (var x in _result.Rows)
                 _grid.Rows.Add(
-                    x.X.ToString(Mode == LadderMode.Seating ? "0.0##" : "0.0", CultureInfo.InvariantCulture),
+                    Mode.XValue(x.X).ToString(Mode.XFormat(), CultureInfo.InvariantCulture),
                     x.HasVel ? x.VelN : 0,
-                    x.HasVel ? x.MeanMps.ToString("0.0", CultureInfo.InvariantCulture) : "",
-                    x.HasVel ? x.SdMps.ToString("0.0", CultureInfo.InvariantCulture) : "",
-                    x.HasVel ? x.EsMps.ToString("0.0", CultureInfo.InvariantCulture) : "",
-                    x.HasTarget ? x.DistanceM.ToString("0", CultureInfo.InvariantCulture) : "",
+                    x.HasVel ? u.VelocityValue(x.MeanMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
+                    x.HasVel ? u.VelocityValue(x.SdMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
+                    x.HasVel ? u.VelocityValue(x.EsMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
+                    x.HasTarget ? u.DistanceValue(x.DistanceM).ToString("0", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? x.PoiYMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? x.MeanRadiusMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? x.VertSpreadMoa.ToString("0.00", CultureInfo.InvariantCulture) : "");
 
+            // Matched on the stored X, not on the cell text: the cell is rounded for display and
+            // in grams a step and a node bound differ well inside the printed last digit.
             if (_result.BestNode is { } bn)
-                foreach (DataGridViewRow row in _grid.Rows)
-                    if (double.TryParse((string)row.Cells["x"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double c)
-                        && c >= bn.Low - 1e-6 && c <= bn.High + 1e-6)
-                        row.DefaultCellStyle.BackColor = Color.FromArgb(215, 245, 220);
+                for (int i = 0; i < _result.Rows.Count; i++)
+                    if (_result.Rows[i].X >= bn.Low - 1e-6 && _result.Rows[i].X <= bn.High + 1e-6)
+                        _grid.Rows[i].DefaultCellStyle.BackColor = Color.FromArgb(215, 245, 220);
 
             _chart.SetData(_result);
             _summary.Text = LadderAnalyzer.BuildReport(_result, HeadlineFor(DateTime.Now)).Replace("\n", "\r\n");
             _writeBtn.Enabled = _result.BestNode != null && _grt is { Connected: true };
+            string xf = Mode.XFormat();
             _status.Text = _result.BestNode is { } n
-                ? string.Format(CultureInfo.InvariantCulture, "Recommended node {0:0.0##}–{1:0.0##} {2}", n.Low, n.High, XUnit)
+                ? string.Format(CultureInfo.InvariantCulture, "Recommended node {0}–{1} {2}",
+                    Mode.XValue(n.Low).ToString(xf, CultureInfo.InvariantCulture),
+                    Mode.XValue(n.High).ToString(xf, CultureInfo.InvariantCulture), XUnit)
                 : "analysis done";
         }
         catch (Exception ex)

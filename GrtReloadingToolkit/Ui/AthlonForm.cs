@@ -32,6 +32,7 @@ internal sealed class AthlonForm : Form
         MinimumSize = new Size(720, 420);
 
         BuildLayout();
+        UiState.Bind(this, "athlon", ("perShotTemp", _perShotTemp), ("replacePrev", _replacePrev));
         if (_grt != null) _grt.Log += _logHandler;
         UpdateStatus();
     }
@@ -98,10 +99,13 @@ internal sealed class AthlonForm : Form
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = "Charge (gr)", FillWeight = 12,
             ToolTipText = "Editable — type the charge here when the session note and file name don't carry it." });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "n", HeaderText = "Shots", ReadOnly = true, FillWeight = 8 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "avg", HeaderText = "AVG m/s", ReadOnly = true, FillWeight = 12 });
+        // Velocities and temperatures are stored in m/s and °C whatever the chronograph file said,
+        // so the headers name the unit the cells are actually shown in — GRT's.
+        var u = GrtUnits.Current;
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "avg", HeaderText = "AVG " + u.VelocityUnitName, ReadOnly = true, FillWeight = 12 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sd", HeaderText = "SD", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "es", HeaderText = "ES", ReadOnly = true, FillWeight = 8 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = "Temp °C", FillWeight = 10 });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = "Temp " + u.TemperatureUnitName, FillWeight = 10 });
 
         // The charge is guessed from the session note / file name and shows "?" when neither
         // carries it. Writing the corrected value back into the parsed string is what the
@@ -202,11 +206,12 @@ internal sealed class AthlonForm : Form
         row.Cells["inc"].Value = true;
         row.Cells["file"].Value = s.FileName;
         row.Cells["charge"].Value = s.ChargeGrains is { } g ? Str.Num(g, 2) : "?";
+        var u = GrtUnits.Current;
         row.Cells["n"].Value = stats.N;
-        row.Cells["avg"].Value = Str.Num(stats.Mean, 1);
-        row.Cells["sd"].Value = Str.Num(stats.Sd, 1);
-        row.Cells["es"].Value = Str.Num(stats.Es, 1);
-        row.Cells["temp"].Value = s.SessionTempC is { } t ? Str.Num(t, 1) : "";
+        row.Cells["avg"].Value = Str.Num(u.VelocityValue(stats.Mean), 1);
+        row.Cells["sd"].Value = Str.Num(u.VelocityValue(stats.Sd), 1);
+        row.Cells["es"].Value = Str.Num(u.VelocityValue(stats.Es), 1);
+        row.Cells["temp"].Value = s.SessionTempC is { } t ? Str.Num(u.TemperatureValue(t), 1) : "";
         row.Tag = s;
     }
 
@@ -231,7 +236,9 @@ internal sealed class AthlonForm : Form
             {
                 if (gr.Tag is not AthlonString s) continue;
                 bool inc = gr.Cells["inc"].Value is true;
-                double? temp = GrtPluginKit.Util.Str.ParseNumber(Convert.ToString(gr.Cells["temp"].Value, CultureInfo.InvariantCulture));
+                // The cell is in GRT's unit (the header says so); everything downstream is °C.
+                double? shown = Str.ParseNumber(Convert.ToString(gr.Cells["temp"].Value, CultureInfo.InvariantCulture));
+                double? temp = shown is { } sv ? GrtUnits.Current.TemperatureToCelsius(sv) : null;
                 rows.Add(new ImportBuilder.Row(s, temp, inc));
             }
             if (rows.All(r => !r.Include)) { MessageBox.Show(this, "Nothing selected.", "Import"); return; }

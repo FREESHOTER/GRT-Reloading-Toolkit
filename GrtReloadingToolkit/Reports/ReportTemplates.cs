@@ -179,15 +179,7 @@ public static class ReportTemplates
     };
 
     /// <summary>The GRT install root (parent of <c>doku/</c>), inferred from the running exe.</summary>
-    public static string? InferGrtRoot()
-    {
-        // exe lives in <root>/plugins/ReloadingToolkit/
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        for (int up = 0; up < 5 && dir != null; up++, dir = dir.Parent)
-            if (Directory.Exists(Path.Combine(dir.FullName, "doku")))
-                return dir.FullName;
-        return null;
-    }
+    public static string? InferGrtRoot() => GrtPluginKit.Grt.GrtConfig.Root();
 
     /// <summary>Writes the report pages into every <c>doku/&lt;lang&gt;/report</c> folder. Returns a log.</summary>
     public static List<string> Install(string grtRoot)

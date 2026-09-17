@@ -9,4 +9,10 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- So the tests can pin parsers against real fixtures without those parsers having to be
+         part of the API plugins see. -->
+    <InternalsVisibleTo Include="GrtReloadingToolkit.Tests" />
+  </ItemGroup>
+
 </Project>

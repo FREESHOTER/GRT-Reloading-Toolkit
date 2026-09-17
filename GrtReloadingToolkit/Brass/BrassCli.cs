@@ -36,9 +36,9 @@ internal static class BrassCli
             double interf = double.Parse(args[4], NumberStyles.Float, ci);
             double? loaded = args.Length >= 6 ? double.Parse(args[5], NumberStyles.Float, ci) : null;
             var r = BrassCalc.Neck(dia, wall, interf, loaded);
-            Console.WriteLine($"loaded neck OD : {r.LoadedNeckOdMm.ToString("0.000", ci)} mm");
-            Console.WriteLine($"BUSHING OD     : {r.BushingOdMm.ToString("0.000", ci)} mm  ({(r.BushingOdMm / 25.4).ToString("0.0000", ci)} in)");
-            Console.WriteLine($"MANDREL OD     : {r.MandrelOdMm.ToString("0.000", ci)} mm  ({(r.MandrelOdMm / 25.4).ToString("0.0000", ci)} in)");
+            Console.WriteLine($"loaded neck OD : {BrassCalc.Both(r.LoadedNeckOdMm, false)}");
+            Console.WriteLine($"BUSHING OD     : {BrassCalc.Both(r.BushingOdMm, false)}");
+            Console.WriteLine($"MANDREL OD     : {BrassCalc.Both(r.MandrelOdMm, false)}");
             if (r.Notes.Length > 0) Console.WriteLine("note: " + r.Notes);
             return;
         }
@@ -51,8 +51,8 @@ internal static class BrassCli
             double cl = double.Parse(args[3], NumberStyles.Float, ci) * f;
             double bbto = double.Parse(args[4], NumberStyles.Float, ci) * f;
             var r = BrassCalc.Seating(cbto, cl, bbto);
-            Console.WriteLine($"DIFF          : {r.DiffMm.ToString("0.###", ci)} mm ({r.DiffIn.ToString("0.0000", ci)} in)");
-            Console.WriteLine($"seating depth : {r.SeatingDepthMm.ToString("0.###", ci)} mm ({r.SeatingDepthIn.ToString("0.0000", ci)} in)  -> GRT gdepth");
+            Console.WriteLine($"DIFF          : {BrassCalc.Both(r.DiffMm, false)}");
+            Console.WriteLine($"seating depth : {BrassCalc.Both(r.SeatingDepthMm, false)}  -> GRT gdepth");
             foreach (var n in r.Notes) Console.WriteLine("! " + n);
             return;
         }
