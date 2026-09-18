@@ -33,9 +33,6 @@ internal sealed class LoadLeaderboardForm : Form
     private readonly DataGridView _grid = new();
     private readonly Label _status = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
 
-    private sealed record LeaderRow(string Caliber, long? PowderId, string Powder, long? BulletId, string Bullet,
-        double ChargeGr, int Sessions, int Rounds, double? Sd, double? Es, double? Group, LoadScoring.Breakdown Score);
-
     public LoadLeaderboardForm(GrtClient? grt, Db db)
     {
         _grt = grt;
@@ -106,52 +103,28 @@ internal sealed class LoadLeaderboardForm : Form
 
     /// <summary>
     /// Ranks every load matching <paramref name="caliberFilter"/> (or every load at all, if null or
-    /// "-- any --") -- grouped by caliber+powder+bullet+charge. Shared by the on-screen grid and by
+    /// "-- any --") via <see cref="LeaderboardRanking"/>. Shared by the on-screen grid and by
     /// <see cref="WriteToGrtAsync"/>, which always ranks within ONE caliber (the open load's own)
     /// regardless of whatever the grid happens to be filtered to at the time -- comparing a .223
     /// load's score against a .308 load's isn't a meaningful "rank" the way same-caliber comparison is.
+    ///
+    /// This form owns the two pieces of wording the ranking needs and the Log/ layer shouldn't know:
+    /// the dropdown's "-- any --" sentinel, resolved to null here, and the "no component" label.
     /// </summary>
-    private List<LeaderRow> ComputeRanked(string? caliberFilter)
-    {
-        bool anyCaliber = caliberFilter is null || caliberFilter == Lang.T("-- any --");
-        var groups = _db.Journal()
-            .Where(e => anyCaliber || string.Equals(e.Caliber, caliberFilter, StringComparison.OrdinalIgnoreCase))
-            .GroupBy(e => (e.Caliber, e.PowderId, e.BulletId, Charge: Math.Round(e.ChargeGr, 2)));
-
-        var componentNames = _db.Components(includeArchived: true).ToDictionary(c => c.Id, c => c.Display);
-        var rows = new List<LeaderRow>();
-
-        foreach (var g in groups)
-        {
-            var entries = g.ToList();
-            double? avgSd = Avg(entries.Select(e => e.SdMs));
-            double? avgEs = Avg(entries.Select(e => e.EsMs));
-            double? avgGroup = Avg(entries.Select(e => e.GroupMoa));
-            int totalRounds = entries.Sum(e => e.Rounds);
-            var sdAcrossSessions = entries.Where(e => e.SdMs.HasValue).Select(e => e.SdMs!.Value).ToList();
-            var score = LoadScoring.LeaderboardScore(avgSd, avgEs, avgGroup, totalRounds, sdAcrossSessions);
-
-            rows.Add(new LeaderRow(g.Key.Caliber, g.Key.PowderId,
-                g.Key.PowderId is { } pid && componentNames.TryGetValue(pid, out var pn) ? pn : Lang.T("-- any --"),
-                g.Key.BulletId,
-                g.Key.BulletId is { } bid && componentNames.TryGetValue(bid, out var bn) ? bn : Lang.T("-- any --"),
-                g.Key.Charge, entries.Count, totalRounds, avgSd, avgEs, avgGroup, score));
-        }
-
-        return rows.Where(r => r.Score.Total.HasValue).OrderByDescending(r => r.Score.Total)
-            .Concat(rows.Where(r => !r.Score.Total.HasValue))
-            .ToList();
-
-        static double? Avg(IEnumerable<double?> values)
-        {
-            var v = values.Where(x => x.HasValue).Select(x => x!.Value).ToList();
-            return v.Count == 0 ? null : v.Average();
-        }
-    }
+    private List<LeaderboardRanking.Row> ComputeRanked(string? caliberFilter) =>
+        LeaderboardRanking.Rank(
+            _db.Journal(),
+            _db.Components(includeArchived: true).ToDictionary(c => c.Id, c => c.Display),
+            caliberFilter == Lang.T("-- any --") ? null : caliberFilter,
+            Lang.T("— none —"));
 
     private void Run()
     {
         var u = GrtUnits.Current;
+        // Refresh the caliber list on every Rank, not just at construction: the Journal is its own
+        // window and can gain a caliber while this one sits open, and until now that caliber was
+        // rankable (Run reads the journal fresh) but not selectable.
+        RefreshFilters();
         var ranked = ComputeRanked(_caliber.SelectedItem as string);
 
         _grid.Rows.Clear();

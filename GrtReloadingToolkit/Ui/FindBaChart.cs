@@ -1,3 +1,4 @@
+using System.Globalization;
 using GrtPluginKit.Grt;
 using GrtReloadingToolkit.Log;
 
@@ -72,10 +73,14 @@ internal sealed class FindBaChart : Panel
 
         using var axisPen = new Pen(Color.FromArgb(120, 148, 163, 184));
         g.DrawRectangle(axisPen, ml, mt, pw, ph);
-        g.DrawString($"{yMax:0.####} {yName}", fnt, tb, 4, mt - 3);
-        g.DrawString($"{yMin:0.####}", fnt, tb, 4, mt + ph - 12);
-        g.DrawString($"{xMin:0.#} {u.TemperatureUnitName}", fnt, tb, ml, mt + ph + 6);
-        g.DrawString($"{xMax:0.#} {u.TemperatureUnitName}", fnt, tb, ml + pw - 40, mt + ph + 6);
+        // Invariant, like every other number this plugin renders: interpolation alone picks up the
+        // OS locale, so on an Italian machine the axis read "0,4523" beside a grid column showing
+        // "0.4523" for the same Ba.
+        var ci = CultureInfo.InvariantCulture;
+        g.DrawString(string.Format(ci, "{0:0.####} {1}", yMax, yName), fnt, tb, 4, mt - 3);
+        g.DrawString(yMin.ToString("0.####", ci), fnt, tb, 4, mt + ph - 12);
+        g.DrawString(string.Format(ci, "{0:0.#} {1}", xMin, u.TemperatureUnitName), fnt, tb, ml, mt + ph + 6);
+        g.DrawString(string.Format(ci, "{0:0.#} {1}", xMax, u.TemperatureUnitName), fnt, tb, ml + pw - 40, mt + ph + 6);
 
         // trend line (linear regression of the plotted value vs temperature)
         if (_pts.Count >= 3)

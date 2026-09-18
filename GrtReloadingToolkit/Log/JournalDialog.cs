@@ -68,6 +68,11 @@ internal sealed class JournalDialog : Form
 
     private static ComboBox Combo() => new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 300, DisplayMember = "Text", ValueMember = "Id" };
 
+    /// <summary>Fits a stored value into the box that displays it. Clamped as a double first, so a
+    /// stored infinity is bounded rather than overflowing the cast to decimal.</summary>
+    private static decimal Clamp(double value, NumericUpDown box) =>
+        (decimal)Math.Clamp(value, (double)box.Minimum, (double)box.Maximum);
+
     public JournalDialog(JournalEntry e, List<Component> components)
     {
         _e = e;
@@ -86,19 +91,25 @@ internal sealed class JournalDialog : Form
 
         _date.Text = e.Date;
         _load.Text = e.LoadName; _cal.Text = e.Caliber; _firearm.Text = e.Firearm;
-        _charge.Value = Math.Min(ChargeMax, (decimal)U.ChargeValue(e.ChargeGr));
-        _rounds.Value = Math.Min(100000, e.Rounds);
-        if (e.VelocityAvgMs is { } v) _mv.Value = Math.Min(MvMax, (decimal)U.VelocityValue(v));
-        if (e.SdMs is { } s) _sd.Value = Math.Min(SdMax, (decimal)U.VelocityValue(s));
-        if (e.GroupMoa is { } g) _grp.Value = (decimal)Math.Min(50, g);
-        if (e.DistanceM is { } d) _dist.Value = Math.Min(DistMax, (decimal)U.DistanceValue(d));
+        // Clamp to BOTH ends against each box's own Minimum/Maximum, the way the environment rows
+        // below already do. Math.Min guarded only the ceiling, so a value under the box's Minimum
+        // -- which NumericUpDown.Value rejects with ArgumentOutOfRangeException -- would throw in
+        // the constructor and the entry could not be opened to correct it at all. Reading the
+        // bounds off the control also stops the literals here drifting from the declarations
+        // above, which is how "50" and "100000" came to be written down twice.
+        _charge.Value = Clamp(U.ChargeValue(e.ChargeGr), _charge);
+        _rounds.Value = Clamp(e.Rounds, _rounds);
+        if (e.VelocityAvgMs is { } v) _mv.Value = Clamp(U.VelocityValue(v), _mv);
+        if (e.SdMs is { } s) _sd.Value = Clamp(U.VelocityValue(s), _sd);
+        if (e.GroupMoa is { } g) _grp.Value = Clamp(g, _grp);
+        if (e.DistanceM is { } d) _dist.Value = Clamp(U.DistanceValue(d), _dist);
         _envRecorded.Checked = e.TemperatureC.HasValue || e.PressureHpa.HasValue || e.HumidityPct.HasValue;
         _tempUnit.SelectedIndex = 0; _pressureUnit.SelectedIndex = 0;
         if (e.TemperatureC is { } tc) _temp.Value = (decimal)Math.Clamp(tc, (double)_temp.Minimum, (double)_temp.Maximum);
         if (e.PressureHpa is { } ph) _pressure.Value = (decimal)Math.Clamp(ph, (double)_pressure.Minimum, (double)_pressure.Maximum);
         if (e.HumidityPct is { } hp) _humidity.Value = (decimal)Math.Clamp(hp, (double)_humidity.Minimum, (double)_humidity.Maximum);
-        if (e.Ba is { } ba) _ba.Value = (decimal)Math.Min(10, ba);
-        if (e.A0 is { } a0) _a0.Value = (decimal)Math.Min(10, a0);
+        if (e.Ba is { } ba) _ba.Value = Clamp(ba, _ba);
+        if (e.A0 is { } a0) _a0.Value = Clamp(a0, _a0);
         _tempUnit.SelectedIndexChanged += (_, _) => OnTempUnitChanged();
         _pressureUnit.SelectedIndexChanged += (_, _) => OnPressureUnitChanged();
         _notes.Text = e.Notes;
