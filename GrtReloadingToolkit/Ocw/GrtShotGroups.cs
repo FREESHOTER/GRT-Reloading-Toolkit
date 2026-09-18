@@ -90,7 +90,7 @@ public static class GrtShotGroups
             }
             double mmPerPx = refMm / refPx;
             double distM = ShootToM(sg.ShootDistance, opt.Shoot);
-            if (distM <= 0) { distM = 100; log.Add($"shot-group '{sg.Title}': no shooting distance, assuming 100 m"); }
+            if (distM <= 0) { distM = 100; log.Add($"shot-group '{sg.Title}': no shooting distance, assuming {GrtUnits.Current.Distance(100)}"); }
             double mmToMoa = 1.0 / (MoaMmPer100m * (distM / 100.0));
 
             int groupIdx = 0;
@@ -118,7 +118,7 @@ public static class GrtShotGroups
                 int flyers = set.Points.Count(p => p.Flyer && !p.PointOfAim);
                 // No LadderMode here — a shot-group tab is read the same way for both ladders.
                 string tag = step is { } s ? "step " + s.ToString(Str.StepFormat, CultureInfo.InvariantCulture) : $"ordinal {groupIdx}";
-                log.Add($"'{sg.Title}' / {set.Name}: {tg.Impacts.Count} hits @ {distM:0} m, {tag}"
+                log.Add($"'{sg.Title}' / {set.Name}: {tg.Impacts.Count} hits @ {GrtUnits.Current.Distance(distM)}, {tag}"
                         + (flyers > 0 ? $" ({flyers} flyer{(flyers > 1 ? "s" : "")}{(opt.ExcludeFlyers ? " excluded" : " kept")})" : ""));
                 outp.Add(tg);
             }

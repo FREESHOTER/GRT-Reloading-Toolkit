@@ -163,6 +163,12 @@ public sealed class GrtUnits
     /// <summary>A stored shooting distance as a bare number, for a column headed with its unit.</summary>
     public double DistanceValue(double m) => DistanceInYards ? m / MetresPerYard : m;
 
+    /// <summary>The inverse of <see cref="DistanceValue"/>: what the user typed, back to stored metres.</summary>
+    public double DistanceToMetres(double shown) => DistanceInYards ? shown * MetresPerYard : shown;
+
+    /// <summary>A stored shooting distance with its unit, for a sentence rather than a column.</summary>
+    public string Distance(double m) => DistanceValue(m).ToString("0.##", Inv) + " " + DistanceUnitName;
+
     /// <summary>A stored temperature as a bare number, for a cell the user reads and edits.</summary>
     public double TemperatureValue(double celsius) => TemperatureInF ? celsius * 9.0 / 5.0 + 32.0 : celsius;
 
@@ -211,6 +217,9 @@ public sealed class GrtUnits
 
     /// <summary>A stored projectile weight as a bare number. See <see cref="ChargeValue"/>.</summary>
     public double BulletMassValue(double gr) => BulletMassInGrams ? gr / GrainsPerGram : gr;
+
+    /// <summary>The inverse of <see cref="BulletMassValue"/>: what the user typed, back to stored grains.</summary>
+    public double BulletMassToGrains(double shown) => BulletMassInGrams ? shown * GrainsPerGram : shown;
 
     /// <summary>A stored projectile weight, with its unit. Bullets come in whole grains, or tenths of a gram.</summary>
     public string BulletMass(double gr) =>

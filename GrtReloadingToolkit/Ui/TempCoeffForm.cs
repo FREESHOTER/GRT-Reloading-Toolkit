@@ -214,8 +214,8 @@ internal sealed class TempCoeffForm : Form
             var doc = GrtLoadDoc.OpenForToolkitEdit(_basePath);
             doc.RemoveByTitlePrefix(NoteTitle);
             doc.AddNote(NoteTitle, _result.BuildReport($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}"));
-            if (_result.Tcc is { } tcc) { if (doc.SetInput("propellant", "tcc", tcc.ToString("0.###############", CultureInfo.InvariantCulture))) AppendLog($"set tcc = {tcc:0.######}"); }
-            if (_result.Tch is { } tch) { if (doc.SetInput("propellant", "tch", tch.ToString("0.###############", CultureInfo.InvariantCulture))) AppendLog($"set tch = {tch:0.######}"); }
+            if (_result.Tcc is { } tcc) { if (doc.SetInput("propellant", "tcc", tcc.ToString("0.###############", CultureInfo.InvariantCulture))) AppendLog("set tcc = " + tcc.ToString("0.######", CultureInfo.InvariantCulture)); }
+            if (_result.Tch is { } tch) { if (doc.SetInput("propellant", "tch", tch.ToString("0.###############", CultureInfo.InvariantCulture))) AppendLog("set tch = " + tch.ToString("0.######", CultureInfo.InvariantCulture)); }
             string outPath = doc.SaveSibling("tcoeff");
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);

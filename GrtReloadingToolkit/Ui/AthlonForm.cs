@@ -96,7 +96,7 @@ internal sealed class AthlonForm : Form
 
         _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "inc", HeaderText = Lang.T("Use"), FillWeight = 6 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "file", HeaderText = Lang.T("File"), ReadOnly = true, FillWeight = 30 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = Lang.T("Charge (gr)"), FillWeight = 12,
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = Lang.T("Charge") + " (" + GrtUnits.Current.ChargeUnitName + ")", FillWeight = 12,
             ToolTipText = Lang.T("Editable — type the charge here when the session note and file name don't carry it.") });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "n", HeaderText = Lang.T("Shots"), ReadOnly = true, FillWeight = 8 });
         // Velocities and temperatures are stored in m/s and °C whatever the chronograph file said,
@@ -115,9 +115,12 @@ internal sealed class AthlonForm : Form
             if (e.RowIndex < 0 || e.ColumnIndex < 0 || _grid.Columns[e.ColumnIndex].Name != "charge") return;
             DataGridViewRow row = _grid.Rows[e.RowIndex];
             if (row.Tag is not AthlonString s) return;
+            // Typed in GRT's unit, kept in grains: the importer and everything downstream of it
+            // price and plot a charge in grains whatever the box is headed with.
+            var cu = GrtUnits.Current;
             double? g = Str.ParseNumber(Convert.ToString(row.Cells["charge"].Value, CultureInfo.InvariantCulture));
-            s.ChargeGrains = g is > 0 ? g : null;
-            row.Cells["charge"].Value = s.ChargeGrains is { } v ? Str.Num(v, 2) : "?";
+            s.ChargeGrains = g is > 0 ? cu.ChargeToGrains(g.Value) : null;
+            row.Cells["charge"].Value = s.ChargeGrains is { } v ? ChargeCell(v) : "?";
         };
 
         var bottom = new Panel { Dock = DockStyle.Bottom, Height = 150 };
@@ -198,6 +201,14 @@ internal sealed class AthlonForm : Form
         UpdateStatus();
     }
 
+    // Stored in grains, shown in GRT's unit. ChargeFormat keeps a grams reading to four places:
+    // 0.02 gr is a good scale's last digit and also 0.0013 g, which two places would round away.
+    private static string ChargeCell(double grains)
+    {
+        var u = GrtUnits.Current;
+        return u.ChargeValue(grains).ToString(u.ChargeFormat, CultureInfo.InvariantCulture);
+    }
+
     private void AddGridRow(AthlonString s)
     {
         var stats = StringStats.From(s.Velocities.ToList());
@@ -205,7 +216,7 @@ internal sealed class AthlonForm : Form
         DataGridViewRow row = _grid.Rows[i];
         row.Cells["inc"].Value = true;
         row.Cells["file"].Value = s.FileName;
-        row.Cells["charge"].Value = s.ChargeGrains is { } g ? Str.Num(g, 2) : "?";
+        row.Cells["charge"].Value = s.ChargeGrains is { } g ? ChargeCell(g) : "?";
         var u = GrtUnits.Current;
         row.Cells["n"].Value = stats.N;
         row.Cells["avg"].Value = Str.Num(u.VelocityValue(stats.Mean), 1);

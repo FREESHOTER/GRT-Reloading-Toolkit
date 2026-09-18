@@ -62,7 +62,7 @@ A `.grtload` file is **always metric** — lengths in mm, velocities in m/s, tem
 whatever units GRT is displaying. GRT keeps your choice of units separately, in `ValueUnits` in
 `GordonsReloadingTool.cfg`, and converts on the way to the screen.
 
-The toolkit does the same. At startup it reads that line from the GRT beside it and follows four
+The toolkit does the same. At startup it reads that line from the GRT beside it and follows seven
 of its settings:
 
 | GRT field | What follows it |
@@ -71,6 +71,9 @@ of its settings:
 | `velocity` | every muzzle velocity, SD and ES, in grids, charts, notes and the QR block |
 | `pt` | every temperature |
 | `range` | every shooting distance |
+| `charge` | every powder charge: the ladder, the journal, Find best Ba, the cost of a round |
+| `mp` | every bullet weight |
+| `twistlen` | the barrel twist, falling back to `oal` where GRT has no entry for it |
 
 So if GRT is set to inches and ft/s, so is the toolkit — column headers, chart axes, the load
 card, the box label and the notes it writes back all say `in` and `ft/s`. If there is no GRT
@@ -89,7 +92,8 @@ Three things deliberately do **not** follow GRT:
 
 Where a tab has its own unit picker (the brass tabs, the ladder's target units), the picker still
 wins — GRT's setting is only what it opens on the first time. After that, your choice is
-remembered.
+remembered. *Find best Ba*'s target-temperature picker is the one that isn't: it opens on GRT's
+unit every time, because that window keeps nothing between sessions.
 
 ### Your typing is kept
 

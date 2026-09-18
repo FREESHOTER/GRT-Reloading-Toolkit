@@ -168,7 +168,7 @@ internal static class CardRenderer
         y += big.GetHeight(g) + 0.5f * u;
         g.DrawString(c.ChargeLine, mid, black, new RectangleF(x, y, textW, mid.GetHeight(g) * 1.2f), one);
         y += mid.GetHeight(g) + 0.4f * u;
-        string b3 = c.Bullet + (c.BulletGr is { } bg ? " " + bg.ToString("0.#", CultureInfo.InvariantCulture) + "gr" : "");
+        string b3 = c.Bullet + (c.BulletGr is { } bg ? " " + U.BulletMass(bg) : "");
         if (!string.IsNullOrWhiteSpace(b3)) { g.DrawString(b3, sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f), one); y += sm.GetHeight(g) + 0.3f * u; }
         g.DrawString($"{c.Primer}   {c.Date}".Trim(), sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f), one);
     }
