@@ -282,12 +282,14 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         load, one row per charge.</p>
       <table><thead><tr><th>Control</th><th>Effect</th></tr></thead><tbody>
         <tr><td>confidence</td><td>90 / 95 / 99% &mdash; applies to every confidence interval and test below.</td></tr>
-        <tr><td>target ± m/s</td><td>Feeds the &ldquo;shots for target&rdquo; column: how many shots (of this string&#39;s spread) it would take to pin the mean down to ± that margin.</td></tr>
+        <tr><td>target ±</td><td>Feeds the &ldquo;shots for target&rdquo; column: how many shots (of this string&#39;s spread) it would take to pin the mean down to ± that margin. Typed in whichever velocity unit GRT is configured for (the label says which).</td></tr>
         <tr><td>Compare A vs B</td><td>Welch&#39;s t-test on the means and an F-test on the spreads between any two strings.</td></tr>
         <tr><td>Write note to GRT load</td><td>Writes every string&#39;s stats &mdash; and the last comparison, if any &mdash; as a &ldquo;Chrono Statistics&rdquo; note.</td></tr>
       </tbody></table>
       <p><strong>Grid:</strong> string · n · mean · SD · ES · CI ± on the mean · shots needed for the
-        target margin · outliers. SD here is the same population SD (÷n) shown everywhere else in the
+        target margin · outliers. Mean, SD, ES and the CI are shown in GRT&#39;s own velocity unit
+        (m/s or ft/s &mdash; each column header says which), and the &ldquo;Chrono Statistics&rdquo;
+        note follows the same unit. SD here is the same population SD (÷n) shown everywhere else in the
         toolkit; the confidence interval and the two tests use sample SD (÷n−1) internally, since
         that&#39;s what those formulas are built on &mdash; for n this small the difference matters.</p>
       <p><strong>Outliers</strong> are flagged by Chauvenet&#39;s criterion (classic
@@ -627,7 +629,12 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           days on the same load (neutral if you&#39;ve only tested it once)</li>
       </ul>
       <p>A load needs no calibrated <code>Ba</code> to appear here &mdash; unlike <em>Find best
-        Ba</em>, it only needs whichever of SD/ES/group a session actually recorded.</p>
+        Ba</em>, it only needs whichever of SD/ES/group a session actually recorded. It does need at
+        least one of them: a load with nothing but a round count logged is still listed, at the
+        bottom, with <code>-</code> for its rank and score. Round count and cross-session consistency
+        say how far to trust the other three, so they cannot produce a score on their own &mdash;
+        otherwise twenty rounds fired over no chronograph and no target would score 8.5 and outrank a
+        load you actually measured.</p>
       <div class="callout node"><b>The default thresholds are not arbitrary.</b> Each one is a real,
         citable reference from competitive or military precision-rifle practice &mdash; the standard
         handloader SD goal and &ldquo;poor, mass-produced factory&rdquo; benchmark (Bryan Litz,

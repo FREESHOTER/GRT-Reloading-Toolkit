@@ -84,6 +84,10 @@ internal sealed class LoadLeaderboardForm : Form
         NudFix.ApplyTo(this);
 
         RefreshFilters();
+        // Rank on open rather than waiting for the button: a window that comes up empty reads as
+        // "nothing logged" when it only means "not run yet", and its own "no entries" message is
+        // otherwise unreachable. Same fix as "Find best Ba" needed.
+        Run();
     }
 
     /// <summary>Repopulates the caliber filter from whichever calibers the journal currently has
@@ -165,9 +169,13 @@ internal sealed class LoadLeaderboardForm : Form
                 Lang.T(LoadScoring.ScoreLabel(r.Score.Total)));
             _grid.Rows[i].Tag = r;
         }
-        _status.Text = ranked.Count == 0
-            ? Lang.T("No journal entries yet -- log a session first.")
-            : string.Format(Lang.T("{0} load(s) ranked, best first."), ranked.Count(r => r.Score.Total.HasValue));
+        // Three states, not two: a load with only a round count logged is listed but unranked (see
+        // LoadScoring.Breakdown.Rankable), so "some rows, none scoreable" needs to say why rather
+        // than report "0 load(s) ranked" over a full grid.
+        int rankable = ranked.Count(r => r.Score.Total.HasValue);
+        _status.Text = ranked.Count == 0 ? Lang.T("No journal entries yet -- log a session first.")
+            : rankable == 0 ? Lang.T("Nothing to rank yet -- a load needs SD, ES or a group size logged, not just a round count.")
+            : string.Format(Lang.T("{0} load(s) ranked, best first."), rankable);
     }
 
     /// <summary>

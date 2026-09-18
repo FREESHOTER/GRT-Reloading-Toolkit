@@ -116,6 +116,47 @@ public class LoadScoringTests
     }
 
     [Fact]
+    public void UnmeasuredLoadIsNotRankedAtAll()
+    {
+        // 20 rounds logged, nothing chronographed and no target measured: sample size (10.0) and
+        // the neutral single-session consistency (7.0) would average to 8.5 -- "Very good" -- and
+        // outrank a real load that merely shot badly. Nothing measured means nothing to rank.
+        var unmeasured = LoadScoring.LeaderboardScore(null, null, null, rounds: 20, new List<double>());
+        Assert.False(unmeasured.Rankable);
+        Assert.Null(unmeasured.Total);
+
+        // A genuinely measured but mediocre load still scores, and so ranks above the above.
+        var measured = LoadScoring.LeaderboardScore(6.0, 20.0, 1.5, rounds: 20, new List<double>());
+        Assert.True(measured.Rankable);
+        Assert.NotNull(measured.Total);
+    }
+
+    [Fact]
+    public void OneMeasuredSignalIsEnoughToRank()
+    {
+        var groupOnly = LoadScoring.LeaderboardScore(null, null, 0.5, rounds: 0, new List<double>());
+        Assert.True(groupOnly.Rankable);
+        // Group 8.0 + neutral consistency 7.0, with no round count recorded to fold in.
+        Assert.Null(groupOnly.SampleSize);
+        Assert.Equal(7.5, groupOnly.Total);
+    }
+
+    [Fact]
+    public void BlankRoundCountIsNotScoredAsAOneShotString()
+    {
+        // Rounds is a plain int that starts at 0, so 0 means "not filled in". Scoring it as
+        // ScoreSampleSize(0) = 2.0 would quietly cost a load ~1.5 points for a blank field.
+        var blank = LoadScoring.CompositeQualityScore(3.0, null, null, rounds: 0);
+        Assert.Null(blank.SampleSize);
+        Assert.Equal(10.0, blank.Total);
+
+        // A real one-round string is a different thing and still scores 2.0.
+        var oneShot = LoadScoring.CompositeQualityScore(3.0, null, null, rounds: 1);
+        Assert.Equal(2.0, oneShot.SampleSize);
+        Assert.Equal(6.0, oneShot.Total);
+    }
+
+    [Fact]
     public void LeaderboardScoreIncludesConsistencyUnlikeSingleEntryScore()
     {
         var single = LoadScoring.CompositeQualityScore(3.0, 8.0, 0.5, 20);

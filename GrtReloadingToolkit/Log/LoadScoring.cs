@@ -59,7 +59,11 @@ public static class LoadScoring
 
     /// <summary>Round count -&gt; 0-10, penalizing small samples. Not a performance benchmark
     /// (there's no "military spec" for sample size) -- kept as Ballistic Lab v2 had it, since
-    /// it's about statistical confidence, not ballistic quality.</summary>
+    /// it's about statistical confidence, not ballistic quality.
+    ///
+    /// Callers pass this only for a count they actually have: the journal's Rounds column is a
+    /// plain int that starts at 0, so 0 means "not filled in", not "a zero-shot string", and
+    /// scoring it 2.0 would cost a load ~1.5 points for a blank field.</summary>
     public static double ScoreSampleSize(int rounds)
     {
         if (rounds >= 20) return 10.0;
@@ -104,15 +108,25 @@ public static class LoadScoring
     /// nothing to re-litigate later about which factor should count for more.</summary>
     public sealed record Breakdown(double? Sd, double? Es, double? Group, double? SampleSize, double? Consistency)
     {
+        /// <summary>Null when the load has nothing measured to score -- see
+        /// <see cref="Rankable"/>. Otherwise the simple average of whichever sub-scores exist.</summary>
         public double? Total
         {
             get
             {
+                if (!Rankable) return null;
                 var available = new[] { Sd, Es, Group, SampleSize, Consistency }
                     .Where(v => v.HasValue).Select(v => v!.Value).ToList();
-                return available.Count == 0 ? null : Math.Round(available.Average(), 2);
+                return Math.Round(available.Average(), 2);
             }
         }
+
+        /// <summary>Whether this load was measured at all. Sample size and consistency say how far
+        /// to trust the other three, not how the load shot, so a load with neither SD, ES nor a
+        /// group is not scored on them alone: 20 rounds logged with no chronograph and no target
+        /// would otherwise average (10 + 7) / 2 = 8.5 and rank above a real load that merely shot
+        /// badly.</summary>
+        public bool Rankable => Sd.HasValue || Es.HasValue || Group.HasValue;
     }
 
     /// <summary>Composite score for one journal entry on its own (no cross-session consistency).</summary>
@@ -121,7 +135,7 @@ public static class LoadScoring
             sdMps is { } sd ? ScoreSd(sd) : null,
             esMps is { } es ? ScoreEs(es) : null,
             groupMoa is { } g ? ScoreGroupMoa(g) : null,
-            ScoreSampleSize(rounds),
+            rounds > 0 ? ScoreSampleSize(rounds) : null,
             null);
 
     /// <summary>Composite score for the Leaderboard (a load tested across possibly several
@@ -132,6 +146,6 @@ public static class LoadScoring
             sdMps is { } sd ? ScoreSd(sd) : null,
             esMps is { } es ? ScoreEs(es) : null,
             groupMoa is { } g ? ScoreGroupMoa(g) : null,
-            ScoreSampleSize(rounds),
+            rounds > 0 ? ScoreSampleSize(rounds) : null,
             ScoreConsistency(sdAcrossSessionsMps));
 }
