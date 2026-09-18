@@ -112,7 +112,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manual · v0.2</span>
+  <span class="k">Manual · v0.2.5</span>
 </div></div>
 
 <div class="shell">
@@ -132,6 +132,7 @@
       <li><a href="#card">Load Card / Label</a></li>
       <li><a href="#log">Inventory &amp; Journal</a></li>
       <li><a href="#leaderboard">Load Leaderboard</a></li>
+      <li><a href="#workflow">Distance Workflow</a></li>
       <li><a href="#reports">GRT report templates</a></li>
       <li><a href="#cli">Command line</a></li>
       <li><a href="#faq">Limitations &amp; FAQ</a></li>
@@ -141,7 +142,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manual</h1>
-      <p class="sub">A community plugin for Gordon&#39;s Reloading Tool. Eleven reloading tools and a
+      <p class="sub">A community plugin for Gordon&#39;s Reloading Tool. Twelve reloading tools and a
         set of printable GRT report templates in one window.</p>
       <p class="lede">Plugin id <code>com.grt.plugin.reloadingtoolkit</code>. Ships as a self-contained
         Windows single-file executable &mdash; no .NET runtime needed on the machine it runs on.</p>
@@ -156,7 +157,7 @@
           icon) and a matching entry in the <strong>Plugin</strong> menu appear. Click either &mdash; a
           small <strong>launcher</strong> window opens with one button per tool.</li>
         <li>Optional: in the launcher, click <strong>&ldquo;Install GRT report templates&rdquo;</strong>
-          once (see&nbsp;§14).</li>
+          once (see&nbsp;§15).</li>
       </ol>
       <p>The toolkit is <em>on-demand</em>: GRT starts it on the first click and it exits when you close
         its last window. All tool windows are served by one background process, so opening a second tool
@@ -635,14 +636,44 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         thresholds</strong> in the tool itself to open, edit or reset every tier &mdash; your own
         discipline may reasonably call for a stricter or looser scale, and the numbers are saved to
         <code>%AppData%\GRTPlugins\load-scoring.json</code> so an edit survives a restart.</div>
-      <p>Like Seating Force Estimate, this tool has <strong>no GRT linkage at all</strong> &mdash; it
-        only reads the Journal&#39;s own SQLite database, writes nothing to any
-        <code>.grtload</code>, and has no report-template page.</p>
+      <p><strong>Write leaderboard note to GRT load</strong> reads the caliber/powder/bullet/charge
+        of whichever <code>.grtload</code> is on top in GRT right now, finds that exact load&#39;s
+        own placement among every other load tested at that caliber, and writes its rank, score and
+        full sub-score breakdown into a note &mdash; same timestamped-snapshot pattern every other
+        tool in the Toolkit uses, so your original file is never touched. If the open load
+        hasn&#39;t been logged in the Journal yet, the tool says so instead of writing anything. See
+        <strong>Toolkit &mdash; Load leaderboard report</strong> below for the matching report page.</p>
+    </section>
+
+    <section id="workflow">
+      <h2><span class="no">14</span>Distance Workflow</h2>
+      <p>A second standalone tool in &ldquo;EVALUATE YOUR LOADS&rdquo;, next to Load Leaderboard. At
+        a glance it looks like the same grid and the same 0-10 score again &mdash; it <em>is</em> the
+        same scoring engine &mdash; but it answers a different question, and the two are easy to mix
+        up at first sight:</p>
+      <table><thead><tr><th></th><th>Load Leaderboard (§13)</th><th>Distance Workflow</th></tr></thead><tbody>
+        <tr><td><strong>Question it answers</strong></td><td>&ldquo;Of everything I&#39;ve ever tested for this caliber, what&#39;s the best overall?&rdquo;</td><td>&ldquo;Of the charges I tested <strong>today at this distance</strong>, which earns a test at the next distance?&rdquo; (100&nbsp;m &rarr; 300&nbsp;m, say)</td></tr>
+        <tr><td><strong>Scope</strong></td><td>Every load ever logged, any distance, aggregated</td><td>Only loads logged at <strong>one selected distance</strong></td></tr>
+        <tr><td><strong>Score</strong></td><td>Includes a cross-session <strong>consistency</strong> term (has this load stayed stable over time?)</td><td>No consistency term &mdash; a same-day decision shouldn&#39;t be discounted for a load&#39;s <em>history</em></td></tr>
+        <tr><td><strong>Small samples</strong></td><td>Shown, just scored lower</td><td>Groups under <strong>3 rounds</strong> at that distance are left out of the ranking entirely</td></tr>
+      </tbody></table>
+      <p>Ported from Ballistic Lab v2&#39;s own &ldquo;Workflow Distanze&rdquo;.</p>
+      <p>Pick a <strong>caliber</strong> and a <strong>distance</strong> (only distances the Journal
+        actually has entries for are listed, nearest metre), then <strong>Rank</strong>. Loads are
+        grouped the same way as Load Leaderboard (caliber + powder + bullet + charge), but only among
+        entries logged at that one distance.</p>
+      <p><strong>Write workflow note to GRT load</strong> works like Load Leaderboard&#39;s
+        write-back, with one difference: GRT&#39;s own <code>.grtload</code> has no shooting-distance
+        field at all (only the Journal does, as a manual entry), so the distance it ranks against is
+        always whichever one is selected in the tool itself, not something read from the file. It
+        writes the open load&#39;s rank, score and breakdown at that distance into a note &mdash; same
+        timestamped-snapshot pattern, original file never touched. See <strong>Toolkit &mdash;
+        Distance workflow report</strong> below for the matching report page.</p>
     </section>
 
     <section id="reports">
-      <h2><span class="no">14</span>GRT report templates</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / Plugin menu) writes nine DokuWiki
+      <h2><span class="no">15</span>GRT report templates</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / Plugin menu) writes eleven DokuWiki
         report pages into <code>GRT\doku\&lt;language&gt;\report\</code> and links them in the report
         index. Run it once per GRT install (and tell anyone you share the plugin with to do the same).
         It is idempotent and non-destructive; delete a page by saving it empty in GRT.</p>
@@ -656,10 +687,12 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>Case volume report</td><td>the case-volume note</td></tr>
         <tr><td>Seating depth (geometry) report</td><td>the seating-depth-from-comparator note</td></tr>
         <tr><td>Load sheet</td><td>recipe + predicted + cost note</td></tr>
+        <tr><td>Load leaderboard report</td><td>the leaderboard rank/score note</td></tr>
+        <tr><td>Distance workflow report</td><td>the workflow rank/score note</td></tr>
       </tbody></table>
       <p>Every tool that writes a note has its own dedicated page now, except <strong>Seating Force
-        Estimate (QC)</strong> (§10) and <strong>Load Leaderboard</strong> (§13) — neither has any
-        GRT linkage at all, so there is nothing for a report to pull.</p>
+        Estimate (QC)</strong> (§10) &mdash; a standalone QC estimator with no GRT linkage at all, so
+        there is nothing for a report to pull.</p>
       <div class="callout"><b>To view a report:</b> Results panel → <strong>+</strong> (new tab) →
         <strong>Add report</strong> → pick a &ldquo;Toolkit — …&rdquo; page. Open it <strong>on the
         <code>…_toolkit_…grtload</code> snapshot</strong> &mdash; that&#39;s where the notes and charts
@@ -667,9 +700,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="cli">
-      <h2><span class="no">15</span>Command line</h2>
+      <h2><span class="no">16</span>Command line</h2>
       <p>Debug entry points on the exe (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
-      <pre>--dbtest [db]                                    <span class="c">inventory / journal self-test</span>
+      <pre>--dbtest [db]                                    <span class="c">inventory / journal self-test (writes fixture data to
+                                                  [db], or a throwaway temp file if omitted -- NEVER
+                                                  to your real Journal/Inventory database)</span>
 --athlon &lt;folder&gt; &lt;base.grtload&gt; [tempC]         <span class="c">chrono import from a folder</span>
 --chronostats &lt;folder&gt; [base.grtload] [marginMps] <span class="c">per-string stats + compare of the first two</span>
 --ladder charge|seating &lt;folder&gt; [base.grtload]  <span class="c">ladder analysis</span>
@@ -691,7 +726,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="faq">
-      <h2><span class="no">16</span>Limitations &amp; FAQ</h2>
+      <h2><span class="no">17</span>Limitations &amp; FAQ</h2>
       <h3>Why a pile of <code>_toolkit_…</code> files?</h3>
       <p>GRT&#39;s plugin API can&#39;t edit the open load and can&#39;t reload an already-open tab &mdash;
         so each write is a fresh timestamped snapshot. Each snapshot is complete; keep the newest (Save
@@ -717,6 +752,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.5 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

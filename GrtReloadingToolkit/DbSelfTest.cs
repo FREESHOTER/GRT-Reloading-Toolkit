@@ -8,7 +8,7 @@ internal static class DbSelfTest
     public static void Run(string[] args)
     {
         try { AttachConsole(-1); } catch { }
-        string path = args.Length >= 2 ? args[1] : Db.DefaultPath;
+        string path = ResolvePath(args);
         if (File.Exists(path)) File.Delete(path);
         using var db = new Db(path);
 
@@ -44,6 +44,16 @@ internal static class DbSelfTest
         foreach (var h in db.FirearmMvHistory(fa))
             Console.WriteLine($"  {h.date}  {h.cumRounds,5} rd   {GrtUnits.Current.Velocity(h.mv)}");
     }
+
+    /// <summary>
+    /// NEVER default to <see cref="Db.DefaultPath"/>: <see cref="Run"/> deletes whatever is at this
+    /// path before writing fixture data, and <c>Db.DefaultPath</c> is the exact file the real plugin
+    /// (and the user's real Journal and Inventory) reads and writes. A bare <c>--dbtest</c> must be
+    /// safe to run with the toolkit's own real data sitting untouched in AppData -- an explicit path
+    /// is the only way to point this at something real, and even then it deletes that file first.
+    /// </summary>
+    internal static string ResolvePath(string[] args) =>
+        args.Length >= 2 ? args[1] : Path.Combine(Path.GetTempPath(), "grt-toolkit-dbtest.db");
 
     [System.Runtime.InteropServices.DllImport("kernel32.dll")]
     private static extern bool AttachConsole(int pid);

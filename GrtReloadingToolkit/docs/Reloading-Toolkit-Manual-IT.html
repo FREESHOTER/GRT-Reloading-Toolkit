@@ -109,7 +109,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2</span>
+  <span class="k">Manuale · v0.2.5</span>
 </div></div>
 
 <div class="shell">
@@ -129,6 +129,7 @@
       <li><a href="#card">Cartellino / etichette</a></li>
       <li><a href="#log">Inventario e diario</a></li>
       <li><a href="#leaderboard">Classifica delle Cariche</a></li>
+      <li><a href="#workflow">Workflow Distanze</a></li>
       <li><a href="#reports">Template report GRT</a></li>
       <li><a href="#cli">Riga di comando</a></li>
       <li><a href="#faq">Limiti e FAQ</a></li>
@@ -138,7 +139,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manuale</h1>
-      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Undici strumenti di ricarica e
+      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Dodici strumenti di ricarica e
         una serie di template di report GRT in un&#39;unica finestra.</p>
       <p class="lede">Id plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribuito come
         eseguibile Windows a file singolo — non serve il runtime .NET sulla macchina che lo esegue
@@ -154,7 +155,7 @@
           (icona chiave + cacciavite) e una voce nel menu <strong>Plugin</strong>. Clicca uno dei due
           — si apre una piccola finestra <strong>launcher</strong> con un pulsante per ogni strumento.</li>
         <li>Facoltativo: nel launcher, clicca una volta
-          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§14).</li>
+          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§15).</li>
       </ol>
       <p>Il toolkit è <em>on-demand</em>: GRT lo avvia al primo click ed esce quando chiudi la sua
         ultima finestra. Un solo processo serve tutte le finestre, quindi aprire un secondo strumento
@@ -659,14 +660,47 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         ragionevolmente richiedere una scala più severa o più permissiva, e i numeri vengono salvati
         in <code>%AppData%\GRTPlugins\load-scoring.json</code> così una modifica sopravvive a un
         riavvio.</div>
-      <p>Come Stima forza di seduta, questo tool non ha <strong>nessun collegamento con GRT</strong>
-        &mdash; legge solo il database SQLite del Diario, non scrive nulla in nessun
-        <code>.grtload</code>, e non ha una pagina di template report.</p>
+      <p><strong>Scrivi nota classifica sul load GRT</strong> legge calibro/polvere/proiettile/carica
+        del <code>.grtload</code> attualmente in primo piano in GRT, trova la posizione esatta di
+        quella carica tra tutte le altre testate per quel calibro, e scrive posizione, punteggio e
+        scomposizione completa dei sotto-punteggi in una nota &mdash; stesso schema a snapshot con
+        timestamp usato da ogni altro tool del Toolkit, quindi il file originale non viene mai
+        toccato. Se la carica aperta non è ancora stata registrata nel Diario, il tool lo segnala
+        invece di scrivere nulla. Vedi <strong>Toolkit &mdash; Load leaderboard report</strong> qui
+        sotto per la pagina report corrispondente.</p>
+    </section>
+
+    <section id="workflow">
+      <h2><span class="no">14</span>Workflow Distanze</h2>
+      <p>Un secondo tool a sé stante in &ldquo;VALUTA LE TUE CARICHE&rdquo;, accanto alla Classifica
+        delle Cariche. A prima vista sembra la stessa griglia e lo stesso punteggio da 0 a 10 &mdash;
+        ed è davvero lo stesso motore di punteggio &mdash; ma risponde a una domanda diversa, e i due
+        tool sono facili da confondere a un primo sguardo:</p>
+      <table><thead><tr><th></th><th>Classifica delle Cariche (§13)</th><th>Workflow Distanze</th></tr></thead><tbody>
+        <tr><td><strong>Domanda a cui risponde</strong></td><td>&ldquo;Di tutto ciò che ho mai testato per questo calibro, qual è il migliore in assoluto?&rdquo;</td><td>&ldquo;Delle cariche testate <strong>oggi a questa distanza</strong>, quale merita un test alla distanza successiva?&rdquo; (100&nbsp;m &rarr; 300&nbsp;m, ad esempio)</td></tr>
+        <tr><td><strong>Ambito</strong></td><td>Ogni carica mai registrata, qualsiasi distanza, aggregata</td><td>Solo le cariche registrate a <strong>una distanza selezionata</strong></td></tr>
+        <tr><td><strong>Punteggio</strong></td><td>Include un termine di <strong>coerenza</strong> tra sessioni (questa carica è rimasta stabile nel tempo?)</td><td>Nessun termine di coerenza &mdash; una decisione presa in giornata non va penalizzata per la <em>storia</em> di una carica</td></tr>
+        <tr><td><strong>Campioni piccoli</strong></td><td>Mostrati, solo con punteggio più basso</td><td>I gruppi sotto i <strong>3 colpi</strong> a quella distanza vengono esclusi del tutto dalla classifica</td></tr>
+      </tbody></table>
+      <p>Portato da &ldquo;Workflow Distanze&rdquo; di Ballistic Lab v2.</p>
+      <p>Scegli un <strong>calibro</strong> e una <strong>distanza</strong> (sono elencate solo le
+        distanze per cui il Diario ha già voci registrate, al metro più vicino), poi
+        <strong>Classifica</strong>. Le cariche sono raggruppate come nella Classifica delle Cariche
+        (calibro + polvere + proiettile + carica), ma solo tra le voci registrate a quella singola
+        distanza.</p>
+      <p><strong>Scrivi nota workflow sul load GRT</strong> funziona come la scrittura della
+        Classifica delle Cariche, con una differenza: il <code>.grtload</code> di GRT non ha alcun
+        campo per la distanza di tiro (solo il Diario la registra, come inserimento manuale), quindi
+        la distanza rispetto a cui classifica è sempre quella selezionata nel tool stesso, non letta
+        dal file. Scrive la posizione, il punteggio e la scomposizione della carica aperta a quella
+        distanza in una nota &mdash; stesso schema a snapshot con timestamp, file originale mai
+        toccato. Vedi <strong>Toolkit &mdash; Distance workflow report</strong> qui sotto per la
+        pagina report corrispondente.</p>
     </section>
 
     <section id="reports">
-      <h2><span class="no">14</span>Template report GRT</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive nove pagine
+      <h2><span class="no">15</span>Template report GRT</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive undici pagine
         di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
         dei report. Va lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
         stesso). È idempotente e non distruttivo; per cancellare una pagina la salvi vuota in GRT.</p>
@@ -680,11 +714,12 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Case volume report</td><td>la nota volume bossolo</td></tr>
         <tr><td>Seating depth (geometry) report</td><td>la nota profondità di seduta da comparatore</td></tr>
         <tr><td>Load sheet</td><td>ricetta + predetto + nota costo</td></tr>
+        <tr><td>Load leaderboard report</td><td>la nota posizione/punteggio in classifica</td></tr>
+        <tr><td>Distance workflow report</td><td>la nota posizione/punteggio nel workflow</td></tr>
       </tbody></table>
       <p>Ogni strumento che scrive una nota ha ora una sua pagina dedicata, tranne <strong>Stima
-        forza di seduta (QC)</strong> (§10) e <strong>Classifica delle Cariche</strong> (§13) —
-        nessuno dei due ha alcun collegamento a GRT, quindi non c&#39;è nulla da recuperare in un
-        report.</p>
+        forza di seduta (QC)</strong> (§10) &mdash; uno stimatore QC a sé stante senza alcun
+        collegamento a GRT, quindi non c&#39;è nulla da recuperare in un report.</p>
       <div class="callout"><b>Per vedere un report:</b> pannello Risultati → <strong>+</strong> (nuovo
         tab) → <strong>Add report</strong> → scegli una pagina &laquo;Toolkit — …&raquo;. Aprilo
         <strong>sullo snapshot <code>…_toolkit_…grtload</code></strong> — è lì che stanno le note e i
@@ -693,10 +728,12 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="cli">
-      <h2><span class="no">15</span>Riga di comando</h2>
+      <h2><span class="no">16</span>Riga di comando</h2>
       <p>Punti di ingresso di debug sull&#39;exe
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
-      <pre>--dbtest [db]                                    <span class="c">autotest inventario / diario</span>
+      <pre>--dbtest [db]                                    <span class="c">autotest inventario / diario (scrive dati fittizi in
+                                                  [db], o in un file temporaneo se omesso -- MAI
+                                                  nel database reale di Diario/Inventario)</span>
 --athlon &lt;cartella&gt; &lt;base.grtload&gt; [tempC]        <span class="c">import cronografo da una cartella</span>
 --chronostats &lt;cartella&gt; [base.grtload] [marginMps] <span class="c">statistiche per stringa + confronto delle prime due</span>
 --ladder charge|seating &lt;cartella&gt; [base.grtload] <span class="c">analisi ladder</span>
@@ -718,7 +755,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="faq">
-      <h2><span class="no">16</span>Limiti e FAQ</h2>
+      <h2><span class="no">17</span>Limiti e FAQ</h2>
       <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
       <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
         aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;
@@ -745,6 +782,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.5 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

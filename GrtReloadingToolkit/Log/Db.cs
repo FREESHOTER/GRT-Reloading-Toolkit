@@ -353,14 +353,21 @@ CREATE TABLE IF NOT EXISTS firearms (
     /// filter target -- unlike ResolveFirearm this never auto-creates: an inventory entry stands for
     /// real physical stock the user tracks, and GRT knows nothing about lot/brand/quantity, so a
     /// wrong guess is worse than leaving it as "— none —" for the user to pick by hand.</summary>
-    public long? ResolvePowderId(string powderName)
+    public long? ResolvePowderId(string powderName) => ResolveComponentId(powderName, ComponentKind.Powder);
+
+    /// <summary>Same best-effort matching as <see cref="ResolvePowderId"/>, for a bullet name coming
+    /// from GRT's projectile "pname" -- used by Load Leaderboard to find which logged load the
+    /// currently open GRT load corresponds to.</summary>
+    public long? ResolveBulletId(string bulletName) => ResolveComponentId(bulletName, ComponentKind.Bullet);
+
+    private long? ResolveComponentId(string name, ComponentKind kind)
     {
-        if (string.IsNullOrWhiteSpace(powderName)) return null;
-        string needle = powderName.Trim();
-        var powders = Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Powder).ToList();
-        var exact = powders.FirstOrDefault(c => string.Equals(c.Name, needle, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        string needle = name.Trim();
+        var candidates = Components(includeArchived: true).Where(c => c.Kind == kind).ToList();
+        var exact = candidates.FirstOrDefault(c => string.Equals(c.Name, needle, StringComparison.OrdinalIgnoreCase));
         if (exact != null) return exact.Id;
-        var partial = powders.FirstOrDefault(c =>
+        var partial = candidates.FirstOrDefault(c =>
             c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
             needle.Contains(c.Name, StringComparison.OrdinalIgnoreCase));
         return partial?.Id;

@@ -419,6 +419,16 @@ internal static class Lang
         ["No journal entries yet -- log a session first."] = "Nessuna voce di diario ancora -- registra prima una sessione.",
         ["{0} load(s) ranked, best first."] = "{0} carica/che classificata/e, la migliore per prima.",
         ["⚙ Customize thresholds"] = "⚙ Personalizza soglie",
+        ["Write leaderboard note to GRT load"] = "Scrivi nota classifica sul load GRT",
+        ["This load hasn't been logged in the Journal yet, so it has no leaderboard entry to write. Log it (Journal -> New / Log from GRT) first."] =
+            "Questa carica non è ancora stata registrata nel Diario, quindi non ha una voce in classifica da scrivere. Registrala prima (Diario -> Nuovo / Registra da GRT).",
+        ["Rank #{0} of {1} loads tested for {2}."] = "Posizione #{0} di {1} cariche testate per {2}.",
+        ["Not enough data to score yet ({0} known loads for {1})."] = "Dati insufficienti per un punteggio ({0} cariche note per {1}).",
+        ["Score: {0} ({1})"] = "Punteggio: {0} ({1})",
+        ["Sample size"] = "Numerosità campione",
+        ["Consistency"] = "Coerenza",
+        ["session"] = "sessione",
+        ["Leaderboard note written and opened in GRT."] = "Nota classifica scritta e aperta in GRT.",
 
         // LoadScoringSettingsForm
         ["GRT Load Scoring Thresholds"] = "GRT Soglie di Punteggio Cariche",
@@ -427,6 +437,27 @@ internal static class Lang
         ["(worse than all above)"] = "(peggio di tutte le righe sopra)",
         ["Each row means \"at or below this value, this score\". The last row is the floor for anything worse than every other row."] =
             "Ogni riga significa \"a questo valore o meglio, questo punteggio\". L'ultima riga è il minimo per tutto ciò che è peggio delle altre righe.",
+
+        // WorkflowForm
+        ["🧭  Distance workflow"] = "🧭  Workflow distanze",
+        ["GRT Distance Workflow"] = "GRT Workflow Distanze",
+        ["Write workflow note to GRT load"] = "Scrivi nota workflow sul load GRT",
+        ["No charges with at least {0} rounds logged at this distance yet."] =
+            "Nessuna carica con almeno {0} colpi registrati a questa distanza.",
+        ["{0} charge(s) ranked at this distance, best first."] = "{0} carica/che classificata/e a questa distanza, la migliore per prima.",
+        ["{0} charge(s) ranked, best first ({1} excluded, fewer than {2} rounds)."] =
+            "{0} carica/che classificata/e, la migliore per prima ({1} escluse, meno di {2} colpi).",
+        ["Pick a caliber and distance above first."] = "Scegli prima calibro e distanza qui sopra.",
+        ["This load hasn't been logged at {0} yet, so it has no workflow entry to write. Log it (Journal -> New / Log from GRT) first."] =
+            "Questa carica non è ancora stata registrata a {0}, quindi non ha una voce workflow da scrivere. Registrala prima (Diario -> Nuovo / Registra da GRT).",
+        ["Only {0} round(s) logged at {1} so far -- {2} are needed before this load is ranked."] =
+            "Solo {0} colpo/i registrati a {1} finora -- ne servono {2} prima che questa carica venga classificata.",
+        ["Distance: {0}"] = "Distanza: {0}",
+        ["Rank #{0} of {1} charges tested for {2} at this distance."] = "Posizione #{0} di {1} cariche testate per {2} a questa distanza.",
+        ["Not enough data to score yet ({0} known charges for {1} at this distance)."] =
+            "Dati insufficienti per un punteggio ({0} cariche note per {1} a questa distanza).",
+        ["Top candidate to carry forward to the next distance."] = "Miglior candidata da portare alla distanza successiva.",
+        ["Workflow note written and opened in GRT."] = "Nota workflow scritta e aperta in GRT.",
 
         // ComponentDialog
         ["Add component"] = "Aggiungi componente",

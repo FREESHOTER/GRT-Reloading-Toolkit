@@ -62,4 +62,19 @@ public class VersionSyncTests
         // Win32 assembly identities are always four-part; Directory.Build.props writes three.
         Assert.Equal(DeclaredVersion() + ".0", got);
     }
+
+    /// <summary>
+    /// The HTML manuals used to carry a hand-written "v0.2" badge that never moved past five patch
+    /// releases (0.2.0 through 0.2.4) -- caught only when the user asked "il manuale deve seguire la
+    /// release". Checking for the literal substring, not a specific tag, so it fails the same way
+    /// whichever of the header badge or the footer line is the one left stale next time.
+    /// </summary>
+    [Theory]
+    [InlineData("Reloading-Toolkit-Manual.html")]
+    [InlineData("Reloading-Toolkit-Manual-IT.html")]
+    public void HtmlManualVersionBadgeMatchesTheBuiltVersion(string file)
+    {
+        string html = File.ReadAllText(Path.Combine(RepoRoot(), "GrtReloadingToolkit", "docs", file));
+        Assert.Contains($"v{DeclaredVersion()}", html);
+    }
 }

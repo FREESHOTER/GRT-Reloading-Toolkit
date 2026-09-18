@@ -57,6 +57,7 @@ internal sealed class LauncherForm : Form
 
         Section(Lang.T("EVALUATE YOUR LOADS"));
         B(Lang.T("🏆  Load leaderboard"), Tool.Leaderboard);
+        B(Lang.T("🧭  Distance workflow"), Tool.Workflow);
 
         Section(Lang.T("WRAP UP"));
         B(Lang.T("🏷  Load card / label"), Tool.Label);

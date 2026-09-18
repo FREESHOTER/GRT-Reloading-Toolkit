@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit — Manual
 
-A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles eleven reloading tools plus a
+A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles twelve reloading tools plus a
 set of printable GRT report templates into one window.
 
 - **Author:** community
@@ -16,7 +16,7 @@ set of printable GRT report templates into one window.
 3. A single toolbar button **"Reloading Toolkit"** (wrench + screwdriver icon) and a matching entry
    in the **Plugin** menu appear. Click either — a small **launcher** window opens with one button
    per tool.
-4. Optional: in the launcher, click **"Install GRT report templates"** once (see §14).
+4. Optional: in the launcher, click **"Install GRT report templates"** once (see §15).
 
 The toolkit is *on-demand*: GRT starts it on the first click and it exits when you close its last
 window. All tool windows are served by one background process, so opening a second tool while one is
@@ -215,7 +215,7 @@ spread (MOA). The recommended node is shaded green.
 - **Recommended node:** a weighted blend of MV flatness + POI stability + group size + SD.
 
 The report and chart are written as `~~result.Note("OCW Analysis")~~` and
-`~~result.picture.ocw_chart.png~~` — see §14.
+`~~result.picture.ocw_chart.png~~` — see §15.
 
 > Always confirm a node with a fresh group before committing. SD here is population SD (n).
 
@@ -494,14 +494,46 @@ your own discipline may reasonably call for a stricter or looser scale than a ge
 default, and the numbers are saved to `%AppData%\GRTPlugins\load-scoring.json` so an edit survives
 a restart.
 
-Like Seating Force Estimate, this tool has **no GRT linkage at all** — it only reads the Journal's
-own SQLite database, writes nothing to any `.grtload`, and has no report-template page.
+**Write leaderboard note to GRT load** reads the caliber/powder/bullet/charge of whichever
+`.grtload` is on top in GRT right now, finds that exact load's own placement among every other load
+tested at that caliber, and writes its rank, score and full sub-score breakdown into a note —
+same timestamped-snapshot pattern every other tool in the Toolkit uses, so your original file is
+never touched. If the open load hasn't been logged in the Journal yet, the tool says so instead of
+writing anything. See **Toolkit — Load leaderboard report** below for the matching report page.
 
 ---
 
-## 14. GRT report templates
+## 14. Distance Workflow  🧭
 
-**Install GRT report templates** (launcher / Plugin menu) writes nine DokuWiki report pages into
+A second standalone tool in "EVALUATE YOUR LOADS", next to Load Leaderboard. At a glance it looks
+like the same grid and the same 0-10 score again — it is the same scoring engine — but it answers a
+different question, and the two are easy to mix up at first sight:
+
+| | Load Leaderboard (§13) | Distance Workflow |
+|---|---|---|
+| **Question it answers** | "Of everything I've ever tested for this caliber, what's the best overall?" | "Of the charges I tested **today at this distance**, which earns a test at the next distance?" (100 m → 300 m, say) |
+| **Scope** | Every load ever logged, any distance, aggregated | Only loads logged at **one selected distance** |
+| **Score** | Includes a cross-session **consistency** term (has this load stayed stable over time?) | No consistency term — a same-day decision shouldn't be discounted for a load's *history* |
+| **Small samples** | Shown, just scored lower | Groups under **3 rounds** at that distance are left out of the ranking entirely |
+
+Ported from Ballistic Lab v2's own "Workflow Distanze".
+
+Pick a **caliber** and a **distance** (only distances the Journal actually has entries for are
+listed, nearest metre), then **Rank**. Loads are grouped the same way as Load Leaderboard (caliber +
+powder + bullet + charge), but only among entries logged at that one distance.
+
+**Write workflow note to GRT load** works like Load Leaderboard's write-back, with one difference:
+GRT's own `.grtload` has no shooting-distance field at all (only the Journal does, as a manual
+entry), so the distance it ranks against is always whichever one is selected in the tool itself, not
+something read from the file. It writes the open load's rank, score and breakdown at that distance
+into a note — same timestamped-snapshot pattern, original file never touched. See **Toolkit —
+Distance workflow report** below for the matching report page.
+
+---
+
+## 15. GRT report templates
+
+**Install GRT report templates** (launcher / Plugin menu) writes eleven DokuWiki report pages into
 `GRT\doku\<language>\report\` and links them in the report index. Run it once per GRT install
 (and tell anyone you share the plugin with to do the same). It is idempotent and non-destructive;
 delete a page by saving it empty in GRT.
@@ -517,10 +549,12 @@ delete a page by saving it empty in GRT.
 | **Toolkit — Case volume report** | the case-volume note |
 | **Toolkit — Seating depth (geometry) report** | the seating-depth-from-comparator note |
 | **Toolkit — Load sheet** | recipe + predicted + cost note |
+| **Toolkit — Load leaderboard report** | the leaderboard rank/score note |
+| **Toolkit — Distance workflow report** | the workflow rank/score note |
 
 Every tool that writes a note has its own dedicated page now, except **Seating Force Estimate
-(QC)** (§10) and **Load Leaderboard** (§13) — neither has any GRT linkage at all, so there is
-nothing for a report to pull.
+(QC)** (§10) — a standalone QC estimator with no GRT linkage at all, so there is nothing for a
+report to pull.
 
 **To view a report in GRT:** Results panel → **+** (new tab) → **Add report** → pick a "Toolkit —
 …" page. Open it **on the `…_toolkit_…grtload` snapshot** (that's where the notes and charts live),
@@ -528,12 +562,14 @@ not on your original file. Empty sections just mean you haven't run that tool ye
 
 ---
 
-## 15. Debug command line
+## 16. Debug command line
 
 All on the exe (`plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe`):
 
 ```
---dbtest [db]                                    inventory / journal self-test
+--dbtest [db]                                    inventory / journal self-test (writes fixture data
+                                                  to [db], or to a throwaway temp file if omitted --
+                                                  NEVER to your real Journal/Inventory database)
 --athlon <folder> <base.grtload> [tempC]         chrono import from a folder
 --chronostats <folder> [base.grtload] [marginMps]  per-string stats + a compare of the first two
 --ladder charge|seating <folder> [base.grtload]  ladder analysis
@@ -554,7 +590,7 @@ fills a wide results panel, a near-square value a tall one.
 
 ---
 
-## 16. Limitations & FAQ
+## 17. Limitations & FAQ
 
 **Why a pile of `_toolkit_…` files?** GRT's plugin API can't edit the open load and can't reload an
 already-open tab — so each write is a fresh timestamped snapshot. Each snapshot is complete; keep
