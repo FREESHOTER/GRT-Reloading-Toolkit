@@ -2,7 +2,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/FREESHOTER/GRT-Reloading-Toolkit?label=latest%20release&color=brightgreen)](https://github.com/FREESHOTER/GRT-Reloading-Toolkit/releases/latest)
 
-A community plugin for [Gordon's Reloading Tool](https://grtools.de) that bundles ten small
+A community plugin for [Gordon's Reloading Tool](https://grtools.de) that bundles twelve small
 reloading tools into one window and writes their results back into your load — as notes, charts,
 and corrected inputs (`Ba`, `a0`, `casevol`, `gdepth`, `tcc`/`tch`) — plus a set of installable GRT
 report templates.
@@ -11,7 +11,7 @@ report templates.
 — grab `ReloadingToolkit.zip` (or the smaller `-lite.zip`, see [Install](#install-users) below) from
 the Assets list on that page.
 
-> **Status: v0.2.2.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
+> **Status: v0.2.6.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
 > every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
@@ -27,9 +27,11 @@ the Assets list on that page.
 | **Powder Temp Coefficients** | Fits `tcc` / `tch` from one charge shot cold, normal and hot. |
 | **Brass Prep** | Case volume (grain H₂O) → `casevol`; CBTO / case length / BBTO → `gdepth`; bushing & mandrel sizing for a target neck grip. |
 | **Seating Force Estimate (QC)** | Standalone estimator for expected bullet-seating force, for a QC press's own max-pressure threshold — not a GRT input. |
+| **Load Leaderboard** | Ranks every load in the journal — grouped by caliber + powder + bullet + charge — on a composite 0-10 score built from SD, ES, group size, round count and cross-session consistency. Thresholds are citable defaults and editable. |
+| **Distance Workflow** | The same scoring engine asked a different question: of the charges logged at *one* distance, which earn a test at the next one. No history term, and groups under 3 rounds are left out. |
 | **Load Card / Label** | Printable A6 recipe card or box labels with a QR of the recipe; cost per round from component lots. |
 | **Inventory & Load Journal** | Component stock with lot tracking and cost/round, a range journal (with environment + calibrated `Ba`/`a0` per entry) that deducts stock, a **Find best Ba** search, and per-barrel round count + MV-drift chart. SQLite. |
-| **Install GRT report templates** | Writes nine DokuWiki report pages into `GRT\doku\<lang>\report\`. |
+| **Install GRT report templates** | Writes eleven DokuWiki report pages into `GRT\doku\<lang>\report\`. |
 
 Full details: **[MANUAL.md](GrtReloadingToolkit/MANUAL.md)**, or as HTML
 ([EN](GrtReloadingToolkit/docs/Reloading-Toolkit-Manual.html) /

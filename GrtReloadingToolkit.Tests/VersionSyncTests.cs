@@ -67,12 +67,15 @@ public class VersionSyncTests
     /// The HTML manuals used to carry a hand-written "v0.2" badge that never moved past five patch
     /// releases (0.2.0 through 0.2.4) -- caught only when the user asked "il manuale deve seguire la
     /// release". Checking for the literal substring, not a specific tag, so it fails the same way
-    /// whichever of the header badge or the footer line is the one left stale next time.
+    /// whichever of the header badge or the footer line is the one left stale next time. The landing
+    /// page was the same story only worse: it still said v0.1 at the 0.2.5 release, because it was
+    /// added here last and nothing was watching it.
     /// </summary>
     [Theory]
     [InlineData("Reloading-Toolkit-Manual.html")]
     [InlineData("Reloading-Toolkit-Manual-IT.html")]
-    public void HtmlManualVersionBadgeMatchesTheBuiltVersion(string file)
+    [InlineData("GRT-Reloading-Toolkit.html")]
+    public void HtmlPageVersionBadgeMatchesTheBuiltVersion(string file)
     {
         string html = File.ReadAllText(Path.Combine(RepoRoot(), "GrtReloadingToolkit", "docs", file));
         Assert.Contains($"v{DeclaredVersion()}", html);
