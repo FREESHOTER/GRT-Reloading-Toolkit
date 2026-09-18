@@ -66,7 +66,7 @@ internal static class Program
     }
 }
 
-internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Reports }
+internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Leaderboard, Reports }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -107,6 +107,7 @@ internal sealed class ToolkitContext : ApplicationContext
         id.EndsWith(".seatingforce", StringComparison.Ordinal) ? Tool.SeatingForce :
         id.EndsWith(".label", StringComparison.Ordinal) ? Tool.Label :
         id.EndsWith(".inventory", StringComparison.Ordinal) ? Tool.Log :
+        id.EndsWith(".leaderboard", StringComparison.Ordinal) ? Tool.Leaderboard :
         id.EndsWith(".reports", StringComparison.Ordinal) ? Tool.Reports :
         Tool.Launcher;
 
@@ -135,6 +136,7 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.SeatingForce => new SeatingForceForm(),
             Tool.Label => new LabelForm(_grt, _db),
             Tool.Log => new LogForm(_grt, _db),
+            Tool.Leaderboard => new LoadLeaderboardForm(_db),
             _ => new LauncherForm(Open),
         });
         f.FormClosed += (_, _) =>

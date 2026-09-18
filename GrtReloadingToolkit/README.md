@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit
 
-Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, ten tools.
+Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, eleven tools.
 GRT shows a **single toolbar / menu entry** ("Reloading Toolkit") that opens a launcher window;
 every tool is a button there. One background process serves all of them.
 
@@ -15,7 +15,8 @@ every tool is a button there. One background process serves all of them.
 | 🔧 **Brass Prep** | *Case volume* — N case water weights (grain H₂O **or** grams) → mean / SD volume, written into the caliber's `casevol`. *Seating depth* — CBTO + case length + BBTO (comparator measurements) → GRT `gdepth`, written into the load. *Neck / bushing* — bullet dia + neck wall + desired interference → bushing & mandrel size, **in inch** by default (toggle to mm). |
 | ⚖️ **Seating Force Estimate (QC)** | Standalone estimator for expected bullet-seating (press-fit) force, for a QC press's own max-pressure safety threshold — baseline force for a "typical" setup plus your actual prep (annealing, sizing, lube, coating, boat-tail) → mean force, 1σ/2σ bands, suggested max. Every length field has its own mm/in toggle. The bar/psi figure alongside it is the same force over the bullet's cross-section, **not** a GRT input and not a substitute for GRT's own Initial Pressure. |
 | 🏷 **Load Card / Label** | Printable A6 recipe card / ammo-box labels with a QR of the full recipe. Component-lot dropdowns compute **cost per round**, and a barrel pick adds its twist and length to the card. "Write load-sheet note" puts the recipe + cost breakdown into the load. |
-| 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet / barrel) with lot tracking, brand pick-lists, powder counted in **g, gr, lb or kg**, twist and length on barrels, and cost per round, a load/range journal that deducts stock and records the session's environment (temperature/pressure/humidity, own units) plus the calibrated `Ba`/`a0`, a **Find best Ba** search (filter by caliber+powder+bullet, rank by tightest group / closest velocity / closest temperature), and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
+| 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet / barrel) with lot tracking, brand pick-lists, powder counted in **g, gr, lb or kg**, twist and length on barrels, and cost per round, a load/range journal that deducts stock and records the session's environment (temperature/pressure/humidity, own units) plus the calibrated `Ba`/`a0`, a **Find best Ba** search (filter by caliber+powder+bullet, rank by tightest group / closest velocity / closest temperature, plus a Ba/velocity/group vs temperature chart), a **Fill Ba from loads** migration for pre-`Ba` entries, and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
+| 🏆 **Load Leaderboard** | Ranks *every* load ever logged (grouped by caliber+powder+bullet+charge) by a composite 0-10 score — SD, ES, group size, sample size, cross-session consistency, simple average of whichever are available. Default thresholds are anchored to real competitive/military references (Bryan Litz/Applied Ballistics, Mk 316 Mod 0 and M118LR sniper-ammo specs, published benchrest/hunting benchmarks) and are fully **editable** (⚙ Customize thresholds), saved to `%AppData%\GRTPlugins\load-scoring.json`. No GRT linkage — reads only the Journal's own database. |
 
 Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes nine DokuWiki
 report pages into `GRT\doku\<lang>\report\` and links them from the Reports index —
@@ -30,8 +31,8 @@ report pages into `GRT\doku\<lang>\report\` and links them from the Reports inde
 - *Toolkit — Seating depth (geometry) report*
 - *Toolkit — Load sheet* (recipe + predicted results + cost)
 
-Every note-writing tool has its own dedicated page now, except Seating Force Estimate (QC) — it has
-no GRT linkage at all, so there's nothing for a report to pull.
+Every note-writing tool has its own dedicated page now, except Seating Force Estimate (QC) and Load
+Leaderboard — neither has any GRT linkage at all, so there's nothing for a report to pull.
 
 Run it once after installing the plugin. It is idempotent and non-destructive; delete a page by
 saving it empty in GRT.

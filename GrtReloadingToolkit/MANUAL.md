@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit — Manual
 
-A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles ten reloading tools plus a
+A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles eleven reloading tools plus a
 set of printable GRT report templates into one window.
 
 - **Author:** community
@@ -16,7 +16,7 @@ set of printable GRT report templates into one window.
 3. A single toolbar button **"Reloading Toolkit"** (wrench + screwdriver icon) and a matching entry
    in the **Plugin** menu appear. Click either — a small **launcher** window opens with one button
    per tool.
-4. Optional: in the launcher, click **"Install GRT report templates"** once (see §13).
+4. Optional: in the launcher, click **"Install GRT report templates"** once (see §14).
 
 The toolkit is *on-demand*: GRT starts it on the first click and it exits when you close its last
 window. All tool windows are served by one background process, so opening a second tool while one is
@@ -215,7 +215,7 @@ spread (MOA). The recommended node is shaded green.
 - **Recommended node:** a weighted blend of MV flatness + POI stability + group size + SD.
 
 The report and chart are written as `~~result.Note("OCW Analysis")~~` and
-`~~result.picture.ocw_chart.png~~` — see §13.
+`~~result.picture.ocw_chart.png~~` — see §14.
 
 > Always confirm a node with a fresh group before committing. SD here is population SD (n).
 
@@ -466,7 +466,40 @@ the image aspect ratio (1 MOA = 29.0888 mm at 100 m).
 
 ---
 
-## 13. GRT report templates
+## 13. Load Leaderboard  🏆
+
+A standalone tool under its own launcher section ("EVALUATE YOUR LOADS") — ranks **every load
+you've ever logged** in the Journal, not one caliber/powder/bullet combo at a time like *Find best
+Ba*. Loads are grouped by caliber + powder + bullet + charge weight (the same recipe tested across
+several range days is still one load, not several) and given a composite **0-10 score**.
+
+The score is a simple average of whichever of these a load's sessions actually recorded — nothing
+is weighted more than anything else, so there is nothing to argue about later:
+
+- **SD** and **ES** (m/s or ft/s, whichever GRT is configured for)
+- **Group size** (MOA, extreme spread — the same convention "Group MOA" uses everywhere else)
+- **Round count** (penalizes small samples — statistical confidence, not a performance figure)
+- **Consistency across sessions** — how much SD drifted between repeat range days on the same load
+  (neutral if you've only tested it once)
+
+A load needs no calibrated `Ba` to appear here — unlike *Find best Ba*, it only needs whichever of
+SD/ES/group a session actually recorded.
+
+**The default thresholds are not arbitrary.** Each one is a real, citable reference from
+competitive or military precision-rifle practice — the standard handloader SD goal and "poor,
+mass-produced factory" benchmark (Bryan Litz, *Applied Ballistics*), the Mk 316 Mod 0 and M118LR
+sniper-ammunition specification ceilings, and published benchrest/hunting-rifle group-size
+benchmarks. See **⚙ Customize thresholds** in the tool itself to open, edit or reset every tier —
+your own discipline may reasonably call for a stricter or looser scale than a general-purpose
+default, and the numbers are saved to `%AppData%\GRTPlugins\load-scoring.json` so an edit survives
+a restart.
+
+Like Seating Force Estimate, this tool has **no GRT linkage at all** — it only reads the Journal's
+own SQLite database, writes nothing to any `.grtload`, and has no report-template page.
+
+---
+
+## 14. GRT report templates
 
 **Install GRT report templates** (launcher / Plugin menu) writes nine DokuWiki report pages into
 `GRT\doku\<language>\report\` and links them in the report index. Run it once per GRT install
@@ -486,7 +519,8 @@ delete a page by saving it empty in GRT.
 | **Toolkit — Load sheet** | recipe + predicted + cost note |
 
 Every tool that writes a note has its own dedicated page now, except **Seating Force Estimate
-(QC)** — it has no GRT linkage at all (§10), so there is nothing for a report to pull.
+(QC)** (§10) and **Load Leaderboard** (§13) — neither has any GRT linkage at all, so there is
+nothing for a report to pull.
 
 **To view a report in GRT:** Results panel → **+** (new tab) → **Add report** → pick a "Toolkit —
 …" page. Open it **on the `…_toolkit_…grtload` snapshot** (that's where the notes and charts live),
@@ -494,7 +528,7 @@ not on your original file. Empty sections just mean you haven't run that tool ye
 
 ---
 
-## 14. Debug command line
+## 15. Debug command line
 
 All on the exe (`plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe`):
 
@@ -520,7 +554,7 @@ fills a wide results panel, a near-square value a tall one.
 
 ---
 
-## 15. Limitations & FAQ
+## 16. Limitations & FAQ
 
 **Why a pile of `_toolkit_…` files?** GRT's plugin API can't edit the open load and can't reload an
 already-open tab — so each write is a fresh timestamped snapshot. Each snapshot is complete; keep

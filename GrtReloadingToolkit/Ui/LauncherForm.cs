@@ -55,6 +55,9 @@ internal sealed class LauncherForm : Form
         B(Lang.T("🎚  Barrel calibration"), Tool.Cal);
         B(Lang.T("🌡  Powder temp coefficients"), Tool.Temp);
 
+        Section(Lang.T("EVALUATE YOUR LOADS"));
+        B(Lang.T("🏆  Load leaderboard"), Tool.Leaderboard);
+
         Section(Lang.T("WRAP UP"));
         B(Lang.T("🏷  Load card / label"), Tool.Label);
         B(Lang.T("📒  Inventory & load journal"), Tool.Log);

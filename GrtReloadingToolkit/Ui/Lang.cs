@@ -29,6 +29,7 @@ internal static class Lang
         ["PLAN & PREPARE"] = "PIANIFICA E PREPARA",
         ["RANGE DAY"] = "GIORNO AL POLIGONO",
         ["TUNE TO YOUR BARREL"] = "METTI A PUNTO LA CANNA",
+        ["EVALUATE YOUR LOADS"] = "VALUTA LE TUE CARICHE",
         ["WRAP UP"] = "CONCLUDI",
         ["🔧  Brass prep (case vol / seating / neck)"] = "🔧  Preparazione bossoli (volume / seating / colletto)",
         ["⚖️  Seating force estimate (QC)"] = "⚖️  Stima forza di seduta (QC)",
@@ -38,6 +39,7 @@ internal static class Lang
         ["📏  Seating-depth analyzer"] = "📏  Analizzatore profondità di seduta",
         ["🎚  Barrel calibration"] = "🎚  Calibrazione canna",
         ["🌡  Powder temp coefficients"] = "🌡  Coefficienti temperatura polvere",
+        ["🏆  Load leaderboard"] = "🏆  Classifica delle cariche",
         ["🏷  Load card / label"] = "🏷  Cartellino / etichetta carico",
         ["📒  Inventory & load journal"] = "📒  Inventario e diario di carico",
         ["📄  Install GRT report templates"] = "📄  Installa i template report GRT",
@@ -399,6 +401,32 @@ internal static class Lang
         ["Plot vs temperature"] = "Grafico vs temperatura",
         ["No entries with both temperature and this value logged yet."] =
             "Nessuna voce con sia la temperatura sia questo valore registrati.",
+
+        // LoadLeaderboardForm
+        ["GRT Load Leaderboard"] = "GRT Classifica delle Cariche",
+        ["Rank"] = "Classifica",
+        ["Sessions"] = "Sessioni",
+        ["Score"] = "Punteggio",
+        ["Rating"] = "Valutazione",
+        // LoadScoring.ScoreLabel's own values -- kept language-agnostic in Log/, translated here
+        // at the display site (same split as BaBackfill.Result's reasons).
+        ["N/A"] = "N/D",
+        ["Excellent"] = "Eccellente",
+        ["Very good"] = "Molto buono",
+        ["Good"] = "Buono",
+        ["Fair"] = "Sufficiente",
+        ["Needs work"] = "Da migliorare",
+        ["No journal entries yet -- log a session first."] = "Nessuna voce di diario ancora -- registra prima una sessione.",
+        ["{0} load(s) ranked, best first."] = "{0} carica/che classificata/e, la migliore per prima.",
+        ["⚙ Customize thresholds"] = "⚙ Personalizza soglie",
+
+        // LoadScoringSettingsForm
+        ["GRT Load Scoring Thresholds"] = "GRT Soglie di Punteggio Cariche",
+        ["Reset to defaults"] = "Ripristina i default",
+        ["Up to"] = "Fino a",
+        ["(worse than all above)"] = "(peggio di tutte le righe sopra)",
+        ["Each row means \"at or below this value, this score\". The last row is the floor for anything worse than every other row."] =
+            "Ogni riga significa \"a questo valore o meglio, questo punteggio\". L'ultima riga è il minimo per tutto ciò che è peggio delle altre righe.",
 
         // ComponentDialog
         ["Add component"] = "Aggiungi componente",

@@ -131,6 +131,7 @@
       <li><a href="#seatingforce">Seating Force Estimate</a></li>
       <li><a href="#card">Load Card / Label</a></li>
       <li><a href="#log">Inventory &amp; Journal</a></li>
+      <li><a href="#leaderboard">Load Leaderboard</a></li>
       <li><a href="#reports">GRT report templates</a></li>
       <li><a href="#cli">Command line</a></li>
       <li><a href="#faq">Limitations &amp; FAQ</a></li>
@@ -140,7 +141,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manual</h1>
-      <p class="sub">A community plugin for Gordon&#39;s Reloading Tool. Ten reloading tools and a
+      <p class="sub">A community plugin for Gordon&#39;s Reloading Tool. Eleven reloading tools and a
         set of printable GRT report templates in one window.</p>
       <p class="lede">Plugin id <code>com.grt.plugin.reloadingtoolkit</code>. Ships as a self-contained
         Windows single-file executable &mdash; no .NET runtime needed on the machine it runs on.</p>
@@ -155,7 +156,7 @@
           icon) and a matching entry in the <strong>Plugin</strong> menu appear. Click either &mdash; a
           small <strong>launcher</strong> window opens with one button per tool.</li>
         <li>Optional: in the launcher, click <strong>&ldquo;Install GRT report templates&rdquo;</strong>
-          once (see&nbsp;§13).</li>
+          once (see&nbsp;§14).</li>
       </ol>
       <p>The toolkit is <em>on-demand</em>: GRT starts it on the first click and it exits when you close
         its last window. All tool windows are served by one background process, so opening a second tool
@@ -606,8 +607,41 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         the image aspect ratio (1&nbsp;MOA = 29.0888&nbsp;mm at 100&nbsp;m).</p>
     </section>
 
+    <section id="leaderboard">
+      <h2><span class="no">13</span>Load Leaderboard</h2>
+      <p>A standalone tool under its own launcher section (&ldquo;EVALUATE YOUR LOADS&rdquo;) &mdash;
+        ranks <strong>every load you&#39;ve ever logged</strong> in the Journal, not one
+        caliber/powder/bullet combo at a time like <em>Find best Ba</em>. Loads are grouped by
+        caliber + powder + bullet + charge weight (the same recipe tested across several range days
+        is still one load, not several) and given a composite <strong>0-10 score</strong>.</p>
+      <p>The score is a simple average of whichever of these a load&#39;s sessions actually
+        recorded &mdash; nothing is weighted more than anything else:</p>
+      <ul>
+        <li><strong>SD</strong> and <strong>ES</strong> (m/s or ft/s, whichever GRT is configured for)</li>
+        <li><strong>Group size</strong> (MOA, extreme spread &mdash; the same convention &ldquo;Group
+          MOA&rdquo; uses everywhere else)</li>
+        <li><strong>Round count</strong> (penalizes small samples &mdash; statistical confidence, not a
+          performance figure)</li>
+        <li><strong>Consistency across sessions</strong> &mdash; how much SD drifted between repeat range
+          days on the same load (neutral if you&#39;ve only tested it once)</li>
+      </ul>
+      <p>A load needs no calibrated <code>Ba</code> to appear here &mdash; unlike <em>Find best
+        Ba</em>, it only needs whichever of SD/ES/group a session actually recorded.</p>
+      <div class="callout node"><b>The default thresholds are not arbitrary.</b> Each one is a real,
+        citable reference from competitive or military precision-rifle practice &mdash; the standard
+        handloader SD goal and &ldquo;poor, mass-produced factory&rdquo; benchmark (Bryan Litz,
+        <em>Applied Ballistics</em>), the Mk 316 Mod 0 and M118LR sniper-ammunition specification
+        ceilings, and published benchrest/hunting-rifle group-size benchmarks. See <strong>⚙ Customize
+        thresholds</strong> in the tool itself to open, edit or reset every tier &mdash; your own
+        discipline may reasonably call for a stricter or looser scale, and the numbers are saved to
+        <code>%AppData%\GRTPlugins\load-scoring.json</code> so an edit survives a restart.</div>
+      <p>Like Seating Force Estimate, this tool has <strong>no GRT linkage at all</strong> &mdash; it
+        only reads the Journal&#39;s own SQLite database, writes nothing to any
+        <code>.grtload</code>, and has no report-template page.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">13</span>GRT report templates</h2>
+      <h2><span class="no">14</span>GRT report templates</h2>
       <p><strong>Install GRT report templates</strong> (launcher / Plugin menu) writes nine DokuWiki
         report pages into <code>GRT\doku\&lt;language&gt;\report\</code> and links them in the report
         index. Run it once per GRT install (and tell anyone you share the plugin with to do the same).
@@ -624,8 +658,8 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>Load sheet</td><td>recipe + predicted + cost note</td></tr>
       </tbody></table>
       <p>Every tool that writes a note has its own dedicated page now, except <strong>Seating Force
-        Estimate (QC)</strong> — it has no GRT linkage at all (§10), so there is nothing for a report
-        to pull.</p>
+        Estimate (QC)</strong> (§10) and <strong>Load Leaderboard</strong> (§13) — neither has any
+        GRT linkage at all, so there is nothing for a report to pull.</p>
       <div class="callout"><b>To view a report:</b> Results panel → <strong>+</strong> (new tab) →
         <strong>Add report</strong> → pick a &ldquo;Toolkit — …&rdquo; page. Open it <strong>on the
         <code>…_toolkit_…grtload</code> snapshot</strong> &mdash; that&#39;s where the notes and charts
@@ -633,7 +667,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="cli">
-      <h2><span class="no">14</span>Command line</h2>
+      <h2><span class="no">15</span>Command line</h2>
       <p>Debug entry points on the exe (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">inventory / journal self-test</span>
 --athlon &lt;folder&gt; &lt;base.grtload&gt; [tempC]         <span class="c">chrono import from a folder</span>
@@ -657,7 +691,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="faq">
-      <h2><span class="no">15</span>Limitations &amp; FAQ</h2>
+      <h2><span class="no">16</span>Limitations &amp; FAQ</h2>
       <h3>Why a pile of <code>_toolkit_…</code> files?</h3>
       <p>GRT&#39;s plugin API can&#39;t edit the open load and can&#39;t reload an already-open tab &mdash;
         so each write is a fresh timestamped snapshot. Each snapshot is complete; keep the newest (Save

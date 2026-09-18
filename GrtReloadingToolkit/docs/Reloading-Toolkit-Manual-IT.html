@@ -128,6 +128,7 @@
       <li><a href="#seatingforce">Stima forza di seduta</a></li>
       <li><a href="#card">Cartellino / etichette</a></li>
       <li><a href="#log">Inventario e diario</a></li>
+      <li><a href="#leaderboard">Classifica delle Cariche</a></li>
       <li><a href="#reports">Template report GRT</a></li>
       <li><a href="#cli">Riga di comando</a></li>
       <li><a href="#faq">Limiti e FAQ</a></li>
@@ -137,7 +138,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manuale</h1>
-      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Dieci strumenti di ricarica e
+      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Undici strumenti di ricarica e
         una serie di template di report GRT in un&#39;unica finestra.</p>
       <p class="lede">Id plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribuito come
         eseguibile Windows a file singolo — non serve il runtime .NET sulla macchina che lo esegue
@@ -153,7 +154,7 @@
           (icona chiave + cacciavite) e una voce nel menu <strong>Plugin</strong>. Clicca uno dei due
           — si apre una piccola finestra <strong>launcher</strong> con un pulsante per ogni strumento.</li>
         <li>Facoltativo: nel launcher, clicca una volta
-          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§13).</li>
+          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§14).</li>
       </ol>
       <p>Il toolkit è <em>on-demand</em>: GRT lo avvia al primo click ed esce quando chiudi la sua
         ultima finestra. Un solo processo serve tutte le finestre, quindi aprire un secondo strumento
@@ -534,7 +535,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <li>Menù a tendina <strong>lotto Polvere / InneSco / Bossolo / Palla</strong> — scegli un lotto
           dall&#39;inventario (§12) per calcolare il <strong>costo per colpo</strong> e stampare il
           lotto sul cartellino.</li>
-        <li>Menù a tendina <strong>Barrel</strong> — scegli una canna dall&#39;inventario (§10) e il
+        <li>Menù a tendina <strong>Barrel</strong> — scegli una canna dall&#39;inventario (§12) e il
           cartellino guadagna una riga <strong>Barrel</strong>: nome, passo di rigatura e lunghezza,
           nelle unità di GRT. La stessa ricetta sparata da una canna diversa è un load diverso, quindi
           il cartellino, il QR e la nota load-sheet dicono quale era. Una canna senza passo né lunghezza
@@ -625,8 +626,46 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         100&nbsp;m).</p>
     </section>
 
+    <section id="leaderboard">
+      <h2><span class="no">13</span>Classifica delle Cariche</h2>
+      <p>Un tool a sé stante nella propria sezione del launcher (&ldquo;VALUTA LE TUE
+        CARICHE&rdquo;) &mdash; classifica <strong>ogni carica mai registrata</strong> nel Diario,
+        non una sola combinazione calibro/polvere/proiettile alla volta come <em>Trova miglior
+        Ba</em>. Le cariche sono raggruppate per calibro + polvere + proiettile + peso della carica
+        (la stessa ricetta testata in più giornate al poligono resta una sola carica, non diverse) e
+        riceve un punteggio composito da <strong>0 a 10</strong>.</p>
+      <p>Il punteggio è la media semplice di quelli tra questi valori che le sessioni di una carica
+        hanno effettivamente registrato &mdash; nessuno pesa più degli altri:</p>
+      <ul>
+        <li><strong>SD</strong> ed <strong>ES</strong> (m/s o ft/s, a seconda della configurazione di
+          GRT)</li>
+        <li><strong>Dimensione gruppo</strong> (MOA, estrema deviazione &mdash; la stessa convenzione
+          di &ldquo;Gruppo MOA&rdquo; usata ovunque altrove)</li>
+        <li><strong>Numero di colpi</strong> (penalizza campioni piccoli &mdash; è confidenza
+          statistica, non una misura di prestazione)</li>
+        <li><strong>Coerenza tra sessioni</strong> &mdash; quanto la SD è variata tra giornate al
+          poligono ripetute sulla stessa carica (neutro se l&#39;hai testata una sola volta)</li>
+      </ul>
+      <p>Una carica non ha bisogno di un <code>Ba</code> calibrato per comparire qui &mdash; a
+        differenza di <em>Trova miglior Ba</em>, serve solo qualunque dato tra SD/ES/gruppo che una
+        sessione abbia effettivamente registrato.</p>
+      <div class="callout node"><b>Le soglie predefinite non sono arbitrarie.</b> Ognuna è un
+        riferimento reale e citabile dalla pratica competitiva o militare del tiro di precisione
+        &mdash; l&#39;obiettivo SD standard per chi ricarica e il parametro &ldquo;scarso, munizioni
+        di massa da fabbrica&rdquo; (Bryan Litz, <em>Applied Ballistics</em>), i tetti massimi delle
+        specifiche munizioni da tiratore scelto Mk 316 Mod 0 e M118LR, e i riferimenti pubblicati per
+        dimensione gruppo nel benchrest/caccia. Vedi <strong>⚙ Personalizza soglie</strong> nel tool
+        stesso per aprire, modificare o ripristinare ogni livello &mdash; la tua disciplina può
+        ragionevolmente richiedere una scala più severa o più permissiva, e i numeri vengono salvati
+        in <code>%AppData%\GRTPlugins\load-scoring.json</code> così una modifica sopravvive a un
+        riavvio.</div>
+      <p>Come Stima forza di seduta, questo tool non ha <strong>nessun collegamento con GRT</strong>
+        &mdash; legge solo il database SQLite del Diario, non scrive nulla in nessun
+        <code>.grtload</code>, e non ha una pagina di template report.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">13</span>Template report GRT</h2>
+      <h2><span class="no">14</span>Template report GRT</h2>
       <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive nove pagine
         di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
         dei report. Va lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
@@ -643,8 +682,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Load sheet</td><td>ricetta + predetto + nota costo</td></tr>
       </tbody></table>
       <p>Ogni strumento che scrive una nota ha ora una sua pagina dedicata, tranne <strong>Stima
-        forza di seduta (QC)</strong> — non ha alcun collegamento a GRT (§10), quindi non c&#39;è
-        nulla da recuperare in un report.</p>
+        forza di seduta (QC)</strong> (§10) e <strong>Classifica delle Cariche</strong> (§13) —
+        nessuno dei due ha alcun collegamento a GRT, quindi non c&#39;è nulla da recuperare in un
+        report.</p>
       <div class="callout"><b>Per vedere un report:</b> pannello Risultati → <strong>+</strong> (nuovo
         tab) → <strong>Add report</strong> → scegli una pagina &laquo;Toolkit — …&raquo;. Aprilo
         <strong>sullo snapshot <code>…_toolkit_…grtload</code></strong> — è lì che stanno le note e i
@@ -653,7 +693,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="cli">
-      <h2><span class="no">14</span>Riga di comando</h2>
+      <h2><span class="no">15</span>Riga di comando</h2>
       <p>Punti di ingresso di debug sull&#39;exe
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">autotest inventario / diario</span>
@@ -678,7 +718,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="faq">
-      <h2><span class="no">15</span>Limiti e FAQ</h2>
+      <h2><span class="no">16</span>Limiti e FAQ</h2>
       <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
       <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
         aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;
