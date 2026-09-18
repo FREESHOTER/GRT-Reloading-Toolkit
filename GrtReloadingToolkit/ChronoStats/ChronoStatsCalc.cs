@@ -177,7 +177,11 @@ public static class ChronoStatsCalc
             $"string's own spread) to pin the mean to +/-{gu.VelocityValue(targetMarginMps):0.0} {gu.VelocityUnitName}."));
         sb.AppendLine();
         sb.AppendLine($"mean/SD/ES/CI in {gu.VelocityUnitName}");
-        sb.AppendLine(" charge            n   mean    SD    ES  |    95% CI on mean     | n needed");
+        // The level is the caller's, not always 95 -- a hardcoded "95%" here contradicted the
+        // sentence above at 90 or 99. Width 2 covers every level the form offers (90/95/99) and
+        // keeps this hand-aligned header lined up with the row format below.
+        sb.AppendLine(FormattableString.Invariant(
+            $" charge            n   mean    SD    ES  |   {ci,2}% CI on mean   | n needed"));
         var footnotes = new List<string>();
         foreach (var (label, s) in rows)
         {

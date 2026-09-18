@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using GrtReloadingToolkit.ChronoStats;
 using Xunit;
 
@@ -96,4 +98,40 @@ public class ChronoStatsCalcTests
         var r = ChronoStatsCalc.Compare(tight, loose);
         Assert.True(r.SpreadsDiffer);
     }
+
+    private static string Report(double confidence) =>
+        ChronoStatsCalc.BuildTableReport(
+            new[] { ("39.2 gr (Ladder)", ChronoStatsCalc.Analyze(Clean, confidence)) },
+            3.0, confidence);
+
+    /// <summary>The table's column header used to say "95%" whatever level was asked for, so at 90
+    /// or 99 it contradicted the sentence directly above it, which has always been correct.</summary>
+    [Theory]
+    [InlineData(0.90, 90)]
+    [InlineData(0.95, 95)]
+    [InlineData(0.99, 99)]
+    public void TableReport_ColumnHeaderNamesTheConfidenceLevelActuallyUsed(double confidence, int shown)
+    {
+        string r = Report(confidence);
+        Assert.Contains($"{shown}% CI on mean", r);
+        foreach (int other in new[] { 90, 95, 99 })
+            if (other != shown) Assert.DoesNotContain($"{other}% CI on mean", r);
+    }
+
+    /// <summary>The header is fixed-width and hand-aligned to the row format, so a change to it has
+    /// to keep the column rules where they were at every confidence level.</summary>
+    [Theory]
+    [InlineData(0.90)]
+    [InlineData(0.95)]
+    [InlineData(0.99)]
+    public void TableReport_ColumnRulesStayAlignedWithTheRows(double confidence)
+    {
+        var lines = Report(confidence).Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+        string header = lines.Single(l => l.Contains("CI on mean"));
+        string row = lines.Single(l => l.StartsWith("39.2 gr", StringComparison.Ordinal));
+        Assert.Equal(PipeColumns(header), PipeColumns(row));
+    }
+
+    private static IReadOnlyList<int> PipeColumns(string line) =>
+        line.Select((c, i) => (c, i)).Where(t => t.c == '|').Select(t => t.i).ToList();
 }
