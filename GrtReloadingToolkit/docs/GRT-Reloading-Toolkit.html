@@ -127,13 +127,13 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="v">v0.1 · community plugin</span>
+  <span class="v">v0.2.6 · community plugin</span>
 </div></header>
 
 <div class="wrap">
   <div class="hero">
     <div class="eyebrow">Plugin for Gordon&#39;s Reloading Tool</div>
-    <h1>Eight reloading tools, one GRT window.</h1>
+    <h1>Twelve reloading tools, one GRT window.</h1>
     <p class="lede">Import your chronograph, find the accuracy node, calibrate the barrel to your
       simulation, size necks, cost your rounds, and print the load card &mdash; then push every
       result back into GRT as a note, a chart, or a corrected input.</p>
@@ -195,7 +195,7 @@
 <section><div class="wrap">
   <div class="sec-head">
     <span class="n">01</span>
-    <div><h2>The eight tools</h2>
+    <div><h2>The twelve tools</h2>
     <p>All reached from one launcher window. Each writes its result into the load.</p></div>
   </div>
   <div class="tools">
@@ -205,6 +205,13 @@
       <h3>Chronograph Import</h3></div>
       <p>Athlon Rangecraft and Garmin Xero / ShotView exports &mdash; <code>.xlsx</code>, <code>.csv</code>, one file or a whole folder &mdash; into a GRT Measurement tab.</p>
       <div class="out">auto fps↔m/s · footer trimmed · <b>one charge per file</b></div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M3 16c4.5 0 4-9 9-9s4.5 9 9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 20h10M7 18.5v3M17 18.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <h3>Chronograph Statistics</h3></div>
+      <p>What GRT&#39;s own AVG/SD/ES line doesn&#39;t tell you: how far the <em>true</em> mean could plausibly sit from the one you measured, how many more shots would pin it down, whether a shot looks like it doesn&#39;t belong, and whether two strings really differ or that&#39;s just chrono noise.</p>
+      <div class="out">90 / 95 / 99% CI · Chauvenet · <b>n needed</b></div>
     </div>
 
     <div class="tool"><div class="top">
@@ -243,6 +250,13 @@
     </div>
 
     <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M12 2v7m-3-3 3 3 3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="11" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="2"/><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>Seating Force Estimate</h3></div>
+      <p>Expected bullet-seating (press-fit) force, for a QC press&#39;s own &ldquo;max pressure&rdquo; threshold. Every length field carries its own mm/in dropdown, so you can mix units field by field.</p>
+      <div class="out">baseline × prep factors · <b>QC only</b></div>
+    </div>
+
+    <div class="tool"><div class="top">
       <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M13 4h7v7l-8 8-7-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="16" cy="8" r="1.4" fill="currentColor"/><rect x="9.5" y="12" width="5" height="5" stroke="currentColor" stroke-width="1.6"/></svg>
       <h3>Load Card / Label</h3></div>
       <p>Printable A6 recipe card or box labels with a QR of the full recipe. Component lots pull cost per round from the inventory.</p>
@@ -254,6 +268,20 @@
       <h3>Inventory &amp; Load Journal</h3></div>
       <p>Component stock with lot tracking and cost per round, a range journal that deducts it, and a Firearms tab: round count and an MV-drift chart per barrel.</p>
       <div class="out">SQLite · <span class="mono">%AppData%\GRTPlugins\</span></div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="9.5" y="9" width="5" height="12" stroke="currentColor" stroke-width="2"/><rect x="3.5" y="13" width="6" height="8" stroke="currentColor" stroke-width="2"/><rect x="14.5" y="15" width="6" height="6" stroke="currentColor" stroke-width="2"/><path d="m12 2 1.2 2.6 2.8.4-2 2 .5 2.8L12 8.5 9.5 9.8l.5-2.8-2-2 2.8-.4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <h3>Load Leaderboard</h3></div>
+      <p>Ranks <b>every load you&#39;ve ever logged</b> on one 0&#8209;10 score &mdash; a simple average of whichever of SD, ES, group, round count and cross-session consistency a load actually has. A load needs at least one real measurement to be ranked at all.</p>
+      <div class="out">→ <b>leaderboard</b> note + report page</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <h3>Distance Workflow</h3></div>
+      <p>The same score, scoped to one distance: of the charges you shot <em>today at this distance</em>, which earns a test at the next one? No consistency term, and groups under three rounds are left out rather than scored low.</p>
+      <div class="out">per-distance rank · → <b>workflow</b> note</div>
     </div>
 
   </div>
@@ -312,6 +340,6 @@
 </div></section>
 
 <footer><div class="wrap">
-  <span>GRT Reloading Toolkit · v0.1 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.6 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>
