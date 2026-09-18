@@ -563,14 +563,23 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           session. <strong>Log from GRT</strong> prefills all of it from the open load (including
           <code>Ba</code>/<code>a0</code>, if Barrel Calibration wrote them there). Editing or
           deleting an entry reconciles the inventory; tick <em>deduct components from inventory on
-          save</em> to draw stock down.</li>
+          save</em> to draw stock down. <strong>Fill Ba from loads</strong> is for a journal
+          written before <code>Ba</code>/<code>a0</code> were recorded: for every entry that has no
+          <code>Ba</code> but still names a <code>.grtload</code>, it reads the value back out of
+          that file. It lists what it found and what it is leaving alone (load moved, never
+          calibrated, won&#39;t open) and waits for a yes before writing; it never overwrites a
+          <code>Ba</code> you typed, and running it twice does nothing the second time. To undo
+          one, edit that entry and set its <code>Ba</code> back to 0.</li>
         <li><strong>Find best Ba</strong> &mdash; searches the journal for entries that carry a
           calibrated <code>Ba</code>, filtered to one caliber + powder + bullet combo (a
           <code>Ba</code> from a different combo isn&#39;t comparable), ranked by whichever
           &ldquo;best&rdquo; means for you: <strong>tightest group (MOA)</strong>, <strong>closest
           velocity to a target</strong>, or <strong>closest temperature to a target</strong> (also
           takes C or F). Read-only &mdash; it searches what the Journal has already recorded, it
-          doesn&#39;t take new data.</li>
+          doesn&#39;t take new data. The caliber list is built from journal entries that carry a
+          <code>Ba</code>, so an entry logged before that field existed puts nothing in it: fill in
+          its <strong>Ba (calibrated)</strong>, or run <strong>Fill Ba from loads</strong> (both
+          under <em>Journal</em> above), and its caliber appears.</li>
         <li><strong>Firearms</strong> &mdash; one row per barrel: total round count
           (<code>rounds before</code> + journal rounds), number of MV entries, last used. Add / Edit /
           Retire, and an <strong>MV-drift chart</strong> (muzzle velocity vs cumulative rounds with a

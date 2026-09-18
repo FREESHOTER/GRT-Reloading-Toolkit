@@ -363,6 +363,24 @@ internal static class Lang
         ["Total"] = "Totale",
         ["Delete '{0}' ({1})? Deducted stock will be restored."] = "Eliminare '{0}' ({1})? Le scorte scalate saranno ripristinate.",
         ["Find best Ba"] = "Trova miglior Ba",
+        ["No journal entry carries a Ba yet, so there is no caliber to pick. Use Journal -> Log from GRT "
+        + "(it reads Ba from the load open in GRT), or Journal -> Fill Ba from loads for entries logged "
+        + "before Ba was recorded, or open an entry and type it into 'Ba (calibrated)'."] =
+            "Nessuna voce del diario porta ancora un Ba, quindi non c'è alcun calibro da scegliere. Usa Diario -> "
+            + "Registra da GRT (legge il Ba dal load aperto in GRT), oppure Diario -> Recupera Ba dai load per le voci "
+            + "registrate prima che il Ba venisse memorizzato, oppure apri una voce e scrivilo in 'Ba (calibrato)'.",
+        // Backfill of Ba/a0 from the .grtload an old journal entry still points at.
+        ["Fill Ba from loads"] = "Recupera Ba dai load",
+        ["Read Ba back into these journal entries, from the load each one points at?"] =
+            "Rileggere il Ba in queste voci del diario, dal load a cui ognuna punta?",
+        ["No entry could be filled in from its load file."] =
+            "Nessuna voce ha potuto essere completata dal suo file load.",
+        ["Left alone:"] = "Lasciate invariate:",
+        ["the load carries no Ba"] = "il load non contiene alcun Ba",
+        ["the load file is no longer there"] = "il file load non c'è più",
+        ["the load file would not open"] = "il file load non si è aperto",
+        ["Filled in {0}. To undo one, edit that entry and set its Ba back to 0."] =
+            "Completate {0}. Per annullarne una, modifica quella voce e riporta il suo Ba a 0.",
         ["Tightest group (MOA)"] = "Gruppo più stretto (MOA)",
         ["Closest velocity to target"] = "Velocità più vicina al target",
         ["Closest temperature to target"] = "Temperatura più vicina al target",
@@ -375,8 +393,6 @@ internal static class Lang
         ["Search"] = "Cerca",
         ["Group MOA"] = "Gruppo MOA",
         ["-- any --"] = "-- qualsiasi --",
-        ["No calibrated journal entries yet -- log a Ba from Barrel Calibration first."] =
-            "Nessuna voce di diario calibrata ancora -- registra prima un Ba da Calibrazione Canna.",
         ["No calibrated entries match this caliber/powder/bullet combo yet."] =
             "Nessuna voce calibrata corrisponde ancora a questa combinazione calibro/polvere/proiettile.",
         ["{0} matching calibration(s), best first."] = "{0} calibrazione/i corrispondente/i, la migliore per prima.",

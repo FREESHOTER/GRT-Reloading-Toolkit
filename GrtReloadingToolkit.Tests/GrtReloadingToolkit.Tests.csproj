@@ -32,6 +32,8 @@
     <!-- Same story for the log store: SQLite and arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\Log\LogModels.cs" Link="Log\LogModels.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Db.cs" Link="Log\Db.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\LoadSnapshot.cs" Link="Log\LoadSnapshot.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\BaBackfill.cs" Link="Log\BaBackfill.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Costing.cs" Link="Log\Costing.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\StockUnit.cs" Link="Log\StockUnit.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Brands.cs" Link="Log\Brands.cs" />

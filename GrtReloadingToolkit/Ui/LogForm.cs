@@ -231,6 +231,7 @@ internal sealed class LogForm : Form
         g.Enabled = _grt is { Connected: true };
         B(Lang.T("Edit"), EditEntry);
         B(Lang.T("Delete"), DeleteEntry);
+        B(Lang.T("Fill Ba from loads"), FillBaFromLoads);
 
         _jrn.Dock = DockStyle.Fill;
         _jrn.ReadOnly = true; _jrn.AllowUserToAddRows = false; _jrn.RowHeadersVisible = false;
@@ -305,6 +306,52 @@ internal sealed class LogForm : Form
             _db.DeleteEntry(e.Id);
             RefreshJournal(); RefreshInventory(); RefreshFindBaFilters();
         }
+    }
+
+    /// <summary>
+    /// Offers to read the Ba back out of the .grtload files that Ba-less entries already point at,
+    /// for a journal written before the Ba column existed. Shows what it found before writing any
+    /// of it: an empty Ba can equally mean the user left it empty on purpose.
+    /// </summary>
+    private void FillBaFromLoads()
+    {
+        string title = Lang.T("Fill Ba from loads");
+        var scan = BaBackfill.Scan(_db);
+        var found = scan.Where(c => c.Result == BaBackfill.Result.Found).ToList();
+
+        // Every candidate is accounted for, not only the ones that worked. A load that has moved,
+        // or was never calibrated, is exactly what the user needs told -- staying quiet about it
+        // would read as "there was nothing else to do".
+        var left = scan.Where(c => c.Result != BaBackfill.Result.Found)
+            .GroupBy(c => c.Result)
+            .Select(g => "  " + g.Count() + " \u00d7 " + Reason(g.Key))
+            .ToList();
+        string tail = left.Count == 0 ? "" : "\n\n" + Lang.T("Left alone:") + "\n" + string.Join("\n", left);
+
+        if (found.Count == 0)
+        {
+            MessageBox.Show(this, Lang.T("No entry could be filled in from its load file.") + tail, title);
+            return;
+        }
+
+        string list = string.Join("\n", found.Select(c => "  " + c.Date + "  " + c.LoadName + "  " + c.Caliber
+            + "  Ba " + c.Ba!.Value.ToString("0.#######", CultureInfo.InvariantCulture)));
+        if (MessageBox.Show(this,
+                Lang.T("Read Ba back into these journal entries, from the load each one points at?")
+                + "\n\n" + list + tail,
+                title, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+        int n = BaBackfill.Apply(_db, found);
+        RefreshJournal();
+        RefreshFindBaFilters();
+        MessageBox.Show(this, string.Format(Lang.T("Filled in {0}. To undo one, edit that entry and set its Ba back to 0."), n), title);
+
+        static string Reason(BaBackfill.Result r) => r switch
+        {
+            BaBackfill.Result.NoBaInLoad => Lang.T("the load carries no Ba"),
+            BaBackfill.Result.FileMissing => Lang.T("the load file is no longer there"),
+            _ => Lang.T("the load file would not open"),
+        };
     }
 
     // ---- find best Ba ---------------------------------------------------
@@ -411,6 +458,12 @@ internal sealed class LogForm : Form
         if (keepCal != null && _fbCaliber.Items.Contains(keepCal)) _fbCaliber.SelectedItem = keepCal;
         else if (_fbCaliber.Items.Count > 0) _fbCaliber.SelectedIndex = 0;
 
+        // The caliber list is a DropDownList fed only by journal entries that carry a Ba, so on a
+        // journal written before the Ba column existed it comes up empty -- an unfillable box with
+        // no way to type into it and, until this, nothing on screen saying why. Say it here rather
+        // than only after a Search the user has no reason to press on an empty form.
+        _fbStatus.Text = _fbCaliber.Items.Count == 0 ? NoBaHint : "";
+
         var powders = _db.Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Powder).ToList();
         var bullets = _db.Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Bullet).ToList();
         FillFbCombo(_fbPowder, powders);
@@ -435,7 +488,7 @@ internal sealed class LogForm : Form
     {
         if (_fbCaliber.SelectedItem is not string caliber)
         {
-            _fbStatus.Text = Lang.T("No calibrated journal entries yet -- log a Ba from Barrel Calibration first.");
+            _fbStatus.Text = NoBaHint;
             _fb.Rows.Clear();
             _fbLastResults = new List<JournalEntry>();
             UpdateFindBaChart();
@@ -478,6 +531,14 @@ internal sealed class LogForm : Form
             : string.Format(Lang.T("{0} matching calibration(s), best first."), list.Count);
         UpdateFindBaChart();
     }
+
+    /// <summary>Why the caliber list can be empty, and the three ways to fill it. Barrel Calibration
+    /// writes Ba into the .grtload, never into the journal -- the old text sent the user there and
+    /// they came back with the box still empty.</summary>
+    private static string NoBaHint => Lang.T(
+        "No journal entry carries a Ba yet, so there is no caliber to pick. Use Journal -> Log from GRT "
+        + "(it reads Ba from the load open in GRT), or Journal -> Fill Ba from loads for entries logged "
+        + "before Ba was recorded, or open an entry and type it into 'Ba (calibrated)'.");
 
     private double TargetTempC() => _fbTargetTempUnit.SelectedIndex == 1 ? FToC((double)_fbTargetTemp.Value) : (double)_fbTargetTemp.Value;
     private static double FToC(double f) => (f - 32.0) * 5.0 / 9.0;
