@@ -148,12 +148,14 @@ open load, one row per charge.
 | Control | Effect |
 |---|---|
 | **confidence** | 90 / 95 / 99% — applies to every confidence interval and test below. |
-| **target ± m/s** | Feeds the "shots for target" column: how many shots (of this string's spread) it would take to pin the mean down to ± that margin. |
+| **target ±** | Feeds the "shots for target" column: how many shots (of this string's spread) it would take to pin the mean down to ± that margin. Typed in whichever velocity unit GRT is configured for (the label says which). |
 | **Compare A vs B** | Welch's t-test on the means and an F-test on the spreads between any two strings. |
 | **Write note to GRT load** | Writes every string's stats — and the last comparison, if any — as a "Chrono Statistics" note. |
 
 **Grid:** string · n · mean · SD · ES · CI ± on the mean · shots needed for the target margin ·
-outliers. SD here is the same population SD (÷n) shown everywhere else in the toolkit; the
+outliers. Mean, SD, ES and the CI are shown in GRT's own velocity unit (m/s or ft/s — each column
+header says which), and the "Chrono Statistics" note follows the same unit. SD here is the same
+population SD (÷n) shown everywhere else in the toolkit; the
 confidence interval and the two tests use sample SD (÷n−1) internally, since that's what those
 formulas are built on — for n this small the difference matters.
 
@@ -483,7 +485,11 @@ is weighted more than anything else, so there is nothing to argue about later:
   (neutral if you've only tested it once)
 
 A load needs no calibrated `Ba` to appear here — unlike *Find best Ba*, it only needs whichever of
-SD/ES/group a session actually recorded.
+SD/ES/group a session actually recorded. It does need at least one of them: a load with nothing but
+a round count logged is still listed, at the bottom, with `-` for its rank and score. Round count
+and cross-session consistency say how far to trust the other three, so they cannot produce a score
+on their own — otherwise twenty rounds fired over no chronograph and no target would score 8.5 and
+outrank a load you actually measured.
 
 **The default thresholds are not arbitrary.** Each one is a real, citable reference from
 competitive or military precision-rifle practice — the standard handloader SD goal and "poor,

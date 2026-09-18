@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using GrtPluginKit.Analysis;
+using GrtPluginKit.Grt;
 
 namespace GrtReloadingToolkit.ChronoStats;
 
@@ -164,12 +165,18 @@ public static class ChronoStatsCalc
     /// </summary>
     public static string BuildTableReport(IReadOnlyList<(string Label, ChronoSummary Summary)> rows, double targetMarginMps, double confidence)
     {
+        // Same convention as the ladder/calibration/temp-coefficient reports: velocities are read in
+        // GRT's own unit, and the unit is named on a legend line rather than in each cell, so the
+        // fixed-width columns below line up whichever unit is configured.
+        var gu = GrtUnits.Current;
         int ci = (int)Math.Round(confidence * 100);
         var sb = new StringBuilder();
         sb.AppendLine(FormattableString.Invariant(
             $"{ci}% confidence interval on each string's true mean. \"n needed\" = shots (of that"));
-        sb.AppendLine(FormattableString.Invariant($"string's own spread) to pin the mean to +/-{targetMarginMps:0.0} m/s."));
+        sb.AppendLine(FormattableString.Invariant(
+            $"string's own spread) to pin the mean to +/-{gu.VelocityValue(targetMarginMps):0.0} {gu.VelocityUnitName}."));
         sb.AppendLine();
+        sb.AppendLine($"mean/SD/ES/CI in {gu.VelocityUnitName}");
         sb.AppendLine(" charge            n   mean    SD    ES  |    95% CI on mean     | n needed");
         var footnotes = new List<string>();
         foreach (var (label, s) in rows)
@@ -179,9 +186,10 @@ public static class ChronoStatsCalc
             string needTxt = need switch { 0 => "–", -1 => ">1000", _ => need.ToString(CultureInfo.InvariantCulture) };
             var flagged = s.Outliers.Where(o => o.Flagged).ToList();
             sb.AppendLine(FormattableString.Invariant(
-                $"{shortLabel,-14}{(flagged.Count > 0 ? "*" : " ")} {s.N,3} {s.Mean,7:0.0} {s.Sd,5:0.0} {s.Es,5:0.0}  | {s.CiLoMps,7:0.0} to {s.CiHiMps,-7:0.0} |   {needTxt,4}"));
+                $"{shortLabel,-14}{(flagged.Count > 0 ? "*" : " ")} {s.N,3} {gu.VelocityValue(s.Mean),7:0.0} {gu.VelocityValue(s.Sd),5:0.0} {gu.VelocityValue(s.Es),5:0.0}  | {gu.VelocityValue(s.CiLoMps),7:0.0} to {gu.VelocityValue(s.CiHiMps),-7:0.0} |   {needTxt,4}"));
             foreach (var o in flagged)
-                footnotes.Add(FormattableString.Invariant($"  * {shortLabel}: shot #{o.Index + 1} = {o.ValueMps:0.0} m/s excluded (Chauvenet) — not counted above"));
+                footnotes.Add(FormattableString.Invariant(
+                    $"  * {shortLabel}: shot #{o.Index + 1} = {gu.VelocityValue(o.ValueMps):0.0} {gu.VelocityUnitName} excluded (Chauvenet) — not counted above"));
         }
         if (footnotes.Count > 0) { sb.AppendLine(); foreach (var f in footnotes) sb.AppendLine(f); }
         return sb.ToString();
@@ -190,13 +198,14 @@ public static class ChronoStatsCalc
     /// <summary>The two-sample comparison block for the note/console output.</summary>
     public static string BuildCompareReport(string labelA, string labelB, TwoSampleResult r)
     {
+        var gu = GrtUnits.Current;
         var sb = new StringBuilder();
         sb.AppendLine(FormattableString.Invariant($"Compare: {ShortLabel(labelA)}  vs  {ShortLabel(labelB)}"));
         sb.AppendLine(FormattableString.Invariant(
-            $"  mean:   {r.MeanA:0.0} vs {r.MeanB:0.0} m/s, diff {r.MeanDiffMps:+0.0;-0.0} m/s (p={r.TPValue:0.000}) -> ") +
+            $"  mean:   {gu.VelocityValue(r.MeanA):0.0} vs {gu.VelocityValue(r.MeanB):0.0} {gu.VelocityUnitName}, diff {gu.VelocityValue(r.MeanDiffMps):+0.0;-0.0} {gu.VelocityUnitName} (p={r.TPValue:0.000}) -> ") +
             (r.MeansDiffer ? "different, not chrono noise" : "not different — could be chrono noise"));
         sb.AppendLine(FormattableString.Invariant(
-            $"  spread: SD {r.SdA:0.0} vs {r.SdB:0.0} m/s (p={r.FPValue:0.000}) -> ") +
+            $"  spread: SD {gu.VelocityValue(r.SdA):0.0} vs {gu.VelocityValue(r.SdB):0.0} {gu.VelocityUnitName} (p={r.FPValue:0.000}) -> ") +
             (r.SpreadsDiffer ? "one load is meaningfully more consistent" : "no evidence either is more consistent"));
         return sb.ToString();
     }

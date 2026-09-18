@@ -283,12 +283,14 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         per carica.</p>
       <table><thead><tr><th>Controllo</th><th>Effetto</th></tr></thead><tbody>
         <tr><td>confidence</td><td>90 / 95 / 99% — si applica a ogni intervallo di confidenza e test qui sotto.</td></tr>
-        <tr><td>target ± m/s</td><td>Alimenta la colonna &laquo;shots for target&raquo;: quanti colpi (data la dispersione di questa stringa) servirebbero per stringere la media entro quel margine.</td></tr>
+        <tr><td>target ±</td><td>Alimenta la colonna &laquo;shots for target&raquo;: quanti colpi (data la dispersione di questa stringa) servirebbero per stringere la media entro quel margine. Si digita nell&#39;unità di velocità configurata in GRT (l&#39;etichetta indica quale).</td></tr>
         <tr><td>Compare A vs B</td><td>t-test di Welch sulle medie e F-test sulle dispersioni tra due stringhe qualsiasi.</td></tr>
         <tr><td>Write note to GRT load</td><td>Scrive le statistiche di ogni stringa — e l&#39;ultimo confronto, se presente — come nota &laquo;Chrono Statistics&raquo;.</td></tr>
       </tbody></table>
       <p><strong>Griglia:</strong> stringa · n · media · SD · ES · CI ± sulla media · colpi necessari
-        per il margine target · outlier. La SD qui è la stessa SD di popolazione (÷n) mostrata
+        per il margine target · outlier. Media, SD, ES e il CI sono mostrati nell&#39;unità di
+        velocità di GRT (m/s o ft/s &mdash; ogni intestazione di colonna indica quale), e la nota
+        &laquo;Chrono Statistics&raquo; segue la stessa unità. La SD qui è la stessa SD di popolazione (÷n) mostrata
         ovunque nel resto del toolkit; l&#39;intervallo di confidenza e i due test usano internamente
         la SD campionaria (÷n−1), perché è su quella che sono costruite quelle formule — con n così
         piccoli la differenza conta.</p>
@@ -648,7 +650,12 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       </ul>
       <p>Una carica non ha bisogno di un <code>Ba</code> calibrato per comparire qui &mdash; a
         differenza di <em>Trova miglior Ba</em>, serve solo qualunque dato tra SD/ES/gruppo che una
-        sessione abbia effettivamente registrato.</p>
+        sessione abbia effettivamente registrato. Almeno uno di questi però serve: una carica con
+        registrato solo il numero di colpi compare comunque, in fondo, con <code>-</code> al posto di
+        posizione e punteggio. Numero di colpi e coerenza tra sessioni dicono quanto fidarsi degli
+        altri tre, quindi da soli non producono un punteggio &mdash; altrimenti venti colpi sparati
+        senza cronografo e senza bersaglio otterrebbero 8,5 e batterebbero una carica davvero
+        misurata.</p>
       <div class="callout node"><b>Le soglie predefinite non sono arbitrarie.</b> Ognuna è un
         riferimento reale e citabile dalla pratica competitiva o militare del tiro di precisione
         &mdash; l&#39;obiettivo SD standard per chi ricarica e il parametro &ldquo;scarso, munizioni

@@ -251,11 +251,11 @@ internal static class Lang
         ["Chronograph Statistics"] = "Statistiche Cronografo",
         ["From GRT load's Measurement"] = "Dalla Measurement del load GRT",
         ["confidence"] = "confidenza",
-        ["target ± m/s"] = "target ± m/s",
+        ["target ±"] = "target ±",
         ["Compare"] = "Confronta",
         ["vs"] = "contro",
         ["String"] = "Stringa",
-        ["Mean m/s"] = "Media m/s",
+        ["Mean"] = "Media",
         ["CI ± (mean)"] = "CI ± (media)",
         ["shots for target"] = "colpi per target",
         ["outliers"] = "outlier",
@@ -418,6 +418,7 @@ internal static class Lang
         ["Needs work"] = "Da migliorare",
         ["No journal entries yet -- log a session first."] = "Nessuna voce di diario ancora -- registra prima una sessione.",
         ["{0} load(s) ranked, best first."] = "{0} carica/che classificata/e, la migliore per prima.",
+        ["Nothing to rank yet -- a load needs SD, ES or a group size logged, not just a round count."] = "Niente da classificare -- una carica ha bisogno di SD, ES o dimensione del gruppo registrati, non solo del numero di colpi.",
         ["⚙ Customize thresholds"] = "⚙ Personalizza soglie",
 
         // LoadScoringSettingsForm

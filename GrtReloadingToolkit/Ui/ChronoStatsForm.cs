@@ -25,6 +25,7 @@ internal sealed class ChronoStatsForm : Form
 
     private readonly GrtClient? _grt;
     private readonly List<Row> _rows = new();
+    private readonly GrtUnits _u = GrtUnits.Current;
 
     private readonly DataGridView _grid = new();
     private readonly ComboBox _confidence = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 64 };
@@ -83,7 +84,18 @@ internal sealed class ChronoStatsForm : Form
         _confidence.SelectedIndex = 1;
         _confidence.SelectedIndexChanged += (_, _) => Recompute();
         top.Controls.Add(_confidence);
-        top.Controls.Add(new Label { Text = Lang.T("target ± m/s"), AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
+        top.Controls.Add(new Label { Text = Lang.T("target ±") + " " + _u.VelocityUnitName, AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
+        // The margin is typed in GRT's own velocity unit, so its range travels with it: the field
+        // initializer's 0.5/50/3 are m/s, which as bare numbers would mean a twelfth of the range
+        // and a third of the default to someone working in ft/s. Set before the handler is wired,
+        // and Maximum before Value, or the assignment clamps against the old ceiling.
+        if (_u.VelocityInFps)
+        {
+            _targetMargin.Maximum = 165M;   // ~50 m/s
+            _targetMargin.Minimum = 1.5M;   // ~0.5 m/s
+            _targetMargin.Increment = 1M;
+            NudFix.Set(_targetMargin, _u.VelocityValue(3.0));
+        }
         _targetMargin.ValueChanged += (_, _) => Recompute();
         top.Controls.Add(_targetMargin);
 
@@ -101,8 +113,10 @@ internal sealed class ChronoStatsForm : Form
         _grid.AllowUserToAddRows = false;
         _grid.RowHeadersVisible = false;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        foreach (var (n, h) in new[] { ("lbl", Lang.T("String")), ("n", "n"), ("mean", Lang.T("Mean m/s")), ("sd", "SD"), ("es", "ES"),
-                     ("ci", Lang.T("CI ± (mean)")), ("need", Lang.T("shots for target")), ("out", Lang.T("outliers")) })
+        foreach (var (n, h) in new[] { ("lbl", Lang.T("String")), ("n", "n"), ("mean", Lang.T("Mean") + " " + _u.VelocityUnitName),
+                     ("sd", "SD " + _u.VelocityUnitName), ("es", "ES " + _u.VelocityUnitName),
+                     ("ci", Lang.T("CI ± (mean)") + " " + _u.VelocityUnitName),
+                     ("need", Lang.T("shots for target")), ("out", Lang.T("outliers")) })
             _grid.Columns.Add(n, h);
 
         _cmpResult.Multiline = true; _cmpResult.ReadOnly = true; _cmpResult.ScrollBars = ScrollBars.Vertical;
@@ -126,7 +140,8 @@ internal sealed class ChronoStatsForm : Form
     }
 
     private double Confidence => _confidence.SelectedIndex switch { 0 => 0.90, 2 => 0.99, _ => 0.95 };
-    private double TargetMarginMps => (double)_targetMargin.Value;
+    /// <summary>What the user typed, back in stored m/s -- the calc layer stays metric.</summary>
+    private double TargetMarginMps => _u.VelocityToMps((double)_targetMargin.Value);
 
     private void AddFiles()
     {
@@ -214,10 +229,10 @@ internal sealed class ChronoStatsForm : Form
             string needTxt = need switch { 0 => "–", -1 => ">1000", _ => need.ToString(CultureInfo.InvariantCulture) };
             int flagged = s.Outliers.Count(o => o.Flagged);
             _grid.Rows.Add(r.Label, s.N,
-                s.Mean.ToString("0.0", CultureInfo.InvariantCulture),
-                s.Sd.ToString("0.0", CultureInfo.InvariantCulture),
-                s.Es.ToString("0.0", CultureInfo.InvariantCulture),
-                FormattableString.Invariant($"±{s.CiMarginMps:0.0}"),
+                _u.VelocityValue(s.Mean).ToString("0.0", CultureInfo.InvariantCulture),
+                _u.VelocitySd(s.Sd),
+                _u.VelocitySd(s.Es),
+                FormattableString.Invariant($"±{_u.VelocityValue(s.CiMarginMps):0.0}"),
                 needTxt,
                 flagged > 0 ? string.Format(Lang.T("{0} flagged"), flagged) : "–");
         }
