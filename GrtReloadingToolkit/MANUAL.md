@@ -423,14 +423,22 @@ A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`. Four tabs.
   - **Ba** and **a0** — the values Barrel Calibration's fit landed on for this session. **Log from
     GRT** reads these straight from the open load if you ran *Write Ba-corrected* or *Write
     Ba+a0-corrected .grtload* there first and it's the load now open; otherwise type them in.
-  **New**, **Log from GRT** (prefills from the open load), **Edit**, **Delete**. Editing or
-  deleting an entry reconciles the inventory. Tick *deduct components from inventory on save* to
-  draw stock down.
+  - **Fill Ba from loads** is for a journal written before `Ba`/`a0` were recorded: for every entry
+    that has no `Ba` but still names a `.grtload`, it reads the value back out of that file. It
+    lists what it found and what it is leaving alone (load moved, never calibrated, won't open)
+    and waits for a yes before writing; it never overwrites a `Ba` you typed, and running it twice
+    does nothing the second time. To undo one, edit that entry and set its `Ba` back to 0.
+  **New**, **Log from GRT** (prefills from the open load), **Edit**, **Delete**, **Fill Ba from
+  loads**. Editing or deleting an entry reconciles the inventory. Tick *deduct components from
+  inventory on save* to draw stock down.
 - **Find best Ba** — searches the journal for entries that carry a calibrated `Ba`, filtered to one
   caliber + powder + bullet combo (a `Ba` from a different combo isn't comparable), ranked by
   whichever "best" means for you: **tightest group (MOA)**, **closest velocity to a target**, or
   **closest temperature to a target** (target temperature also takes C or F). Read-only — it's a
-  search over what the Journal has already recorded, not a place to enter new data.
+  search over what the Journal has already recorded, not a place to enter new data. The caliber
+  list is built from journal entries that carry a `Ba`, so an entry logged before that field
+  existed puts nothing in it: fill in its **Ba (calibrated)**, or run **Fill Ba from loads** (both
+  under *Journal* above), and its caliber appears.
 - **Firearms** — one row per barrel: total round count (`rounds before` + journal rounds), number
   of MV entries, last used. **Add / Edit / Retire**, and a **MV-drift chart** (muzzle velocity vs
   cumulative rounds with a trend line — "+X m/s per 100 rd").
