@@ -99,7 +99,9 @@ public sealed class CalResult
         double newA0 = a0Old + deltaA0Sol;
         if (newBa <= 0)
         {
-            notes.Add($"fit produced a non-physical Ba <= 0 ({newBa:0.####}) -- discard; the data is likely too noisy or the charges too close together.");
+            // Invariant, like every other line BuildReport below composes -- this note lands in
+            // the same report they do.
+            notes.Add(FormattableString.Invariant($"fit produced a non-physical Ba <= 0 ({newBa:0.####}) -- discard; the data is likely too noisy or the charges too close together."));
             return new ShapeFit(baOld, a0Old, 0, 0, notes);
         }
         return new ShapeFit(newBa, newA0, deltaBa, deltaA0Sol, notes);
