@@ -59,7 +59,8 @@ internal sealed class BarrelChart : Panel
         g.DrawString($"{u.VelocityValue(yMin):0}", fnt, tb, 4, mt + ph - 12);
         g.DrawString($"{xMin:0} rd", fnt, tb, ml, mt + ph + 6);
         g.DrawString($"{xMax:0} rd", fnt, tb, ml + pw - 40, mt + ph + 6);
-        g.DrawString(_name ?? "", new Font("Segoe UI", 8f, FontStyle.Bold), tb, ml, 3);
+        using var titleFnt = new Font("Segoe UI", 8f, FontStyle.Bold);
+        g.DrawString(_name ?? "", titleFnt, tb, ml, 3);
 
         // trend line (linear regression of MV vs cumRounds)
         if (_pts.Count >= 3)
@@ -68,8 +69,9 @@ internal sealed class BarrelChart : Panel
             using var trend = new Pen(Color.FromArgb(120, 251, 191, 36), 1.5f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
             g.DrawLine(trend, X(xMin), Y(a + b * xMin), X(xMax), Y(a + b * xMax));
             double per100 = u.VelocityValue(b * 100);
+            using var trendBrush = new SolidBrush(Color.FromArgb(251, 191, 36));
             g.DrawString(string.Format(CultureInfo.InvariantCulture, "trend {0:+0.0;-0.0} {1} / 100 rd", per100, u.VelocityUnitName),
-                fnt, new SolidBrush(Color.FromArgb(251, 191, 36)), ml + 6, mt + 4);
+                fnt, trendBrush, ml + 6, mt + 4);
         }
 
         using var line = new Pen(Color.FromArgb(56, 189, 248), 2f);

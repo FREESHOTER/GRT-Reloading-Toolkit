@@ -44,6 +44,7 @@
     <!-- And for the brass-prep maths, which owns the length formatting the seating-depth
          tests assert on. -->
     <Compile Include="..\GrtReloadingToolkit\Brass\BrassCalc.cs" Link="Brass\BrassCalc.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Brass\SeatingForceCalc.cs" Link="Brass\SeatingForceCalc.cs" />
     <!-- And for the shot-group reader, which decides what unit an unlabelled reference
          distance is in. TargetGroup is its output type and lives next door. -->
     <Compile Include="..\GrtReloadingToolkit\Ocw\BallisticXCsv.cs" Link="Ocw\BallisticXCsv.cs" />
