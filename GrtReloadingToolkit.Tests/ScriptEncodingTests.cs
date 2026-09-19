@@ -155,4 +155,25 @@ public class ScriptEncodingTests
             "$LASTEXITCODE check(s) - a failed publish would silently fall through to packaging " +
             "stale artifacts. See ScriptEncodingTests / issue #12.");
     }
+
+    /// <summary>
+    /// Issue #12 was a hardcoded "C:\Program Files\dotnet\dotnet.exe" breaking every install
+    /// that isn't the default x64 machine-wide one; #13 fixed it with a PATH search that also
+    /// checks each candidate actually has an SDK registered. Issue #22 found the exact same
+    /// literal back on `main` after a later commit pasted in a stale local copy of this script -
+    /// nothing had caught that the fix had regressed, because nothing asserted the fix stays.
+    /// This does: it does not re-implement the detection logic, it just refuses to let the
+    /// hardcoded path back into the file.
+    /// </summary>
+    [Fact]
+    public void DotnetPathIsNotHardcoded()
+    {
+        string root = RepoRoot();
+        string script = Path.Combine(root, "GrtReloadingToolkit", "build-plugin.ps1");
+        Assert.True(File.Exists(script), $"expected {script} to exist");
+
+        string text = File.ReadAllText(script);
+        Assert.DoesNotMatch(@"\$dotnet\s*=\s*""C:\\Program Files", text);
+        Assert.Contains("Get-Command dotnet", text);
+    }
 }

@@ -17,7 +17,26 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
-$dotnet = "C:\Program Files\dotnet\dotnet.exe"
+
+# A `dotnet.exe` with no SDK registered (a bare host - e.g. a 32-bit stub left behind by some
+# other product's install, sitting on PATH ahead of the real one) loads fine as a command but
+# can't run `publish`. Take the first PATH match that actually reports an SDK, not just the
+# first one PATH happens to list first.
+function HasSdk($path) {
+    try { return [bool](& $path --list-sdks 2>$null) } catch { return $false }
+}
+# dotnet off PATH: a hardcoded "C:\Program Files\dotnet\dotnet.exe" breaks every install that
+# isn't the default x64 machine-wide one - winget, per-user, ARM64, side-by-side. Issue #22.
+$dotnet = Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue |
+          Select-Object -ExpandProperty Source -Unique |
+          Where-Object { HasSdk $_ } | Select-Object -First 1
+if (-not $dotnet) {
+    $dotnet = @("$env:ProgramFiles\dotnet\dotnet.exe",
+                "${env:ProgramFiles(x86)}\dotnet\dotnet.exe",
+                "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe") |
+              Where-Object { $_ -and (Test-Path $_) -and (HasSdk $_) } | Select-Object -First 1
+}
+if (-not $dotnet) { throw "no dotnet install with an SDK found on PATH or in the usual install locations. Install the .NET 8 SDK: https://dotnet.microsoft.com/download/dotnet/8.0" }
 $csproj = Join-Path $root "GrtReloadingToolkit.csproj"
 
 # The version lives in Directory.Build.props and nowhere else: the assemblies get it from the
