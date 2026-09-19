@@ -176,4 +176,28 @@ public class ScriptEncodingTests
         Assert.DoesNotMatch(@"\$dotnet\s*=\s*""C:\\Program Files", text);
         Assert.Contains("Get-Command dotnet", text);
     }
+
+    /// <summary>
+    /// The other half of the commit that issue #22 reverted. That stale copy of the script also
+    /// dropped the walk-up that locates Directory.Build.props, and only the dotnet-path half was
+    /// noticed - nothing asserted this half stays, so it could regress again by the same route
+    /// with nothing to catch it. The walk-up exists because the props file sits beside the
+    /// project in one working copy and a level up in another; a fixed relative path silently
+    /// reads the wrong file (or none) whenever the script moves between them, and the version
+    /// it stamps into the manifest comes from that file.
+    ///
+    /// Asserted positively only. The obvious negative - refusing a literal
+    /// "..\..\Directory.Build.props" - would fail on the script's own comment explaining why
+    /// that literal is wrong.
+    /// </summary>
+    [Fact]
+    public void DirectoryBuildPropsIsFoundByWalkUp()
+    {
+        string root = RepoRoot();
+        string script = Path.Combine(root, "GrtReloadingToolkit", "build-plugin.ps1");
+        Assert.True(File.Exists(script), $"expected {script} to exist");
+
+        string text = File.ReadAllText(script);
+        Assert.Contains("while ($propsDir", text);
+    }
 }
