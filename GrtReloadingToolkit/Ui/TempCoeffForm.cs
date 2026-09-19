@@ -202,7 +202,13 @@ internal sealed class TempCoeffForm : Form
         _status.Text = charges.Count > 1
             ? string.Format(Lang.T("WARNING: {0} different charges selected — temp fit needs ONE charge"), charges.Count)
             : haveCoeff
-                ? string.Format(CultureInfo.InvariantCulture, "tcc={0}  tch={1}", _result.Tcc?.ToString("0.######") ?? "–", _result.Tch?.ToString("0.######") ?? "–")
+                // Formatted by string.Format itself, not by an inner ToString: an argument that
+                // arrives already converted is a string, string is not IFormattable, and the
+                // InvariantCulture here never reaches it -- so the number came out per the OS
+                // locale despite this line asking for invariant. Same shape as BuildReport's
+                // tcc/tch lines. The null case stays a literal dash.
+                ? string.Format(CultureInfo.InvariantCulture, "tcc={0:0.######}  tch={1:0.######}",
+                    _result.Tcc ?? (object)"–", _result.Tch ?? (object)"–")
                 : string.Format(Lang.T("add strings at 2+ temperatures (ideally cold / {0} / hot)"), GrtUnits.Current.Temperature(TempCoeffResult.NormalC));
     }
 
