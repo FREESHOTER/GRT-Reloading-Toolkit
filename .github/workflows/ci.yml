@@ -51,3 +51,34 @@ jobs:
           $stray = Get-ChildItem $out -Recurse -Directory -Filter "_plugin_template"
           if ($stray) { throw "_plugin_template in the build output ($($stray[0].FullName)); Assemble strips 'plugin', so the payload would ship twice" }
           Write-Host "==> payload is under plugin\, and there is no _plugin_template"
+      # Issues #10, #12 and #22 were all bugs in build-plugin.ps1, and CI could not see any of
+      # them: this job built the csproj directly and never ran the script, so every one was found
+      # by hand on a real machine. #10 was a parse error specific to Windows PowerShell 5.1 --
+      # which is what the script is actually run on -- so this step uses `shell: powershell` (5.1)
+      # rather than `pwsh` (7). The default pwsh would not have reproduced it.
+      #
+      # -Zip is not optional here: WriteZip only runs under it, and that function exists because
+      # 5.1's Compress-Archive wrote backslash entry paths, producing a zip that unpacks as a heap
+      # of flat files everywhere except Windows. That regression throws nothing and exits 0, so
+      # the entry separators are asserted below instead of inferred from a clean exit.
+      - name: Package with build-plugin.ps1
+        shell: powershell
+        run: .\GrtReloadingToolkit\build-plugin.ps1 -Zip
+      # Checking the artifact, not the script text: ScriptEncodingTests already refuses a literal
+      # Compress-Archive, but only this can tell whether what 5.1 actually wrote unpacks as a
+      # folder. pwsh here on purpose -- the 5.1 constraint is on the script under test, not on the
+      # checker, and this matches the payload-layout check above.
+      - name: Check zip entry paths use forward slashes
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          foreach ($name in @("ReloadingToolkit.zip", "ReloadingToolkit-lite.zip")) {
+            $path = "GrtReloadingToolkit/dist/$name"
+            if (-not (Test-Path $path)) { throw "build-plugin.ps1 -Zip did not produce $path" }
+            $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $path))
+            try {
+              $bad = $zip.Entries | Where-Object { $_.FullName -match '\\' } | Select-Object -First 1
+              if ($bad) { throw "$name has a backslash entry path ($($bad.FullName)) - it will not unpack as a folder off Windows (ZIP APPNOTE 4.4.17.1)" }
+              Write-Host "      ok: $name ($($zip.Entries.Count) entries)"
+            } finally { $zip.Dispose() }
+          }
