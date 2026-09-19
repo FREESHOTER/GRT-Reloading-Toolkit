@@ -51,3 +51,36 @@ jobs:
           $stray = Get-ChildItem $out -Recurse -Directory -Filter "_plugin_template"
           if ($stray) { throw "_plugin_template in the build output ($($stray[0].FullName)); Assemble strips 'plugin', so the payload would ship twice" }
           Write-Host "==> payload is under plugin\, and there is no _plugin_template"
+      # build-plugin.ps1 is the only way the shipped plugin folder gets built, and issues #10, #12
+      # and #22 were all bugs in it that nothing here had ever caught - "Build plugin" above only
+      # runs `dotnet build`, never the packaging script itself. This has to be Windows PowerShell
+      # 5.1 (`powershell`), not `pwsh` (PowerShell 7): #10 was specifically a 5.1 parse failure
+      # from decoding a BOM-less .ps1 as the system ANSI code page, which pwsh's UTF-8 assumption
+      # would not reproduce - the same reason ScriptEncodingTests can catch the byte pattern but
+      # not the actual parse failure a real 5.1 host hits.
+      - name: Run build-plugin.ps1 (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          .\GrtReloadingToolkit\build-plugin.ps1 -Zip
+      # A regressed em dash or a missing -Encoding on Get-Content wouldn't necessarily make the
+      # script fail outright (issue #22's bug corrupted the manifest text silently rather than
+      # throwing) - so this checks the packaged output too, not just the script's exit code.
+      - name: Verify packaged plugin
+        shell: pwsh
+        run: |
+          foreach ($f in @(
+            "GrtReloadingToolkit\dist\ReloadingToolkit\GRT_Reloading_Toolkit.exe",
+            "GrtReloadingToolkit\dist\ReloadingToolkit\com.grt.plugin.xml",
+            "GrtReloadingToolkit\dist\ReloadingToolkit.zip",
+            "GrtReloadingToolkit\dist\ReloadingToolkit-lite\GRT_Reloading_Toolkit.exe",
+            "GrtReloadingToolkit\dist\ReloadingToolkit-lite.zip"
+          )) {
+            if (-not (Test-Path $f)) { throw "missing packaged artifact: $f" }
+            Write-Host "      ok: $f"
+          }
+          $manifest = Get-Content "GrtReloadingToolkit\dist\ReloadingToolkit\com.grt.plugin.xml" -Raw -Encoding UTF8
+          $ellipsis = [char]0x2026
+          if ($manifest -notmatch [regex]::Escape("Reloading Toolkit$ellipsis")) {
+            throw "packaged manifest's menu label lost its ellipsis - issue #22's ANSI/UTF-8 mojibake bug is back"
+          }
+          Write-Host "==> packaged plugin is complete and the manifest text is intact"
