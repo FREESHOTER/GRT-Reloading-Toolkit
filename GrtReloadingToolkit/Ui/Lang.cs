@@ -187,7 +187,6 @@ internal static class Lang
         ["enter CBTO, case length and BBTO"] = "inserisci CBTO, lunghezza bossolo e BBTO",
         ["DIFF (ogive above case mouth) : "] = "DIFF (ogiva sopra la bocca del bossolo) : ",
         ["SEATING DEPTH (GRT gdepth)    : "] = "PROFONDITÀ DI SEDUTA (GRT gdepth) : ",
-        ["No saved load open in GRT."] = "Nessun load salvato aperto in GRT.",
         ["The active tab is a generated file - switch to your real load."] = "Il tab attivo è un file generato - passa al tuo load reale.",
         ["note written, but no 'gdepth' input in the load"] = "nota scritta, ma nessun input 'gdepth' nel load",
         [" (COAL not updated - the load has no case length or bullet length)"] =
@@ -195,7 +194,6 @@ internal static class Lang
         [" (COAL not updated - the load has no 'oal' input)"] = " (COAL non aggiornato - il load non ha un input 'oal')",
         ["written and opened in GRT."] = "scritto e aperto in GRT.",
         ["Neck / bushing"] = "Colletto / bushing",
-        ["Bullet diameter"] = "Diametro proiettile",
         ["Neck wall thickness"] = "Spessore parete colletto",
         ["Desired interference (grip)"] = "Interferenza desiderata (grip)",
         ["Measured loaded neck OD  (0 = estimate)"] = "OD colletto caricato misurato  (0 = stima)",
@@ -279,7 +277,6 @@ internal static class Lang
         ["Remove row"] = "Rimuovi riga",
         ["Meas MV"] = "MV misurata",
         ["Sim MV"] = "MV simulata",
-        ["No saved load open in GRT."] = "Nessun load salvato aperto in GRT.",
         ["Could not read the current charge (mc) from the load."] = "Impossibile leggere la carica attuale (mc) dal load.",
         ["Load the measured charges first."] = "Carica prima le cariche misurate.",
         ["This will briefly open {0} tabs in GRT (one per charge) to read each simulated MV, then reopen your load.\n\nContinue?"] =
@@ -314,7 +311,6 @@ internal static class Lang
         ["Save PNG…"] = "Salva PNG…",
         ["Write load-sheet note to GRT"] = "Scrivi nota load-sheet su GRT",
         ["— none —"] = "— nessuno —",
-        ["Load"] = "Carica",
         ["loaded {0}"] = "caricato {0}",
         ["Load sheet"] = "Load sheet",
         ["load-sheet note written — opened in GRT."] = "nota load-sheet scritta — aperta in GRT.",

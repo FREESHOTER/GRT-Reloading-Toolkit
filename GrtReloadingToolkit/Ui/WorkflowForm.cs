@@ -139,7 +139,10 @@ internal sealed class WorkflowForm : Form
     private List<WorkflowRow> ComputeGroups(string caliber, double distanceM)
     {
         var componentNames = _db.Components(includeArchived: true).ToDictionary(c => c.Id, c => c.Display);
-        string Name(long? id) => id is { } i && componentNames.TryGetValue(i, out var n) ? n : Lang.T("-- any --");
+        // "— none —" rather than the filter dropdown's "-- any --" -- in a Powder/Bullet cell the
+        // sentinel means "this entry names no component", which is the opposite of "any". Same fix
+        // as LoadLeaderboardForm, which shares this grid shape.
+        string Name(long? id) => id is { } i && componentNames.TryGetValue(i, out var n) ? n : Lang.T("— none —");
 
         return WorkflowRanking.ComputeGroups(_db.Journal(), caliber, distanceM)
             .Select(r => new WorkflowRow(r, Name(r.PowderId), Name(r.BulletId)))

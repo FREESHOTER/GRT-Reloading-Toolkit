@@ -37,6 +37,7 @@
     <Compile Include="..\GrtReloadingToolkit\Log\LoadScoring.cs" Link="Log\LoadScoring.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadScoringConfig.cs" Link="Log\LoadScoringConfig.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\WorkflowRanking.cs" Link="Log\WorkflowRanking.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\LeaderboardRanking.cs" Link="Log\LeaderboardRanking.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Costing.cs" Link="Log\Costing.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\StockUnit.cs" Link="Log\StockUnit.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Brands.cs" Link="Log\Brands.cs" />

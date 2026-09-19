@@ -200,7 +200,7 @@ internal sealed class LabelForm : Form
             Render();
             _status.Text = string.Format(Lang.T("loaded {0}"), _card.Caliber);
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Load"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Load from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private async Task WriteLoadSheetNoteAsync()
