@@ -74,6 +74,7 @@ public class VersionSyncTests
     [Theory]
     [InlineData("Reloading-Toolkit-Manual.html")]
     [InlineData("Reloading-Toolkit-Manual-IT.html")]
+    [InlineData("Reloading-Toolkit-Manual-DE.html")]
     [InlineData("GRT-Reloading-Toolkit.html")]
     public void HtmlPageVersionBadgeMatchesTheBuiltVersion(string file)
     {

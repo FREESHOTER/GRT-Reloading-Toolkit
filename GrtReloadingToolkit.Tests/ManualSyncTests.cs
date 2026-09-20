@@ -4,12 +4,12 @@ using Xunit;
 namespace GrtReloadingToolkit.Tests;
 
 /// <summary>
-/// The manual exists three times: MANUAL.md, an English HTML rendering, and an Italian
-/// translation. Nothing generates one from another — the HTML pages are hand-written, and
-/// the Italian one has no Markdown source at all — so the only thing keeping them together
-/// is that whoever edits one remembers the others. These tests are what notices when that
-/// does not happen: they compare structure, which is language-independent, and say nothing
-/// about the prose, which cannot be checked mechanically across a translation.
+/// The manual exists four times: MANUAL.md, an English HTML rendering, an Italian translation,
+/// and a German translation. Nothing generates one from another — the HTML pages are
+/// hand-written, and the Italian and German ones have no Markdown source at all — so the only
+/// thing keeping them together is that whoever edits one remembers the others. These tests are
+/// what notices when that does not happen: they compare structure, which is language-independent,
+/// and say nothing about the prose, which cannot be checked mechanically across a translation.
 /// </summary>
 public class ManualSyncTests
 {
@@ -28,6 +28,7 @@ public class ManualSyncTests
 
     private const string EnHtml = "docs/Reloading-Toolkit-Manual.html";
     private const string ItHtml = "docs/Reloading-Toolkit-Manual-IT.html";
+    private const string DeHtml = "docs/Reloading-Toolkit-Manual-DE.html";
 
     /// <summary>The "## 7. Powder Temp Coefficients" numbers, in document order.</summary>
     private static int[] MarkdownSectionNumbers(string md) =>
@@ -68,11 +69,22 @@ public class ManualSyncTests
     }
 
     [Fact]
-    public void BothHtmlManualsUseTheSameAnchors()
+    public void GermanHtmlCoversTheSameSectionsAsTheMarkdown()
     {
-        // The two pages are meant to be the same document in two languages, so a link into
-        // one — #cal, #faq — has to land in the same place in the other.
-        Assert.Equal(HtmlSectionIds(Doc(EnHtml)), HtmlSectionIds(Doc(ItHtml)));
+        int[] md = MarkdownSectionNumbers(Doc("MANUAL.md"));
+        int[] html = HtmlSectionNumbers(Doc(DeHtml));
+
+        Assert.Equal(md, html);
+    }
+
+    [Fact]
+    public void AllHtmlManualsUseTheSameAnchors()
+    {
+        // The three pages are meant to be the same document in three languages, so a link into
+        // one — #cal, #faq — has to land in the same place in the others.
+        string[] en = HtmlSectionIds(Doc(EnHtml));
+        Assert.Equal(en, HtmlSectionIds(Doc(ItHtml)));
+        Assert.Equal(en, HtmlSectionIds(Doc(DeHtml)));
     }
 
     [Fact]

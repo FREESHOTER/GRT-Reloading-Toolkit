@@ -1,0 +1,843 @@
+<title>Reloading Toolkit Handbuch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1f4; --panel:#ffffff; --panel-2:#f5f7f9;
+    --ink:#16212e; --ink-soft:#48586a; --ink-faint:#7d8b99;
+    --line:#d6dde4; --line-soft:#e6ebef;
+    --sim:#0a7fb0; --meas:#b9770f; --node:#3f9d63;
+    --shadow:0 1px 2px rgba(16,33,46,.05), 0 6px 22px rgba(16,33,46,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b1420; --panel:#111d2b; --panel-2:#0d1826;
+      --ink:#dce6f0; --ink-soft:#9fb1c3; --ink-faint:#6d7f90;
+      --line:#233242; --line-soft:#1a2836;
+      --sim:#54c4f0; --meas:#f0b45c; --node:#67c088;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.32);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1420; --panel:#111d2b; --panel-2:#0d1826;
+    --ink:#dce6f0; --ink-soft:#9fb1c3; --ink-faint:#6d7f90;
+    --line:#233242; --line-soft:#1a2836;
+    --sim:#54c4f0; --meas:#f0b45c; --node:#67c088;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.32);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; scroll-padding-top:24px}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, sans-serif; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  code,pre,.mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+  a{color:var(--sim); text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--sim); outline-offset:2px; border-radius:3px}
+
+  .shell{max-width:1160px; margin:0 auto; padding:0 24px;
+    display:grid; grid-template-columns:250px 1fr; gap:48px; align-items:start}
+  @media(max-width:900px){.shell{grid-template-columns:1fr; gap:0}}
+
+  .top{border-bottom:1px solid var(--line); background:var(--panel)}
+  .top .shell{padding-top:16px; padding-bottom:16px; display:flex; gap:12px; align-items:center; grid-template-columns:none; max-width:1160px}
+  .top svg{width:28px;height:28px;flex:none}
+  .top b{font-weight:600; letter-spacing:-.01em}
+  .top .k{margin-left:auto; font:500 .72rem/1 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+
+  nav{position:sticky; top:24px; font-size:.86rem}
+  @media(max-width:900px){nav{position:static; border-bottom:1px solid var(--line); padding:16px 0; margin-bottom:8px}}
+  nav .lbl{font:600 .7rem/1 "IBM Plex Mono",monospace; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-faint); padding:0 0 10px}
+  nav ol{list-style:none; margin:0; padding:0; counter-reset:nav}
+  nav li{counter-increment:nav}
+  nav a{display:grid; grid-template-columns:22px 1fr; gap:6px; padding:5px 0; color:var(--ink-soft)}
+  nav a::before{content:counter(nav,decimal-leading-zero); font:500 .72rem/1.5 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+  nav a:hover{color:var(--ink); text-decoration:none}
+
+  main{max-width:74ch; padding:40px 0 96px; min-width:0}
+  main > section{padding-top:26px; margin-top:26px; border-top:1px solid var(--line-soft)}
+  main > section:first-child{border-top:0; margin-top:0}
+  h1{font-size:2rem; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; text-wrap:balance}
+  .sub{color:var(--ink-soft); margin:0 0 8px}
+  h2{font-size:1.4rem; font-weight:600; letter-spacing:-.01em; margin:0 0 14px; text-wrap:balance;
+    display:flex; align-items:baseline; gap:12px}
+  h2 .no{font:600 .8rem/1 "IBM Plex Mono",monospace; color:var(--ink-faint)}
+  h3{font-size:1.03rem; font-weight:600; margin:26px 0 8px}
+  p{margin:0 0 14px}
+  ul,ol.plain{margin:0 0 14px; padding-left:22px}
+  li{margin:5px 0}
+  strong{font-weight:600}
+  main code{background:var(--panel-2); border:1px solid var(--line-soft); border-radius:4px; padding:1px 5px; font-size:.86em}
+  .lede{font-size:1.08rem; color:var(--ink-soft)}
+
+  pre{background:#0b1622; color:#cdd9e5; border:1px solid #1c2c3d; border-radius:9px;
+    padding:16px 18px; overflow-x:auto; font-size:.83rem; line-height:1.75; margin:0 0 16px}
+  pre .c{color:#6f8497}
+
+  table{width:100%; border-collapse:collapse; margin:0 0 18px; font-size:.92rem; display:block; overflow-x:auto}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font:600 .74rem/1.3 "IBM Plex Mono",monospace; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-faint); border-bottom:1px solid var(--line)}
+  td:first-child{white-space:nowrap; font-weight:500}
+  tbody tr:last-child td{border-bottom:0}
+
+  .callout{background:var(--panel-2); border:1px solid var(--line); border-left:3px solid var(--meas);
+    border-radius:8px; padding:14px 16px; margin:0 0 16px; font-size:.94rem}
+  .callout b{color:var(--meas)}
+  .callout.node{border-left-color:var(--node)} .callout.node b{color:var(--node)}
+
+  .formula{background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:14px 16px; margin:0 0 16px; font-family:"IBM Plex Mono",monospace; font-size:.86rem; line-height:1.9;
+    box-shadow:var(--shadow)}
+  .formula .c{color:var(--ink-faint)}
+
+  footer{border-top:1px solid var(--line); background:var(--panel)}
+  footer .shell{padding:24px; display:flex; grid-template-columns:none; gap:16px; flex-wrap:wrap;
+    color:var(--ink-faint); font-size:.85rem; max-width:1160px}
+</style>
+
+<div class="top"><div class="shell">
+  <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+    <path d="M6 25 L20 11 M4 20 L11 27" stroke="var(--sim)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M22 6 l4 4 -3 3 -4 -4z" fill="var(--meas)"/>
+    <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
+  </svg>
+  <b>GRT Reloading Toolkit</b>
+  <span class="k">Handbuch · v0.2.8</span>
+</div></div>
+
+<div class="shell">
+  <nav aria-label="Inhalt">
+    <div class="lbl">Inhalt</div>
+    <ol>
+      <li><a href="#install">Installation</a></li>
+      <li><a href="#writeback">Wie es in GRT zurückschreibt</a></li>
+      <li><a href="#chrono">Chronograph-Import</a></li>
+      <li><a href="#chronostats">Chronograph-Statistik</a></li>
+      <li><a href="#ocw">Ladder-/OCW-Analysator</a></li>
+      <li><a href="#seating">Sitztiefen-Analysator</a></li>
+      <li><a href="#cal">Laufkalibrierung</a></li>
+      <li><a href="#temp">Pulver-Temperaturkoeffizienten</a></li>
+      <li><a href="#brass">Hülsenaufbereitung</a></li>
+      <li><a href="#seatingforce">Sitzkraft-Schätzung</a></li>
+      <li><a href="#card">Ladekarte / Etikett</a></li>
+      <li><a href="#log">Inventar &amp; Ladejournal</a></li>
+      <li><a href="#leaderboard">Ladungs-Bestenliste</a></li>
+      <li><a href="#workflow">Distanz-Workflow</a></li>
+      <li><a href="#reports">GRT-Berichtsvorlagen</a></li>
+      <li><a href="#cli">Kommandozeile</a></li>
+      <li><a href="#faq">Einschränkungen &amp; FAQ</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section>
+      <h1>Reloading Toolkit — Handbuch</h1>
+      <p class="sub">Ein Community-Plugin für Gordon&#39;s Reloading Tool. Zwölf Wiederlade-Werkzeuge
+        und ein Satz druckbarer GRT-Berichtsvorlagen in einem Fenster.</p>
+      <p class="lede">Plugin-Id <code>com.grt.plugin.reloadingtoolkit</code>. Ausgeliefert als
+        eigenständige Windows-Einzeldatei-exe &mdash; auf dem Zielrechner wird keine .NET-Laufzeit
+        benötigt.</p>
+    </section>
+
+    <section id="install">
+      <h2><span class="no">01</span>Installation</h2>
+      <ol class="plain">
+        <li>Den Ordner <code>ReloadingToolkit</code> nach <code>…\GRT-2021.2030…\plugins\</code> kopieren.</li>
+        <li>GRT neu starten.</li>
+        <li>Eine einzelne Symbolleisten-Schaltfläche <strong>&ldquo;Reloading Toolkit&rdquo;</strong>
+          (Schraubenschlüssel + Schraubendreher) und ein passender Eintrag im Menü <strong>Plugin</strong>
+          erscheinen. Auf eines von beiden klicken &mdash; ein kleines <strong>Launcher</strong>-Fenster
+          öffnet sich mit einer Schaltfläche pro Werkzeug.</li>
+        <li>Optional: im Launcher einmal auf <strong>&ldquo;Install GRT report templates&rdquo;</strong>
+          klicken (siehe&nbsp;§15).</li>
+      </ol>
+      <p>Das Toolkit arbeitet <em>on-demand</em>: GRT startet es beim ersten Klick, und es beendet sich,
+        sobald das letzte Fenster geschlossen wird. Alle Werkzeugfenster werden von einem einzigen
+        Hintergrundprozess bedient &mdash; ein zweites Werkzeug zu öffnen, während eines schon offen ist,
+        holt dieses Werkzeug einfach nach vorn.</p>
+    </section>
+
+    <section id="writeback">
+      <h2><span class="no">02</span>Wie das Toolkit in GRT zurückschreibt &mdash; das zuerst lesen</h2>
+      <p>Die GRT-Plugin-Schnittstelle <strong>kann die in GRT geöffnete Ladung nicht bearbeiten</strong>.
+        Sie kann GRT nur bitten, <em>eine Datei zu öffnen</em>. Jedes Werkzeug, das &ldquo;in die
+        GRT-Ladung schreibt&rdquo;, tut also Folgendes:</p>
+      <ol class="plain">
+        <li>Liest deine Ladung (die <code>.grtload</code>-XML-Datei auf der Festplatte).</li>
+        <li>Fügt sein Ergebnis hinzu &mdash; eine <strong>Notiz</strong> im Ergebnisfeld-Anhang, manchmal
+          ein <strong>Diagramm</strong> in der Galerie, manchmal einen geänderten <strong>Eingabewert</strong>
+          (<code>Ba</code>, <code>a0</code>, <code>casevol</code>, <code>gdepth</code>,
+          <code>tcc</code>/<code>tch</code>).</li>
+        <li>Speichert einen <strong>zeitgestempelten Snapshot</strong> neben deiner Datei und weist GRT
+          an, ihn zu öffnen.</li>
+      </ol>
+      <pre>MeineLadung.grtload                          <span class="c">← dein Original, nie angerührt</span>
+MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit geschriebener Snapshot</span></pre>
+      <ul>
+        <li><strong>Jedes Werkzeug schreibt in dieselbe Snapshot-Familie.</strong> Erst den
+          Ladder-Analysator laufen lassen, dann die Laufkalibrierung, dann die Hülsenaufbereitung
+          &mdash; der neueste Snapshot enthält alle drei Ergebnisse. Nur die
+          <strong>drei neuesten</strong> Snapshots werden behalten; ältere werden automatisch gelöscht.</li>
+        <li><strong>Jeder Schreibvorgang erzeugt einen neuen Dateinamen</strong> (sekundengenau
+          zeitgestempelt). GRTs <em>Load_File</em> lädt einen bereits geöffneten Pfad nicht neu &mdash;
+          ein fester Name würde nach dem zweiten Schreibvorgang veralteten Inhalt zeigen.</li>
+        <li><code>Ba</code>, <code>a0</code>, <code>tcc</code>/<code>tch</code> und <code>casevol</code>
+          werden immer aus deiner <strong>Originaldatei</strong> gelesen, nie aus einem Snapshot, der
+          bereits eine Korrektur trägt &mdash; eine Kalibrierung zweimal laufen zu lassen summiert sich
+          also nie auf.</li>
+      </ul>
+      <div class="callout"><b>Wenn du fertig bist:</b> in GRT den neuesten
+        <code>…_toolkit_…grtload</code> öffnen, mit <strong>Datei → Speichern unter</strong> einen
+        sauberen Namen vergeben, dann die <code>_toolkit_…</code>-Snapshots löschen. Nicht
+        <em>Strg+S</em> auf einem alten, fest benannten <code>…_toolkit.grtload</code>-Tab drücken, den
+        GRT vor einem neueren Snapshot geöffnet hat &mdash; GRT würde seine veraltete Kopie im Speicher
+        über die Datei schreiben.</div>
+
+      <h3>Einheiten: das Toolkit zeigt, was GRT zeigt</h3>
+      <p>Eine <code>.grtload</code>-Datei ist <strong>immer metrisch</strong> &mdash; Längen in mm,
+        Geschwindigkeiten in m/s, Temperaturen in &deg;C &mdash; unabhängig davon, welche Einheiten GRT
+        anzeigt. GRT hält deine Einheitenwahl getrennt fest, in <code>ValueUnits</code> in
+        <code>GordonsReloadingTool.cfg</code>, und rechnet erst für die Bildschirmanzeige um.</p>
+      <p>Das Toolkit macht dasselbe. Beim Start liest es diese Zeile aus dem GRT daneben und folgt
+        sieben seiner Einstellungen:</p>
+      <table><thead><tr><th>GRT-Feld</th><th>Wovon es abhängt</th></tr></thead><tbody>
+        <tr><td><code>oal</code></td><td>jede Länge: Gesamtlänge (COAL), Sitztiefe, Hals-AD,
+          Hülsenlänge, die Karte, das Etikett</td></tr>
+        <tr><td><code>velocity</code></td><td>jede Mündungsgeschwindigkeit, SD und ES &mdash; Tabellen,
+          Diagramme, Notizen und der QR-Block</td></tr>
+        <tr><td><code>pt</code></td><td>jede Temperatur</td></tr>
+        <tr><td><code>range</code></td><td>jede Schussdistanz</td></tr>
+        <tr><td><code>charge</code></td><td>jede Pulverladung: der Ladder, das Journal, Find best Ba,
+          die Kosten pro Schuss</td></tr>
+        <tr><td><code>mp</code></td><td>jedes Geschossgewicht</td></tr>
+        <tr><td><code>twistlen</code></td><td>der Lauf-Drall, mit Rückgriff auf <code>oal</code>, wo GRT
+          dafür keinen Eintrag hat</td></tr>
+      </tbody></table>
+      <p>Ist GRT also auf Inch und ft/s eingestellt, ist es das Toolkit auch: Spaltenüberschriften,
+        Diagrammachsen, die Ladekarte, das Etikett und die zurückgeschriebenen Notizen zeigen dann alle
+        <code>in</code> und <code>ft/s</code>. Ohne GRT daneben (Stand-alone, oder ein Testrechner)
+        bleibt es metrisch &mdash; wie es das schon immer getan hat. Die gespeicherte Datei ändert sich
+        dabei nie: sie ist so oder so metrisch, sodass eine Ladung für jeden lesbar bleibt.</p>
+      <p>Drei Dinge folgen GRT absichtlich <strong>nicht</strong>:</p>
+      <ul>
+        <li><strong>MOA</strong> ist ein Winkel. Die Zahl ist in jedem Einheitensystem gleich, sie wird
+          also nie umgerechnet.</li>
+        <li><strong><code>UNIT=</code></strong> in einer Chronograph-Notiz hält fest, welche Einheit
+          <em>deine Export-Datei</em> verwendet hat. Das ist Herkunftsnachweis, keine Anzeigeoption.</li>
+        <li><strong>Die Ladder-X-Spalte</strong> (Ladung, oder Sitz/Sprung). Diese Zahl wird aus deinen
+          eigenen Dateinamen und Ladungs-Notizen gelesen, es steht also nirgends fest, in welcher
+          Einheit du sie eingetragen hast &mdash; eine Umrechnung wäre nur geraten. Die Überschrift folgt
+          GRT, damit du die Konvention kennst, aber die Zahl steht genau so, wie du sie eingegeben
+          hast.</li>
+      </ul>
+      <p>Hat ein Tab einen eigenen Einheiten-Umschalter (die Hülsen-Tabs, die Zieleinheit im Ladder), so
+        gewinnt der Umschalter trotzdem: GRTs Einstellung bestimmt nur, womit er sich beim ersten Mal
+        öffnet. Danach wird deine Wahl gemerkt. Der Zieltemperatur-Umschalter von <em>Find best Ba</em>
+        ist die eine Ausnahme: er öffnet sich jedes Mal mit GRTs Einheit, weil dieses Fenster nichts
+        zwischen Sitzungen speichert.</p>
+
+      <h3>Deine Eingaben bleiben erhalten</h3>
+      <p>Jedes Feld, das du ausfüllst, wird laufend gespeichert und kommt beim erneuten Öffnen des
+        Fensters zurück &mdash; ein Werkzeug zu schließen bedeutet keine verlorene Messung mehr. Das
+        gilt auch für Werte, die früher verschwanden, etwa <em>measure loaded neck OD</em> und
+        <em>seating depth</em>. Der Zustand liegt in
+        <code>%APPDATA%\GRTPlugins\toolkit-ui.json</code>; diese Datei löschen, um jeden Tab wieder
+        leer zu starten.</p>
+    </section>
+
+    <section id="chrono">
+      <h2><span class="no">03</span>Chronograph-Import</h2>
+      <p>Wandelt Chronograph-Exporte in einen GRT-Tab <strong>Imported Measurement</strong> um (eine
+        <code>charge</code> pro Datei, die Schüsse darunter). Ein Ordner voller Dateien = ein Ladder.</p>
+      <p><strong>Unterstützt:</strong> Athlon Rangecraft (Velocity Pro) und Garmin Xero C1 Pro /
+        ShotView, als <code>.xlsx</code> oder <code>.csv</code>.</p>
+      <table><thead><tr><th>Element</th><th>Wirkung</th></tr></thead><tbody>
+        <tr><td>Add chrono files…</td><td>Eine oder mehrere Dateien wählen (eine pro Ladung).</td></tr>
+        <tr><td>Add folder…</td><td>Einen Ordner wählen &mdash; jede <code>.xlsx/.csv</code> darin wird
+          gelesen; Dateien, die keine Chronograph-Exporte sind (Ziel-CSVs, Datenbanken), werden
+          stillschweigend übersprungen.</td></tr>
+        <tr><td>Remove selected</td><td>Markierte Tabellenzeilen entfernen.</td></tr>
+        <tr><td>TEMP= on every shot</td><td>Die Sitzungstemperatur zusätzlich als Pro-Schuss-Notiz
+          schreiben (für GRTs Temperatur-Assistenten).</td></tr>
+        <tr><td>replace previous…</td><td>Frühere &ldquo;Athlon …&rdquo;-Messungen entfernen, bevor
+          diese hinzugefügt wird (standardmäßig an).</td></tr>
+        <tr><td>Import into GRT</td><td>Die Messung in die Ladung schreiben und den Snapshot
+          öffnen.</td></tr>
+      </tbody></table>
+      <p><strong>Tabelle:</strong> Use · Datei · Ladung (gr, editierbar) · Schüsse · AVG m/s · SD · ES ·
+        Temp °C (editierbar).</p>
+      <p><strong>Die Ladungsmenge</strong> kommt aus der Sitzungsnotiz (&ldquo;carica 39.2&rdquo;,
+        &ldquo;charge 41.5 gr&rdquo;), sonst aus einer Zahl im Dateinamen (&ldquo;39.20.xlsx&rdquo;).
+        Trägt keines von beiden sie, zeigt die Zelle <code>?</code> &mdash; die Ladung direkt eintippen,
+        genau wie bei der Zelle <strong>Temp °C</strong>.</p>
+      <p><strong>Einheiten</strong> werden aus der Spaltenüberschrift übernommen, wenn dort
+        <code>(m/s)</code> / <code>(mps)</code> / <code>(fps)</code> / <code>ft/s</code> steht; sonst
+        aus der Geschwindigkeitsgröße geraten (≥&nbsp;1400&nbsp;→&nbsp;fps). fps wird für GRT in m/s
+        umgerechnet. Beide Zahlenformate, <code>1,234.5</code> und <code>1.234,5</code>, werden
+        akzeptiert; die Zusammenfassungszeile am Ende wird ignoriert.</p>
+    </section>
+
+    <section id="chronostats">
+      <h2><span class="no">04</span>Chronograph-Statistik</h2>
+      <p>Was GRTs eigene AVG/SD/ES-Zeile bei einem importierten Measurement nicht verrät: wie weit die
+        <em>wahre</em> mittlere Geschwindigkeit plausibel vom Messwert abweichen könnte, wie viele
+        Schüsse nötig wären, um das enger einzugrenzen, ob ein Schuss aus der Reihe fällt, und ob zwei
+        Serien sich wirklich unterscheiden oder das nur Chronograph-Rauschen ist.</p>
+      <p><strong>Datenquellen:</strong> dieselben Chronograph-Dateien wie beim Chronograph-Import
+        (<strong>Add chrono files…</strong> / <strong>Add folder…</strong>), oder <strong>From GRT
+        load&#39;s Measurement</strong> &mdash; holt jede bereits in die offene Ladung importierte
+        Ladung, eine Zeile pro Ladung.</p>
+      <table><thead><tr><th>Element</th><th>Wirkung</th></tr></thead><tbody>
+        <tr><td>confidence</td><td>90 / 95 / 99 % &mdash; gilt für jedes Konfidenzintervall und jeden
+          Test weiter unten.</td></tr>
+        <tr><td>target ±</td><td>Speist die Spalte &ldquo;shots for target&rdquo;: wie viele Schüsse
+          (bei der Streuung dieser Serie) nötig wären, um den Mittelwert auf ± diese Marge
+          einzugrenzen. Eingegeben in der Geschwindigkeitseinheit, auf die GRT eingestellt ist (die
+          Beschriftung sagt, welche).</td></tr>
+        <tr><td>Compare A vs B</td><td>Welchs t-Test auf die Mittelwerte und ein F-Test auf die
+          Streuungen zwischen zwei beliebigen Serien.</td></tr>
+        <tr><td>Write note to GRT load</td><td>Schreibt die Statistik jeder Serie &mdash; und den
+          letzten Vergleich, falls vorhanden &mdash; als Notiz &ldquo;Chrono Statistics&rdquo;.</td></tr>
+      </tbody></table>
+      <p><strong>Tabelle:</strong> Serie · n · Mittelwert · SD · ES · CI ± auf den Mittelwert · für die
+        Zielmarge benötigte Schüsse · Ausreißer. Mittelwert, SD, ES und CI werden in GRTs eigener
+        Geschwindigkeitseinheit angezeigt (m/s oder ft/s &mdash; jede Spaltenüberschrift sagt, welche),
+        und die Notiz &ldquo;Chrono Statistics&rdquo; folgt derselben Einheit. SD ist hier dieselbe
+        Grundgesamtheits-SD (÷n), die überall sonst im Toolkit gezeigt wird; das Konfidenzintervall und
+        die beiden Tests verwenden intern die Stichproben-SD (÷n−1), weil diese Formeln darauf aufbauen
+        &mdash; bei so kleinem n macht der Unterschied etwas aus.</p>
+      <p><strong>Ausreißer</strong> werden nach dem Chauvenet-Kriterium markiert (klassische Formulierung
+        für die Normalverteilung): ein Schuss wird verworfen, wenn die Anzahl an Messungen, die man in
+        der ganzen Serie so weit vom Mittelwert entfernt erwarten würde, unter ½ liegt. Markierte
+        Schüsse werden aus Mittelwert/SD/CI der Serie ausgeschlossen, genau wie es eine sorgfältige
+        Handauswertung tun würde &mdash; sie werden weiterhin aufgelistet, nur nicht stillschweigend
+        verworfen.</p>
+      <div class="formula">
+        <span class="c">// Mittelwerte, zwei beliebige Serien</span><br>
+        Welch t  =  (Mittel<sub>A</sub> − Mittel<sub>B</sub>) / √(sd<sub>A</sub>²/n<sub>A</sub> + sd<sub>B</sub>²/n<sub>B</sub>)<br><br>
+        <span class="c">// Streuungen</span><br>
+        F  =  sd<sub>A</sub>² / sd<sub>B</sub>²
+      </div>
+      <p>Beide liefern einen p-Wert; unter 0,05 nennt das Werkzeug es statistisch signifikant. Eine
+        kleine, durchgängige Geschwindigkeitslücke über viele Schüsse kann trotzdem &ldquo;nicht
+        signifikant&rdquo; sein, wenn die Serien kurz sind &mdash; das Werkzeug ist damit ehrlich darüber,
+        was eine Handvoll Schüsse zeigen kann und was nicht, kein Fehler.</p>
+      <div class="callout"><b>Zu beachten:</b> das ist eine Auswertung dessen, was du bereits gemessen
+        hast, kein Versprechen, wie die <em>nächste</em> Serie aussehen wird &mdash; Chronographen (und
+        Läufe) sind unruhiger, als jedes Konfidenzintervall mit n=4 vermuten lässt.</div>
+    </section>
+
+    <section id="ocw">
+      <h2><span class="no">05</span>Ladder-/OCW-Analysator</h2>
+      <p>Findet den Genauigkeitsknoten in einem <strong>Ladungs-Ladder</strong> aus Chronograph-
+        Geschwindigkeiten und Zielgruppen.</p>
+      <p><strong>Gruppendaten können kommen von:</strong> Ballistic-X-<code>.csv</code>-Exporten (eine
+        pro Ladung, im selben Ordner wie die Chronograph-Dateien), <em>oder</em> GRTs eigenen
+        &ldquo;Shot group&rdquo;-Tabs (siehe&nbsp;§12).</p>
+      <p><strong>Geschwindigkeiten</strong> kommen aus den Chronograph-<code>*.xlsx</code>-Dateien im
+        gewählten Ordner. Jede Ladung ohne Chronograph-Datei wird aus dem <strong>bereits in die
+        offene Ladung importierten Chronograph-Measurement</strong> (§3) ergänzt, nach Ladungsgewicht
+        abgeglichen &mdash; lief also erst der Chronograph-Import, erscheinen die MV-Flachstelle und die
+        blaue MV-Linie auch, wenn der Ordner nur Ziel-<code>.csv</code>-Dateien enthält. Eine
+        Chronograph-Datei im Ordner gewinnt für diese Ladung immer.</p>
+      <table><thead><tr><th>Element</th><th>Wirkung</th></tr></thead><tbody>
+        <tr><td>Pick ladder folder…</td><td>Ordner mit Chronograph-<code>*.xlsx</code> +
+          Ballistic-X-<code>Carica *.csv</code>, ein Paar pro Ladung.</td></tr>
+        <tr><td>w POI · w MV · window</td><td>Analysegewichte und die Knotenbreite (3–5 Stufen).</td></tr>
+        <tr><td>Re-analyze</td><td>Mit den aktuellen Gewichten neu berechnen.</td></tr>
+        <tr><td>Groups from GRT load</td><td>Gruppen aus GRTs Shot-group-Tabs statt aus <code>.csv</code>
+          lesen, mit den Einheitenfeldern für Referenz-/Schussdistanz und einem Schalter <em>drop
+          flyers</em>.</td></tr>
+        <tr><td>Write note to GRT load</td><td>Schreibt die Notiz &ldquo;OCW Analysis&rdquo;
+          <strong>und das Diagramm</strong> in die Ladung.</td></tr>
+      </tbody></table>
+      <p><strong>Tabelle:</strong> Ladung · n · MV · SD · ES · Distanz · POI-Y (MOA) · mittlerer
+        Gruppenradius (MOA) · vertikale Streuung (MOA). Der empfohlene Knoten ist grün hinterlegt.</p>
+      <p><strong>Log-Zeile:</strong> das schmale Feld über den Schaltflächen führt den laufenden
+        Kommentar des Ladeprogramms &mdash; welche Dateien gelesen wurden, welche übersprungen wurden
+        und warum, sowie die GRT-Verbindungsmeldungen. Das Zusammenfassungsfeld wird bei jeder Analyse
+        neu geschrieben; das Log nicht.</p>
+      <h3>Was berechnet wird</h3>
+      <ul>
+        <li><strong>Geschwindigkeits-Flachstelle (Satterlee)</strong> &mdash; das Fenster von Stufen, in
+          dem sich die mittlere MV am wenigsten ändert.</li>
+        <li><strong>Vertikaler-POI-Knoten (OCW / Audette)</strong> &mdash; das Fenster, in dem der
+          vertikale Treffpunkt am stabilsten ist.</li>
+        <li><strong>Empfohlener Knoten</strong> &mdash; eine gewichtete Mischung aus MV-Flachheit +
+          POI-Stabilität + Gruppengröße + SD.</li>
+      </ul>
+      <p>Geschrieben als <code>~~result.Note("OCW Analysis")~~</code> und
+        <code>~~result.picture.ocw_chart.png~~</code>.</p>
+      <div class="callout node"><b>Bestätigen:</b> jeden Knoten vor dem Festlegen mit einer frischen
+        Gruppe prüfen. SD ist hier die Grundgesamtheits-SD (n).</div>
+    </section>
+
+    <section id="seating">
+      <h2><span class="no">06</span>Sitztiefen-Analysator</h2>
+      <p>Dasselbe Fenster und derselbe Ablauf wie beim OCW-Analysator, aber die X-Achse ist
+        <strong>Sitztiefe / Sprung (mm)</strong>, und das primäre Signal ist das
+        <strong>Gruppengrößen-Plateau</strong> statt der MV-Flachstelle. Der Stufenwert wird aus einer
+        Zahl in der Sitzungsnotiz oder im Dateinamen gelesen (&ldquo;salto 0.02&rdquo;,
+        &ldquo;jump .015&rdquo;, &ldquo;cbto 2.850&rdquo;).</p>
+      <p>Geschrieben als <code>~~result.Note("Seating Depth Analysis")~~</code> +
+        <code>~~result.picture.seating_chart.png~~</code>.</p>
+    </section>
+
+    <section id="cal">
+      <h2><span class="no">07</span>Laufkalibrierung</h2>
+      <p>Vergleicht GRTs <strong>simulierte</strong> Mündungsgeschwindigkeit mit deiner
+        <strong>gemessenen</strong> MV über mehrere Ladungen und schlägt eine Anpassung von
+        <code>Ba</code> (Abbrand-Koeffizient) vor, damit GRT zu deinem Lauf passt.</p>
+      <h3>Ablauf</h3>
+      <ol class="plain">
+        <li>Erst deine Chronograph-Serien in die Ladung importieren (§3).</li>
+        <li><strong>Load measured from GRT load</strong> &mdash; füllt die Tabelle mit einer Zeile pro
+          Ladung (Ladung + mittlere gemessene MV, aus den Measurements der Ladung).</li>
+        <li>Die simulierte MV holen:
+          <ul>
+            <li><strong>Capture ALL sim MV (sweeps GRT)</strong> &mdash; für jede gemessene Ladung öffnet
+              das Werkzeug kurz eine Ein-Ladung-Kopie der Ladung in GRT, lässt sie durchrechnen, liest
+              die simulierte MV, und öffnet dann deine Ladung wieder. Es hinterlässt einen Wegwerf-Tab
+              pro Ladung in GRT; diese danach schließen.</li>
+            <li><strong>Capture current charge only</strong> &mdash; liest GRTs aktuelles Simulations-
+              ergebnis und ordnet es der aktuell in der Ladung eingestellten Ladung zu
+              (<code>mc</code>).</li>
+          </ul>
+        </li>
+        <li><strong>Write calibration note</strong> (nur Notiz) oder <strong>Write Ba-corrected
+          .grtload</strong> (Notiz + das neue <code>Ba</code>).</li>
+      </ol>
+      <p><strong>Tabelle:</strong> Charge gr · Meas MV · Sim MV · Δ&nbsp;m/s · Δ&nbsp;%. Das schmale Feld
+        über den Schaltflächen protokolliert den Durchlauf live; das Zusammenfassungsfeld darüber wird
+        bei jeder Neuberechnung neu geschrieben.</p>
+      <div class="formula">
+        <span class="c">// pro Ladung</span><br>
+        Δ%  =  100 · (gemessen − sim) / sim<br><br>
+        <span class="c">// Vorschlag — MV skaliert ungefähr mit √Ba</span><br>
+        Ba<sub>neu</sub>  =  Ba<sub>alt</sub> · (Mittel&nbsp;gemessen ÷ Mittel&nbsp;sim)²
+      </div>
+      <p>Ist Δ% über die Ladungen hinweg ungefähr <strong>konstant</strong> → behebt ein einzelnes
+        <code>Ba</code> das Problem (&ldquo;Skalenfehler&rdquo;; das Werkzeug sagt <em>consistent</em>).
+        <strong>Ändert</strong> es sich <strong>mit der Ladung</strong> → reicht <code>Ba</code> allein
+        nicht (&ldquo;Formfehler&rdquo; &mdash; zuerst gefeuertes Hülsenvolumen, Lauflänge,
+        Geschossgewicht prüfen, oder den Shape-Fit unten versuchen).</p>
+      <div class="callout"><b>Das Ergebnis lesen:</b> ein kleiner, konstanter Versatz
+        (≤&nbsp;~0,3&nbsp;%) heißt, dass dein Lauf bereits zu GRT passt &mdash; die
+        <code>Ba</code>-Änderung ist ein Bruchteil eines Prozents, und die verbleibende Streuung je
+        Ladung ist Chronograph-Rauschen, dem man nicht hinterherjagen muss. Ein korrigiertes
+        <code>Ba</code> gilt spezifisch für <em>diesen Lauf + diese Pulver-Charge</em>.</div>
+
+      <h3>Shape-Fit (Ba + a0), wenn der Versatz mit der Ladung variiert</h3>
+      <p>Ein einzelnes <code>Ba</code> kann nur einen <em>Skalenfehler</em> korrigieren (die ganze Kurve
+        um denselben % zu schnell/langsam) &mdash; ändert sich der Versatz selbst mit der Ladung, stimmt
+        die Abbrand-<em>Form</em> des Treibmittels nicht, und <code>Ba</code> allein kann das nicht
+        beheben, egal wie man es einstellt.</p>
+      <ol class="plain">
+        <li>Erst die Baseline-Sim-MV erfassen (Schritte oben), mit <strong>3+ Ladungen</strong>.</li>
+        <li><strong>Capture shape-fit sweep (a0)</strong> &mdash; simuliert dieselben Ladungen erneut,
+          mit dem um +5 % verschobenen <code>a0</code> des Treibmittels (seinem Abbrand-Form-Koeffizient
+          &ldquo;prog/deg&rdquo;), damit das Werkzeug sehen kann, wie empfindlich die MV jeder Ladung auf
+          <code>a0</code> gegenüber <code>Ba</code> reagiert.</li>
+        <li>Der Bericht erhält einen Abschnitt &ldquo;Shape fit (Ba + a0)&rdquo; mit einem
+          vorgeschlagenen <code>Ba</code> <strong>und</strong> <code>a0</code>, gemeinsam über alle
+          Ladungen gefittet. <strong>Write Ba+a0-corrected .grtload</strong> schreibt beide.</li>
+      </ol>
+      <p>Warum <code>a0</code> und nicht GRTs <code>k</code> (das die eigene Dokumentation des
+        OBT-Werkzeugs neben <code>Ba</code> erwähnt): <code>k</code> ist das Verhältnis der spezifischen
+        Wärmen der Verbrennungsgase &mdash; eine thermochemische Eigenschaft, kein Form-Anpassungsregler.
+        Es zu verbiegen, um eine Geschwindigkeitsübereinstimmung zu erzwingen, würde <code>Pmax</code>-
+        und Abbrandzeit-Vorhersagen (von denen OBT/BLT direkt abhängen) auf eine Art falsch machen, die
+        dieser rein geschwindigkeitsbasierte Fit nicht sehen kann. <code>a0</code> ist das, was GRTs
+        eigene <code>formalism.txt</code> als den Koeffizienten beschreibt, der zur Anpassung an eine
+        gemessene Abbrandkurve gedacht ist.</p>
+      <p>Das braucht über die Ladungen verteilte Werte (nicht eng beieinander) &mdash; bei zu wenig
+        Streuung wirken sich <code>Ba</code> und <code>a0</code> zu ähnlich auf die Simulation aus, um
+        sie zuverlässig zu trennen, und das Werkzeug sagt das, statt zu raten.</p>
+    </section>
+
+    <section id="temp">
+      <h2><span class="no">08</span>Pulver-Temperaturkoeffizienten</h2>
+      <p>Fittet die Temperaturkoeffizienten <code>tcc</code> (unter 21&nbsp;°C) und <code>tch</code>
+        (über 21&nbsp;°C) des Treibmittels aus Chronograph-Serien <strong>einer Ladung</strong>,
+        geschossen bei <strong>verschiedenen Temperaturen</strong>.</p>
+      <div class="callout"><b>Kein Ladungs-Ladder.</b> Gebraucht wird z.&nbsp;B. 40,0&nbsp;gr, geschossen
+        kalt (~0&nbsp;°C), normal (~21&nbsp;°C) und heiß (~40&nbsp;°C). Werden mehrere verschiedene
+        Ladungen geladen, verweigert das Werkzeug und sagt das auch.</div>
+      <ol class="plain">
+        <li><strong>Add Athlon strings…</strong> &mdash; die Serien für die eine Ladung, bei jeder
+          Temperatur.</li>
+        <li>Die Spalte <strong>Temp °C</strong> mit der tatsächlichen Temperatur jeder Serie füllen;
+          <strong>Use</strong> ankreuzen.</li>
+        <li><strong>Load Ba from GRT load</strong> (oder eingeben).</li>
+        <li><strong>Fit</strong> → tcc / tch, und die rohen m/s pro °C.</li>
+        <li><strong>Write tcc/tch to GRT load</strong>.</li>
+      </ol>
+      <p>Das schmale Feld über den Schaltflächen protokolliert jede Serie beim Einlesen; das
+        Zusammenfassungsfeld darüber wird bei jedem Fit neu geschrieben.</p>
+      <div class="formula">
+        Ba(T)  ≈  Ba₂₁ · ( MV(T) / MV₂₁ )²<br>
+        tcc  =  Mittel( (Ba₂₁ − Ba(T)) / (21 − T) )   <span class="c">für die kalten Serien</span><br>
+        tch  =  <span class="c">symmetrisch, für die heißen Serien</span>
+      </div>
+    </section>
+
+    <section id="brass">
+      <h2><span class="no">09</span>Hülsenaufbereitung</h2>
+      <p>Drei Rechner, einer pro Tab.</p>
+
+      <h3>9a · Hülsenvolumen → GRT <code>casevol</code></h3>
+      <p>Gewichte für <strong>3+ verfeuerte, entzündete</strong> Hülsen eingeben: leer und
+        wassergefüllt (oder direkt das Wassergewicht). Wasser wird in <strong>grain</strong> oder
+        <strong>gram</strong> gewogen (Umschalter). Ausgabe ist das <strong>mittlere Hülsenvolumen in
+        grain H₂O</strong> und cm³.</p>
+      <ul>
+        <li>GRT speichert <code>casevol</code> intern in <strong>cm³</strong>, auch wenn die
+          Oberfläche meist grain&nbsp;H₂O zeigt &mdash; das Werkzeug schreibt cm³ und legt die Einheit
+          fest. Wasserdichte 0,99821&nbsp;g/cm³ (20&nbsp;°C).</li>
+        <li><strong>Write casevol to GRT load</strong> schreibt den <strong>Mittelwert</strong> in den
+          Kaliber-Datensatz; SD / Spanne kommen in die Notiz.</li>
+      </ul>
+
+      <h3>9b · Sitztiefe → GRT <code>gdepth</code></h3>
+      <p><strong>CBTO</strong> (Hülsenboden bis Ogivalpunkt, geladene Patrone),
+        <strong>Hülsenlänge</strong>, <strong>BBTO</strong> (Geschossboden bis Ogivalpunkt, bloßes
+        Geschoss) eingeben. CBTO und BBTO mit demselben <strong>Komparator-Einsatz</strong> messen.
+        Einheit mm oder Inch.</p>
+      <div class="formula">
+        DIFF          =  CBTO − Hülsenlänge   <span class="c">// Ogive über der Hülsenmündung</span><br>
+        Sitztiefe  =  BBTO − DIFF          <span class="c">// Geschossboden bis Hülsenmündung = GRT gdepth</span>
+      </div>
+      <p>Warnungen markieren unmögliche Geometrie und ungewöhnlich flache / tiefe Ergebnisse.
+        <strong>Write seating depth to GRT load</strong> setzt <code>gdepth</code>; GRT berechnet die
+        Gesamtlänge (COAL) daraus neu.</p>
+
+      <h3>9c · Hals-/Bushing-Auslegung</h3>
+      <p>Geschossdurchmesser, Halswandstärke, gewünschte <strong>Spannung (Klemmung)</strong> und
+        optional einen <strong>gemessenen Hals-Außendurchmesser (geladen)</strong> eingeben (0 =
+        Schätzung als Geschossdurchmesser + 2×Wandstärke). Einheit standardmäßig <strong>Inch</strong>
+        (Bushing-Matrizen werden in Inch verkauft), umschaltbar auf mm.</p>
+      <div class="formula">
+        Bushing-AD  =  Hals-AD&nbsp;(geladen) − Spannung − Rückfederung   <span class="c">// Rückfederung ≈ 0,03 mm</span><br>
+        Mandrel-AD      =  Geschossdurchmesser − Spannung
+      </div>
+      <p>2–3 Bushings um den Wert herum bestellen; ein Mandrel als letzter Schritt legt den
+        Innendurchmesser direkt fest und gleicht Wandstärken-Rundlauf aus.</p>
+    </section>
+
+    <section id="seatingforce">
+      <h2><span class="no">10</span>Sitzkraft-Schätzung (QC)</h2>
+      <p>Ein eigenständiges Werkzeug (ein eigener Eintrag unter &ldquo;PLAN &amp; PREPARE&rdquo;, kein
+        Hülsenaufbereitung-Tab) &mdash; schätzt die erwartete Geschosssitz-Presskraft für die eigene
+        &ldquo;Maximaldruck&rdquo;-Sicherheitsschwelle einer QC-Presse, portiert vom eigenen Schätzer des
+        Pressa-QC-Pressenprojekts. Jedes Längenfeld (Geschossdurchmesser, Hals-ID, Sitztiefe, die
+        typische Spannung/Tiefe der Baseline) hat sein <strong>eigenes</strong> mm/in-Dropdown, sodass
+        Einheiten feldweise gemischt werden können.</p>
+      <p>Geschossdurchmesser und Hals-ID nach dem Sizing eintragen (vom Hals-/Bushing-Tab ablesen, falls
+        diese Bohrung dort schon ausgelegt wurde) und die tatsächliche Sitztiefe, dann eine
+        <strong>Baseline-Kraft</strong> für einen &ldquo;typischen&rdquo; Aufbau in dieser Bohrung
+        &mdash; ein Dropdown &ldquo;Quick-fill reference&rdquo; bietet 3 bekannte Ausgangspunkte (.223,
+        6.5CM, .308), aber jedes Kaliber funktioniert, wenn man dessen eigene Baseline kennt oder
+        schätzt. Die tatsächliche Aufbereitung für diese Charge wählen (Ausglühen, Halssizing, Fett,
+        Geschossbeschichtung, Boat-tail), und die Schätzung aktualisiert sich live: mittlere Kraft,
+        1σ/2σ-Bänder, und ein vorgeschlagener Max-(QC)-Wert.</p>
+      <div class="callout"><b>Kein GRT-Eingabewert.</b> Die bar/psi-Zahl daneben ist nur
+        <strong>dieselbe Kraft</strong>, ausgedrückt als äquivalenter Druck über den Geschossquerschnitt
+        (F / Fläche) &mdash; eine Einheit, die ein Teil der Pressen-Community für Halsspannung
+        verwendet, nicht mehr. Sie ist <strong>kein</strong> Ersatz für GRTs eigenen
+        &ldquo;Initial Pressure&rdquo; (<code>gpressure</code>): der Anschussdruck wird vom Einschneiden
+        der Führungsfläche in die Züge dominiert, was dieser Schätzer (für die statische Halsspannung
+        einer Bankpresse gebaut) überhaupt nicht modelliert &mdash; eine frühere Version dieses
+        Werkzeugs, die die Kraft in eine <code>gpressure</code>-Schätzung umrechnete, unterschätzte
+        GRTs eigene Referenzwerte um etwa das 4- bis 5-fache und wurde entfernt.</div>
+    </section>
+
+    <section id="card">
+      <h2><span class="no">11</span>Ladekarte / Etikett</h2>
+      <p>Druckbare <strong>Rezeptkarte (A6)</strong> oder <strong>Munitionsbox-Etiketten</strong>, jeweils
+        mit einem <strong>QR-Code</strong> des vollständigen Rezepts.</p>
+      <ul>
+        <li><strong>Load from GRT</strong> &mdash; füllt die Karte aus der offenen Ladung (Kaliber,
+          Waffe, Geschoss + Gewicht, Pulver, Ladung, COAL, Sitztiefe, sowie MV/SD aus der letzten
+          Messung).</li>
+        <li><strong>Powder / Primer / Brass / Bullet lot</strong>-Dropdowns &mdash; eine Komponenten-
+          Charge aus dem Inventar (§12) wählen, um die <strong>Kosten pro Schuss</strong> zu berechnen
+          und die Charge auf der Karte zu vermerken.</li>
+        <li><strong>Barrel</strong>-Dropdown &mdash; einen Lauf aus dem Inventar (§12) wählen; die Karte
+          erhält eine <strong>Lauf</strong>-Zeile: Name, Drall und Länge, in GRTs Einheiten. Dasselbe
+          Rezept aus einem anderen Rohr ist eine andere Ladung, also nennen Karte, QR-Code und die
+          Load-Sheet-Notiz alle, welcher es war. Ein Lauf ohne erfassten Drall oder Länge druckt nur
+          seinen Namen, und ohne Lauf gibt es gar keine Zeile. Ein Lauf wird nicht verbraucht, er geht
+          also nie in die Kosten pro Schuss ein.</li>
+        <li>Jedes Feld im Eigenschaften-Raster bearbeiten. <strong>Recipe card</strong> oder
+          <strong>Box labels</strong> + eine Anzahl wählen.</li>
+        <li><strong>Save PNG…</strong>, <strong>Print…</strong> (Druckvorschau), oder <strong>Write
+          load-sheet note to GRT</strong> &mdash; schreibt Rezept + Kostenaufschlüsselung pro Schuss als
+          Notiz &ldquo;Load Sheet&rdquo; in die Ladung.</li>
+      </ul>
+    </section>
+
+    <section id="log">
+      <h2><span class="no">12</span>Inventar &amp; Ladejournal</h2>
+      <p>Eine kleine SQLite-Datenbank unter <code>%AppData%\GRTPlugins\reloading_log.db</code>. Vier
+        Tabs.</p>
+      <ul>
+        <li><strong>Inventory</strong> &mdash; Pulver-/Zündhütchen-/Hülsen-/Geschoss-/Lauf-Bestand mit
+          Chargen-Id, Preis und (für Hülsen) einer <em>erwarteten Nutzungszahl</em>, die die
+          Hülsenkosten amortisiert. Add / Edit / Restock / Archive. <strong>Brand</strong> bietet die
+          gängigen Hersteller je Art an und bleibt für die fehlenden eintippbar. Pulver wird in der
+          Einheit gezählt, in der es gekauft wurde &mdash; <strong>g, gr, lb oder kg</strong>, neben
+          <em>Qty initial</em> ausgewählt; alles andere wird stückweise gezählt. Die Einheit
+          umzuschalten beschriftet die Charge neu, ändert sie aber nicht: 1 lb und 453,6 g sind derselbe
+          Kanister, und das Journal verbrennt weiterhin dieselben Gramm pro Schuss. Ein
+          <strong>Lauf</strong> nimmt einen <em>Drall</em> und eine <em>Lauflänge</em>, angezeigt in den
+          Einheiten, auf die GRT eingestellt ist (<code>twistlen</code> und <code>oal</code> in seiner
+          Einheitentabelle) und in jedem Fall metrisch gespeichert &mdash; ein 1:8-Rohr liest sich also
+          als <code>1:8 in</code> neben <code>26.0000 in</code> auf einer imperialen Installation und
+          als <code>1:203.2 mm</code> neben <code>660.4000 mm</code> auf einer metrischen. Beides ist
+          optional. Der Bestand kann <strong>negativ</strong> werden &mdash; das bedeutet nur, dass die
+          Charge zu knapp eingetragen wurde, oder Schüsse gegen die falsche Charge gebucht wurden. Er
+          wird nie stillschweigend aufgefangen, sodass das Bearbeiten oder Löschen des Eintrags immer
+          genau das zurückgibt, was er entnommen hat.</li>
+        <li><strong>Journal</strong> &mdash; eine Zeile pro Schießtermin oder Charge: Datum, Ladung,
+          Kaliber, Waffe, Pulverladung, Schusszahl, MV, SD, Gruppen-MOA, Distanz, Notizen,
+          <strong>Kosten pro Schuss</strong> aus den referenzierten Chargen, sowie die
+          <strong>Umgebungsbedingungen + kalibrierten Treibmittel-Koeffizienten</strong> der Sitzung:
+          Temperatur (C oder F, eigenes Dropdown), Luftdruck (hPa oder inHg, eigenes Dropdown) und
+          Luftfeuchtigkeit % &mdash; <em>environment recorded</em> ankreuzen, um diese zu speichern, da
+          GRT selbst keinen davon erfasst (jedes Feld in einer echten <code>.grtload</code> geprüft: kein
+          solches Tag irgendwo) &mdash; sowie <code>Ba</code>/<code>a0</code>, die Werte, bei denen der
+          Fit der Laufkalibrierung für diese Sitzung gelandet ist. <strong>Log from GRT</strong> füllt
+          alles davon aus der offenen Ladung vor (einschließlich <code>Ba</code>/<code>a0</code>, falls
+          die Laufkalibrierung sie dort geschrieben hat). Einen Eintrag zu bearbeiten oder zu löschen
+          gleicht das Inventar ab; <em>deduct components from inventory on save</em> ankreuzen, um den
+          Bestand abzubuchen. <strong>Fill Ba from loads</strong> ist für ein Journal, das geschrieben
+          wurde, bevor <code>Ba</code>/<code>a0</code> erfasst wurden: für jeden Eintrag ohne
+          <code>Ba</code>, der aber noch eine <code>.grtload</code> nennt, liest es den Wert aus dieser
+          Datei zurück. Es listet auf, was gefunden wurde und was unangetastet bleibt (Ladung
+          verschoben, nie kalibriert, lässt sich nicht öffnen), und wartet vor dem Schreiben auf ein Ja;
+          es überschreibt nie ein selbst eingetragenes <code>Ba</code>, und ein zweiter Durchlauf
+          bewirkt nichts mehr. Um das rückgängig zu machen, den Eintrag bearbeiten und sein
+          <code>Ba</code> wieder auf 0 setzen.</li>
+        <li><strong>Find best Ba</strong> &mdash; durchsucht das Journal nach Einträgen mit kalibriertem
+          <code>Ba</code>, gefiltert auf eine Kombination aus Kaliber + Pulver + Geschoss (ein
+          <code>Ba</code> aus einer anderen Kombination ist nicht vergleichbar), sortiert nach dem, was
+          &ldquo;best&rdquo; für dich bedeutet: <strong>engste Gruppe (MOA)</strong>,
+          <strong>nächste Geschwindigkeit zu einem Ziel</strong>, oder <strong>nächste Temperatur zu
+          einem Ziel</strong> (Zieltemperatur auch in C oder F). Nur lesend &mdash; es durchsucht, was
+          das Journal bereits erfasst hat, es nimmt keine neuen Daten auf. Die Kaliberliste wird aus
+          Journal-Einträgen mit einem <code>Ba</code> gebildet, ein Eintrag von vor Einführung dieses
+          Felds trägt also nichts dazu bei: sein <strong>Ba (calibrated)</strong> eintragen, oder
+          <strong>Fill Ba from loads</strong> ausführen (beides oben unter <em>Journal</em>), dann
+          erscheint sein Kaliber.</li>
+        <li><strong>Firearms</strong> &mdash; eine Zeile pro Lauf: Gesamtschusszahl
+          (<code>rounds before</code> + Journal-Schüsse), Anzahl MV-Einträge, zuletzt benutzt. Add /
+          Edit / Retire, sowie ein <strong>MV-Drift-Diagramm</strong> (Mündungsgeschwindigkeit gegen
+          kumulative Schusszahl mit Trendlinie &mdash; &ldquo;+X m/s per 100 rd&rdquo;).</li>
+      </ul>
+
+      <h3>GRTs Shot-group-Tabs als Analysator-Quelle nutzen</h3>
+      <p>Wird die Gruppenauswertung <strong>innerhalb von GRT</strong> gemacht (Symbolleiste →
+        Shot-group-Symbol, oder Results → <strong>+</strong> → Shot group &mdash; ein Zielfoto ziehen,
+        eine Referenzdistanz und die Schussdistanz festlegen, Markierungen <code>(+) Group</code> und
+        <code>(+) Shot</code> hinzufügen, einen Punkt als <em>Point of Aim</em> markieren, Ausreißer
+        markieren):</p>
+      <ol class="plain">
+        <li><strong>Jede Gruppe nach ihrer Ladung / Sitztiefe benennen</strong> &mdash;
+          &ldquo;40.0&rdquo;, &ldquo;Gruppo 40.2 gr&rdquo;, &ldquo;salto 0.02&rdquo;. Der Analysator
+          liest die Zahl aus. Mehrere Gruppen können sich einen Shot-group-Tab teilen (dasselbe Foto),
+          oder ein Tab pro Ladung verwendet werden.</li>
+        <li><strong>Die Ladung speichern</strong>, damit die Shot-group-Tabs in die
+          <code>.grtload</code> geschrieben werden.</li>
+        <li>Im Ladder-/Sitztiefen-Analysator <strong>ref dist</strong> (mm / cm / Inch) und
+          <strong>shoot dist</strong> (m / yd) festlegen &mdash; GRT speichert nicht, welche Einheit das
+          Referenzdistanz-Feld verwendet hat &mdash; optional <strong>drop flyers</strong> ankreuzen,
+          dann auf <strong>Groups from GRT load</strong> klicken.</li>
+      </ol>
+      <p>Jeder Treffer (als Bildanteil gespeichert) wird über die beiden Referenzpunkte und das
+        Bildseitenverhältnis in MOA umgerechnet (1&nbsp;MOA = 29,0888&nbsp;mm auf 100&nbsp;m).</p>
+    </section>
+
+    <section id="leaderboard">
+      <h2><span class="no">13</span>Ladungs-Bestenliste</h2>
+      <p>Ein eigenständiges Werkzeug unter seinem eigenen Launcher-Abschnitt (&ldquo;EVALUATE YOUR
+        LOADS&rdquo;) &mdash; bewertet <strong>jede jemals im Journal erfasste Ladung</strong>, nicht nur
+        eine Kaliber-/Pulver-/Geschoss-Kombination auf einmal wie <em>Find best Ba</em>. Ladungen werden
+        nach Kaliber + Pulver + Geschoss + Ladungsgewicht gruppiert (dasselbe Rezept, an mehreren
+        Schießtagen getestet, bleibt eine Ladung, nicht mehrere) und erhalten einen zusammengesetzten
+        <strong>0-10-Score</strong>.</p>
+      <p>Der Score ist ein einfacher Durchschnitt aus dem, was die Sitzungen einer Ladung tatsächlich
+        erfasst haben &mdash; nichts wird stärker gewichtet als etwas anderes:</p>
+      <ul>
+        <li><strong>SD</strong> und <strong>ES</strong> (m/s oder ft/s, je nachdem, worauf GRT
+          eingestellt ist)</li>
+        <li><strong>Gruppengröße</strong> (MOA, Extremstreuung &mdash; dieselbe Konvention, die
+          &ldquo;Group MOA&rdquo; überall sonst verwendet)</li>
+        <li><strong>Schusszahl</strong> (bestraft kleine Stichproben &mdash; statistische
+          Verlässlichkeit, keine Leistungskennzahl)</li>
+        <li><strong>Konsistenz über Sitzungen hinweg</strong> &mdash; wie sehr die SD zwischen
+          wiederholten Schießtagen mit derselben Ladung driftete (neutral, wenn nur einmal
+          getestet)</li>
+      </ul>
+      <p>Eine Ladung braucht kein kalibriertes <code>Ba</code>, um hier zu erscheinen &mdash; anders als
+        <em>Find best Ba</em> braucht sie nur, was auch immer eine Sitzung tatsächlich an SD/ES/Gruppe
+        erfasst hat. Mindestens eines davon braucht sie: eine Ladung mit nichts als einer erfassten
+        Schusszahl wird trotzdem unten aufgeführt, mit <code>-</code> als Rang und Score. Schusszahl und
+        sitzungsübergreifende Konsistenz sagen, wie weit man den anderen drei trauen kann, sie können
+        also allein keinen Score erzeugen &mdash; sonst würden zwanzig Schüsse ohne Chronograph und ohne
+        Ziel mit 8,5 bewertet und eine tatsächlich gemessene Ladung überholen.</p>
+      <div class="callout node"><b>Die Standard-Schwellenwerte sind nicht willkürlich.</b> Jeder ist ein
+        echter, zitierfähiger Bezugswert aus der Wettkampf- oder Militär-Präzisionsschießpraxis &mdash;
+        das übliche Wiederlader-SD-Ziel und der Richtwert für &ldquo;schlechte,
+        Massenfabrik-&rdquo;-Munition (Bryan Litz, <em>Applied Ballistics</em>), die Spezifikations-
+        obergrenzen von Mk 316 Mod 0 und M118LR-Scharfschützenmunition, sowie veröffentlichte
+        Bench­rest-/Jagdgewehr-Gruppengrößen-Richtwerte. Siehe <strong>⚙ Customize thresholds</strong> im
+        Werkzeug selbst, um jede Stufe zu öffnen, zu bearbeiten oder zurückzusetzen &mdash; die eigene
+        Disziplin mag zu Recht eine strengere oder lockerere Skala verlangen, und die Werte werden in
+        <code>%AppData%\GRTPlugins\load-scoring.json</code> gespeichert, sodass eine Änderung einen
+        Neustart übersteht.</div>
+      <p><strong>Write leaderboard note to GRT load</strong> liest Kaliber/Pulver/Geschoss/Ladung der
+        gerade in GRT obenauf liegenden <code>.grtload</code>, findet die Platzierung genau dieser
+        Ladung unter allen anderen für dieses Kaliber getesteten Ladungen, und schreibt Rang, Score und
+        die vollständige Aufschlüsselung der Teil-Scores in eine Notiz &mdash; dasselbe zeitgestempelte
+        Snapshot-Muster, das jedes andere Werkzeug im Toolkit verwendet, die Originaldatei bleibt also
+        unangetastet. Ist die offene Ladung noch nicht im Journal erfasst, sagt das Werkzeug das, statt
+        etwas zu schreiben. Siehe <strong>Toolkit &mdash; Load leaderboard report</strong> weiter unten
+        für die passende Berichtsseite.</p>
+    </section>
+
+    <section id="workflow">
+      <h2><span class="no">14</span>Distanz-Workflow</h2>
+      <p>Ein zweites eigenständiges Werkzeug unter &ldquo;EVALUATE YOUR LOADS&rdquo;, neben der
+        Ladungs-Bestenliste. Auf den ersten Blick sieht es aus wie dieselbe Tabelle und derselbe
+        0-10-Score &mdash; es <em>ist</em> dieselbe Bewertungs-Engine &mdash; aber es beantwortet eine
+        andere Frage, und die beiden lassen sich auf den ersten Blick leicht verwechseln:</p>
+      <table><thead><tr><th></th><th>Ladungs-Bestenliste (§13)</th><th>Distanz-Workflow</th></tr></thead><tbody>
+        <tr><td><strong>Beantwortete Frage</strong></td><td>&ldquo;Von allem, was ich je für dieses
+          Kaliber getestet habe, was ist insgesamt am besten?&rdquo;</td><td>&ldquo;Von den Ladungen, die
+          ich <strong>heute auf dieser Distanz</strong> getestet habe, welche verdient sich einen Test
+          auf der nächsten Distanz?&rdquo; (z.&nbsp;B. 100&nbsp;m &rarr; 300&nbsp;m)</td></tr>
+        <tr><td><strong>Umfang</strong></td><td>Jede je erfasste Ladung, jede Distanz,
+          zusammengefasst</td><td>Nur Ladungen, die auf <strong>einer gewählten Distanz</strong> erfasst
+          wurden</td></tr>
+        <tr><td><strong>Score</strong></td><td>Enthält einen sitzungsübergreifenden
+          <strong>Konsistenz</strong>-Term (blieb diese Ladung über die Zeit stabil?)</td><td>Kein
+          Konsistenz-Term &mdash; eine Entscheidung am selben Tag sollte nicht wegen der
+          <em>Historie</em> einer Ladung abgewertet werden</td></tr>
+        <tr><td><strong>Kleine Stichproben</strong></td><td>Werden gezeigt, nur niedriger
+          bewertet</td><td>Gruppen unter <strong>3 Schuss</strong> auf dieser Distanz werden aus der
+          Rangliste ganz ausgeschlossen</td></tr>
+      </tbody></table>
+      <p>Portiert aus Ballistic Lab v2s eigenem &ldquo;Workflow Distanze&rdquo;.</p>
+      <p>Ein <strong>Kaliber</strong> und eine <strong>Distanz</strong> wählen (nur Distanzen, für die
+        das Journal tatsächlich Einträge hat, werden aufgeführt, auf den nächsten Meter), dann
+        <strong>Rank</strong>. Ladungen werden genauso gruppiert wie bei der Ladungs-Bestenliste
+        (Kaliber + Pulver + Geschoss + Ladung), aber nur unter den auf dieser einen Distanz erfassten
+        Einträgen.</p>
+      <p><strong>Write workflow note to GRT load</strong> funktioniert wie das Zurückschreiben der
+        Ladungs-Bestenliste, mit einem Unterschied: GRTs eigene <code>.grtload</code> hat überhaupt kein
+        Schussdistanz-Feld (nur das Journal, als manueller Eintrag), die Distanz, gegen die bewertet
+        wird, ist also immer die im Werkzeug selbst gewählte, nicht etwas aus der Datei Gelesenes. Es
+        schreibt Rang, Score und Aufschlüsselung der offenen Ladung auf dieser Distanz in eine Notiz
+        &mdash; dasselbe zeitgestempelte Snapshot-Muster, Originaldatei nie angerührt. Siehe
+        <strong>Toolkit &mdash; Distance workflow report</strong> weiter unten für die passende
+        Berichtsseite.</p>
+    </section>
+
+    <section id="reports">
+      <h2><span class="no">15</span>GRT-Berichtsvorlagen</h2>
+      <p><strong>Install GRT report templates</strong> (Launcher / Plugin-Menü) schreibt elf
+        DokuWiki-Berichtsseiten nach <code>GRT\doku\&lt;Sprache&gt;\report\</code> und verlinkt sie im
+        Berichtsindex. Einmal pro GRT-Installation ausführen (und jedem, mit dem das Plugin geteilt
+        wird, dasselbe sagen). Es ist idempotent und nicht-destruktiv; eine Seite löschen, indem sie in
+        GRT leer gespeichert wird.</p>
+      <table><thead><tr><th>Seite</th><th>Zieht</th></tr></thead><tbody>
+        <tr><td>Full load workup</td><td>Rezept + vorhergesagte Ergebnisse + GRT-Kurvendiagramm + jeden
+          Abschnitt unten</td></tr>
+        <tr><td>Chronograph statistics report</td><td>die Chrono-Statistik-Notiz</td></tr>
+        <tr><td>Ladder / OCW report</td><td>die OCW-Notiz + Diagramm</td></tr>
+        <tr><td>Seating-depth report</td><td>die Sitztiefen-Notiz + Diagramm</td></tr>
+        <tr><td>Barrel calibration report</td><td>die Kalibrierungs-Notiz (Ba, oder Ba+a0-Shape-Fit) +
+          Temperaturkoeffizienten-Notiz</td></tr>
+        <tr><td>Powder temp-coefficients report</td><td>die Temperaturkoeffizienten-Notiz allein</td></tr>
+        <tr><td>Case volume report</td><td>die Hülsenvolumen-Notiz</td></tr>
+        <tr><td>Seating depth (geometry) report</td><td>die Komparator-Sitztiefen-Notiz</td></tr>
+        <tr><td>Load sheet</td><td>Rezept + Vorhersage + Kosten-Notiz</td></tr>
+        <tr><td>Load leaderboard report</td><td>die Rang-/Score-Notiz der Bestenliste</td></tr>
+        <tr><td>Distance workflow report</td><td>die Rang-/Score-Notiz des Workflows</td></tr>
+      </tbody></table>
+      <p>Jedes Werkzeug, das eine Notiz schreibt, hat jetzt seine eigene Seite, außer der
+        <strong>Sitzkraft-Schätzung (QC)</strong> (§10) &mdash; ein eigenständiger QC-Schätzer ganz ohne
+        GRT-Anbindung, es gibt also nichts, was ein Bericht ziehen könnte.</p>
+      <div class="callout"><b>Einen Bericht ansehen:</b> Results-Panel → <strong>+</strong> (neuer Tab) →
+        <strong>Add report</strong> → eine &ldquo;Toolkit — …&rdquo;-Seite wählen. Auf dem
+        <strong><code>…_toolkit_…grtload</code>-Snapshot</strong> öffnen &mdash; dort leben die Notizen
+        und Diagramme, nicht in der Originaldatei. Leere Abschnitte bedeuten nur, dass dieses Werkzeug
+        noch nicht gelaufen ist.</div>
+    </section>
+
+    <section id="cli">
+      <h2><span class="no">16</span>Kommandozeile</h2>
+      <p>Debug-Einstiegspunkte auf der exe
+        (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
+      <pre>--dbtest [db]                                    <span class="c">Inventar-/Journal-Selbsttest (schreibt
+                                                  Testdaten nach [db], oder in eine Wegwerf-
+                                                  Temp-Datei ohne Angabe -- NIE in die echte
+                                                  Journal-/Inventar-Datenbank)</span>
+--athlon &lt;folder&gt; &lt;base.grtload&gt; [tempC]         <span class="c">Chronograph-Import aus einem Ordner</span>
+--chronostats &lt;folder&gt; [base.grtload] [marginMps] <span class="c">Pro-Serie-Statistik + Vergleich der ersten beiden</span>
+--ladder charge|seating &lt;folder&gt; [base.grtload]  <span class="c">Ladder-Analyse</span>
+--ladder charge|seating --synthetic [out.png]    <span class="c">fixturfreier Diagrammtest</span>
+--groups &lt;load.grtload&gt; [mm|cm|in] [m|yd] [--drop-flyers]
+--cal &lt;port&gt; &lt;base&gt; &lt;charge:simMv&gt; …             <span class="c">Kalibrierungs-Mathematik</span>
+--tcoeff &lt;Ba&gt; &lt;file.xlsx:tempC&gt; …                <span class="c">Temperaturkoeffizienten-Fit</span>
+--card &lt;base.grtload&gt; [outDir]                   <span class="c">Rezeptkarte / Etiketten rendern</span>
+--brass vol gr|g &lt;w…&gt;
+--brass neck &lt;dia&gt; &lt;wall&gt; &lt;interf&gt; [loadedOd]
+--brass seat &lt;cbto&gt; &lt;caselen&gt; &lt;bbto&gt; [mm|in]
+--reports [grtRoot]                              <span class="c">Berichtsvorlagen installieren</span></pre>
+      <p>Umgebung: <code>OCW_FOLDER</code> / <code>SEATING_FOLDER</code> laden beim Öffnen automatisch
+        einen Ladder-Ordner; <code>RELOADING_LOG_DB</code> überschreibt den Datenbankpfad;
+        <code>GRT_OCW_CHART_SIZE=WxH</code> legt die exportierte OCW-/Sitztiefen-Diagrammgröße in Pixeln
+        fest (Standard <code>1400x1040</code>) &mdash; GRTs Bild-Tab passt das Bild auf seine Breite an
+        und zentriert es, ein breiter Wert wie <code>2000x560</code> füllt also ein breites
+        Ergebnis-Panel, ein nahezu quadratischer ein hohes.</p>
+    </section>
+
+    <section id="faq">
+      <h2><span class="no">17</span>Einschränkungen &amp; FAQ</h2>
+      <h3>Warum ein Haufen <code>_toolkit_…</code>-Dateien?</h3>
+      <p>GRTs Plugin-API kann die offene Ladung nicht bearbeiten und kann einen bereits offenen Tab nicht
+        neu laden &mdash; jeder Schreibvorgang ist also ein frischer zeitgestempelter Snapshot. Jeder
+        Snapshot ist vollständig; den neuesten behalten (Speichern unter mit echtem Namen) und den Rest
+        löschen. Nur die drei neuesten werden automatisch behalten.</p>
+      <h3>Ich habe <code>Ba</code> geändert, aber GRTs Geschwindigkeit hat sich nicht bewegt.</h3>
+      <p>Entweder zeigt GRT noch den alten Tab (den neuesten Snapshot öffnen), oder die Korrektur ist
+        wirklich winzig &mdash; ein Versatz von 0,1&nbsp;% bewegt V₀ um ~0,6&nbsp;m/s, was innerhalb des
+        Chronograph-Rauschens liegt.</p>
+      <h3>&ldquo;No usable shot groups in that load.&rdquo;</h3>
+      <p>Die Ladung hat keine GRT-Shot-group-Tabs &mdash; die Gruppen wurden stattdessen in Ballistic-X
+        ausgewertet. Den <code>.csv</code>-Weg nehmen, oder die Gruppen zuerst in GRT anlegen (§12).</p>
+      <h3>Das Temperaturkoeffizienten-Werkzeug aktiviert &ldquo;Write&rdquo; nicht.</h3>
+      <p>Es braucht eine Ladung bei mehreren Temperaturen, keinen Ladder.</p>
+      <h3>Ein Symbolleisten-Symbol, nicht zehn.</h3>
+      <p>Absicht &mdash; es öffnet den Launcher; jedes Werkzeug ist dort eine Schaltfläche.
+        Manifest-Änderungen brauchen einen GRT-Neustart, um zu erscheinen.</p>
+      <h3>Zahlen</h3>
+      <p>Jedes Feld akzeptiert <code>.</code> oder <code>,</code> als Dezimaltrennzeichen, unabhängig von
+        der Windows-Ländereinstellung. Berichtstext wird immer mit <code>.</code> als Dezimalzeichen
+        geschrieben (GRTs Vorgabe).</p>
+    </section>
+  </main>
+</div>
+
+<footer><div class="shell">
+  <span>GRT Reloading Toolkit · v0.2.8 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
+  <span class="mono">com.grt.plugin.reloadingtoolkit</span>
+</div></footer>
