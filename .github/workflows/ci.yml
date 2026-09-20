@@ -84,3 +84,26 @@ jobs:
             throw "packaged manifest's menu label lost its ellipsis - issue #22's ANSI/UTF-8 mojibake bug is back"
           }
           Write-Host "==> packaged plugin is complete and the manifest text is intact"
+      # "Verify packaged plugin" above proves the zips exist, but a zip can exist and still be
+      # broken: Windows PowerShell 5.1's Compress-Archive writes entry paths with backslashes,
+      # which violates ZIP APPNOTE 4.4.17.1 (entry paths are always forward-slashed). Windows
+      # Explorer unpacks those anyway, so the damage is invisible here - but macOS and Linux
+      # unzip treats the backslash as part of the filename and drops the whole tree into one
+      # flat folder of files literally named "ReloadingToolkit\media\icons\...". That is why
+      # build-plugin.ps1 has its own WriteZip instead of calling Compress-Archive; this asserts
+      # nobody swaps it back. WriteZip runs only under -Zip, and the zip is written successfully
+      # either way, so the script exits 0 in both cases - the artifact has to be inspected.
+      - name: Check zip entry paths use forward slashes
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          foreach ($name in @("ReloadingToolkit.zip", "ReloadingToolkit-lite.zip")) {
+            $path = "GrtReloadingToolkit\dist\$name"
+            $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $path))
+            try {
+              $bad = $zip.Entries | Where-Object { $_.FullName -match '\\' } | Select-Object -First 1
+              if ($bad) { throw "$name has a backslash entry path ($($bad.FullName)) - it will not unpack as a folder off Windows (ZIP APPNOTE 4.4.17.1)" }
+              Write-Host "      ok: $name ($($zip.Entries.Count) entries, all forward-slashed)"
+            } finally { $zip.Dispose() }
+          }
+          Write-Host "==> both zips unpack as folders on every platform"
