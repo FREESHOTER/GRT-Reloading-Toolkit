@@ -92,7 +92,7 @@ public class ManualSyncTests
     {
         int[] md = MarkdownSectionNumbers(Doc("MANUAL.md"));
 
-        // Guards the two tests above: they compare number sequences, which would still match
+        // Guards the three tests above: they compare number sequences, which would still match
         // if the same section were skipped or repeated in every file.
         Assert.Equal(Enumerable.Range(1, md.Length), md);
     }
@@ -106,5 +106,22 @@ public class ManualSyncTests
 
         Assert.False(File.Exists(Path.Combine(docs, "MANUAL.md")));
         Assert.False(File.Exists(Path.Combine(docs, "README.md")));
+    }
+
+    [Fact]
+    public void DocsHoldsNoPdfs()
+    {
+        // The PDF renderings are release assets, not tree files -- build-plugin.ps1 copies the
+        // whole docs\ folder into the shipped plugin (Assemble, "Copy-Item $docs $outDir
+        // -Recurse"), so anything left here is downloaded by every user, in both zips, forever.
+        // A 1 MB manual PDF was committed here once and put 41% onto ReloadingToolkit-lite.zip
+        // (1,465,419 -> 2,073,659 bytes between v0.2.8 and v0.2.9) before anyone noticed, because
+        // the zip is still perfectly valid when it happens -- only bigger.
+        string docs = Path.Combine(RepoRoot(), "GrtReloadingToolkit", "docs");
+        string[] pdfs = Directory.GetFiles(docs, "*.pdf", SearchOption.AllDirectories);
+
+        Assert.True(pdfs.Length == 0,
+            "docs/ ships inside the plugin zip; attach PDFs to the release instead of committing them: "
+            + string.Join(", ", pdfs.Select(Path.GetFileName)));
     }
 }
