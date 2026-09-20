@@ -11,7 +11,7 @@ report templates.
 — grab `ReloadingToolkit.zip` (or the smaller `-lite.zip`, see [Install](#install-users) below) from
 the Assets list on that page.
 
-> **Status: v0.2.7.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
+> **Status: v0.2.8.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
 > every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
