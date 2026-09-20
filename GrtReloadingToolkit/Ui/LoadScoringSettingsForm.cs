@@ -1,3 +1,4 @@
+using System.Globalization;
 using GrtPluginKit.Grt;
 using GrtReloadingToolkit.Log;
 
@@ -89,8 +90,9 @@ internal sealed class LoadScoringSettingsForm : Form
         {
             bool last = i == tiers.Count - 1;
             string valueText = last ? Lang.T("(worse than all above)")
-                : (velocityTiers ? _u.VelocityValue(tiers[i].Threshold) : tiers[i].Threshold).ToString("0.###");
-            int row = grid.Rows.Add(valueText, tiers[i].Score.ToString("0.#"));
+                : (velocityTiers ? _u.VelocityValue(tiers[i].Threshold) : tiers[i].Threshold)
+                    .ToString("0.###", CultureInfo.InvariantCulture);
+            int row = grid.Rows.Add(valueText, tiers[i].Score.ToString("0.#", CultureInfo.InvariantCulture));
             if (last) grid.Rows[row].Cells[0].ReadOnly = true;
         }
     }
@@ -111,14 +113,23 @@ internal sealed class LoadScoringSettingsForm : Form
         {
             double threshold = fallback[i].Threshold;
             bool last = i == grid.Rows.Count - 1;
-            if (!last && double.TryParse(Convert.ToString(grid.Rows[i].Cells[0].Value), out double shown))
+            if (!last && TryParseCell(grid.Rows[i].Cells[0].Value, out double shown))
                 threshold = velocityTiers ? _u.VelocityToMps(shown) : shown;
-            double score = double.TryParse(Convert.ToString(grid.Rows[i].Cells[1].Value), out double s)
+            double score = TryParseCell(grid.Rows[i].Cells[1].Value, out double s)
                 ? Math.Clamp(s, 0.0, 10.0) : fallback[i].Score;
             result.Add(new ScoreTier(threshold, score));
         }
         return result;
     }
+
+    /// <summary>Accepts either decimal separator. The grid renders invariantly, like every other
+    /// number this plugin shows, but someone on an Italian keyboard still types "0,5" -- and
+    /// parsing that strictly would drop them into ReadGrid's tolerant fallback, silently keeping
+    /// the old threshold instead of the one they just typed. Same trick, for the same reason, as
+    /// GrtShotGroups.StepOf.</summary>
+    private static bool TryParseCell(object? cell, out double value) =>
+        double.TryParse(Convert.ToString(cell)?.Replace(',', '.'),
+            NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 
     private static LoadScoringConfig Clone(LoadScoringConfig src) => new()
     {

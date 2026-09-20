@@ -318,9 +318,13 @@ internal sealed class CalibrationForm : Form
                 if (res.MuzzleVelocityMps is { } sim && sim > 0)
                 {
                     SetSimPertA0(chg, sim);
-                    AppendLog($"{chg:0.00} gr @ a0+{A0PerturbFrac:0%} -> sim {sim:0.0} m/s");
+                    // Invariant, like the Ba/a0 values written a few lines down and like every
+                    // other number this plugin shows. The charge and MV carry decimal separators,
+                    // so bare interpolation renders them per the OS locale; a0+{:0%} has neither a
+                    // decimal nor a group separator and reads the same either way.
+                    AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ a0+{A0PerturbFrac:0%} -> sim {sim:0.0} m/s"));
                 }
-                else AppendLog($"{chg:0.00} gr @ a0+{A0PerturbFrac:0%} -> no sim MV (skipped)");
+                else AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ a0+{A0PerturbFrac:0%} -> no sim MV (skipped)"));
                 Recompute();
             }
 
@@ -450,7 +454,7 @@ internal sealed class CalibrationForm : Form
             string suffix = "cal_ba_a0";
             bool wroteBa = doc.SetInput("propellant", "Ba", fit.NewBa.ToString("0.###############", CultureInfo.InvariantCulture));
             bool wroteA0 = doc.SetInput("propellant", "a0", fit.NewA0.ToString("0.###############", CultureInfo.InvariantCulture));
-            if (wroteBa && wroteA0) AppendLog($"set Ba {ba:0.######} -> {fit.NewBa:0.######}, a0 {a0:0.####} -> {fit.NewA0:0.####}");
+            if (wroteBa && wroteA0) AppendLog(FormattableString.Invariant($"set Ba {ba:0.######} -> {fit.NewBa:0.######}, a0 {a0:0.####} -> {fit.NewA0:0.####}"));
             else { AppendLog("note written, but Ba/a0 inputs missing in the load"); suffix = "cal"; }
 
             string outPath = doc.SaveSibling(suffix);
