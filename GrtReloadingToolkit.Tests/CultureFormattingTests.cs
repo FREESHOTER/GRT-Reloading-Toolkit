@@ -47,7 +47,14 @@ public class CultureFormattingTests
     private static List<string> CultureSensitiveFormats(bool cliOnly)
     {
         var found = new List<string>();
-        foreach (string path in Directory.EnumerateFiles(RepoRoot(), "*.cs", SearchOption.AllDirectories))
+        // RepoRoot() is the PARENT of GrtReloadingToolkit (see its own doc comment): the GitHub tree
+        // that parent IS the repo, containing only this project's own folders, but the local working
+        // copy nests GrtReloadingToolkit among unrelated sibling plugin projects (GrtReloadingLog,
+        // GrtSensitivityLab, ...) under a shared Desktop\files\ parent. Scanning RepoRoot() itself
+        // picks up THEIR culture-sensitive formatting too -- scope to this project's own folder,
+        // like every other test here that calls RepoRoot() already does.
+        string toolkitRoot = Path.Combine(RepoRoot(), "GrtReloadingToolkit");
+        foreach (string path in Directory.EnumerateFiles(toolkitRoot, "*.cs", SearchOption.AllDirectories))
         {
             if (path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") ||
                 path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")) continue;
