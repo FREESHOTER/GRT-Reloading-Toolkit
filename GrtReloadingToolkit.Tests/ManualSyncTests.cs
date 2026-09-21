@@ -124,4 +124,47 @@ public class ManualSyncTests
             "docs/ ships inside the plugin zip; attach PDFs to the release instead of committing them: "
             + string.Join(", ", pdfs.Select(Path.GetFileName)));
     }
+
+    [Fact]
+    public void EveryManualIsLinkedFromTheReadmeAndTheLandingPage()
+    {
+        // A translation nobody can reach is a translation nobody reads: the German manual shipped
+        // in v0.2.9 listed in neither place, so the only way to open it was to know the filename.
+        // The two entry points are the repo's README (relative path) and the landing page that
+        // ships beside the manuals inside the plugin folder (bare filename -- GitHub Pages is not
+        // enabled, so an absolute URL would not resolve).
+        string docs = Path.Combine(RepoRoot(), "GrtReloadingToolkit", "docs");
+        string readme = File.ReadAllText(Path.Combine(RepoRoot(), "README.md"));
+        string landing = Doc("docs/GRT-Reloading-Toolkit.html");
+
+        foreach (string manual in Directory.GetFiles(docs, "Reloading-Toolkit-Manual*.html")
+                                           .Select(f => Path.GetFileName(f)!)
+                                           .OrderBy(n => n))
+        {
+            Assert.True(readme.Contains("docs/" + manual),
+                manual + " is not linked from README.md");
+            Assert.True(landing.Contains("\"" + manual + "\""),
+                manual + " is not linked from the landing page");
+        }
+    }
+
+    [Fact]
+    public void TheLandingPageListsEveryReportTemplate()
+    {
+        // The landing page names the report templates in chips. It said five from v0.1.1 until
+        // v0.2.9 while ReportTemplates.Links grew to eleven, because adding a template touches
+        // neither file. Counting is language-independent; the names themselves are not checked.
+        string templates = Doc("Reports/ReportTemplates.cs");
+        Match links = Regex.Match(templates, @"Links\s*=\s*\{(.*?)\};", RegexOptions.Singleline);
+        Assert.True(links.Success, "ReportTemplates.cs has no Links array");
+        int installed = Regex.Matches(links.Groups[1].Value, @"\(""toolkit-[a-z]+"",").Count;
+
+        string landing = Doc("docs/GRT-Reloading-Toolkit.html");
+        Match chips = Regex.Match(landing, @"<div class=""reports"">(.*?)</div>", RegexOptions.Singleline);
+        Assert.True(chips.Success, "the landing page has no <div class=\"reports\"> block");
+        int listed = Regex.Matches(chips.Groups[1].Value, "<span>").Count;
+
+        Assert.True(listed == installed,
+            $"the landing page lists {listed} report templates, ReportTemplates.Links installs {installed}");
+    }
 }
