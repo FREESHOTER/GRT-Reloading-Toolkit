@@ -36,7 +36,8 @@ the Assets list on that page.
 Full details: **[MANUAL.md](GrtReloadingToolkit/MANUAL.md)**, or as HTML
 ([EN](GrtReloadingToolkit/docs/Reloading-Toolkit-Manual.html) /
 [IT](GrtReloadingToolkit/docs/Reloading-Toolkit-Manual-IT.html) /
-[DE](GrtReloadingToolkit/docs/Reloading-Toolkit-Manual-DE.html)) — all three are also attached to
+[DE](GrtReloadingToolkit/docs/Reloading-Toolkit-Manual-DE.html) /
+[FR](GrtReloadingToolkit/docs/Reloading-Toolkit-Manual-FR.html)) — all four are also attached to
 the [latest release](https://github.com/FREESHOTER/GRT-Reloading-Toolkit/releases/latest) as PDFs,
 for reading offline.
 

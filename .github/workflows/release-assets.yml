@@ -37,7 +37,8 @@ jobs:
             ReloadingToolkit-lite.zip \
             GRT-Reloading-Toolkit-Manual-EN.pdf \
             GRT-Reloading-Toolkit-Manual-IT.pdf \
-            GRT-Reloading-Toolkit-Manual-DE.pdf
+            GRT-Reloading-Toolkit-Manual-DE.pdf \
+            GRT-Reloading-Toolkit-Manual-FR.pdf
           do
             if grep -qxF "$want" /tmp/have.txt; then
               echo "      ok: $want"
@@ -47,4 +48,4 @@ jobs:
             fi
           done
           [ "$missing" -eq 0 ] || exit 1
-          echo "==> $TAG carries both builds and all three manual PDFs"
+          echo "==> $TAG carries both builds and all four manual PDFs"
