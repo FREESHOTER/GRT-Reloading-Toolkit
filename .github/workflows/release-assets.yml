@@ -1,0 +1,50 @@
+name: Release assets
+
+# The release itself is built and published by hand from a Mac (the zips need build-plugin.ps1,
+# the manual PDFs need a headless Chrome), and nothing was checking the result - so when the EN
+# and IT PDFs stopped being attached after v0.2.6, three releases went out without them while
+# README kept telling people they were there. This does not build anything and cannot block a
+# release that is already public; it just turns a silent omission into a red X on the release.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  assets:
+    name: check release assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every advertised asset is attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name' | sort > /tmp/have.txt
+          echo "==> attached to $TAG:"
+          sed 's/^/      /' /tmp/have.txt
+
+          # The two install artifacts, plus one PDF per HTML manual in docs/. README points at
+          # "the latest release" for all of them, so each release needs its own copy - a user who
+          # lands on a patch release should not have to hunt backwards for a manual.
+          missing=0
+          for want in \
+            ReloadingToolkit.zip \
+            ReloadingToolkit-lite.zip \
+            GRT-Reloading-Toolkit-Manual-EN.pdf \
+            GRT-Reloading-Toolkit-Manual-IT.pdf \
+            GRT-Reloading-Toolkit-Manual-DE.pdf
+          do
+            if grep -qxF "$want" /tmp/have.txt; then
+              echo "      ok: $want"
+            else
+              echo "::error title=Missing release asset::$TAG has no $want"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          echo "==> $TAG carries both builds and all three manual PDFs"
