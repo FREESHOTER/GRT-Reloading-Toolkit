@@ -26,6 +26,18 @@ public class ManualSyncTests
     private static string Doc(string relative) =>
         File.ReadAllText(Path.Combine(RepoRoot(), "GrtReloadingToolkit", relative));
 
+    /// <summary>The repo-root README.md -- the public GitHub landing page, distinct from
+    /// <c>GrtReloadingToolkit/README.md</c> (a contributor build guide with no manual links of its
+    /// own). Unlike <c>Directory.Build.props</c>'s two-tree-shape split (same content, two possible
+    /// locations), this file has NO equivalent in the local working copy: that tree's RepoRoot() is
+    /// a shared parent with unrelated sibling projects, which owns no README of its own, public or
+    /// otherwise. Null there, not a fallback path -- there is nothing meaningful to fall back to.</summary>
+    private static string? RootReadmePath()
+    {
+        string atRoot = Path.Combine(RepoRoot(), "README.md");
+        return File.Exists(atRoot) ? atRoot : null;
+    }
+
     private const string EnHtml = "docs/Reloading-Toolkit-Manual.html";
     private const string ItHtml = "docs/Reloading-Toolkit-Manual-IT.html";
     private const string DeHtml = "docs/Reloading-Toolkit-Manual-DE.html";
@@ -130,19 +142,21 @@ public class ManualSyncTests
     {
         // A translation nobody can reach is a translation nobody reads: the German manual shipped
         // in v0.2.9 listed in neither place, so the only way to open it was to know the filename.
-        // The two entry points are the repo's README (relative path) and the landing page that
+        // The two entry points are the repo's root README (relative path) and the landing page that
         // ships beside the manuals inside the plugin folder (bare filename -- GitHub Pages is not
-        // enabled, so an absolute URL would not resolve).
+        // enabled, so an absolute URL would not resolve). The README half only runs in the GitHub
+        // tree, which is the only one that has a root README to check -- see RootReadmePath().
         string docs = Path.Combine(RepoRoot(), "GrtReloadingToolkit", "docs");
-        string readme = File.ReadAllText(Path.Combine(RepoRoot(), "README.md"));
+        string? readme = RootReadmePath() is { } path ? File.ReadAllText(path) : null;
         string landing = Doc("docs/GRT-Reloading-Toolkit.html");
 
         foreach (string manual in Directory.GetFiles(docs, "Reloading-Toolkit-Manual*.html")
                                            .Select(f => Path.GetFileName(f)!)
                                            .OrderBy(n => n))
         {
-            Assert.True(readme.Contains("docs/" + manual),
-                manual + " is not linked from README.md");
+            if (readme is not null)
+                Assert.True(readme.Contains("docs/" + manual),
+                    manual + " is not linked from README.md");
             Assert.True(landing.Contains("\"" + manual + "\""),
                 manual + " is not linked from the landing page");
         }
