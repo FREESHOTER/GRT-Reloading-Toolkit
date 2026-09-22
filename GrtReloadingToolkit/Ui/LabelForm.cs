@@ -335,6 +335,14 @@ internal sealed class LabelForm : Form
     private void Print()
     {
         using var doc = new PrintDocument();
+
+        // Labels carry across pages, so the handler needs to know how many it has already drawn.
+        // Reset on BeginPrint, not just here: the preview dialog can run the document again (print
+        // from the preview, or re-paginate on a page-setup change), and a stale count would print
+        // the second job short.
+        int printed = 0;
+        doc.BeginPrint += (_, _) => printed = 0;
+
         doc.PrintPage += (_, e) =>
         {
             using var qr = CardRenderer.QrBitmap(_card.QrText());
@@ -348,15 +356,15 @@ internal sealed class LabelForm : Form
             }
             else
             {
-                int n = (int)_count.Value, cols = 2;
-                float lw = m.Width / (float)cols, lh = lw * 40f / 78f;
-                for (int i = 0; i < n; i++)
+                int n = (int)_count.Value;
+                foreach (var cell in LabelSheet.Page(m, n - printed))
                 {
-                    int r = i / cols, cc = i % cols;
-                    float y = m.Y + r * lh;
-                    if (y + lh > m.Bottom) break;
-                    CardRenderer.DrawBoxLabel(e.Graphics!, new RectangleF(m.X + cc * lw + 4, y + 4, lw - 8, lh - 8), _card, qr);
+                    CardRenderer.DrawBoxLabel(e.Graphics!, cell, _card, qr);
+                    printed++;
                 }
+                // LabelSheet.Page always yields at least one cell while labels remain, so printed
+                // advances every page and this terminates.
+                e.HasMorePages = printed < n;
             }
         };
         using var pv = new PrintPreviewDialog { Document = doc, Width = 900, Height = 700 };
