@@ -36,14 +36,20 @@ internal static class CardRenderer
     /// wrapping here because the header is two lines by design (caliber, then charge and powder)
     /// and a wrapped third line would push every row below it down. The floor stops one absurd
     /// component name from rendering the header at 8pt; past it, OneLine's ellipsis takes over.
+    ///
+    /// Several <paramref name="texts"/> share one returned font, sized so the widest of them fits.
+    /// Lines that are one size by design have to stay one size after fitting -- sizing them apart
+    /// would leave one line of a pair visibly smaller than the other for no reason the reader can
+    /// see. Blank ones are ignored rather than counted as zero-width.
     /// </summary>
-    private static Font Fit(Graphics g, string text, float pt, FontStyle style, float width, StringFormat fmt)
+    private static Font Fit(Graphics g, float pt, FontStyle style, float width, StringFormat fmt, params string[] texts)
     {
         var font = new Font("Segoe UI", pt, style, GraphicsUnit.Point);
-        if (string.IsNullOrWhiteSpace(text)) return font;
+        var drawn = texts.Where(t => !string.IsNullOrWhiteSpace(t)).ToArray();
+        if (drawn.Length == 0) return font;
 
         float floor = pt * 0.55f;
-        while (g.MeasureString(text, font, int.MaxValue, fmt).Width > width && font.SizeInPoints > floor)
+        while (drawn.Max(t => g.MeasureString(t, font, int.MaxValue, fmt).Width) > width && font.SizeInPoints > floor)
         {
             float next = Math.Max(font.SizeInPoints * 0.94f, floor);
             font.Dispose();
@@ -67,8 +73,8 @@ internal static class CardRenderer
         float textW = b.Width - 2 * pad;
 
         using var one = OneLine();
-        using var hFont = Fit(g, c.Title, 7.5f * u, FontStyle.Bold, textW, one);
-        using var chFont = Fit(g, c.ChargeLine, 9f * u, FontStyle.Bold, textW, one);
+        using var hFont = Fit(g, 7.5f * u, FontStyle.Bold, textW, one, c.Title);
+        using var chFont = Fit(g, 9f * u, FontStyle.Bold, textW, one, c.ChargeLine);
         using var qFont = new Font("Segoe UI", 2.6f * u, FontStyle.Regular, GraphicsUnit.Point);
         using var black = new SolidBrush(Color.Black);
         using var grey = new SolidBrush(Color.FromArgb(90, 90, 90));
@@ -159,17 +165,24 @@ internal static class CardRenderer
         // These already drew into a box, so they wrapped instead of spilling - but the box is only
         // 1.2 lines tall, so a long name lost its second half to the clip just as invisibly.
         using var one = OneLine();
-        using var big = Fit(g, c.Title, 5f * u, FontStyle.Bold, textW, one);
-        using var mid = Fit(g, c.ChargeLine, 3.6f * u, FontStyle.Bold, textW, one);
-        using var sm = new Font("Segoe UI", 3f * u, FontStyle.Regular, GraphicsUnit.Point);
+        using var big = Fit(g, 5f * u, FontStyle.Bold, textW, one, c.Title);
+        using var mid = Fit(g, 3.6f * u, FontStyle.Bold, textW, one, c.ChargeLine);
+        // The two small lines were the only ones left drawing at a fixed size, and this box is the
+        // tightest on the card: the QR is b.Height-2u square, so on a 78x40mm label it takes about
+        // half the width and leaves textW under a third. "CCI BR-2   2026-09-22" does not fit that
+        // at 3u, so OneLine's ellipsis ate the end of the date -- silently, and on the printed
+        // label, where the date is half of what a box label is for. The 3-across preview used to
+        // hide it behind cells wider than any real page can hold.
+        string bullet = c.Bullet + (c.BulletGr is { } bg ? " " + U.BulletMass(bg) : "");
+        string stamp = $"{c.Primer}   {c.Date}".Trim();
+        using var sm = Fit(g, 3f * u, FontStyle.Regular, textW, one, bullet, stamp);
         using var black = new SolidBrush(Color.Black);
 
         g.DrawString(c.Title, big, black, new RectangleF(x, y, textW, big.GetHeight(g) * 1.2f), one);
         y += big.GetHeight(g) + 0.5f * u;
         g.DrawString(c.ChargeLine, mid, black, new RectangleF(x, y, textW, mid.GetHeight(g) * 1.2f), one);
         y += mid.GetHeight(g) + 0.4f * u;
-        string b3 = c.Bullet + (c.BulletGr is { } bg ? " " + U.BulletMass(bg) : "");
-        if (!string.IsNullOrWhiteSpace(b3)) { g.DrawString(b3, sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f), one); y += sm.GetHeight(g) + 0.3f * u; }
-        g.DrawString($"{c.Primer}   {c.Date}".Trim(), sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f), one);
+        if (!string.IsNullOrWhiteSpace(bullet)) { g.DrawString(bullet, sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f), one); y += sm.GetHeight(g) + 0.3f * u; }
+        g.DrawString(stamp, sm, black, new RectangleF(x, y, textW, sm.GetHeight(g) * 1.2f), one);
     }
 }
