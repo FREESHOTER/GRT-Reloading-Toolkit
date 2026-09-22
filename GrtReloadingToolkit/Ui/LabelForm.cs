@@ -303,16 +303,24 @@ internal sealed class LabelForm : Form
         }
         else
         {
-            int n = (int)_count.Value, cols = 3, rows = (n + cols - 1) / cols;
-            int lw = 640, lh = 300, gap = 16;
-            var bmp = new Bitmap(cols * lw + (cols + 1) * gap, rows * lh + (rows + 1) * gap);
+            // Lay the preview out on LabelSheet's grid, in the printer's own hundredths of an inch,
+            // then scale the whole thing up to pixels. Drawing in page units rather than pixels is
+            // what keeps the 0.04 in cutting gutter honest -- it is absolute, so laying out in pixels
+            // and hoping would put a different gutter on screen than on paper.
+            //
+            // Before this the preview drew its own 3-across grid of 640x300 cells: three columns the
+            // page cannot fit (see LabelSheet.Columns) at 2.13:1 instead of the label's 1.95:1. The
+            // preview is also what SavePng writes, so the PNG was wrong in the same two ways.
+            const float scale = 2.5f; // px per hundredth of an inch == 250 dpi, as the card above
+            int n = (int)_count.Value;
+            var sheet = LabelSheet.PreviewSheet(n);
+
+            var bmp = new Bitmap((int)Math.Ceiling(sheet.Width * scale), (int)Math.Ceiling(sheet.Height * scale));
             using var g = Graphics.FromImage(bmp);
             g.Clear(Color.White);
-            for (int i = 0; i < n; i++)
-            {
-                int r = i / cols, cc = i % cols;
-                CardRenderer.DrawBoxLabel(g, new RectangleF(gap + cc * (lw + gap), gap + r * (lh + gap), lw, lh), _card, qr);
-            }
+            g.ScaleTransform(scale, scale);
+            foreach (var cell in LabelSheet.Grid(sheet, n))
+                CardRenderer.DrawBoxLabel(g, cell, _card, qr);
             return bmp;
         }
     }

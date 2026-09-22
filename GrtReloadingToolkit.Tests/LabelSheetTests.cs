@@ -125,4 +125,105 @@ public sealed class LabelSheetTests
             for (int j = i + 1; j < page.Count; j++)
                 Assert.False(page[i].IntersectsWith(page[j]), $"labels {i} and {j} overlap");
     }
+
+    /// <summary>
+    /// The preview strip is the printed page: same columns, same cells, same cutting gutter, offset
+    /// only by where the margin starts. LabelForm used to draw the preview on a 3-across grid of its
+    /// own, which is three columns the page cannot fit, at 2.13:1 instead of the label's 1.95:1 --
+    /// so the picture on screen (and the PNG saved from it) matched the printout at no count at all.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(7)]
+    [InlineData(10)]
+    public void ThePreviewGridIsThePrintedGrid(int count)
+    {
+        var preview = LabelSheet.Grid(LabelSheet.PreviewSheet(count), count).ToList();
+        var printed = LabelSheet.Page(Letter, count).ToList();
+
+        Assert.Equal(printed.Count, preview.Count);
+        for (int i = 0; i < preview.Count; i++)
+        {
+            // PreviewSheet sits at the origin; the page's printable area starts at the margin.
+            Assert.Equal(printed[i].X - Letter.X, preview[i].X, 3);
+            Assert.Equal(printed[i].Y - Letter.Y, preview[i].Y, 3);
+            Assert.Equal(printed[i].Width, preview[i].Width, 3);
+            Assert.Equal(printed[i].Height, preview[i].Height, 3);
+        }
+    }
+
+    /// <summary>
+    /// The paper cap lives in <see cref="LabelSheet.Page"/> alone: <see cref="LabelSheet.Grid"/> lays
+    /// out what it is asked for and lets it run off the bottom. That split is what lets the preview
+    /// put all 60 labels on one scrolling strip while the print loop still stops at each page break
+    /// -- the same 60 labels, 10 to a Letter page, carried across six pages.
+    /// </summary>
+    [Fact]
+    public void OnlyPageCapsToThePaperNotGrid()
+    {
+        Assert.Equal(60, LabelSheet.Grid(Letter, 60).Count());
+        Assert.True(LabelSheet.Grid(Letter, 60).Last().Bottom > Letter.Bottom,
+            "Grid is supposed to overflow the area; a Grid that fits has capped like Page");
+
+        Assert.Equal(10, LabelSheet.Page(Letter, 60).Count());
+        Assert.Equal(60, PrintAll(Letter, 60).Count);
+    }
+
+    /// <summary>
+    /// The strip is tall enough for the labels drawn on it -- not a truism, since the height comes
+    /// out of float arithmetic that <see cref="LabelSheet.PerPage"/> then floors. A strip one row
+    /// short would clip the bottom row out of the preview and the saved PNG.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(11)]
+    [InlineData(12)]
+    [InlineData(59)]
+    [InlineData(60)]
+    public void ThePreviewStripHoldsEveryLabelItIsAskedFor(int count)
+    {
+        var sheet = LabelSheet.PreviewSheet(count);
+
+        Assert.True(LabelSheet.PerPage(sheet) >= count,
+            $"the preview strip holds {LabelSheet.PerPage(sheet)} of {count} labels");
+        foreach (var cell in LabelSheet.Grid(sheet, count))
+            Assert.True(cell.Bottom <= sheet.Bottom, "a label hangs off the bottom of the preview");
+    }
+
+    /// <summary>A part-full last row still takes a whole row, so an odd count is not a row short.</summary>
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(2, 1)]
+    [InlineData(3, 2)]
+    [InlineData(12, 6)]
+    [InlineData(59, 30)]
+    public void RowsCountsAPartFullLastRow(int count, int expected) =>
+        Assert.Equal(expected, LabelSheet.Rows(count));
+
+    /// <summary>Nothing asked for, nothing laid out -- the preview of a zero count is blank rather
+    /// than a stray first cell.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void AnEmptyGridDrawsNothing(int count) =>
+        Assert.Empty(LabelSheet.Grid(LabelSheet.PreviewSheet(count), count));
+
+    /// <summary>The cell keeps the label's 78x40 mm proportions on any paper, which is why the
+    /// preview can use a nominal page width without knowing what is in the printer's tray.</summary>
+    [Theory]
+    [InlineData(650)] // Letter printable width
+    [InlineData(627)] // A4
+    [InlineData(NominalWidth)]
+    public void CellsKeepTheLabelsProportionsOnAnyPaper(float width)
+    {
+        SizeF cell = LabelSheet.CellSize(new RectangleF(0, 0, width, 0));
+
+        Assert.Equal(40f / 78f, cell.Height / cell.Width, 4);
+    }
+
+    private const float NominalWidth = LabelSheet.NominalPageWidth;
 }
