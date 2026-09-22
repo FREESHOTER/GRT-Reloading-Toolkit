@@ -45,7 +45,11 @@ public static class PowderCompare
             double? avgBa = Avg(entries.Select(e => e.Ba));
             double? avgA0 = Avg(entries.Select(e => e.A0));
             int totalRounds = entries.Sum(e => e.Rounds);
-            int recipes = entries.Select(e => Math.Round(e.ChargeGr, 2)).Distinct().Count();
+            // A recipe is caliber+powder+bullet+charge -- LeaderboardRanking's group key, and what all
+            // four manuals tell the reader this column counts. Counting charge alone collapsed two
+            // bullets tried at the same charge into one recipe, under-reporting how much of the powder's
+            // score came from actually distinct loads. Caliber and powder are already fixed by the group.
+            int recipes = entries.Select(e => (e.BulletId, Charge: Math.Round(e.ChargeGr, 2))).Distinct().Count();
             var sdAcrossSessions = entries.Where(e => e.SdMs.HasValue).Select(e => e.SdMs!.Value).ToList();
             var score = LoadScoring.LeaderboardScore(avgSd, avgEs, avgGroup, totalRounds, sdAcrossSessions);
 
