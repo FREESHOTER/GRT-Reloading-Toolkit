@@ -59,6 +59,9 @@
     <!-- And for the card model, which decides what a printed card and its QR actually say.
          CardRenderer next door is GDI+ and stays out; LoadCard itself is plain data. -->
     <Compile Include="..\GrtReloadingToolkit\Cards\LoadCard.cs" Link="Cards\LoadCard.cs" />
+    <!-- Same story for the label grid: RectangleF arithmetic deciding which labels land on which
+         page. It is only geometry, so the paging invariant is testable off Windows. -->
+    <Compile Include="..\GrtReloadingToolkit\Cards\LabelSheet.cs" Link="Cards\LabelSheet.cs" />
     <!-- Same story again: the chrono-statistics math is plain arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\ChronoStats\ChronoStatsCalc.cs" Link="ChronoStats\ChronoStatsCalc.cs" />
     <!-- The dbtest CLI self-test: no WinForms, just Console + Db. Linked so its path-safety
