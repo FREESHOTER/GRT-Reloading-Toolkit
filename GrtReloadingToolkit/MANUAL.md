@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit — Manual
 
-A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles twelve reloading tools plus a
+A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles eighteen reloading tools plus a
 set of printable GRT report templates into one window.
 
 - **Author:** community
@@ -16,7 +16,7 @@ set of printable GRT report templates into one window.
 3. A single toolbar button **"Reloading Toolkit"** (wrench + screwdriver icon) and a matching entry
    in the **Plugin** menu appear. Click either — a small **launcher** window opens with one button
    per tool.
-4. Optional: in the launcher, click **"Install GRT report templates"** once (see §15).
+4. Optional: in the launcher, click **"Install GRT report templates"** once (see §22).
 
 The toolkit is *on-demand*: GRT starts it on the first click and it exits when you close its last
 window. All tool windows are served by one background process, so opening a second tool while one is
@@ -104,7 +104,59 @@ tool is no longer a lost measurement. That covers the values that used to vanish
 
 ---
 
-## 3. Chronograph Import  🎯
+## 3. GRT basics for beginners
+
+Four things every new GRT user runs into that are **native GRT behaviour, not this toolkit** — the
+plugin API has no hook to change GRT's own dialogs, so these are explained here rather than fixed.
+
+- **"Shot Start (Initiation) Pressure" defaults to 250 bar and does not auto-calculate.** GRT does
+  not derive it from your primer/neck-tension setup — if you leave the default in place for every
+  load regardless of case prep, your predicted `Pmax` and burn timing are quietly off. Set it
+  per-load, or at least per bore/prep combination.
+- **"There is an input value error"** with no field named is GRT's own generic validation message.
+  It almost always means one of: a caliber/bullet/powder dropdown left on its placeholder, a length
+  field at exactly 0, or a unit mismatch (e.g. a case length typed in inches while GRT expects mm).
+  Check those three before assuming the load itself is wrong.
+- **The primer dropdown lists a magnum/standard/small/large split that isn't about brand.** It's
+  GRT's own primer *burn-energy class*, used in the internal ballistics model — picking the wrong
+  class changes the simulated pressure curve even with the correct primer brand typed elsewhere.
+- **Grains vs. grams, and reading a pressure curve:** GRT's charge weight is always **grains**
+  internally (1 gr = 0.0648 g) regardless of which unit your install displays; the Inventory (§14)
+  and Journal (§15) both follow whichever unit GRT shows. On the pressure/velocity curve GRT plots
+  after a simulation, the pressure line should rise quickly to a single peak (`Pmax`, early in the
+  barrel) then fall off smoothly as the bullet accelerates — a curve with a second bump, a plateau
+  at the peak, or a peak very late in the barrel usually means an implausible input (burn-rate
+  mismatch, an unrealistic `Ba`/`a0`) rather than a real powder behaviour.
+
+---
+
+## 4. Guided New Load (wizard)  🪄
+
+A checklist for building a load from scratch, front to back — opens the real tool for each step
+(never reimplements one) and ticks the step once you've launched it from here. A ticked box means
+"opened from here this session", not "verified done": the wizard doesn't read GRT or the database to
+check whether a step's own work actually finished. Nothing here persists between sessions; reopen
+the wizard and every box starts unchecked again.
+
+Two paths, chosen with a radio button at the top, because a card and a calibration don't make sense
+in the same order for both:
+
+| | **Single load** | **Ladder test** |
+|---|---|---|
+| You already know | the one charge you're loading | nothing yet — that's the point of the ladder |
+| 1 | Brass prep (§11) | Brass prep (§11) |
+| 2 | Load card / label (§13) — print it **before** you leave | Chronograph import (§5) — **after** the range |
+| 3 | Barrel calibration (§9) — **after** the range, on the real MV | Ladder / OCW analyzer (§7) — finds the node |
+| 4 | — | Barrel calibration (§9), on that one charge's real MV |
+| 5 | — | Load card / label (§13) — for the charge the ladder pointed at |
+
+The ladder path's card comes **last**, after Ladder/OCW has picked the one charge the rest of the
+load gets built around — printing a card before the range makes no sense when you don't yet know
+which of several charges you're keeping.
+
+---
+
+## 5. Chronograph Import  🎯
 
 Turns chronograph exports into a GRT **Imported Measurement** tab (one `charge` per file, its shots
 underneath). A folder of files = a ladder.
@@ -134,7 +186,7 @@ and `1.234,5` number styles are accepted; the summary footer is ignored.
 
 ---
 
-## 4. Chronograph Statistics  📐
+## 6. Chronograph Statistics  📐
 
 What GRT's own AVG/SD/ES line on an imported Measurement doesn't tell you: how much the *true*
 average velocity could plausibly differ from what you measured, how many shots you'd need to pin
@@ -181,18 +233,18 @@ tool being honest about what a handful of shots can and can't tell you, not a bu
 
 ---
 
-## 5. Ladder / OCW Analyzer  📈
+## 7. Ladder / OCW Analyzer  📈
 
 Finds the accuracy node in a **charge ladder** from chronograph velocities and target groups.
 
 **Two data sources for the groups:**
 
 - **Ballistic-X `.csv` exports** — put them in the same folder as the chrono files, one per charge.
-- **GRT's own "Shot group" tabs** — see §12.
+- **GRT's own "Shot group" tabs** — see §14.
 
 **Velocities** come from the chrono `*.xlsx` in the picked folder. Any charge that has no chrono
 file is filled in automatically from the **chronograph Measurement already imported into the open
-load** (§3), matched by charge weight — so if you ran the chrono import first, the MV flat-spot and
+load** (§5), matched by charge weight — so if you ran the chrono import first, the MV flat-spot and
 the blue MV line appear even when the folder holds only target `.csv` files. A chrono file in the
 folder always wins over the load's own numbers for that charge.
 
@@ -203,7 +255,7 @@ folder always wins over the load's own numbers for that charge.
 | **Pick ladder folder…** | Folder with chrono `*.xlsx` + Ballistic-X `Carica *.csv`, one pair per charge. |
 | **w POI**, **w MV**, **window** | Analysis weights and the node width (3–5 steps). |
 | **Re-analyze** | Recompute with the current weights. |
-| **Groups from GRT load** | Read the group data from GRT's Shot-group tabs instead of `.csv` (with the two unit boxes + *drop flyers*, see §12). |
+| **Groups from GRT load** | Read the group data from GRT's Shot-group tabs instead of `.csv` (with the two unit boxes + *drop flyers*, see §14). |
 | **Write note to GRT load** | Write the "OCW Analysis" note **and the chart** into the load. |
 
 **Grid:** charge · n · MV · SD · ES · distance · POI-Y (MOA) · group mean-radius (MOA) · vertical
@@ -217,13 +269,13 @@ spread (MOA). The recommended node is shaded green.
 - **Recommended node:** a weighted blend of MV flatness + POI stability + group size + SD.
 
 The report and chart are written as `~~result.Note("OCW Analysis")~~` and
-`~~result.picture.ocw_chart.png~~` — see §15.
+`~~result.picture.ocw_chart.png~~` — see §22.
 
 > Always confirm a node with a fresh group before committing. SD here is population SD (n).
 
 ---
 
-## 6. Seating-Depth Analyzer  📏
+## 8. Seating-Depth Analyzer  📏
 
 Same window and workflow as the OCW analyzer, but the X axis is **seating depth / jump (mm)** and
 the primary signal is the **group-size plateau** rather than the MV flat-spot. The step value is
@@ -233,14 +285,14 @@ Writes `~~result.Note("Seating Depth Analysis")~~` + `~~result.picture.seating_c
 
 ---
 
-## 7. Barrel Calibration  🎚
+## 9. Barrel Calibration  🎚
 
 Compares GRT's **simulated** muzzle velocity to your **measured** MV over several charges and
 suggests a `Ba` (combustion coefficient) tweak so GRT matches your barrel.
 
 **Workflow**
 
-1. Import your chrono strings into the load first (§3).
+1. Import your chrono strings into the load first (§5).
 2. **Load measured from GRT load** — fills the grid with one row per charge (charge + mean measured
    MV, from the load's Measurements).
 3. Get the simulated MV, either:
@@ -268,6 +320,13 @@ GRT — the `Ba` change will be a fraction of a percent and the remaining per-ch
 chronograph noise, not something to chase. A corrected `Ba` is specific to **that barrel + that
 powder lot**; don't treat it as a universal powder value.
 
+**"Ba differs from the last calibration" warning:** if the load you opened carries a `Ba` that
+differs by more than 5% from the most recent CALIBRATED `Ba` the Journal (§15) has on file for the
+same caliber + powder, a banner says so before you run anything. It compares only against your own
+past calibrations — GRT's factory default for a powder can't be read via the plugin API, so there is
+nothing to compare against for a powder you've never calibrated, and the banner stays silent rather
+than guessing. Silence here means "nothing to compare yet", not "confirmed fine".
+
 **Shape fit (Ba + a0), for when the offset varies with charge**
 
 A single `Ba` can only correct a *scale* error (the whole curve too fast/slow by the same %) — if
@@ -293,7 +352,7 @@ guessing.
 
 ---
 
-## 8. Powder Temp Coefficients  🌡
+## 10. Powder Temp Coefficients  🌡
 
 Fits the propellant's **temperature coefficients** `tcc` (below 21 °C) and `tch` (above 21 °C) from
 chronograph strings of **one charge** fired at **different temperatures**.
@@ -314,11 +373,11 @@ strings, `tch` symmetric for the hot ones.
 
 ---
 
-## 9. Brass Prep  🔧
+## 11. Brass Prep  🔧
 
 Three calculators, one per tab.
 
-### 9a. Case volume → GRT `casevol`
+### 11a. Case volume → GRT `casevol`
 
 Enter weights for **3+ fired, de-primed** cases: empty and full-of-water (or the water weight
 directly). Water is weighed in **grain** or **gram** (toggle). Output is **mean case volume in
@@ -328,7 +387,7 @@ grain H₂O** and **cm³**.
   writes cm³ and pins the unit. Water density 0.99821 g/cm³ (20 °C).
 - **Write casevol to GRT load** writes the **mean** into the caliber; SD / range go in the note.
 
-### 9b. Seating depth (from comparator measurements) → GRT `gdepth`
+### 11b. Seating depth (from comparator measurements) → GRT `gdepth`
 
 Enter **CBTO** (cartridge base-to-ogive, loaded round), **case length**, **BBTO** (bullet
 base-to-ogive, bare bullet) — CBTO and BBTO to the **same comparator insert**. Units mm or inch.
@@ -341,7 +400,7 @@ seating depth = BBTO − DIFF             (bullet base to case mouth = GRT's "se
 Warnings flag impossible geometry and unusually shallow / deep results. **Write seating depth to
 GRT load** sets `gdepth`; GRT recomputes COAL from it.
 
-### 9c. Neck / bushing sizing
+### 11c. Neck / bushing sizing
 
 Enter bullet diameter, neck-wall thickness, desired **interference (grip)**, and optionally a
 **measured loaded neck OD** (0 = estimate as bullet dia + 2×wall). Units **inch** by default
@@ -357,9 +416,9 @@ wall runout.
 
 ---
 
-## 10. Seating Force Estimate (QC)  ⚖️
+## 12. Seating Force Estimate (QC)  ⚖️
 
-A standalone tool (its own entry under "PLAN & PREPARE", not a Brass Prep tab) — estimates expected
+A standalone tool (its own entry under "BEFORE THE RANGE", not a Brass Prep tab) — estimates expected
 bullet-seating (press-fit) force for a QC press's own "max pressure" safety threshold, ported from
 the Pressa QC press project's own estimator. Every length field (bullet diameter, neck ID, seating
 depth, the baseline's typical interference/depth) has its **own** mm/in dropdown, so you can mix
@@ -382,15 +441,15 @@ GRT's own reference values by roughly 4-5x and was removed.
 
 ---
 
-## 11. Load Card / Label  🏷
+## 13. Load Card / Label  🏷
 
 Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** of the full recipe.
 
 - **Load from GRT** — fill the card from the open load (caliber, firearm, bullet + weight, powder,
   charge, COAL, seating depth, and MV/SD from the last measurement).
 - **Powder / Primer / Brass / Bullet lot** drop-downs — pick a component lot from the Inventory
-  (§12) to compute **cost per round** and stamp the lot on the card.
-- **Barrel** drop-down — pick a barrel from the Inventory (§12) and the card gains a **Barrel**
+  (§14) to compute **cost per round** and stamp the lot on the card.
+- **Barrel** drop-down — pick a barrel from the Inventory (§14) and the card gains a **Barrel**
   row: its name, its twist and its length, in GRT's units. The same recipe out of a different
   tube is a different load, so the card, the QR and the load-sheet note all say which one it
   was. A barrel with no twist or length recorded prints as just its name, and no barrel prints
@@ -401,9 +460,11 @@ Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** o
 
 ---
 
-## 12. Inventory & Load Journal  📒
+## 14. Inventory  📒
 
-A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`. Four tabs.
+A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`, shared with the Load Journal
+(§15) and Find best Ba (§16) — three separate windows over the same file, so anything logged in one
+shows up in the others the next time each window gets focus. Three tabs.
 
 - **Inventory** — powder / primer / brass / bullet / barrel stock with lot id, price and (for
   brass) an *expected uses* count that amortises the case cost. **Add / Edit / Restock / Archive**.
@@ -419,35 +480,16 @@ A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`. Four tabs.
   Stock can go **negative** — that just means the lot was entered short, or rounds were logged
   against the wrong lot. It is never silently absorbed, so editing or deleting the entry always
   gives back exactly what it took. Fix it with **Restock** (or **Edit** the lot's quantity).
-- **Journal** — one row per range session or batch: date, load, caliber, firearm, charge, rounds,
-  MV, SD, group MOA, distance, notes, **cost per round** from the referenced lots, and (new)
-  environmental conditions + the calibrated propellant coefficients for that session:
-  - **Temperature** (C or F, own dropdown) and **pressure** (hPa or inHg, own dropdown) and
-    **humidity %** — tick *environment recorded* to save these; GRT itself tracks none of them
-    (checked every field in a real `.grtload`: no such tag anywhere), so they're always typed in
-    by hand, never read from the load.
-  - **Ba** and **a0** — the values Barrel Calibration's fit landed on for this session. **Log from
-    GRT** reads these straight from the open load if you ran *Write Ba-corrected* or *Write
-    Ba+a0-corrected .grtload* there first and it's the load now open; otherwise type them in.
-  - **Fill Ba from loads** is for a journal written before `Ba`/`a0` were recorded: for every entry
-    that has no `Ba` but still names a `.grtload`, it reads the value back out of that file. It
-    lists what it found and what it is leaving alone (load moved, never calibrated, won't open)
-    and waits for a yes before writing; it never overwrites a `Ba` you typed, and running it twice
-    does nothing the second time. To undo one, edit that entry and set its `Ba` back to 0.
-  **New**, **Log from GRT** (prefills from the open load), **Edit**, **Delete**, **Fill Ba from
-  loads**. Editing or deleting an entry reconciles the inventory. Tick *deduct components from
-  inventory on save* to draw stock down.
-- **Find best Ba** — searches the journal for entries that carry a calibrated `Ba`, filtered to one
-  caliber + powder + bullet combo (a `Ba` from a different combo isn't comparable), ranked by
-  whichever "best" means for you: **tightest group (MOA)**, **closest velocity to a target**, or
-  **closest temperature to a target** (target temperature also takes C or F). Read-only — it's a
-  search over what the Journal has already recorded, not a place to enter new data. The caliber
-  list is built from journal entries that carry a `Ba`, so an entry logged before that field
-  existed puts nothing in it: fill in its **Ba (calibrated)**, or run **Fill Ba from loads** (both
-  under *Journal* above), and its caliber appears.
+  A brass lot also takes an **anneal-every** count (0 = no reminder).
 - **Firearms** — one row per barrel: total round count (`rounds before` + journal rounds), number
   of MV entries, last used. **Add / Edit / Retire**, and a **MV-drift chart** (muzzle velocity vs
   cumulative rounds with a trend line — "+X m/s per 100 rd").
+- **Brass Life** — one row per brass lot: pieces, total rounds fired (summed from every Journal
+  entry that names this lot), **average uses per case** (rounds ÷ pieces — a lot-level average
+  assuming roughly even rotation through the lot, not a per-individual-case count, since no per-shot
+  case-id log exists), uses since the last anneal, and a status of **OK**, **Anneal due** (uses
+  since last anneal ≥ the lot's anneal-every count) or **Retire** (average uses ≥ the lot's
+  *expected uses*). **Mark annealed now** resets the anneal counter to the lot's current average.
 
 ### Using GRT's Shot-group tabs as an analyzer source
 
@@ -468,9 +510,50 @@ the image aspect ratio (1 MOA = 29.0888 mm at 100 m).
 
 ---
 
-## 13. Load Leaderboard  🏆
+## 15. Load Journal  📓
 
-A standalone tool under its own launcher section ("EVALUATE YOUR LOADS") — ranks **every load
+Its own window (used to be a tab inside Inventory — split out so it isn't easy to miss and isn't
+mistaken for a stock-management screen). One row per range session or batch: date, load, caliber,
+firearm, charge, rounds, MV, SD, group MOA, distance, notes, **cost per round** from the referenced
+lots, and environmental conditions + the calibrated propellant coefficients for that session:
+
+- **Temperature** (C or F, own dropdown) and **pressure** (hPa or inHg, own dropdown) and
+  **humidity %** — tick *environment recorded* to save these; GRT itself tracks none of them
+  (checked every field in a real `.grtload`: no such tag anywhere), so they're always typed in
+  by hand, never read from the load. The Velocity Model (§20) needs this field filled in on at
+  least a handful of entries to have anything to fit.
+- **Ba** and **a0** — the values Barrel Calibration's fit landed on for this session. **Log from
+  GRT** reads these straight from the open load if you ran *Write Ba-corrected* or *Write
+  Ba+a0-corrected .grtload* there first and it's the load now open; otherwise type them in.
+- **Fill Ba from loads** is for a journal written before `Ba`/`a0` were recorded: for every entry
+  that has no `Ba` but still names a `.grtload`, it reads the value back out of that file. It
+  lists what it found and what it is leaving alone (load moved, never calibrated, won't open)
+  and waits for a yes before writing; it never overwrites a `Ba` you typed, and running it twice
+  does nothing the second time. To undo one, edit that entry and set its `Ba` back to 0.
+
+**New**, **Log from GRT** (prefills from the open load — reads whichever `.grtload` is on top in
+GRT, so double-check the right GRT tab is frontmost before clicking if you keep several open),
+**Edit**, **Delete**, **Fill Ba from loads**. Editing or deleting an entry reconciles the inventory.
+Tick *deduct components from inventory on save* to draw stock down.
+
+---
+
+## 16. Find best Ba  🔎
+
+Its own window (split out from Inventory for the same reason as the Journal above). Searches the
+Journal for entries that carry a calibrated `Ba`, filtered to one caliber + powder + bullet combo (a
+`Ba` from a different combo isn't comparable), ranked by whichever "best" means for you: **tightest
+group (MOA)**, **closest velocity to a target**, or **closest temperature to a target** (target
+temperature also takes C or F). Read-only — it's a search over what the Journal has already
+recorded, not a place to enter new data. The caliber list is built from journal entries that carry a
+`Ba`, so an entry logged before that field existed puts nothing in it: fill in its **Ba
+(calibrated)**, or run **Fill Ba from loads** (both in the Journal, §15), and its caliber appears.
+
+---
+
+## 17. Load Leaderboard  🏆
+
+A standalone tool in the launcher's "AFTER THE RANGE" section — ranks **every load
 you've ever logged** in the Journal, not one caliber/powder/bullet combo at a time like *Find best
 Ba*. Loads are grouped by caliber + powder + bullet + charge weight (the same recipe tested across
 several range days is still one load, not several) and given a composite **0-10 score**.
@@ -509,13 +592,13 @@ writing anything. See **Toolkit — Load leaderboard report** below for the matc
 
 ---
 
-## 14. Distance Workflow  🧭
+## 18. Distance Workflow  🧭
 
-A second standalone tool in "EVALUATE YOUR LOADS", next to Load Leaderboard. At a glance it looks
+A second standalone tool next to Load Leaderboard in "AFTER THE RANGE". At a glance it looks
 like the same grid and the same 0-10 score again — it is the same scoring engine — but it answers a
 different question, and the two are easy to mix up at first sight:
 
-| | Load Leaderboard (§13) | Distance Workflow |
+| | Load Leaderboard (§17) | Distance Workflow |
 |---|---|---|
 | **Question it answers** | "Of everything I've ever tested for this caliber, what's the best overall?" | "Of the charges I tested **today at this distance**, which earns a test at the next distance?" (100 m → 300 m, say) |
 | **Scope** | Every load ever logged, any distance, aggregated | Only loads logged at **one selected distance** |
@@ -537,9 +620,77 @@ Distance workflow report** below for the matching report page.
 
 ---
 
-## 15. GRT report templates
+## 19. Powder Compare  🧪
 
-**Install GRT report templates** (launcher / Plugin menu) writes eleven DokuWiki report pages into
+A standalone tool, one caliber-level step coarser than Load Leaderboard: instead of ranking exact
+recipes (caliber + powder + bullet + charge), it groups by **caliber + powder only** and asks "of
+the powders I've actually calibrated here, which tends to work out for me?" Scored the same 0-10 way
+as Load Leaderboard, over the same Journal data.
+
+This can't reach for a powder you've never tried: GRT's own factory propellant database is a single
+opaque binary file the plugin API has no call to enumerate, so an untried powder simply isn't
+comparable here — what IS comparable, powders you've actually calibrated, is also the more grounded
+question, since GRT's predicted numbers for an untried powder are no more trustworthy than its own
+factory data (which the GRT community has reported as stale since Gordon's 2022 death).
+
+**Compare** runs on open and again on demand. **Write comparison note to GRT load** compares within
+the OPEN load's own caliber (regardless of what the on-screen filter is set to), finds that load's
+own powder in the ranking, and adds one line no other tool has: how this file's own `Ba` compares to
+the average of every other time this powder was calibrated — the closest thing to a possibly-stale
+`Ba` flag this plugin can give without access to GRT's own factory number.
+
+---
+
+## 20. Velocity Model  📉
+
+An empirical `MV ≈ a + b·charge + c·temperature` fit from your own logged Journal sessions, for one
+caliber + powder + bullet combo — deliberately **independent of GRT's own physics model** (no
+`Ba`/`a0`/`tcc`/`tch` anywhere in it), so it's a measured-data cross-check you can compare against
+GRT's simulated/calibrated numbers, not a replacement for Barrel Calibration (§9, fits `Ba`, needs
+no temperature spread) or Powder Temp Coefficients (§10, fits GRT's own `tcc`/`tch`, needs no charge
+spread).
+
+A 2-variable fit needs **both** charge and temperature to vary across your logged sessions, **and**
+to vary somewhat independently of each other — locked at one charge, or every session shot at the
+same temperature, or charge and temperature happening to track each other across every session, all
+make the fit unrecoverable. The tool says exactly which of these is missing rather than returning a
+number it can't stand behind; needs at least 5 logged sessions with charge, temperature AND a
+measured velocity all present (§15 — tick *environment recorded* and fill in the temperature).
+
+Once fitted: **Predict MV for charge** (given a charge + temperature) and **Charge needed for MV**
+(the inverse — the charge that should land on a target velocity at a given temperature) both work
+off the same fit. **Write model note to GRT load** writes the fit itself (formula, sample count,
+R²) into a note — not a prediction for the open load, since GRT carries no ambient-temperature
+field on a load at all (only the Journal does).
+
+Always in GRT's own native grains / °C / m/s, regardless of what unit GRT is currently displaying
+elsewhere: a 2-axis fit's coefficients are only meaningful together with the units they were fitted
+in, and this tool's whole point is numeric correctness.
+
+---
+
+## 21. Advanced Diagnostics  🔬
+
+Six diagnostics in one tool, none of which need a calibrated `Ba` to run. Five read chronograph
+strings from the load open in GRT (same reader Chronograph Statistics uses); one reads the Journal.
+
+| Tab | Reads | Flags |
+|---|---|---|
+| **Fouling Tracker** | one string's shots in order | a rising SD / declining velocity trend as the string progresses (barrel fouling) |
+| **Cold Bore** | one string's first shot vs. the rest | an honestly-labelled z-score heuristic, not a rigorous significance test |
+| **Primer Sensitivity** | several strings, same charge | SD/ES compared across primer lots (uses each string's own GRT name as its lot label) |
+| **Neck Tension Correlation** | several strings named by tension (e.g. "0.05", "0.10") | Pearson correlation between neck tension and velocity ES/SD — needs strings actually named by tension to mean anything |
+| **Pressure Trend** | one charge ladder | flattening of the velocity-vs-charge slope — diminishing fps-per-grain as charge rises signals approaching a pressure limit, a different signal from both the Ladder flat-spot and the OCW node |
+| **Session Trend** | the Journal | SD / ES / velocity drift across REPEATED sessions of the same charge over time — rising SD/ES session over session flags degrading powder, primers or barrel |
+
+**Write diagnostics note to GRT load** writes every tab's result into one note; a tab with nothing
+to flag prints "No concerning trend" rather than leaving its section blank.
+
+---
+
+## 22. GRT report templates
+
+**Install GRT report templates** (launcher / Plugin menu) writes fourteen DokuWiki report pages into
 `GRT\doku\<language>\report\` and links them in the report index. Run it once per GRT install
 (and tell anyone you share the plugin with to do the same). It is idempotent and non-destructive;
 delete a page by saving it empty in GRT.
@@ -557,10 +708,13 @@ delete a page by saving it empty in GRT.
 | **Toolkit — Load sheet** | recipe + predicted + cost note |
 | **Toolkit — Load leaderboard report** | the leaderboard rank/score note |
 | **Toolkit — Distance workflow report** | the workflow rank/score note |
+| **Toolkit — Powder compare report** | the powder-compare rank/score note |
+| **Toolkit — Advanced diagnostics report** | all six diagnostics tabs' note |
+| **Toolkit — Velocity model report** | the empirical fit note |
 
 Every tool that writes a note has its own dedicated page now, except **Seating Force Estimate
-(QC)** (§10) — a standalone QC estimator with no GRT linkage at all, so there is nothing for a
-report to pull.
+(QC)** (§12) and the **Guided New Load wizard** (§4) — the QC estimator has no GRT linkage at all,
+and the wizard only opens other tools, it never writes anything of its own.
 
 **To view a report in GRT:** Results panel → **+** (new tab) → **Add report** → pick a "Toolkit —
 …" page. Open it **on the `…_toolkit_…grtload` snapshot** (that's where the notes and charts live),
@@ -568,7 +722,7 @@ not on your original file. Empty sections just mean you haven't run that tool ye
 
 ---
 
-## 16. Debug command line
+## 23. Debug command line
 
 All on the exe (`plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe`):
 
@@ -596,7 +750,7 @@ fills a wide results panel, a near-square value a tall one.
 
 ---
 
-## 17. Limitations & FAQ
+## 24. Limitations & FAQ
 
 **Why a pile of `_toolkit_…` files?** GRT's plugin API can't edit the open load and can't reload an
 already-open tab — so each write is a fresh timestamped snapshot. Each snapshot is complete; keep
@@ -608,12 +762,12 @@ newest snapshot), or the correction is genuinely tiny — a 0.1 % offset moves V
 is inside chronograph noise.
 
 **"No usable shot groups in that load."** Your load has no GRT Shot-group tabs — you analysed groups
-in Ballistic-X instead. Use the `.csv` path, or build the groups in GRT first (§12).
+in Ballistic-X instead. Use the `.csv` path, or build the groups in GRT first (§14).
 
 **Temp-coefficient tool won't enable "Write".** It needs one charge at several temperatures, not a
 ladder.
 
-**One toolbar icon, not eight.** By design — it opens the launcher; every tool is a button there.
+**One toolbar icon, not eighteen.** By design — it opens the launcher; every tool is a button there.
 Manifest changes need a GRT restart to show.
 
 **Numbers:** every field accepts `.` or `,` as the decimal separator regardless of your Windows

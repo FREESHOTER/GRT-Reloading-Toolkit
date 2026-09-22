@@ -11,43 +11,24 @@ internal sealed class LogForm : Form
     private readonly Db _db;
 
     private readonly DataGridView _inv = new();
-    private readonly DataGridView _jrn = new();
     private readonly DataGridView _fa = new();
     private readonly BarrelChart _faChart = new();
+    private readonly DataGridView _bl = new();
     private readonly Label _status = new();
-
-    // "Find best Ba" -- searches the SAME journal rows the Journal tab writes, filtered to one
-    // caliber+powder+bullet combo (Ba/a0 from a different combo aren't comparable) and ranked by
-    // whichever "best" means for the user: tightest group, closest velocity, closest temperature.
-    private readonly ComboBox _fbCaliber = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
-    private readonly ComboBox _fbPowder = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, DisplayMember = "Text", ValueMember = "Id" };
-    private readonly ComboBox _fbBullet = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, DisplayMember = "Text", ValueMember = "Id" };
-    private readonly ComboBox _fbSortBy = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Items = { Lang.T("Tightest group (MOA)"), Lang.T("Closest velocity to target"), Lang.T("Closest temperature to target") } };
-    private readonly NumericUpDown _fbTargetMv = new() { DecimalPlaces = 0, Maximum = 3000, Width = 70 };
-    private readonly NumericUpDown _fbTargetTemp = new() { DecimalPlaces = 1, Minimum = -40, Maximum = 60, Width = 70 };
-    private readonly ComboBox _fbTargetTempUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 50, Items = { "C", "F" } };
-    private readonly Panel _fbTargetMvPanel = new() { AutoSize = true };
-    private readonly Panel _fbTargetTempPanel = new() { AutoSize = true };
-    private readonly ComboBox _fbYAxis = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130, Items = { "Ba", "MV m/s", Lang.T("Group MOA") } };
-    private readonly DataGridView _fb = new();
-    private readonly FindBaChart _fbChart = new();
-    private List<JournalEntry> _fbLastResults = new();
-    private readonly Label _fbStatus = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
 
     public LogForm(GrtClient? grt, Db db)
     {
         _grt = grt;
         _db = db;
-        Text = AppVersion.Title(Lang.T("GRT Inventory & Load Journal"));
+        Text = AppVersion.Title(Lang.T("GRT Inventory"));
         Width = 1080; Height = 640;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(860, 480);
 
         var tabs = new TabControl { Dock = DockStyle.Fill };
         tabs.TabPages.Add(BuildInventoryTab());
-        tabs.TabPages.Add(BuildJournalTab());
-        tabs.TabPages.Add(BuildFindBaTab());
         tabs.TabPages.Add(BuildFirearmsTab());
+        tabs.TabPages.Add(BuildBrassLifeTab());
 
         _status.Dock = DockStyle.Bottom;
         _status.Height = 20;
@@ -60,9 +41,61 @@ internal sealed class LogForm : Form
         NudFix.ApplyTo(this);
 
         RefreshInventory();
-        RefreshJournal();
         RefreshFirearms();
-        RefreshFindBaFilters();
+        RefreshBrassLife();
+
+        // Stock, firearm round counts and brass-life all move when a journal entry is logged in the
+        // separate Journal window -- pick that up whenever this window gets focus back.
+        Activated += (_, _) => { RefreshInventory(); RefreshFirearms(); RefreshBrassLife(); };
+    }
+
+    // ---- brass life -------------------------------------------------------
+
+    /// <summary>
+    /// Firing count + anneal reminder per brass lot, built from rounds already logged against
+    /// <see cref="JournalEntry.BrassId"/> — see <see cref="BrassLife"/> for why this needed no new
+    /// per-shot log. Same tab shape as <see cref="BuildFirearmsTab"/> (a lifecycle question about one
+    /// kind of owned thing), deliberately without that tab's chart half: a firing COUNT is the whole
+    /// question here, there is no "value over time" to plot the way MV-drift is for a barrel.
+    /// </summary>
+    private TabPage BuildBrassLifeTab()
+    {
+        var page = new TabPage(Lang.T("Brass Life"));
+        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(6, 6, 0, 0) };
+        var annealBtn = new Button { Text = Lang.T("Mark annealed now"), AutoSize = true };
+        annealBtn.Click += (_, _) =>
+        {
+            if (_bl.CurrentRow?.Tag is Component c && _db.MarkBrassAnnealed(c.Id)) RefreshBrassLife();
+        };
+        bar.Controls.Add(annealBtn);
+
+        _bl.ReadOnly = true; _bl.AllowUserToAddRows = false; _bl.RowHeadersVisible = false;
+        _bl.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        _bl.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        _bl.Dock = DockStyle.Fill;
+        foreach (var (n, h) in new[] { ("lot", Lang.T("Lot")), ("pieces", Lang.T("Pieces")), ("rounds", Lang.T("Rounds fired")),
+                     ("avg", Lang.T("Avg uses/case")), ("since", Lang.T("Since last anneal")), ("every", Lang.T("Anneal every")),
+                     ("status", Lang.T("Status")) })
+            _bl.Columns.Add(n, h);
+
+        page.Controls.Add(_bl);
+        page.Controls.Add(bar);
+        return page;
+    }
+
+    private void RefreshBrassLife()
+    {
+        _bl.Rows.Clear();
+        foreach (var c in _db.Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Brass))
+        {
+            var s = BrassLife.Compute(c, _db.BrassRoundsFired(c.Id));
+            string status = s.RetirementDue ? Lang.T("Retire") : s.AnnealDue ? Lang.T("Anneal due") : Lang.T("OK");
+            int i = _bl.Rows.Add(c.Display, s.Pieces, s.TotalRoundsFired, s.AvgUsesPerCase, s.UsesSinceAnneal,
+                c.AnnealEveryUses?.ToString() ?? "–", status);
+            _bl.Rows[i].Tag = c;
+            if (s.RetirementDue) _bl.Rows[i].DefaultCellStyle.ForeColor = Color.DarkRed;
+            else if (s.AnnealDue) _bl.Rows[i].DefaultCellStyle.ForeColor = Color.DarkOrange;
+        }
     }
 
     // ---- firearms / barrel life -------------------------------------------
@@ -189,14 +222,14 @@ internal sealed class LogForm : Form
     private void AddComponent()
     {
         using var d = new ComponentDialog(new Component());
-        if (d.ShowDialog(this) == DialogResult.OK) { _db.UpsertComponent(d.Result); RefreshInventory(); }
+        if (d.ShowDialog(this) == DialogResult.OK) { _db.UpsertComponent(d.Result); RefreshInventory(); RefreshBrassLife(); }
     }
 
     private void EditComponent()
     {
         if (SelectedComponent is not { } c) return;
         using var d = new ComponentDialog(c);
-        if (d.ShowDialog(this) == DialogResult.OK) { _db.UpsertComponent(d.Result); RefreshInventory(); }
+        if (d.ShowDialog(this) == DialogResult.OK) { _db.UpsertComponent(d.Result); RefreshInventory(); RefreshBrassLife(); }
     }
 
     private void RestockComponent()
@@ -217,352 +250,6 @@ internal sealed class LogForm : Form
         c.Archived = true;
         _db.UpsertComponent(c);
         RefreshInventory();
-    }
-
-    // ---- journal -------------------------------------------------------
-
-    private TabPage BuildJournalTab()
-    {
-        var page = new TabPage(Lang.T("Journal"));
-        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(6, 6, 0, 0) };
-        Button B(string t, Action a) { var b = new Button { Text = t, AutoSize = true }; b.Click += (_, _) => a(); bar.Controls.Add(b); return b; }
-        B(Lang.T("New"), () => NewEntry(null));
-        var g = B(Lang.T("Log from GRT"), async () => await LogFromGrtAsync());
-        g.Enabled = _grt is { Connected: true };
-        B(Lang.T("Edit"), EditEntry);
-        B(Lang.T("Delete"), DeleteEntry);
-        B(Lang.T("Fill Ba from loads"), FillBaFromLoads);
-
-        _jrn.Dock = DockStyle.Fill;
-        _jrn.ReadOnly = true; _jrn.AllowUserToAddRows = false; _jrn.RowHeadersVisible = false;
-        _jrn.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        _jrn.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        _jrn.CellDoubleClick += (_, _) => EditEntry();
-        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("cal", Lang.T("Caliber")), ("chg", Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName),
-                     ("rnd", Lang.T("Rounds")), ("mv", "MV " + GrtUnits.Current.VelocityUnitName),
-                     ("sd", "SD " + GrtUnits.Current.VelocityUnitName), ("grp", "MOA"), ("cpr", Lang.T("Cost/rd")), ("tot", Lang.T("Total")) })
-            _jrn.Columns.Add(n, h);
-
-        page.Controls.Add(_jrn);
-        page.Controls.Add(bar);
-        return page;
-    }
-
-    private void RefreshJournal()
-    {
-        _jrn.Rows.Clear();
-        var gu = GrtUnits.Current;
-        var comps = _db.Components(includeArchived: true).ToDictionary(c => c.Id);
-        foreach (var e in _db.Journal())
-        {
-            var cb = Costing.PerRound(e, id => comps.GetValueOrDefault(id));
-            int i = _jrn.Rows.Add(e.Date, e.LoadName, e.Caliber,
-                e.ChargeGr > 0 ? gu.ChargeValue(e.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture) : "",
-                e.Rounds,
-                e.VelocityAvgMs is { } v ? gu.VelocityValue(v).ToString("0", CultureInfo.InvariantCulture) : "",
-                e.SdMs is { } sd ? gu.VelocitySd(sd) : "",
-                e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
-                cb.PerRoundText,
-                cb.Mixed ? cb.MixedNote
-                    : cb.PerRound > 0 && e.Rounds > 0
-                        ? (cb.PerRound * e.Rounds).ToString("0.00", CultureInfo.InvariantCulture) + " " + cb.Currency
-                        : "");
-            _jrn.Rows[i].Tag = e;
-        }
-    }
-
-    private JournalEntry? SelectedEntry => _jrn.CurrentRow?.Tag as JournalEntry;
-
-    private void NewEntry(JournalEntry? seed)
-    {
-        var e = seed ?? new JournalEntry();
-        using var d = new JournalDialog(e, _db.Components());
-        if (d.ShowDialog(this) == DialogResult.OK)
-        {
-            d.Result.FirearmId = _db.ResolveFirearm(d.Result.Firearm, d.Result.Caliber) is var fid && fid > 0 ? fid : null;
-            _db.SaveEntry(d.Result, d.ApplyStock);
-            RefreshJournal(); RefreshInventory(); RefreshFirearms(); RefreshFindBaFilters();
-        }
-    }
-
-    private void EditEntry()
-    {
-        if (SelectedEntry is not { } e) return;
-        using var d = new JournalDialog(e, _db.Components());
-        if (d.ShowDialog(this) == DialogResult.OK)
-        {
-            d.Result.FirearmId = _db.ResolveFirearm(d.Result.Firearm, d.Result.Caliber) is var fid && fid > 0 ? fid : null;
-            _db.SaveEntry(d.Result, d.Result.StockApplied || d.ApplyStock);
-            RefreshJournal(); RefreshInventory(); RefreshFirearms(); RefreshFindBaFilters();
-        }
-    }
-
-    private void DeleteEntry()
-    {
-        if (SelectedEntry is not { } e) return;
-        if (MessageBox.Show(this, string.Format(Lang.T("Delete '{0}' ({1})? Deducted stock will be restored."), e.LoadName, e.Date), Lang.T("Delete"),
-                MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
-        {
-            _db.DeleteEntry(e.Id);
-            RefreshJournal(); RefreshInventory(); RefreshFindBaFilters();
-        }
-    }
-
-    /// <summary>
-    /// Offers to read the Ba back out of the .grtload files that Ba-less entries already point at,
-    /// for a journal written before the Ba column existed. Shows what it found before writing any
-    /// of it: an empty Ba can equally mean the user left it empty on purpose.
-    /// </summary>
-    private void FillBaFromLoads()
-    {
-        string title = Lang.T("Fill Ba from loads");
-        var scan = BaBackfill.Scan(_db);
-        var found = scan.Where(c => c.Result == BaBackfill.Result.Found).ToList();
-
-        // Every candidate is accounted for, not only the ones that worked. A load that has moved,
-        // or was never calibrated, is exactly what the user needs told -- staying quiet about it
-        // would read as "there was nothing else to do".
-        var left = scan.Where(c => c.Result != BaBackfill.Result.Found)
-            .GroupBy(c => c.Result)
-            .Select(g => "  " + g.Count() + " \u00d7 " + Reason(g.Key))
-            .ToList();
-        string tail = left.Count == 0 ? "" : "\n\n" + Lang.T("Left alone:") + "\n" + string.Join("\n", left);
-
-        if (found.Count == 0)
-        {
-            MessageBox.Show(this, Lang.T("No entry could be filled in from its load file.") + tail, title);
-            return;
-        }
-
-        string list = string.Join("\n", found.Select(c => "  " + c.Date + "  " + c.LoadName + "  " + c.Caliber
-            + "  Ba " + c.Ba!.Value.ToString("0.#######", CultureInfo.InvariantCulture)));
-        if (MessageBox.Show(this,
-                Lang.T("Read Ba back into these journal entries, from the load each one points at?")
-                + "\n\n" + list + tail,
-                title, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-
-        int n = BaBackfill.Apply(_db, found);
-        RefreshJournal();
-        RefreshFindBaFilters();
-        MessageBox.Show(this, string.Format(Lang.T("Filled in {0}. To undo one, edit that entry and set its Ba back to 0."), n), title);
-
-        static string Reason(BaBackfill.Result r) => r switch
-        {
-            BaBackfill.Result.NoBaInLoad => Lang.T("the load carries no Ba"),
-            BaBackfill.Result.FileMissing => Lang.T("the load file is no longer there"),
-            _ => Lang.T("the load file would not open"),
-        };
-    }
-
-    // ---- find best Ba ---------------------------------------------------
-
-    private TabPage BuildFindBaTab()
-    {
-        var page = new TabPage(Lang.T("Find best Ba"));
-        // WrapContents=true can split a label from its own control onto different lines if they're
-        // added as separate top-level children -- caught by rendering the real tab (the "Rank by"
-        // label stranded on the row above its own dropdown), not from reading the code. Grouping
-        // each label+control pair into its own little FlowLayoutPanel makes the pair wrap together.
-        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 76, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
-        Control Group(string label, params Control[] ctls)
-        {
-            var g = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, Margin = new Padding(0, 4, 10, 0) };
-            g.Controls.Add(new Label { Text = label, AutoSize = true, Margin = new Padding(0, 6, 4, 0) });
-            foreach (var c in ctls) { c.Margin = new Padding(0, 0, 4, 0); g.Controls.Add(c); }
-            return g;
-        }
-
-        bar.Controls.Add(Group(Lang.T("Caliber"), _fbCaliber));
-        bar.Controls.Add(Group(Lang.T("Powder"), _fbPowder));
-        bar.Controls.Add(Group(Lang.T("Bullet"), _fbBullet));
-        bar.Controls.Add(Group(Lang.T("Rank by"), _fbSortBy));
-        bar.Controls.Add(Group(Lang.T("Plot vs temperature"), _fbYAxis));
-
-        // Both target boxes take a number the user reads off the grid beside them, so they take it
-        // in the grid's unit: an ft/s shooter typing 2900 means 2900 ft/s, not 2900 m/s. The ceilings
-        // are the same physical limits in whatever unit is showing -- 3000 m/s, and -40 C to 60 C,
-        // whose Fahrenheit span is -40 to 140. Capped at 60 no Fahrenheit user could enter a warm day.
-        var fbU = GrtUnits.Current;
-        _fbTargetMv.Maximum = (decimal)Math.Ceiling(fbU.VelocityValue(3000));
-        _fbTargetTemp.Minimum = -40;
-        _fbTargetTemp.Maximum = 140;
-        var targetMvGroup = (FlowLayoutPanel)Group(Lang.T("Target MV") + " " + fbU.VelocityUnitName, _fbTargetMv);
-        _fbTargetMvPanel.Controls.Add(targetMvGroup);
-        bar.Controls.Add(_fbTargetMvPanel);
-
-        var targetTempGroup = (FlowLayoutPanel)Group(Lang.T("Target temp"), _fbTargetTemp, _fbTargetTempUnit);
-        _fbTargetTempPanel.Controls.Add(targetTempGroup);
-        bar.Controls.Add(_fbTargetTempPanel);
-
-        var searchBtn = new Button { Text = Lang.T("Search"), AutoSize = true, Margin = new Padding(10, 8, 0, 0) };
-        searchBtn.Click += (_, _) => RunFindBa();
-        bar.Controls.Add(searchBtn);
-
-        _fbSortBy.SelectedIndex = 0;
-        _fbSortBy.SelectedIndexChanged += (_, _) => UpdateFindBaTargetVisibility();
-        _fbTargetTempUnit.SelectedIndex = fbU.TemperatureInF ? 1 : 0;
-        _fbYAxis.SelectedIndex = 0;
-        _fbYAxis.SelectedIndexChanged += (_, _) => UpdateFindBaChart();
-        UpdateFindBaTargetVisibility();
-
-        _fb.Dock = DockStyle.Fill;
-        _fb.ReadOnly = true; _fb.AllowUserToAddRows = false; _fb.RowHeadersVisible = false;
-        _fb.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        _fb.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        // Every column that carries a unit names it in the header and prints a bare number in the
-        // cell, the way the rest of the toolkit does -- and names the unit GRT is configured for,
-        // not the one the numbers happen to be stored in.
-        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("chg", Lang.T("Charge") + " " + fbU.ChargeUnitName), ("ba", "Ba"), ("a0", "a0"),
-                     ("mv", "MV " + fbU.VelocityUnitName), ("sd", "SD " + fbU.VelocityUnitName), ("grp", Lang.T("Group MOA")),
-                     ("temp", Lang.T("Temp") + " " + fbU.TemperatureUnitName), ("notes", Lang.T("Notes")) })
-            _fb.Columns.Add(n, h);
-
-        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(260);
-        split.Panel1.Controls.Add(_fb);
-        _fbChart.Dock = DockStyle.Fill;
-        split.Panel2.Controls.Add(_fbChart);
-
-        _fbStatus.Dock = DockStyle.Bottom; _fbStatus.Padding = new Padding(8, 4, 0, 4);
-
-        page.Controls.Add(split);
-        page.Controls.Add(_fbStatus);
-        page.Controls.Add(bar);
-        return page;
-    }
-
-    private void UpdateFindBaChart()
-    {
-        var axis = _fbYAxis.SelectedIndex switch
-        {
-            1 => FindBaChart.YAxis.Velocity,
-            2 => FindBaChart.YAxis.Group,
-            _ => FindBaChart.YAxis.Ba,
-        };
-        _fbChart.SetData(_fbLastResults, axis);
-    }
-
-    private void UpdateFindBaTargetVisibility()
-    {
-        _fbTargetMvPanel.Visible = _fbSortBy.SelectedIndex == 1;
-        _fbTargetTempPanel.Visible = _fbSortBy.SelectedIndex == 2;
-    }
-
-    /// <summary>Repopulates the caliber/powder/bullet dropdowns from whatever the journal currently
-    /// has calibrated entries for -- called on load and after any journal edit/delete, since a new
-    /// entry can introduce a caliber or component this search hasn't seen yet.</summary>
-    private void RefreshFindBaFilters()
-    {
-        string? keepCal = _fbCaliber.SelectedItem as string;
-        _fbCaliber.Items.Clear();
-        foreach (var c in _db.CalibratedCalibers()) _fbCaliber.Items.Add(c);
-        if (keepCal != null && _fbCaliber.Items.Contains(keepCal)) _fbCaliber.SelectedItem = keepCal;
-        else if (_fbCaliber.Items.Count > 0) _fbCaliber.SelectedIndex = 0;
-
-        // The caliber list is a DropDownList fed only by journal entries that carry a Ba, so on a
-        // journal written before the Ba column existed it comes up empty -- an unfillable box with
-        // no way to type into it and, until this, nothing on screen saying why. Say it here rather
-        // than only after a Search the user has no reason to press on an empty form.
-        _fbStatus.Text = _fbCaliber.Items.Count == 0 ? NoBaHint : "";
-
-        var powders = _db.Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Powder).ToList();
-        var bullets = _db.Components(includeArchived: true).Where(c => c.Kind == ComponentKind.Bullet).ToList();
-        FillFbCombo(_fbPowder, powders);
-        FillFbCombo(_fbBullet, bullets);
-    }
-
-    private static void FillFbCombo(ComboBox cb, List<Component> items)
-    {
-        long? keep = (cb.SelectedItem as FbItem)?.Id;
-        cb.Items.Clear();
-        cb.Items.Add(new FbItem(0, Lang.T("-- any --")));
-        foreach (var c in items) cb.Items.Add(new FbItem(c.Id, c.Display));
-        cb.SelectedIndex = 0;
-        if (keep is { } id)
-            for (int i = 0; i < cb.Items.Count; i++)
-                if (((FbItem)cb.Items[i]!).Id == id) { cb.SelectedIndex = i; break; }
-    }
-
-    private sealed record FbItem(long Id, string Text) { public override string ToString() => Text; }
-
-    private void RunFindBa()
-    {
-        if (_fbCaliber.SelectedItem is not string caliber)
-        {
-            _fbStatus.Text = NoBaHint;
-            _fb.Rows.Clear();
-            _fbLastResults = new List<JournalEntry>();
-            UpdateFindBaChart();
-            return;
-        }
-        long? powderId = (_fbPowder.SelectedItem as FbItem)?.Id is > 0 ? (_fbPowder.SelectedItem as FbItem)!.Id : null;
-        long? bulletId = (_fbBullet.SelectedItem as FbItem)?.Id is > 0 ? (_fbBullet.SelectedItem as FbItem)!.Id : null;
-
-        var u = GrtUnits.Current;
-        var results = _db.FindCalibrations(caliber, powderId, bulletId);
-        _fbLastResults = results;
-
-        IEnumerable<JournalEntry> ranked = _fbSortBy.SelectedIndex switch
-        {
-            1 => results.Where(e => e.VelocityAvgMs.HasValue)
-                        .OrderBy(e => Math.Abs(e.VelocityAvgMs!.Value - u.VelocityToMps((double)_fbTargetMv.Value))),
-            2 => results.Where(e => e.TemperatureC.HasValue)
-                        .OrderBy(e => Math.Abs(e.TemperatureC!.Value - TargetTempC())),
-            _ => results.Where(e => e.GroupMoa.HasValue).OrderBy(e => e.GroupMoa),
-        };
-        var list = ranked.ToList();
-
-        _fb.Rows.Clear();
-        foreach (var e in list)
-        {
-            // Invariant digits under translated headers: this grid is read next to GRT's own
-            // numbers, and a comma decimal on an Italian machine would not match them.
-            string temp = e.TemperatureC is { } tc ? u.TemperatureValue(tc).ToString("0.0", CultureInfo.InvariantCulture) : "";
-            int i = _fb.Rows.Add(e.Date, e.LoadName, u.ChargeValue(e.ChargeGr).ToString(u.ChargeFormat, CultureInfo.InvariantCulture),
-                e.Ba?.ToString("0.######", CultureInfo.InvariantCulture) ?? "",
-                e.A0?.ToString("0.####", CultureInfo.InvariantCulture) ?? "",
-                e.VelocityAvgMs is { } mv ? u.VelocityValue(mv).ToString("0", CultureInfo.InvariantCulture) : "",
-                e.SdMs is { } sd ? u.VelocitySd(sd) : "",
-                e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
-                temp, e.Notes);
-            _fb.Rows[i].Tag = e;
-        }
-        _fbStatus.Text = list.Count == 0
-            ? Lang.T("No calibrated entries match this caliber/powder/bullet combo yet.")
-            : string.Format(Lang.T("{0} matching calibration(s), best first."), list.Count);
-        UpdateFindBaChart();
-    }
-
-    /// <summary>Why the caliber list can be empty, and the three ways to fill it. Barrel Calibration
-    /// writes Ba into the .grtload, never into the journal -- the old text sent the user there and
-    /// they came back with the box still empty.</summary>
-    private static string NoBaHint => Lang.T(
-        "No journal entry carries a Ba yet, so there is no caliber to pick. Use Journal -> Log from GRT "
-        + "(it reads Ba from the load open in GRT), or Journal -> Fill Ba from loads for entries logged "
-        + "before Ba was recorded, or open an entry and type it into 'Ba (calibrated)'.");
-
-    private double TargetTempC() => _fbTargetTempUnit.SelectedIndex == 1 ? FToC((double)_fbTargetTemp.Value) : (double)_fbTargetTemp.Value;
-    private static double FToC(double f) => (f - 32.0) * 5.0 / 9.0;
-
-    private async Task LogFromGrtAsync()
-    {
-        if (_grt is not { Connected: true }) return;
-        try
-        {
-            var top = await _grt.GetTabOnTopAsync();
-            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
-            {
-                MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Log from GRT"));
-                return;
-            }
-            var snap = LoadSnapshot.FromGrtload(top.file);
-            var entry = snap.ToEntry();
-            entry.PowderId = _db.ResolvePowderId(snap.PowderName);
-            NewEntry(entry);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, Lang.T("Log from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
     }
 
     private static string? Prompt(string text)

@@ -26,6 +26,14 @@ public sealed class Component
     public string Currency { get; set; } = Money.Default;
     /// <summary>Expected firings before retirement — brass amortisation (1 for consumables).</summary>
     public int ExpectedUses { get; set; } = 1;
+    /// <summary>Brass only: anneal every this many AVERAGE firings per case in the lot (null = no
+    /// reminder set). "Average" because rounds are logged per lot, not per individual case — a lot
+    /// rotated evenly through is the assumption, same one <see cref="BrassLife"/> makes explicit.</summary>
+    public int? AnnealEveryUses { get; set; }
+    /// <summary>The average-firings-per-case value the lot was at when last marked annealed (see
+    /// <see cref="BrassLife"/>). Null means never annealed — everything fired counts toward the
+    /// first reminder.</summary>
+    public double? AnnealedAtUses { get; set; }
     public double? BulletWeightGr { get; set; }
 
     /// <summary>

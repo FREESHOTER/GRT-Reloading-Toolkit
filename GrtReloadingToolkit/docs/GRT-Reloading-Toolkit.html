@@ -127,13 +127,13 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="v">v0.2.10 · community plugin</span>
+  <span class="v">v0.2.11 · community plugin</span>
 </div></header>
 
 <div class="wrap">
   <div class="hero">
     <div class="eyebrow">Plugin for Gordon&#39;s Reloading Tool</div>
-    <h1>Twelve reloading tools, one GRT window.</h1>
+    <h1>Eighteen reloading tools, one GRT window.</h1>
     <p class="lede">Import your chronograph, find the accuracy node, calibrate the barrel to your
       simulation, size necks, cost your rounds, and print the load card &mdash; then push every
       result back into GRT as a note, a chart, or a corrected input.</p>
@@ -141,7 +141,7 @@
       <span>self-contained · no .NET install</span>
       <span>Athlon + Garmin chrono</span>
       <span>Ballistic-X &amp; GRT shot-groups</span>
-      <span>11 report templates</span>
+      <span>14 report templates</span>
       <span>SQLite inventory + journal</span>
     </div>
 
@@ -195,10 +195,17 @@
 <section><div class="wrap">
   <div class="sec-head">
     <span class="n">01</span>
-    <div><h2>The twelve tools</h2>
+    <div><h2>The eighteen tools</h2>
     <p>All reached from one launcher window. Each writes its result into the load.</p></div>
   </div>
   <div class="tools">
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M9 3v4M15 3v4M6 6h12l-1.5 12a2 2 0 0 1-2 1.8h-5a2 2 0 0 1-2-1.8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.5 10.5l1.5 1.5 3-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>Guided New Load</h3></div>
+      <p>A checklist for one new load, front to back: brass prep and the load card before you leave, barrel calibration once you're back with a real measurement. Opens the real tool for each step; never reimplements one.</p>
+      <div class="out">spans both phases · not a wizard that replaces the tools</div>
+    </div>
 
     <div class="tool"><div class="top">
       <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 19V9m5 10V5m5 14v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -264,9 +271,23 @@
     </div>
 
     <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M6 4h9l3 3v13H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 9h7M9 13h7M9 17h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <h3>Load Journal</h3></div>
+      <p>Every range session, typed in or read straight off the load open in GRT: charge, chrono string, group, environment, calibrated <span class="mono">Ba</span>/<span class="mono">a0</span>. Deducts inventory stock, and everything else here reads from it.</p>
+      <div class="out">SQLite · <span class="mono">%AppData%\GRTPlugins\</span></div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="2"/><path d="M14.5 14.5 20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7.5 10.5 9 12l3.5-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>Find Best Ba</h3></div>
+      <p>Searches your own logged calibrations for one caliber + powder + bullet combo, ranked by tightest group, closest velocity, or closest temperature to a target you set.</p>
+      <div class="out">plots <span class="mono">Ba</span>, MV or group vs temperature</div>
+    </div>
+
+    <div class="tool"><div class="top">
       <svg class="ic" viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="17" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 3h6v3H9z" stroke="currentColor" stroke-width="2"/><path d="M8.5 11l2 2 4-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <h3>Inventory &amp; Load Journal</h3></div>
-      <p>Component stock with lot tracking and cost per round, a range journal that deducts it, and a Firearms tab: round count and an MV-drift chart per barrel.</p>
+      <h3>Inventory</h3></div>
+      <p>Component stock with lot tracking and cost per round, a Firearms tab (round count and MV-drift chart per barrel), and a Brass Life tab tracking anneal and retirement per lot.</p>
       <div class="out">SQLite · <span class="mono">%AppData%\GRTPlugins\</span></div>
     </div>
 
@@ -282,6 +303,27 @@
       <h3>Distance Workflow</h3></div>
       <p>The same score, scoped to one distance: of the charges you shot <em>today at this distance</em>, which earns a test at the next one? No consistency term, and groups under three rounds are left out rather than scored low.</p>
       <div class="out">per-distance rank · → <b>workflow</b> note</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <h3>Powder Compare</h3></div>
+      <p>Of the powders you&#39;ve actually calibrated in one caliber, which tends to work out for you &mdash; scored and ranked the same way as the Leaderboard, but grouped by powder instead of by exact recipe.</p>
+      <div class="out">→ <b>powder compare</b> note + report page</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 19h16M4 19V6M4 19l5-6 4 3 6-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>Velocity Model</h3></div>
+      <p>An empirical MV ≈ a + b·charge + c·temperature fit from your own logged sessions, independent of GRT's simulated model (no Ba/a0/tcc/tch) — a measured-data cross-check, plus a solver for the charge a target velocity needs.</p>
+      <div class="out">needs charge AND temperature to both vary, independently</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>Advanced Diagnostics</h3></div>
+      <p>Six diagnostics no other tool here does: fouling tracker, cold-bore effect, primer-lot sensitivity, neck-tension correlation, pressure-trend flattening, and session-over-session drift &mdash; none of them need a calibrated Ba to run.</p>
+      <div class="out">→ <b>diagnostics</b> note + report page</div>
     </div>
 
   </div>
@@ -329,9 +371,9 @@
   <ol class="steps">
     <li><div><b>Copy</b> the <code>ReloadingToolkit</code> folder into <code>…\GRT-2021.2030…\plugins\</code>.</div></li>
     <li><div><b>Restart GRT.</b> A single <b>Reloading Toolkit</b> button appears on the toolbar and in the Plugin menu &mdash; it opens a launcher with one button per tool.</div></li>
-    <li><div>In the launcher, click <b>Install GRT report templates</b> once. It adds eleven DokuWiki pages under <code>doku\&lt;lang&gt;\report\</code> &mdash; open them from Results&nbsp;→&nbsp;<b>+</b>&nbsp;→&nbsp;Add&nbsp;report, on the snapshot file.</div>
+    <li><div>In the launcher, click <b>Install GRT report templates</b> once. It adds fourteen DokuWiki pages under <code>doku\&lt;lang&gt;\report\</code> &mdash; open them from Results&nbsp;→&nbsp;<b>+</b>&nbsp;→&nbsp;Add&nbsp;report, on the snapshot file.</div>
       <div class="reports">
-        <span>Full load workup</span><span>Chronograph statistics</span><span>Ladder / OCW</span><span>Seating depth</span><span>Seating depth (geometry)</span><span>Barrel calibration</span><span>Powder temp coefficients</span><span>Case volume</span><span>Load sheet</span><span>Load leaderboard</span><span>Distance workflow</span>
+        <span>Full load workup</span><span>Chronograph statistics</span><span>Ladder / OCW</span><span>Seating depth</span><span>Seating depth (geometry)</span><span>Barrel calibration</span><span>Powder temp coefficients</span><span>Case volume</span><span>Load sheet</span><span>Load leaderboard</span><span>Distance workflow</span><span>Powder compare</span><span>Advanced diagnostics</span><span>Velocity model</span>
       </div>
     </li>
   </ol>
@@ -344,6 +386,6 @@
 </div></section>
 
 <footer><div class="wrap">
-  <span>GRT Reloading Toolkit · v0.2.10 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.11 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

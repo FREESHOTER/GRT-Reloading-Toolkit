@@ -25,6 +25,9 @@ internal sealed class ComponentDialog : Form
     // unit beside it. Every other kind has exactly one, which is why this disables itself.
     private readonly ComboBox _qtyUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 70 };
     private readonly NumericUpDown _expUses = new() { Minimum = 1, Maximum = 100, Width = 70, Value = 1 };
+    // 0 means "no reminder set" -- distinct from Component.AnnealEveryUses being null, which this
+    // box can't represent directly, so Commit() maps 0 back to null (see its own comment).
+    private readonly NumericUpDown _annealEvery = new() { Minimum = 0, Maximum = 100, Width = 70, Value = 0 };
     // Stored in grains, shown and typed in whatever GRT weighs a projectile in -- mp, which a
     // user sets apart from the powder charge. Grams want two places where grains want one: a
     // bullet comes in whole grains, or tenths of a gram.
@@ -63,7 +66,7 @@ internal sealed class ComponentDialog : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = MinimizeBox = false;
-        ClientSize = new Size(470, 400);
+        ClientSize = new Size(470, 430);
 
         foreach (var k in Enum.GetValues<ComponentKind>()) _kind.Items.Add(k);
         _kind.SelectedItem = c.Kind;
@@ -78,6 +81,7 @@ internal sealed class ComponentDialog : Form
         foreach (string cur in Money.Common) _currency.Items.Add(cur);
         _currency.Text = string.IsNullOrWhiteSpace(c.Currency) ? Money.Default : c.Currency;
         _expUses.Value = Math.Clamp(c.ExpectedUses, 1, 100);
+        _annealEvery.Value = Math.Clamp(c.AnnealEveryUses ?? 0, 0, 100);
         Ui.NudFix.Set(_bulletW, c.BulletWeightGr is { } bw ? BulletU.BulletMassValue(bw) : 0);
         // Stored in mm, shown in whatever GRT shows a twist and a length in.
         var u = GrtPluginKit.Grt.GrtUnits.Current;
@@ -98,6 +102,7 @@ internal sealed class ComponentDialog : Form
         Row(Ui.Lang.T("Qty current"), Flow(_qtyCur, _unitInfo));
         Row(Ui.Lang.T("Lot cost"), Flow(_cost, _currency));
         Row(Ui.Lang.T("Expected uses"), Flow(_expUses, new Label { Text = Ui.Lang.T("(brass: firings before retirement)"), AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) }));
+        Row(Ui.Lang.T("Anneal every"), Flow(_annealEvery, new Label { Text = Ui.Lang.T("uses (0 = no reminder)"), AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 4, 0, 0) }));
         Row(Ui.Lang.T("Bullet weight") + " " + BulletU.BulletMassUnitName, _bulletW);
         Row(Ui.Lang.T("Twist 1:"), Flow(_twist, _twistUnit));
         Row(Ui.Lang.T("Barrel length"), Flow(_barrelLen, _lenUnit));
@@ -152,6 +157,8 @@ internal sealed class ComponentDialog : Form
         _twist.Enabled = _barrelLen.Enabled = kind == ComponentKind.Barrel;
         _expUses.Enabled = brass;
         if (!brass && _c.Id == 0) _expUses.Value = 1;
+        _annealEvery.Enabled = brass;
+        if (!brass && _c.Id == 0) _annealEvery.Value = 0;
     }
 
     /// <summary>
@@ -192,6 +199,7 @@ internal sealed class ComponentDialog : Form
         string cur = _currency.Text.Trim().ToUpperInvariant();
         _c.Currency = cur.Length > 0 ? cur : Money.Default;
         _c.ExpectedUses = _c.Kind == ComponentKind.Brass ? (int)_expUses.Value : 1;
+        _c.AnnealEveryUses = _c.Kind == ComponentKind.Brass && _annealEvery.Value > 0 ? (int)_annealEvery.Value : null;
         _c.BulletWeightGr = _c.Kind == ComponentKind.Bullet && _bulletW.Value > 0 ? BulletU.BulletMassToGrains((double)_bulletW.Value) : null;
         // Zero means "not recorded", the same bargain the bullet weight makes: a barrel with no
         // twist measured yet is a barrel you still want in the inventory.

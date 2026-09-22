@@ -76,6 +76,13 @@ CREATE TABLE IF NOT EXISTS firearms (
         foreach (var col in new[] { "temperature_c", "pressure_hpa", "humidity_pct", "ba", "a0" })
             if (!ColumnExists("journal", col))
                 Exec($"ALTER TABLE journal ADD COLUMN {col} REAL");
+        // Brass Life (see Log/BrassLife.cs): anneal reminder, expressed as an average-firings-per-
+        // case interval, and the value the lot was AT the last time it was marked annealed -- both
+        // null on an existing lot until the user sets a reminder or clicks "mark annealed" once.
+        if (!ColumnExists("components", "anneal_every_uses"))
+            Exec("ALTER TABLE components ADD COLUMN anneal_every_uses INTEGER");
+        if (!ColumnExists("components", "annealed_at_uses"))
+            Exec("ALTER TABLE components ADD COLUMN annealed_at_uses REAL");
     }
 
     private bool ColumnExists(string table, string col)
@@ -113,13 +120,14 @@ CREATE TABLE IF NOT EXISTS firearms (
         using var cmd = _cn.CreateCommand();
         if (c.Id == 0)
             cmd.CommandText = @"INSERT INTO components
-              (kind,brand,name,lot,unit,qty_initial,qty_current,cost_total,currency,expected_uses,bullet_weight_gr,twist_mm,barrel_length_mm,notes,archived)
-              VALUES ($kind,$brand,$name,$lot,$unit,$qi,$qc,$cost,$cur,$exp,$bw,$twist,$blen,$notes,$arch);
+              (kind,brand,name,lot,unit,qty_initial,qty_current,cost_total,currency,expected_uses,anneal_every_uses,annealed_at_uses,bullet_weight_gr,twist_mm,barrel_length_mm,notes,archived)
+              VALUES ($kind,$brand,$name,$lot,$unit,$qi,$qc,$cost,$cur,$exp,$ae,$aa,$bw,$twist,$blen,$notes,$arch);
               SELECT last_insert_rowid();";
         else
         {
             cmd.CommandText = @"UPDATE components SET kind=$kind,brand=$brand,name=$name,lot=$lot,unit=$unit,
               qty_initial=$qi,qty_current=$qc,cost_total=$cost,currency=$cur,expected_uses=$exp,
+              anneal_every_uses=$ae,annealed_at_uses=$aa,
               bullet_weight_gr=$bw,twist_mm=$twist,barrel_length_mm=$blen,
               notes=$notes,archived=$arch WHERE id=$id; SELECT $id;";
             cmd.Parameters.AddWithValue("$id", c.Id);
@@ -134,6 +142,8 @@ CREATE TABLE IF NOT EXISTS firearms (
         cmd.Parameters.AddWithValue("$cost", c.CostTotal);
         cmd.Parameters.AddWithValue("$cur", c.Currency);
         cmd.Parameters.AddWithValue("$exp", Math.Max(1, c.ExpectedUses));
+        cmd.Parameters.AddWithValue("$ae", (object?)c.AnnealEveryUses ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$aa", (object?)c.AnnealedAtUses ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$bw", (object?)c.BulletWeightGr ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$twist", (object?)c.TwistMm ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$blen", (object?)c.BarrelLengthMm ?? DBNull.Value);
@@ -251,6 +261,42 @@ CREATE TABLE IF NOT EXISTS firearms (
         cmd.CommandText = "SELECT DISTINCT caliber FROM journal WHERE ba IS NOT NULL AND caliber <> '' ORDER BY caliber";
         using var r = cmd.ExecuteReader();
         while (r.Read()) list.Add(r.GetString(0));
+        return list;
+    }
+
+    /// <summary>Distinct calibers that have at least one journal entry carrying charge, temperature
+    /// AND a measured velocity together -- the three <see cref="VelocityModel"/> needs a point at
+    /// all, regardless of whether that entry has ever been Ba-calibrated (unlike "Find best Ba", this
+    /// model doesn't touch Ba).</summary>
+    public List<string> VelocityModelCalibers()
+    {
+        var list = new List<string>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = @"SELECT DISTINCT caliber FROM journal
+            WHERE charge_gr > 0 AND temperature_c IS NOT NULL AND velocity_avg_ms IS NOT NULL AND caliber <> ''
+            ORDER BY caliber";
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) list.Add(r.GetString(0));
+        return list;
+    }
+
+    /// <summary>The (charge, temperature, velocity) journal rows <see cref="VelocityModel"/> fits
+    /// against, for one caliber+powder+bullet combo -- same combo-scoping reason as
+    /// <see cref="FindCalibrations"/>: a fit mixing two different bullets or powders would be fitting
+    /// noise, not a real charge/temperature relationship.</summary>
+    public List<JournalEntry> EntriesForVelocityModel(string caliber, long? powderId, long? bulletId)
+    {
+        var list = new List<JournalEntry>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = @"SELECT * FROM journal
+            WHERE charge_gr > 0 AND temperature_c IS NOT NULL AND velocity_avg_ms IS NOT NULL
+              AND caliber = $cal COLLATE NOCASE AND (powder_id IS $pw) AND (bullet_id IS $bu)
+            ORDER BY date, id";
+        cmd.Parameters.AddWithValue("$cal", caliber);
+        cmd.Parameters.AddWithValue("$pw", (object?)powderId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$bu", (object?)bulletId ?? DBNull.Value);
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) list.Add(ReadEntry(r));
         return list;
     }
 
@@ -414,6 +460,31 @@ CREATE TABLE IF NOT EXISTS firearms (
         return outp;
     }
 
+    // ---- brass life -----------------------------------------------------
+
+    /// <summary>Total rounds ever logged against one brass lot -- unlike <see cref="FirearmRoundCount"/>
+    /// there is no "rounds before" concept here (a lot is bought new or its history is simply
+    /// unknown, so nothing to add on top of what the Journal itself has recorded).</summary>
+    public int BrassRoundsFired(long id)
+    {
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "SELECT COALESCE(SUM(rounds),0) FROM journal WHERE brass_id=$id";
+        cmd.Parameters.AddWithValue("$id", id);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    /// <summary>Marks a brass lot as annealed right now: records the CURRENT average-firings-per-case
+    /// value as the new baseline, so <see cref="BrassLife.Compute"/> only counts rounds fired after
+    /// this point toward the next reminder. Returns false if the lot isn't found or isn't Brass.</summary>
+    public bool MarkBrassAnnealed(long id)
+    {
+        var c = Component(id);
+        if (c is null || c.Kind != ComponentKind.Brass) return false;
+        double avgUses = c.QtyInitial > 0 ? BrassRoundsFired(id) / c.QtyInitial : 0;
+        Exec("UPDATE components SET annealed_at_uses=$v WHERE id=$id", null, ("$v", avgUses), ("$id", id));
+        return true;
+    }
+
     // ---- helpers -------------------------------------------------------
 
     private static Component ReadComponent(SqliteDataReader r) => new()
@@ -424,6 +495,8 @@ CREATE TABLE IF NOT EXISTS firearms (
         QtyInitial = Dbl(r, "qty_initial"), QtyCurrent = Dbl(r, "qty_current"),
         CostTotal = Dbl(r, "cost_total"), Currency = Str(r, "currency"),
         ExpectedUses = (int)Lng(r, "expected_uses"),
+        AnnealEveryUses = (int?)NulL(r, "anneal_every_uses"),
+        AnnealedAtUses = Nul(r, "annealed_at_uses"),
         BulletWeightGr = Nul(r, "bullet_weight_gr"),
         TwistMm = Nul(r, "twist_mm"), BarrelLengthMm = Nul(r, "barrel_length_mm"),
         Notes = Str(r, "notes"), AcquiredAt = Str(r, "acquired_at"),

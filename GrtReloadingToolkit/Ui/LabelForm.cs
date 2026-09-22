@@ -198,7 +198,15 @@ internal sealed class LabelForm : Form
             _props.Refresh();
             ApplyComponents();
             Render();
-            _status.Text = string.Format(Lang.T("loaded {0}"), _card.Caliber);
+            // Explicit charge + source file, not just the caliber: this reads whatever GRT tab
+            // happens to be frontmost, and "6.5 Creedmoor" alone looks identical whether that tab
+            // was the load you meant or a different charge/session left open by mistake -- a
+            // forgotten tab is otherwise indistinguishable from the right one until it's already
+            // printed.
+            var u = GrtUnits.Current;
+            string chargeTxt = _card.ChargeGr is { } g ? u.ChargeValue(g).ToString(u.ChargeFormat, CultureInfo.InvariantCulture) + " " + u.ChargeUnitName : "?";
+            _status.Text = string.Format(Lang.T("Loaded: {0}, {1} {2} — from '{3}'"),
+                _card.Caliber, chargeTxt, _card.Powder, Path.GetFileName(_card.SourceFile));
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Load from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }

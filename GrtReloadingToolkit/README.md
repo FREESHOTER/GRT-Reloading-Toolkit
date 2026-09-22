@@ -1,11 +1,12 @@
 # GRT Reloading Toolkit
 
-Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, twelve tools.
+Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, eighteen tools.
 GRT shows a **single toolbar / menu entry** ("Reloading Toolkit") that opens a launcher window;
 every tool is a button there. One background process serves all of them.
 
 | Tool | What it does |
 |---|---|
+| 🪄 **Guided New Load** | A checklist for building a load from scratch — opens the real tool for each step (never reimplements one) and ticks it once opened from here. Two paths: **single load** (brass prep → card → calibration) or **ladder test** (brass prep → chrono import → Ladder/OCW → calibration → card, printed last for whichever charge the ladder pointed at). No persistence, no verified-done tracking — a ticked box just means "opened this session". |
 | 🎯 **Chronograph Import** | **Athlon Rangecraft** and **Garmin Xero C1 Pro / ShotView** exports (`.xlsx` / `.csv`) → GRT Measurements tab (a batch = a ladder). Pick files or **a whole folder** (one file per charge). Auto-detects fps vs m/s (from the header, or the velocity magnitude), tolerates EU/US number formats and the summary footer. Per-string °C (Athlon) is carried into the charge note for GRT's temp-coefficient assistant. |
 | 📐 **Chronograph Statistics** | Confidence interval on the true mean, shots needed for a target margin, Chauvenet-flagged outliers, and a Welch t-test / F-test comparing any two strings — everything GRT's own AVG/SD/ES line doesn't tell you. Reads the same chrono files, or pulls strings straight from the load's Measurement. |
 | 📈 **Ladder / OCW Analyzer** | Charge ladder (chrono velocities + target groups) → velocity flat-spot (Satterlee) + vertical-POI node (OCW/Audette) + weighted best node → an *OCW Analysis* note **and a chart** in the load. Groups come from Ballistic-X `.csv` **or straight from GRT's own "Shot group" tabs** in the load ("Groups from GRT load", with reference/shooting-distance units and an optional drop-flyers toggle). Missing velocities are filled in from the load's own chrono Measurement. |
@@ -15,11 +16,16 @@ every tool is a button there. One background process serves all of them.
 | 🔧 **Brass Prep** | *Case volume* — N case water weights (grain H₂O **or** grams) → mean / SD volume, written into the caliber's `casevol`. *Seating depth* — CBTO + case length + BBTO (comparator measurements) → GRT `gdepth`, written into the load. *Neck / bushing* — bullet dia + neck wall + desired interference → bushing & mandrel size, **in inch** by default (toggle to mm). |
 | ⚖️ **Seating Force Estimate (QC)** | Standalone estimator for expected bullet-seating (press-fit) force, for a QC press's own max-pressure safety threshold — baseline force for a "typical" setup plus your actual prep (annealing, sizing, lube, coating, boat-tail) → mean force, 1σ/2σ bands, suggested max. Every length field has its own mm/in toggle. The bar/psi figure alongside it is the same force over the bullet's cross-section, **not** a GRT input and not a substitute for GRT's own Initial Pressure. |
 | 🏷 **Load Card / Label** | Printable A6 recipe card / ammo-box labels with a QR of the full recipe. Component-lot dropdowns compute **cost per round**, and a barrel pick adds its twist and length to the card. "Write load-sheet note" puts the recipe + cost breakdown into the load. |
-| 📒 **Inventory & Journal** | Component inventory (powder / primer / brass / bullet / barrel) with lot tracking, brand pick-lists, powder counted in **g, gr, lb or kg**, twist and length on barrels, and cost per round, a load/range journal that deducts stock and records the session's environment (temperature/pressure/humidity, own units) plus the calibrated `Ba`/`a0`, a **Find best Ba** search (filter by caliber+powder+bullet, rank by tightest group / closest velocity / closest temperature, plus a Ba/velocity/group vs temperature chart), a **Fill Ba from loads** migration for pre-`Ba` entries, and a **Firearms** tab: round-count per barrel + MV-drift chart. SQLite in `%AppData%\GRTPlugins\`. |
+| 📒 **Inventory** | Component inventory (powder / primer / brass / bullet / barrel) with lot tracking, brand pick-lists, powder counted in **g, gr, lb or kg**, twist and length on barrels, and cost per round; a **Firearms** tab (round-count per barrel + MV-drift chart); a **Brass Life** tab (avg uses/case, anneal-due and retirement-due status per lot, from Journal-logged round counts). SQLite in `%AppData%\GRTPlugins\`, shared with Load Journal and Find best Ba. |
+| 📓 **Load Journal** | A load/range journal (its own window, split out of Inventory) that deducts stock and records the session's environment (temperature/pressure/humidity, own units) plus the calibrated `Ba`/`a0`. "Log from GRT" prefills from the open load. A **Fill Ba from loads** migration backfills `Ba`/`a0` for pre-`Ba` entries from the `.grtload` each one still points at. |
+| 🔎 **Find best Ba** | A search (its own window) over the Journal's calibrated entries: filter by caliber+powder+bullet, rank by tightest group / closest velocity / closest temperature, plus a Ba/velocity/group vs temperature chart. Read-only. |
 | 🏆 **Load Leaderboard** | Ranks *every* load ever logged (grouped by caliber+powder+bullet+charge) by a composite 0-10 score — SD, ES, group size, sample size, cross-session consistency, simple average of whichever are available. Default thresholds are anchored to real competitive/military references (Bryan Litz/Applied Ballistics, Mk 316 Mod 0 and M118LR sniper-ammo specs, published benchrest/hunting benchmarks) and are fully **editable** (⚙ Customize thresholds), saved to `%AppData%\GRTPlugins\load-scoring.json`. "Write leaderboard note to GRT load" finds the open load's own rank/score among same-caliber loads and writes the full breakdown into a note. |
 | 🧭 **Distance Workflow** | Same 0-10 score and grid as Load Leaderboard, but a different question: not "what's the best load overall", but "of what I tested *today at this distance*, which earns a test at the next distance" (100m → 300m, say). Scoped to one caliber + one distance you've logged, no cross-session consistency term (a same-day call shouldn't be discounted for a load's history), and charges under 3 logged rounds are excluded from the ranking rather than scored low. "Write workflow note to GRT load" finds the open load's rank at whichever distance is selected and writes the breakdown into a note. |
+| 🧪 **Powder Compare** | Same 0-10 scoring, one level coarser than Leaderboard: groups by caliber+powder only, over powders you've actually calibrated (GRT's own factory propellant data isn't reachable via IPC). "Write comparison note" also flags how the open load's own `Ba` compares to the average of every other calibration of that powder. |
+| 📉 **Velocity Model** | An empirical `MV ≈ a + b·charge + c·temperature` fit from the Journal's own logged sessions, independent of GRT's physics model (no `Ba`/`a0`/`tcc`/`tch`). Needs ≥5 sessions with charge, temperature and velocity all logged, and charge/temperature varying independently — refuses to fit (and says why) otherwise. Includes a predictor (charge+temp → MV) and a solver (target MV+temp → needed charge). Always in native grains/°C/m/s. |
+| 🔬 **Advanced Diagnostics** | Six diagnostics in one tool, none needing a calibrated `Ba`: Fouling Tracker, Cold Bore, Primer Sensitivity, Neck Tension Correlation (five, reading chrono strings from the open load) and Session Trend (reading the Journal, for drift across repeated sessions of the same charge). |
 
-Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes eleven DokuWiki
+Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes fourteen DokuWiki
 report pages into `GRT\doku\<lang>\report\` and links them from the Reports index —
 
 - *Toolkit — Full load workup* (recipe + predicted results + every section below, in one page)
@@ -33,9 +39,13 @@ report pages into `GRT\doku\<lang>\report\` and links them from the Reports inde
 - *Toolkit — Load sheet* (recipe + predicted results + cost)
 - *Toolkit — Load leaderboard report* (rank/score note)
 - *Toolkit — Distance workflow report* (rank/score note at one distance)
+- *Toolkit — Powder compare report* (rank/score note)
+- *Toolkit — Advanced diagnostics report* (all six diagnostics tabs)
+- *Toolkit — Velocity model report* (the empirical fit)
 
-Every note-writing tool has its own dedicated page now, except Seating Force Estimate (QC) — a
-standalone QC estimator with no GRT linkage at all, so there's nothing for a report to pull.
+Every note-writing tool has its own dedicated page now, except Seating Force Estimate (QC) and the
+Guided New Load wizard — the QC estimator has no GRT linkage at all, and the wizard only opens
+other tools, it never writes anything of its own.
 
 Run it once after installing the plugin. It is idempotent and non-destructive; delete a page by
 saving it empty in GRT.

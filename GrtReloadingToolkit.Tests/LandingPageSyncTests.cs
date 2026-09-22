@@ -65,7 +65,7 @@ public class LandingPageSyncTests
         string[] words =
         {
             "zero", "one", "two", "three", "four", "five", "six", "seven",
-            "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+            "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen",
         };
         int cards = LandingPageCards();
         Assert.InRange(cards, 1, words.Length - 1);

@@ -38,6 +38,13 @@
     <Compile Include="..\GrtReloadingToolkit\Log\LoadScoringConfig.cs" Link="Log\LoadScoringConfig.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\WorkflowRanking.cs" Link="Log\WorkflowRanking.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LeaderboardRanking.cs" Link="Log\LeaderboardRanking.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\PowderCompare.cs" Link="Log\PowderCompare.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\AdvancedDiagnostics.cs" Link="Log\AdvancedDiagnostics.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\SessionTrend.cs" Link="Log\SessionTrend.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\PressureTrend.cs" Link="Log\PressureTrend.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\BaStaleness.cs" Link="Log\BaStaleness.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\BrassLife.cs" Link="Log\BrassLife.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\VelocityModel.cs" Link="Log\VelocityModel.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Costing.cs" Link="Log\Costing.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\StockUnit.cs" Link="Log\StockUnit.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Brands.cs" Link="Log\Brands.cs" />

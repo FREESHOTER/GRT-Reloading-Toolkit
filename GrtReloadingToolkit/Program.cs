@@ -66,7 +66,7 @@ internal static class Program
     }
 }
 
-internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Leaderboard, Workflow, Reports }
+internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, Wizard, VelocityModel, Reports }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -107,8 +107,14 @@ internal sealed class ToolkitContext : ApplicationContext
         id.EndsWith(".seatingforce", StringComparison.Ordinal) ? Tool.SeatingForce :
         id.EndsWith(".label", StringComparison.Ordinal) ? Tool.Label :
         id.EndsWith(".inventory", StringComparison.Ordinal) ? Tool.Log :
+        id.EndsWith(".journal", StringComparison.Ordinal) ? Tool.Journal :
+        id.EndsWith(".findba", StringComparison.Ordinal) ? Tool.FindBa :
         id.EndsWith(".leaderboard", StringComparison.Ordinal) ? Tool.Leaderboard :
         id.EndsWith(".workflow", StringComparison.Ordinal) ? Tool.Workflow :
+        id.EndsWith(".powdercompare", StringComparison.Ordinal) ? Tool.PowderCompare :
+        id.EndsWith(".diagnostics", StringComparison.Ordinal) ? Tool.Diagnostics :
+        id.EndsWith(".wizard", StringComparison.Ordinal) ? Tool.Wizard :
+        id.EndsWith(".velocitymodel", StringComparison.Ordinal) ? Tool.VelocityModel :
         id.EndsWith(".reports", StringComparison.Ordinal) ? Tool.Reports :
         Tool.Launcher;
 
@@ -131,14 +137,20 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.ChronoStats => new ChronoStatsForm(_grt),
             Tool.Ocw => new OcwForm(_grt),
             Tool.Seating => new SeatingForm(_grt),
-            Tool.Cal => new CalibrationForm(_grt),
+            Tool.Cal => new CalibrationForm(_grt, _db),
             Tool.Temp => new TempCoeffForm(_grt),
             Tool.Brass => new BrassForm(_grt),
             Tool.SeatingForce => new SeatingForceForm(),
             Tool.Label => new LabelForm(_grt, _db),
             Tool.Log => new LogForm(_grt, _db),
+            Tool.Journal => new JournalForm(_grt, _db),
+            Tool.FindBa => new FindBaForm(_db),
             Tool.Leaderboard => new LoadLeaderboardForm(_grt, _db),
             Tool.Workflow => new WorkflowForm(_grt, _db),
+            Tool.PowderCompare => new PowderCompareForm(_grt, _db),
+            Tool.Diagnostics => new AdvancedDiagnosticsForm(_grt, _db),
+            Tool.Wizard => new WizardForm(Open),
+            Tool.VelocityModel => new VelocityModelForm(_grt, _db),
             _ => new LauncherForm(Open),
         });
         f.FormClosed += (_, _) =>

@@ -2,8 +2,11 @@ namespace GrtReloadingToolkit.Ui;
 
 /// <summary>
 /// The one entry point every toolbar/menu click opens (see Program.ToolkitContext). Grouped by
-/// where each tool sits in an actual reload-development sequence — plan the powder and prep brass,
-/// go shoot, tune to the barrel, then wrap up the recipe — rather than a flat alphabetic list.
+/// when you'd actually reach for each tool — before a range trip (bench prep, nothing needs
+/// measured data yet) or after one (everything else, since every analysis in this Toolkit needs
+/// either a chronograph string or a logged session to work from — there's no tool here that's
+/// useful mid-string, so a third "at the range" group would sit empty) — rather than a flat
+/// alphabetic list.
 /// </summary>
 internal sealed class LauncherForm : Form
 {
@@ -41,29 +44,36 @@ internal sealed class LauncherForm : Form
         }
         void Divider() => flow.Controls.Add(new Panel { Width = 252, Height = 1, BackColor = SystemColors.ControlDark, Margin = new Padding(0, 8, 0, 10) });
 
-        Section(Lang.T("PLAN & PREPARE"));
+        // Above both sections, not inside either: it starts before the range (brass, card) and can
+        // only finish after (calibration needs a real measured velocity) -- see WizardForm's own doc
+        // comment for why it doesn't get filed under just one phase.
+        B(Lang.T("🪄  Guided new load (wizard)"), Tool.Wizard);
+
+        Section(Lang.T("BEFORE THE RANGE"));
         B(Lang.T("🔧  Brass prep (case vol / seating / neck)"), Tool.Brass);
         B(Lang.T("⚖️  Seating force estimate (QC)"), Tool.SeatingForce);
+        B(Lang.T("🏷  Load card / label"), Tool.Label);
 
-        Section(Lang.T("RANGE DAY"));
+        Section(Lang.T("AFTER THE RANGE"));
+        // Journal and Find best Ba lead this section on purpose: the journal is where every other
+        // analysis here gets its data from, and Find best Ba is the one that reads it back most
+        // directly -- both used to be tabs buried inside the Inventory window, easy to miss.
+        B(Lang.T("📓  Load journal"), Tool.Journal);
+        B(Lang.T("🔎  Find best Ba"), Tool.FindBa);
         B(Lang.T("🎯  Chronograph import (Athlon / Garmin)"), Tool.Athlon);
         B(Lang.T("📐  Chronograph statistics"), Tool.ChronoStats);
         B(Lang.T("📈  Ladder / OCW analyzer"), Tool.Ocw);
         B(Lang.T("📏  Seating-depth analyzer"), Tool.Seating);
-
-        Section(Lang.T("TUNE TO YOUR BARREL"));
         B(Lang.T("🎚  Barrel calibration"), Tool.Cal);
         B(Lang.T("🌡  Powder temp coefficients"), Tool.Temp);
-
-        Section(Lang.T("EVALUATE YOUR LOADS"));
         B(Lang.T("🏆  Load leaderboard"), Tool.Leaderboard);
         B(Lang.T("🧭  Distance workflow"), Tool.Workflow);
-
-        Section(Lang.T("WRAP UP"));
-        B(Lang.T("🏷  Load card / label"), Tool.Label);
-        B(Lang.T("📒  Inventory & load journal"), Tool.Log);
+        B(Lang.T("🧪  Powder compare"), Tool.PowderCompare);
+        B(Lang.T("📉  Velocity model (charge + temperature)"), Tool.VelocityModel);
+        B(Lang.T("🔬  Advanced diagnostics"), Tool.Diagnostics);
 
         Divider();
+        B(Lang.T("📒  Inventory"), Tool.Log);
         B(Lang.T("📄  Install GRT report templates"), Tool.Reports);
 
         Controls.Add(flow);

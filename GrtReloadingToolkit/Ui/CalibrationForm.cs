@@ -1,5 +1,6 @@
 using System.Globalization;
 using GrtReloadingToolkit.Cal;
+using GrtReloadingToolkit.Log;
 using GrtPluginKit.Analysis;
 using GrtPluginKit.Grt;
 using GrtPluginKit.Ipc;
@@ -11,15 +12,26 @@ namespace GrtReloadingToolkit.Ui;
 /// does, over one or more charges, and suggest a Ba tweak / offset. When the offset varies with
 /// charge (a burn-shape mismatch, not just a scale one), a second sweep at a nudged "a0" lets
 /// <see cref="CalResult.FitBaAndA0"/> fit both Ba and a0 at once -- see that method's own doc.
+///
+/// Also flags when the load's own Ba looks stale against the Journal's own calibration history for
+/// the same caliber+powder (see <see cref="BaStaleness"/>) -- a proactive nudge shown the moment a
+/// load is opened here, before the user has run anything, since GRT's own factory Ba for a powder
+/// can't be read via the plugin IPC to compare against directly.
 /// </summary>
 internal sealed class CalibrationForm : Form
 {
     private const string NoteTitle = "Barrel Calibration";
 
     private readonly GrtClient? _grt;
+    private readonly Db _db;
     private readonly DataGridView _grid = new();
     private readonly TextBox _summary = new();
     private readonly Label _status = new();
+    private readonly Label _staleWarning = new()
+    {
+        AutoSize = false, Dock = DockStyle.Top, Height = 0, Visible = false,
+        ForeColor = Color.FromArgb(153, 76, 0), Padding = new Padding(8, 4, 8, 4),
+    };
     private readonly Button _writeNote = new() { Text = Lang.T("Write calibration note"), AutoSize = true, Enabled = false };
     private readonly Button _writeBa = new() { Text = Lang.T("Write Ba-corrected .grtload"), AutoSize = true, Enabled = false };
     private readonly Button _writeBaA0 = new() { Text = Lang.T("Write Ba+a0-corrected .grtload"), AutoSize = true, Enabled = false };
@@ -38,9 +50,10 @@ internal sealed class CalibrationForm : Form
     private string? _basePath;
     private bool _suppressGrid;
 
-    public CalibrationForm(GrtClient? grt)
+    public CalibrationForm(GrtClient? grt, Db db)
     {
         _grt = grt;
+        _db = db;
         _logHandler = AppendLog;
         Text = AppVersion.Title(Lang.T("GRT Barrel Calibration"));
         // Wider than the original 820: the new shape-fit button pushed "Remove row" onto a second,
@@ -131,6 +144,7 @@ internal sealed class CalibrationForm : Form
         Controls.Add(split);
         Controls.Add(bottom);
         Controls.Add(_status);
+        Controls.Add(_staleWarning);
         Controls.Add(top);
     }
 
@@ -156,9 +170,42 @@ internal sealed class CalibrationForm : Form
         _baOld = pdoc.PropellantBa is > 0 ? pdoc.PropellantBa : null;
         _a0Old = pdoc.InputNumber("propellant", "a0") is { } a0 && a0 > 0 ? a0 : null;
         _powder = string.IsNullOrWhiteSpace(pdoc.PropellantName) ? "powder" : pdoc.PropellantName;
+        UpdateStaleWarning(pdoc.CaliberName, pdoc.PropellantName);
         // Measurements / everything else from the accumulator sibling if it exists (that's where
         // a chrono import lands).
         return GrtLoadDoc.OpenForToolkitEdit(top.file);
+    }
+
+    /// <summary>
+    /// Compares this load's own Ba against the most recent CALIBRATED Ba the Journal has for the
+    /// same caliber+powder (see <see cref="BaStaleness"/>'s own doc for why that's the comparison,
+    /// not GRT's factory value, which this plugin has no way to read). A powder that has never been
+    /// calibrated has nothing to compare against and shows no warning — silence here means "unknown",
+    /// not "fine".
+    /// </summary>
+    private void UpdateStaleWarning(string caliber, string powderName)
+    {
+        long? powderId = _db.ResolvePowderId(powderName);
+        var lastCalibrated = _db.Journal()
+            .Where(e => e.Ba is > 0 && powderId.HasValue && e.PowderId == powderId
+                        && string.Equals(e.Caliber, caliber, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(e => e.Id)
+            .FirstOrDefault();
+
+        var check = BaStaleness.Check(_baOld, lastCalibrated?.Ba);
+        if (check is { Stale: true } s)
+        {
+            _staleWarning.Text = string.Format(Lang.T("⚠ Ba differs from the last calibration: this file uses Ba={0}, the last calibration logged in the Journal for {1} in {2} was Ba={3} ({4}% difference)."),
+                s.FileBa.ToString("0.000000", CultureInfo.InvariantCulture), powderName, caliber,
+                s.LastCalibratedBa.ToString("0.000000", CultureInfo.InvariantCulture), s.DiffPct.ToString("0.0", CultureInfo.InvariantCulture));
+            _staleWarning.Height = 36;
+            _staleWarning.Visible = true;
+        }
+        else
+        {
+            _staleWarning.Visible = false;
+            _staleWarning.Height = 0;
+        }
     }
 
     private async Task LoadMeasuredAsync()

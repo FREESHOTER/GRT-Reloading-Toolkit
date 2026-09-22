@@ -26,11 +26,8 @@ internal static class Lang
     private static readonly Dictionary<string, string> Map = new()
     {
         // LauncherForm
-        ["PLAN & PREPARE"] = "PIANIFICA E PREPARA",
-        ["RANGE DAY"] = "GIORNO AL POLIGONO",
-        ["TUNE TO YOUR BARREL"] = "METTI A PUNTO LA CANNA",
-        ["EVALUATE YOUR LOADS"] = "VALUTA LE TUE CARICHE",
-        ["WRAP UP"] = "CONCLUDI",
+        ["BEFORE THE RANGE"] = "PRIMA DEL POLIGONO",
+        ["AFTER THE RANGE"] = "DOPO IL POLIGONO",
         ["🔧  Brass prep (case vol / seating / neck)"] = "🔧  Preparazione bossoli (volume / seating / colletto)",
         ["⚖️  Seating force estimate (QC)"] = "⚖️  Stima forza di seduta (QC)",
         ["🎯  Chronograph import (Athlon / Garmin)"] = "🎯  Importa cronografo (Athlon / Garmin)",
@@ -41,8 +38,12 @@ internal static class Lang
         ["🌡  Powder temp coefficients"] = "🌡  Coefficienti temperatura polvere",
         ["🏆  Load leaderboard"] = "🏆  Classifica delle cariche",
         ["🏷  Load card / label"] = "🏷  Cartellino / etichetta carico",
-        ["📒  Inventory & load journal"] = "📒  Inventario e diario di carico",
+        ["📒  Inventory"] = "📒  Inventario",
+        ["📓  Load journal"] = "📓  Diario di carico",
+        ["🔎  Find best Ba"] = "🔎  Trova miglior Ba",
         ["📄  Install GRT report templates"] = "📄  Installa i template report GRT",
+        ["🪄  Guided new load (wizard)"] = "🪄  Nuovo carico guidato (wizard)",
+        ["📉  Velocity model (charge + temperature)"] = "📉  Modello velocità (carica + temperatura)",
 
         // SeatingForceForm
         ["GRT Seating Force Estimate (QC)"] = "GRT Stima Forza di Seduta (QC)",
@@ -267,6 +268,8 @@ internal static class Lang
 
         // CalibrationForm
         ["GRT Barrel Calibration"] = "GRT Calibrazione Canna",
+        ["⚠ Ba differs from the last calibration: this file uses Ba={0}, the last calibration logged in the Journal for {1} in {2} was Ba={3} ({4}% difference)."] =
+            "⚠ Ba diverso dall'ultima calibrazione: questo file usa Ba={0}, l'ultima calibrazione registrata nel Diario per {1} in {2} era Ba={3} (differenza {4}%).",
         ["Write calibration note"] = "Scrivi nota di calibrazione",
         ["Write Ba-corrected .grtload"] = "Scrivi .grtload corretto in Ba",
         ["Write Ba+a0-corrected .grtload"] = "Scrivi .grtload corretto in Ba+a0",
@@ -311,14 +314,14 @@ internal static class Lang
         ["Save PNG…"] = "Salva PNG…",
         ["Write load-sheet note to GRT"] = "Scrivi nota load-sheet su GRT",
         ["— none —"] = "— nessuno —",
-        ["loaded {0}"] = "caricato {0}",
+        ["Loaded: {0}, {1} {2} — from '{3}'"] = "Caricato: {0}, {1} {2} — da '{3}'",
         ["Load sheet"] = "Load sheet",
         ["load-sheet note written — opened in GRT."] = "nota load-sheet scritta — aperta in GRT.",
         ["render error:"] = "errore rendering:",
         ["saved"] = "salvato",
 
         // LogForm
-        ["GRT Inventory & Load Journal"] = "GRT Inventario e Diario di Carico",
+        ["GRT Inventory"] = "GRT Inventario",
         ["stand-alone"] = "autonomo",
         ["GRT lost"] = "GRT perso",
         ["Firearms"] = "Armi",
@@ -328,6 +331,16 @@ internal static class Lang
         ["Total rounds"] = "Colpi totali",
         ["MV entries"] = "Voci MV",
         ["Last used"] = "Ultimo uso",
+        // Brass Life tab
+        ["Brass Life"] = "Vita Bossoli",
+        ["Mark annealed now"] = "Segna come ricotto ora",
+        ["Pieces"] = "Pezzi",
+        ["Rounds fired"] = "Colpi sparati",
+        ["Avg uses/case"] = "Usi medi/pezzo",
+        ["Since last anneal"] = "Da ultima ricottura",
+        ["Anneal due"] = "Ricottura dovuta",
+        ["OK"] = "OK",
+        ["Status"] = "Stato",
         ["Add firearm"] = "Aggiungi arma",
         ["Edit firearm"] = "Modifica arma",
         ["Name"] = "Nome",
@@ -361,11 +374,11 @@ internal static class Lang
         ["Total"] = "Totale",
         ["Delete '{0}' ({1})? Deducted stock will be restored."] = "Eliminare '{0}' ({1})? Le scorte scalate saranno ripristinate.",
         ["Find best Ba"] = "Trova miglior Ba",
-        ["No journal entry carries a Ba yet, so there is no caliber to pick. Use Journal -> Log from GRT "
-        + "(it reads Ba from the load open in GRT), or Journal -> Fill Ba from loads for entries logged "
-        + "before Ba was recorded, or open an entry and type it into 'Ba (calibrated)'."] =
-            "Nessuna voce del diario porta ancora un Ba, quindi non c'è alcun calibro da scegliere. Usa Diario -> "
-            + "Registra da GRT (legge il Ba dal load aperto in GRT), oppure Diario -> Recupera Ba dai load per le voci "
+        ["No journal entry carries a Ba yet, so there is no caliber to pick. In the Journal window, use "
+        + "'Log from GRT' (it reads Ba from the load open in GRT), or 'Fill Ba from loads' for entries "
+        + "logged before Ba was recorded, or open an entry and type it into 'Ba (calibrated)'."] =
+            "Nessuna voce del diario porta ancora un Ba, quindi non c'è alcun calibro da scegliere. Nella finestra Diario, usa "
+            + "'Registra da GRT' (legge il Ba dal load aperto in GRT), oppure 'Recupera Ba dai load' per le voci "
             + "registrate prima che il Ba venisse memorizzato, oppure apri una voce e scrivilo in 'Ba (calibrato)'.",
         // Backfill of Ba/a0 from the .grtload an old journal entry still points at.
         ["Fill Ba from loads"] = "Recupera Ba dai load",
@@ -456,6 +469,100 @@ internal static class Lang
         ["Top candidate to carry forward to the next distance."] = "Miglior candidata da portare alla distanza successiva.",
         ["Workflow note written and opened in GRT."] = "Nota workflow scritta e aperta in GRT.",
 
+        // PowderCompareForm
+        ["🧪  Powder compare"] = "🧪  Confronto polveri",
+        ["GRT Powder Compare"] = "GRT Confronto Polveri",
+        ["Recipes"] = "Ricette",
+        ["Write comparison note to GRT load"] = "Scrivi nota confronto sul load GRT",
+        ["Nothing to compare yet -- a powder needs SD, ES or a group size logged, not just a round count."] =
+            "Niente da confrontare -- una polvere ha bisogno di SD, ES o dimensione del gruppo registrati, non solo del numero di colpi.",
+        ["{0} powder(s) compared, best first."] = "{0} polvere/i confrontata/e, la migliore per prima.",
+        ["This load hasn't been logged in the Journal yet, so its powder has no comparison entry to write. Log it (Journal -> New / Log from GRT) first."] =
+            "Questa carica non è ancora stata registrata nel Diario, quindi la sua polvere non ha una voce di confronto da scrivere. Registrala prima (Diario -> Nuovo / Registra da GRT).",
+        ["Rank #{0} of {1} powders tried for {2}."] = "Posizione #{0} di {1} polveri provate per {2}.",
+        ["Not enough data to score yet ({0} known powders for {1})."] = "Dati insufficienti per un punteggio ({0} polveri note per {1}).",
+        ["Recipes tried: {0}   Sessions: {1}"] = "Ricette provate: {0}   Sessioni: {1}",
+        ["This load's Ba: {0}   Average across {1} calibrated session(s): {2} ({3}{4:0.0}%)"] =
+            "Ba di questa carica: {0}   Media su {1} sessione/i calibrata/e: {2} ({3}{4:0.0}%)",
+        ["Comparison note written and opened in GRT."] = "Nota confronto scritta e aperta in GRT.",
+
+        // AdvancedDiagnosticsForm
+        ["🔬  Advanced diagnostics"] = "🔬  Diagnostica avanzata",
+        ["GRT Advanced Diagnostics"] = "GRT Diagnostica Avanzata",
+        ["Load strings from GRT load…"] = "Carica stringhe dal load GRT…",
+        ["{0} string(s) loaded."] = "{0} stringa/e caricata/e.",
+        ["Write diagnostics note to GRT load"] = "Scrivi nota diagnostica sul load GRT",
+        ["Load strings from GRT load first."] = "Carica prima le stringhe dal load GRT.",
+        ["Diagnostics note written and opened in GRT."] = "Nota diagnostica scritta e aperta in GRT.",
+        ["Run at least one analysis first."] = "Esegui prima almeno un'analisi.",
+        ["Analyze"] = "Analizza",
+        ["Severity"] = "Gravità",
+        ["Window"] = "Finestra",
+        ["Shot"] = "Colpo",
+        ["Jump"] = "Salto",
+        ["Mismatch"] = "Incoerenza",
+        ["Declining"] = "In calo",
+        ["yes"] = "sì",
+        ["no"] = "no",
+        // Session Trend
+        ["Session Trend"] = "Trend Sessioni",
+        ["No charge has been logged more than once yet -- a trend needs at least 2 sessions of the same charge."] =
+            "Nessuna carica è stata registrata più di una volta -- un trend richiede almeno 2 sessioni della stessa carica.",
+        ["{0} charge(s) with a trend across sessions."] = "{0} carica/che con un trend tra le sessioni.",
+        ["No concerning trend across any charge."] = "Nessun trend preoccupante su nessuna carica.",
+        // Session Trend / severity labels (Log/SessionTrend.cs's own language-agnostic values)
+        ["ok"] = "ok",
+        ["warn"] = "attenzione",
+        ["critical"] = "critico",
+        // Pressure Trend
+        ["Pressure Trend"] = "Trend di Pressione",
+        ["Pressure estimate: {0}"] = "Stima pressione: {0}",
+        ["The last step(s) show a flattening velocity/charge curve -- a classic sign of approaching a pressure plateau."] =
+            "L'ultimo/i passo/i mostra/no un appiattimento della curva velocità/carica -- segno classico di avvicinamento a un plateau di pressione.",
+        ["{0} abnormal velocity jump(s) -- check for a data entry error or real ignition instability."] =
+            "{0} salto/i di velocità anomalo/i -- controlla un errore di inserimento dati o una vera instabilità di accensione.",
+        ["Need at least {0} charges with a chrono string loaded. Click \"Load strings from GRT load…\" first."] =
+            "Servono almeno {0} cariche con una stringa cronografo caricata. Clicca prima \"Carica stringhe dal load GRT…\".",
+        // Pressure Trend / jump severity + pressure-level labels (Log/PressureTrend.cs's own values)
+        ["High"] = "Alta",
+        ["Medium"] = "Media",
+        ["Normal"] = "Normale",
+        ["Low — ample margin"] = "Bassa — margine abbondante",
+        ["High — near the limit"] = "Alta — vicino al limite",
+        ["Maximum — possible overpressure signal"] = "Massima — possibile segnale di sovrapressione",
+        // Fouling Tracker
+        ["Fouling Tracker"] = "Tracciamento Sporcizia",
+        ["Fouling suspected: SD is rising as the string progresses."] =
+            "Sospetto accumulo di sporcizia: la SD cresce con il progredire della stringa.",
+        ["No fouling trend detected."] = "Nessun trend di accumulo sporcizia rilevato.",
+        ["Velocity is also declining across the string."] = "Anche la velocità è in calo lungo la stringa.",
+        ["Fouling suspected."] = "Sospetto accumulo di sporcizia.",
+        // Cold Bore
+        ["Cold Bore"] = "Canna Fredda",
+        ["Cold-bore shots"] = "Colpi a canna fredda",
+        ["Cold bore: {0} {1}, warm: {2} {1} avg (SD {3} {1}).\nDelta: {4} {1} (z={5}) -> {6}"] =
+            "Canna fredda: {0} {1}, calda: {2} {1} media (SD {3} {1}).\nDifferenza: {4} {1} (z={5}) -> {6}",
+        ["the cold-bore shot(s) print notably FASTER than the rest."] =
+            "il/i colpo/i a canna fredda risulta/no notevolmente PIÙ VELOCE/I del resto.",
+        ["the cold-bore shot(s) print notably SLOWER than the rest."] =
+            "il/i colpo/i a canna fredda risulta/no notevolmente PIÙ LENTO/I del resto.",
+        ["no notable cold-bore effect."] = "nessun effetto canna fredda rilevante.",
+        ["outlier"] = "anomalo",
+        ["normal"] = "normale",
+        // Primer Sensitivity
+        ["Primer Sensitivity"] = "Sensibilità Inneschi",
+        ["Each string's own name is used as its primer lot."] = "Il nome di ogni stringa viene usato come suo lotto di inneschi.",
+        ["Best lot: {0}."] = "Lotto migliore: {0}.",
+        ["A real spread between lots was detected."] = "È stata rilevata una differenza reale tra i lotti.",
+        ["No meaningful spread between lots."] = "Nessuna differenza significativa tra i lotti.",
+        // Neck Tension Correlation
+        ["Neck Tension"] = "Tensione al Collo",
+        ["Tension (mm)"] = "Tensione (mm)",
+        ["Name each string with its tested tension, e.g. \"0.05\"."] = "Assegna a ogni stringa un nome con la tensione testata, es. \"0.05\".",
+        ["Correlation tension<->ES: {0}, optimal tension: {1} mm"] = "Correlazione tensione<->ES: {0}, tensione ottimale: {1} mm",
+        ["Correlation tension<->SD: {0}, optimal tension: {1} mm"] = "Correlazione tensione<->SD: {0}, tensione ottimale: {1} mm",
+        ["No ES/SD data on the parsed strings."] = "Nessun dato ES/SD sulle stringhe interpretate.",
+
         // ComponentDialog
         ["Add component"] = "Aggiungi componente",
         ["Edit component"] = "Modifica componente",
@@ -466,6 +573,8 @@ internal static class Lang
         ["Lot cost"] = "Costo lotto",
         ["Expected uses"] = "Usi previsti",
         ["(brass: firings before retirement)"] = "(bossolo: sparate prima del ritiro)",
+        ["Anneal every"] = "Ricuoci ogni",
+        ["uses (0 = no reminder)"] = "usi (0 = nessun promemoria)",
         // The dialog appends GRT's own weight unit (mp, which can be grams while powder is in
         // grains), so the label is the bare words.
         ["Bullet weight"] = "Peso proiettile",
@@ -494,5 +603,65 @@ internal static class Lang
         ["— no total until the lots match"] = "— nessun totale finché i lotti non coincidono",
         ["/ round"] = "/ colpo",
         ["   →  {0} for {1}"] = "   →  {0} per {1}",
+
+        // WizardForm
+        ["Guided New Load"] = "Nuovo carico guidato",
+        ["Pick what you're taking to the range: one known charge, or a ladder of several to find the right one."] =
+            "Scegli cosa porti al poligono: una carica già nota, oppure una scaletta (ladder) di più cariche per trovare quella giusta.",
+        ["Single load"] = "Carica singola",
+        ["Ladder test"] = "Test a scaletta (ladder)",
+        ["Open"] = "Apri",
+        ["1. Brass prep"] = "1. Preparazione bossoli",
+        ["Case volume, seating depth, neck sizing -- done at the bench before you leave."] =
+            "Volume del bossolo, profondità di seduta, dimensionamento del colletto -- fatto al banco prima di partire.",
+        ["2. Load card / label"] = "2. Cartellino / etichetta carico",
+        ["Print the recipe card or box label to take with you."] = "Stampa il cartellino della ricetta o l'etichetta della scatola da portare con te.",
+        ["3. Barrel calibration"] = "3. Calibrazione canna",
+        ["Back from the range with a real measured velocity: match GRT's model to your barrel."] =
+            "Tornato dal poligono con una velocità misurata reale: allinea il modello di GRT alla tua canna.",
+        ["2. Chronograph import"] = "2. Importa cronografo",
+        ["Back from the range: bring in the ladder's velocities from your chronograph."] =
+            "Tornato dal poligono: importa le velocità della scaletta dal tuo cronografo.",
+        ["3. Ladder / OCW analyzer"] = "3. Analizzatore Ladder / OCW",
+        ["Find the flat spot / node -- the one charge the rest of this load gets built around."] =
+            "Trova il flat-spot / nodo -- l'unica carica attorno a cui costruire il resto del carico.",
+        ["4. Barrel calibration"] = "4. Calibrazione canna",
+        ["Calibrate on that one charge's own measured velocity."] = "Calibra sulla velocità misurata di quella singola carica.",
+        ["5. Load card / label"] = "5. Cartellino / etichetta carico",
+        ["Print the recipe card for the charge the ladder pointed at."] =
+            "Stampa il cartellino della ricetta per la carica indicata dalla scaletta.",
+
+        // VelocityModelForm
+        ["GRT Velocity Model"] = "GRT Modello Velocità",
+        ["Write model note to GRT load"] = "Scrivi nota modello su load GRT",
+        ["Predict MV for charge"] = "Prevedi MV per carica",
+        ["temperature"] = "temperatura",
+        ["Predict"] = "Prevedi",
+        ["Charge needed for MV"] = "Carica necessaria per MV",
+        ["Solve"] = "Risolvi",
+        ["Predicted"] = "Prevista",
+        ["Residual"] = "Residuo",
+        ["No journal entry yet carries charge, temperature AND a measured velocity together -- log a session with all three (Journal -> New, or Log from GRT + fill in temperature) to use this model."] =
+            "Nessuna voce del diario porta ancora carica, temperatura E una velocità misurata insieme -- registra una sessione con tutte e tre (Diario -> Nuovo, oppure Registra da GRT + compila la temperatura) per usare questo modello.",
+        ["Only {0} logged session(s) with charge+temperature+velocity for this combo -- need at least {1} to fit a 2-variable model."] =
+            "Solo {0} sessione/i registrata/e con carica+temperatura+velocità per questa combinazione -- ne servono almeno {1} per adattare un modello a 2 variabili.",
+        ["Every logged session used the same charge -- nothing to fit a charge effect from. Log sessions at different charges."] =
+            "Ogni sessione registrata usa la stessa carica -- niente da cui stimare un effetto della carica. Registra sessioni con cariche diverse.",
+        ["Every logged session was at the same temperature -- nothing to fit a temperature effect from. Log sessions at different temperatures."] =
+            "Ogni sessione registrata è alla stessa temperatura -- niente da cui stimare un effetto della temperatura. Registra sessioni a temperature diverse.",
+        ["Charge and temperature moved together across every logged session (e.g. always tested colder at lower charges) -- there's no way to tell the two effects apart from this data."] =
+            "Carica e temperatura si sono mosse insieme in ogni sessione registrata (es. sempre testato più freddo con cariche più basse) -- non c'è modo di distinguere i due effetti da questi dati.",
+        ["MV ≈ {0} + {1}·charge(gr) + {2}·temp(°C)   ·   n={3}   ·   R²={4}"] =
+            "MV ≈ {0} + {1}·carica(gr) + {2}·temp(°C)   ·   n={3}   ·   R²={4}",
+        ["Fitted on {0} session(s) for {1}."] = "Adattato su {0} sessione/i per {1}.",
+        ["Fit the model first."] = "Calcola prima il modello.",
+        ["≈ {0} m/s"] = "≈ {0} m/s",
+        ["Charge has no measurable effect in this fit -- can't solve for it."] =
+            "La carica non ha un effetto misurabile in questo modello -- impossibile risolvere.",
+        ["≈ {0} gr"] = "≈ {0} gr",
+        ["Empirical fit for {0}, from {1} logged session(s):"] = "Modello empirico per {0}, da {1} sessione/i registrata/e:",
+        ["Independent of GRT's own model (no Ba/a0/tcc/tch) -- a measured-data cross-check, not a replacement for calibration."] =
+            "Indipendente dal modello di GRT (nessun Ba/a0/tcc/tch) -- un controllo incrociato sui dati misurati, non un sostituto della calibrazione.",
+        ["Model note written and opened in GRT."] = "Nota del modello scritta e aperta in GRT.",
     };
 }

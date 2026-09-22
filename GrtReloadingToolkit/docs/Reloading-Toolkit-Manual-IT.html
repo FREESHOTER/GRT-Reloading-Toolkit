@@ -79,6 +79,9 @@
   pre{background:#0b1622; color:#cdd9e5; border:1px solid #1c2c3d; border-radius:9px;
     padding:16px 18px; overflow-x:auto; font-size:.83rem; line-height:1.75; margin:0 0 16px}
   pre .c{color:#6f8497}
+  /* Screen lets a wide code block scroll (overflow-x:auto); a PDF has no scrollbar, so on
+     paper that same rule would silently clip anything past the page edge instead. */
+  @media print{ pre{white-space:pre-wrap; overflow-x:visible; word-break:break-word} }
 
   table{width:100%; border-collapse:collapse; margin:0 0 18px; font-size:.92rem; display:block; overflow-x:auto}
   th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
@@ -109,7 +112,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2.10</span>
+  <span class="k">Manuale · v0.2.11</span>
 </div></div>
 
 <div class="shell">
@@ -118,6 +121,8 @@
     <ol>
       <li><a href="#install">Installazione</a></li>
       <li><a href="#writeback">Come scrive in GRT</a></li>
+      <li><a href="#basics">Basi di GRT per principianti</a></li>
+      <li><a href="#wizard">Nuovo carico guidato</a></li>
       <li><a href="#chrono">Import cronografo</a></li>
       <li><a href="#chronostats">Statistiche cronografo</a></li>
       <li><a href="#ocw">Analizzatore Ladder / OCW</a></li>
@@ -127,9 +132,14 @@
       <li><a href="#brass">Preparazione bossoli</a></li>
       <li><a href="#seatingforce">Stima forza di seduta</a></li>
       <li><a href="#card">Cartellino / etichette</a></li>
-      <li><a href="#log">Inventario e diario</a></li>
+      <li><a href="#log">Inventario</a></li>
+      <li><a href="#journal">Diario di carico</a></li>
+      <li><a href="#findba">Trova miglior Ba</a></li>
       <li><a href="#leaderboard">Classifica delle Cariche</a></li>
       <li><a href="#workflow">Workflow Distanze</a></li>
+      <li><a href="#powdercompare">Confronto Polveri</a></li>
+      <li><a href="#velocitymodel">Modello Velocità</a></li>
+      <li><a href="#diagnostics">Diagnostica Avanzata</a></li>
       <li><a href="#reports">Template report GRT</a></li>
       <li><a href="#cli">Riga di comando</a></li>
       <li><a href="#faq">Limiti e FAQ</a></li>
@@ -139,7 +149,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manuale</h1>
-      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Dodici strumenti di ricarica e
+      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Diciotto strumenti di ricarica e
         una serie di template di report GRT in un&#39;unica finestra.</p>
       <p class="lede">Id plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribuito come
         eseguibile Windows a file singolo — non serve il runtime .NET sulla macchina che lo esegue
@@ -155,7 +165,7 @@
           (icona chiave + cacciavite) e una voce nel menu <strong>Plugin</strong>. Clicca uno dei due
           — si apre una piccola finestra <strong>launcher</strong> con un pulsante per ogni strumento.</li>
         <li>Facoltativo: nel launcher, clicca una volta
-          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§15).</li>
+          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§22).</li>
       </ol>
       <p>Il toolkit è <em>on-demand</em>: GRT lo avvia al primo click ed esce quando chiudi la sua
         ultima finestra. Un solo processo serve tutte le finestre, quindi aprire un secondo strumento
@@ -246,8 +256,63 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         le schede vuote.</p>
     </section>
 
+    <section id="basics">
+      <h2><span class="no">03</span>Basi di GRT per principianti</h2>
+      <p>Quattro cose in cui ogni nuovo utente GRT si imbatte e che sono <strong>comportamento nativo
+        di GRT, non di questo toolkit</strong> — l&#39;API plugin non ha alcun modo di modificare le
+        finestre di dialogo di GRT, quindi qui vengono spiegate, non risolte.</p>
+      <ul>
+        <li><strong>&laquo;Shot Start (Initiation) Pressure&raquo; è di default 250&nbsp;bar e non si
+          calcola da sola.</strong> GRT non la deriva dal tuo innesco/tensione del colletto — lasciare
+          il default per ogni carico a prescindere dalla preparazione dei bossoli rende
+          <code>Pmax</code> e i tempi di combustione predetti silenziosamente sbagliati. Impostala per
+          ogni carico, o almeno per ogni combinazione canna/preparazione.</li>
+        <li><strong>&laquo;There is an input value error&raquo;</strong> senza indicare il campo è il
+          messaggio di validazione generico di GRT. Quasi sempre significa uno tra: un menù a tendina
+          calibro/proiettile/polvere lasciato sul segnaposto, un campo di lunghezza esattamente a 0,
+          oppure un&#39;incongruenza di unità (una lunghezza bossolo scritta in pollici mentre GRT si
+          aspetta mm). Controlla questi tre prima di pensare che il carico stesso sia sbagliato.</li>
+        <li><strong>Il menù inneschi con la suddivisione magnum/standard/small/large non riguarda la
+          marca.</strong> È la <em>classe di energia di combustione</em> propria di GRT, usata nel
+          modello di balistica interna — scegliere la classe sbagliata cambia la curva di pressione
+          simulata anche con la marca giusta scritta altrove.</li>
+        <li><strong>Grani contro grammi, e come leggere una curva di pressione:</strong> la carica di
+          polvere in GRT è sempre in <strong>grani</strong> internamente (1&nbsp;gr = 0,0648&nbsp;g) a
+          prescindere dall&#39;unità mostrata dalla tua installazione; l&#39;Inventario (§14) e il
+          Diario (§15) seguono entrambi l&#39;unità che mostra GRT. Sulla curva pressione/velocità che
+          GRT disegna dopo una simulazione, la pressione dovrebbe salire rapidamente a un unico picco
+          (<code>Pmax</code>, presto lungo la canna) e poi scendere in modo regolare mentre la palla
+          accelera — una seconda gobba, un plateau al picco, o un picco molto tardi lungo la canna
+          indicano di solito un input non plausibile, non un vero comportamento della polvere.</li>
+      </ul>
+    </section>
+
+    <section id="wizard">
+      <h2><span class="no">04</span>Nuovo carico guidato</h2>
+      <p>Una checklist per costruire un carico da zero, in ordine — apre lo strumento vero per ogni
+        passo (non ne reimplementa nessuno) e spunta il passo una volta che l&#39;hai aperto da qui.
+        Una casella spuntata significa &laquo;aperto da qui in questa sessione&raquo;, non
+        &laquo;verificato come fatto&raquo;: il wizard non legge GRT né il database per controllare se
+        il lavoro di un passo è davvero finito. Niente resta tra una sessione e l&#39;altra: riapri il
+        wizard e ogni casella riparte vuota.</p>
+      <p>Due percorsi, scelti con un pulsante radio in cima, perché un cartellino e una calibrazione
+        non hanno senso nello stesso ordine per entrambi i casi:</p>
+      <table><thead><tr><th></th><th>Carica singola</th><th>Test a scaletta (ladder)</th></tr></thead><tbody>
+        <tr><td><strong>Sai già</strong></td><td>l&#39;unica carica che stai caricando</td><td>ancora niente — è proprio il punto della scaletta</td></tr>
+        <tr><td><strong>1</strong></td><td>Preparazione bossoli (§11)</td><td>Preparazione bossoli (§11)</td></tr>
+        <tr><td><strong>2</strong></td><td>Cartellino / etichetta (§13) — prima di partire</td><td>Import cronografo (§5) — dopo il poligono</td></tr>
+        <tr><td><strong>3</strong></td><td>Calibrazione canna (§9) — dopo il poligono, sulla MV reale</td><td>Analizzatore Ladder / OCW (§7) — trova il nodo</td></tr>
+        <tr><td><strong>4</strong></td><td>&mdash;</td><td>Calibrazione canna (§9), sulla MV reale di quella singola carica</td></tr>
+        <tr><td><strong>5</strong></td><td>&mdash;</td><td>Cartellino / etichetta (§13) — per la carica indicata dalla scaletta</td></tr>
+      </tbody></table>
+      <p>Il cartellino del percorso ladder arriva <strong>per ultimo</strong>, dopo che Ladder/OCW ha
+        scelto l&#39;unica carica attorno a cui costruire il resto del carico — stampare un cartellino
+        prima del poligono non avrebbe senso quando ancora non sai quale delle diverse cariche
+        terrai.</p>
+    </section>
+
     <section id="chrono">
-      <h2><span class="no">03</span>Import cronografo</h2>
+      <h2><span class="no">05</span>Import cronografo</h2>
       <p>Trasforma gli export del cronografo in un tab GRT <strong>Imported Measurement</strong> (una
         <code>charge</code> per file, i colpi sotto). Una cartella di file = una scalare.</p>
       <p><strong>Supportati:</strong> Athlon Rangecraft (Velocity Pro) e Garmin Xero C1 Pro / ShotView,
@@ -273,7 +338,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="chronostats">
-      <h2><span class="no">04</span>Statistiche cronografo</h2>
+      <h2><span class="no">06</span>Statistiche cronografo</h2>
       <p>Quello che la riga AVG/SD/ES di GRT su una Measurement importata non ti dice: quanto la
         velocità media <em>vera</em> potrebbe plausibilmente discostarsi da quella misurata, quanti
         colpi servirebbero per stringere quel margine, se un colpo sembra non appartenere alla
@@ -316,15 +381,15 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="ocw">
-      <h2><span class="no">05</span>Analizzatore Ladder / OCW</h2>
+      <h2><span class="no">07</span>Analizzatore Ladder / OCW</h2>
       <p>Trova il nodo di precisione in una <strong>scalare di cariche</strong> dalle velocità al
         cronografo e dai gruppi a bersaglio.</p>
       <p><strong>I gruppi possono venire da:</strong> export Ballistic-X <code>.csv</code> (uno per
         carica, nella stessa cartella dei file del cronografo), <em>oppure</em> dai tab &laquo;Analisi
-        gruppo di colpi&raquo; di GRT stesso (vedi&nbsp;§12).</p>
+        gruppo di colpi&raquo; di GRT stesso (vedi&nbsp;§14).</p>
       <p><strong>Le velocità</strong> vengono dai file <code>*.xlsx</code> del cronografo nella
         cartella scelta. Ogni carica senza file del cronografo viene completata dalla
-        <strong>misurazione del cronografo già importata nel load aperto</strong> (§3), abbinata per
+        <strong>misurazione del cronografo già importata nel load aperto</strong> (§5), abbinata per
         peso della carica — quindi se hai fatto prima l&#39;import del cronografo, il flat-spot di
         velocità e la linea MV blu compaiono anche quando la cartella contiene solo i <code>.csv</code>
         dei bersagli. Un file del cronografo nella cartella ha sempre la precedenza per quella carica.</p>
@@ -353,7 +418,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="seating">
-      <h2><span class="no">06</span>Analizzatore profondità di seduta</h2>
+      <h2><span class="no">08</span>Analizzatore profondità di seduta</h2>
       <p>Stessa finestra e stesso flusso dell&#39;analizzatore OCW, ma l&#39;asse X è la
         <strong>profondità di seduta / salto (mm)</strong> e il segnale primario è il
         <strong>plateau della dimensione del gruppo</strong> invece del flat-spot di velocità. Il
@@ -364,13 +429,13 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="cal">
-      <h2><span class="no">07</span>Calibrazione canna</h2>
+      <h2><span class="no">09</span>Calibrazione canna</h2>
       <p>Confronta la velocità alla volata <strong>simulata</strong> da GRT con quella
         <strong>misurata</strong> su più cariche e suggerisce un ritocco del <code>Ba</code>
         (coefficiente di combustione) perché GRT combaci con la tua canna.</p>
       <h3>Flusso</h3>
       <ol class="plain">
-        <li>Prima importa le stringhe del cronografo nel load (§3).</li>
+        <li>Prima importa le stringhe del cronografo nel load (§5).</li>
         <li><strong>Load measured from GRT load</strong> — riempie la griglia con una riga per carica
           (carica + MV media misurata, dalle Measurements del load).</li>
         <li>Ottieni la MV simulata:
@@ -405,6 +470,12 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <code>Ba</code> è una frazione di percento e la dispersione residua per carica è rumore del
         cronografo, non qualcosa da inseguire. Un <code>Ba</code> corretto vale per <em>quella canna
         + quel lotto di polvere</em>.</div>
+      <div class="callout node"><b>Avviso &laquo;Ba diverso dall&#39;ultima calibrazione&raquo;:</b> se
+        il <code>Ba</code> del load aperto differisce di più del 5% dal <code>Ba</code> CALIBRATO più
+        recente che il Diario (§15) ha registrato per lo stesso calibro + polvere, un banner lo segnala
+        prima che tu faccia qualsiasi cosa. Confronta solo con le tue calibrazioni passate — il valore
+        di fabbrica di GRT per una polvere non è leggibile via API plugin — quindi il banner resta in
+        silenzio (non &laquo;a posto&raquo;) quando non hai mai calibrato quella polvere prima.</div>
 
       <h3>Shape fit (Ba + a0), quando lo scarto varia con la carica</h3>
       <p>Un singolo <code>Ba</code> può correggere solo un errore di <em>scala</em> (tutta la curva
@@ -435,7 +506,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="temp">
-      <h2><span class="no">08</span>Coefficienti temperatura polvere</h2>
+      <h2><span class="no">10</span>Coefficienti temperatura polvere</h2>
       <p>Calcola i coefficienti di temperatura della polvere <code>tcc</code> (sotto 21&nbsp;°C) e
         <code>tch</code> (sopra 21&nbsp;°C) da stringhe del cronografo di <strong>una sola
         carica</strong> sparata a <strong>temperature diverse</strong>.</p>
@@ -459,10 +530,10 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="brass">
-      <h2><span class="no">09</span>Preparazione bossoli</h2>
+      <h2><span class="no">11</span>Preparazione bossoli</h2>
       <p>Tre calcolatori, uno per tab.</p>
 
-      <h3>9a · Volume bossolo → GRT <code>casevol</code></h3>
+      <h3>11a · Volume bossolo → GRT <code>casevol</code></h3>
       <p>Inserisci i pesi di <strong>3+ bossoli sparati e disinnescati</strong>: vuoto e pieno
         d&#39;acqua (o direttamente il peso dell&#39;acqua). L&#39;acqua si pesa in <strong>grani</strong>
         o <strong>grammi</strong> (interruttore). L&#39;output è il <strong>volume medio in grani
@@ -475,7 +546,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           SD / intervallo vanno nella nota.</li>
       </ul>
 
-      <h3>9b · Profondità di seduta → GRT <code>gdepth</code></h3>
+      <h3>11b · Profondità di seduta → GRT <code>gdepth</code></h3>
       <p>Inserisci <strong>CBTO</strong> (base cartuccia-ogiva, cartuccia carica), <strong>lunghezza
         bossolo</strong>, <strong>BBTO</strong> (base palla-ogiva, palla nuda). Misura CBTO e BBTO con
         lo <strong>stesso inserto comparatore</strong>. Unità mm o pollici.</p>
@@ -487,7 +558,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <strong>Write seating depth to GRT load</strong> imposta <code>gdepth</code>; GRT ricalcola
         la COAL da lì.</p>
 
-      <h3>9c · Dimensionamento colletto / bushing</h3>
+      <h3>11c · Dimensionamento colletto / bushing</h3>
       <p>Inserisci diametro palla, spessore parete del colletto, <strong>interferenza (grip)</strong>
         desiderata, e facoltativamente un <strong>diametro esterno colletto caricato misurato</strong>
         (0 = stimato come diametro palla + 2×parete). Unità <strong>pollici</strong> di default (i
@@ -501,8 +572,8 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="seatingforce">
-      <h2><span class="no">10</span>Stima forza di seduta (QC)</h2>
-      <p>Uno strumento a parte (una sua voce sotto &laquo;PLAN &amp; PREPARE&raquo;, non un tab di
+      <h2><span class="no">12</span>Stima forza di seduta (QC)</h2>
+      <p>Uno strumento a parte (una sua voce sotto &laquo;PRIMA DEL POLIGONO&raquo;, non un tab di
         Preparazione bossoli) — stima la forza attesa di seduta della palla (press-fit), per la soglia
         di sicurezza &laquo;pressione massima&raquo; di una pressa QC, portato dal progetto Pressa QC
         e dal suo stesso stimatore. Ogni campo di lunghezza (diametro palla, ID colletto, profondità
@@ -528,7 +599,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="card">
-      <h2><span class="no">11</span>Cartellino / etichette</h2>
+      <h2><span class="no">13</span>Cartellino / etichette</h2>
       <p><strong>Cartellino ricetta (A6)</strong> o <strong>etichette per scatola</strong>
         stampabili, ciascuno con un <strong>QR code</strong> della ricetta completa.</p>
       <ul>
@@ -536,9 +607,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           palla + peso, polvere, carica, COAL, profondità di seduta, e MV/SD dall&#39;ultima
           misurazione).</li>
         <li>Menù a tendina <strong>lotto Polvere / InneSco / Bossolo / Palla</strong> — scegli un lotto
-          dall&#39;inventario (§12) per calcolare il <strong>costo per colpo</strong> e stampare il
+          dall&#39;inventario (§14) per calcolare il <strong>costo per colpo</strong> e stampare il
           lotto sul cartellino.</li>
-        <li>Menù a tendina <strong>Barrel</strong> — scegli una canna dall&#39;inventario (§12) e il
+        <li>Menù a tendina <strong>Barrel</strong> — scegli una canna dall&#39;inventario (§14) e il
           cartellino guadagna una riga <strong>Barrel</strong>: nome, passo di rigatura e lunghezza,
           nelle unità di GRT. La stessa ricetta sparata da una canna diversa è un load diverso, quindi
           il cartellino, il QR e la nota load-sheet dicono quale era. Una canna senza passo né lunghezza
@@ -553,8 +624,11 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="log">
-      <h2><span class="no">12</span>Inventario e diario</h2>
-      <p>Un piccolo database SQLite in <code>%AppData%\GRTPlugins\reloading_log.db</code>. Quattro tab.</p>
+      <h2><span class="no">14</span>Inventario</h2>
+      <p>Un piccolo database SQLite in <code>%AppData%\GRTPlugins\reloading_log.db</code>, condiviso
+        con il Diario di carico (§15) e Trova miglior Ba (§16) &mdash; tre finestre separate sullo
+        stesso file, quindi qualsiasi cosa registrata in una compare nelle altre appena quella finestra
+        torna in primo piano. Tre tab.</p>
       <ul>
         <li><strong>Inventory</strong> — scorte di polvere / inneschi / bossoli / palle / canne con id lotto,
           prezzo e (per i bossoli) un contatore <em>usi previsti</em> che ammortizza il costo del
@@ -572,40 +646,21 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           <code>oal</code> nella sua mappa di unit&agrave;) e memorizzate comunque in metrico &mdash;
           quindi una canna 1:8 appare come <code>1:8 in</code> accanto a <code>26.0000 in</code> su
           un&#39;installazione imperiale e come <code>1:203.2 mm</code> accanto a
-          <code>660.4000 mm</code> su una metrica. Entrambe sono facoltative.</li>
-        <li><strong>Journal</strong> — una riga per sessione al poligono o lotto caricato: data, load,
-          calibro, arma, carica, colpi, MV, SD, gruppo MOA, distanza, note, <strong>costo per
-          colpo</strong> dai lotti collegati, e le <strong>condizioni ambientali + i coefficienti di
-          polvere calibrati</strong> per quella sessione: temperatura (C o F, menù proprio), pressione
-          (hPa o inHg, menù proprio) e umidità % — spunta <em>environment recorded</em> per salvarle,
-          dato che GRT stesso non traccia nessuna di queste (controllato ogni campo di un
-          <code>.grtload</code> reale: nessun tag del genere da nessuna parte) — e <code>Ba</code>/
-          <code>a0</code>, i valori a cui è arrivato il fit della Calibrazione canna per quella
-          sessione. <strong>Log from GRT</strong> precompila tutto dal load aperto (compresi
-          <code>Ba</code>/<code>a0</code>, se la Calibrazione canna li ha scritti lì). Modificare o
-          cancellare una voce riconcilia l&#39;inventario; spunta <em>deduct components from
-          inventory on save</em> per scalare le scorte. <strong>Recupera Ba dai load</strong> serve
-          per un diario scritto prima che <code>Ba</code>/<code>a0</code> venissero memorizzati: per
-          ogni voce senza <code>Ba</code> che indica ancora un <code>.grtload</code>, rilegge il
-          valore da quel file. Elenca ciò che ha trovato e ciò che lascia invariato (load spostato,
-          mai calibrato, non si apre) e aspetta un sì prima di scrivere; non sovrascrive mai un
-          <code>Ba</code> scritto da te, e eseguirlo due volte non fa nulla la seconda. Per
-          annullarne uno, modifica quella voce e riporta il suo <code>Ba</code> a 0.</li>
-        <li><strong>Find best Ba</strong> — cerca nel diario le voci che portano un <code>Ba</code>
-          calibrato, filtrate su una combinazione calibro + polvere + proiettile (un <code>Ba</code>
-          da una combinazione diversa non è confrontabile), ordinate secondo quello che &laquo;il
-          migliore&raquo; significa per te: <strong>gruppo più stretto (MOA)</strong>,
-          <strong>velocità più vicina a un target</strong>, o <strong>temperatura più vicina a un
-          target</strong> (anche in C o F). Sola lettura — cerca in quello che il Journal ha già
-          registrato, non è un posto dove inserire nuovi dati. L&#39;elenco dei calibri è costruito
-          dalle voci del diario che portano un <code>Ba</code>, quindi una voce registrata prima che
-          quel campo esistesse non ci mette nulla: compila il suo <strong>Ba (calibrated)</strong>,
-          oppure esegui <strong>Recupera Ba dai load</strong> (entrambi sotto <em>Journal</em>
-          sopra), e il suo calibro compare.</li>
+          <code>660.4000 mm</code> su una metrica. Entrambe sono facoltative. Un lotto di bossoli
+          accetta anche un contatore <strong>ricuoci ogni</strong> (0 = nessun promemoria).</li>
         <li><strong>Firearms</strong> — una riga per canna: conteggio colpi totale
           (<code>rounds before</code> + colpi del diario), numero di voci MV, ultimo uso. Add / Edit /
           Retire, e un <strong>grafico deriva MV</strong> (velocità alla volata vs colpi cumulativi
           con linea di tendenza — &laquo;+X m/s ogni 100 rd&raquo;).</li>
+        <li><strong>Vita Bossoli</strong> — una riga per lotto di bossoli: pezzi, colpi sparati totali
+          (sommati da ogni voce del Diario che indica quel lotto), <strong>usi medi per pezzo</strong>
+          (colpi ÷ pezzi — una media a livello di lotto che assume una rotazione più o meno uniforme
+          tra i bossoli, non un conteggio per singolo pezzo, dato che non esiste un log per-colpo con
+          l&#39;identità del bossolo), usi dall&#39;ultima ricottura, e uno stato tra <strong>OK</strong>,
+          <strong>Da ricuocere</strong> (usi dall&#39;ultima ricottura ≥ il contatore ricuoci-ogni del
+          lotto) o <strong>Da ritirare</strong> (usi medi ≥ gli <em>usi previsti</em> del lotto).
+          <strong>Segna come ricotto ora</strong> azzera il contatore di ricottura riportandolo alla
+          media attuale del lotto.</li>
       </ul>
 
       <h3>Usare i tab &laquo;gruppo di colpi&raquo; di GRT come sorgente</h3>
@@ -629,10 +684,59 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         100&nbsp;m).</p>
     </section>
 
+    <section id="journal">
+      <h2><span class="no">15</span>Diario di carico</h2>
+      <p>Una finestra a sé (prima era un tab dentro Inventario — separata perché non passasse
+        inosservata e non venisse scambiata per una schermata di gestione scorte). Una riga per
+        sessione al poligono o lotto caricato: data, load, calibro, arma, carica, colpi, MV, SD, gruppo
+        MOA, distanza, note, <strong>costo per colpo</strong> dai lotti collegati, e le condizioni
+        ambientali + i coefficienti di polvere calibrati per quella sessione:</p>
+      <ul>
+        <li><strong>Temperatura</strong> (C o F, menù proprio) e <strong>pressione</strong> (hPa o
+          inHg, menù proprio) e <strong>umidità %</strong> — spunta <em>environment recorded</em> per
+          salvarle; GRT stesso non traccia nessuna di queste (controllato ogni campo di un
+          <code>.grtload</code> reale: nessun tag del genere da nessuna parte), quindi si scrivono
+          sempre a mano, mai lette dal load. Il Modello Velocità (§20) ha bisogno di questo campo
+          compilato su almeno una manciata di voci per avere qualcosa da adattare.</li>
+        <li><strong>Ba</strong> e <strong>a0</strong> — i valori a cui è arrivato il fit della
+          Calibrazione canna per quella sessione. <strong>Log from GRT</strong> li legge direttamente
+          dal load aperto se hai lanciato lì prima <em>Write Ba-corrected</em> o <em>Write
+          Ba+a0-corrected .grtload</em> ed è il load ora aperto; altrimenti scrivili a mano.</li>
+        <li><strong>Recupera Ba dai load</strong> serve per un diario scritto prima che
+          <code>Ba</code>/<code>a0</code> venissero memorizzati: per ogni voce senza <code>Ba</code>
+          che indica ancora un <code>.grtload</code>, rilegge il valore da quel file. Elenca ciò che ha
+          trovato e ciò che lascia invariato (load spostato, mai calibrato, non si apre) e aspetta un
+          sì prima di scrivere; non sovrascrive mai un <code>Ba</code> scritto da te, e eseguirlo due
+          volte non fa nulla la seconda. Per annullarne uno, modifica quella voce e riporta il suo
+          <code>Ba</code> a 0.</li>
+      </ul>
+      <p><strong>New</strong>, <strong>Log from GRT</strong> (precompila dal load aperto — legge
+        qualsiasi <code>.grtload</code> sia in primo piano in GRT, quindi controlla che sia il tab GRT
+        giusto se ne tieni aperti diversi), <strong>Edit</strong>, <strong>Delete</strong>,
+        <strong>Fill Ba from loads</strong>. Modificare o cancellare una voce riconcilia
+        l&#39;inventario. Spunta <em>deduct components from inventory on save</em> per scalare le
+        scorte.</p>
+    </section>
+
+    <section id="findba">
+      <h2><span class="no">16</span>Trova miglior Ba</h2>
+      <p>Una finestra a sé (separata da Inventario per lo stesso motivo del Diario qui sopra). Cerca
+        nel Diario le voci che portano un <code>Ba</code> calibrato, filtrate su una combinazione
+        calibro + polvere + proiettile (un <code>Ba</code> da una combinazione diversa non è
+        confrontabile), ordinate secondo quello che &laquo;il migliore&raquo; significa per te:
+        <strong>gruppo più stretto (MOA)</strong>, <strong>velocità più vicina a un target</strong>, o
+        <strong>temperatura più vicina a un target</strong> (anche in C o F). Sola lettura — cerca in
+        quello che il Diario ha già registrato, non è un posto dove inserire nuovi dati. L&#39;elenco
+        dei calibri è costruito dalle voci del diario che portano un <code>Ba</code>, quindi una voce
+        registrata prima che quel campo esistesse non ci mette nulla: compila il suo <strong>Ba
+        (calibrated)</strong>, oppure esegui <strong>Recupera Ba dai load</strong> (entrambi nel
+        Diario, §15), e il suo calibro compare.</p>
+    </section>
+
     <section id="leaderboard">
-      <h2><span class="no">13</span>Classifica delle Cariche</h2>
-      <p>Un tool a sé stante nella propria sezione del launcher (&ldquo;VALUTA LE TUE
-        CARICHE&rdquo;) &mdash; classifica <strong>ogni carica mai registrata</strong> nel Diario,
+      <h2><span class="no">17</span>Classifica delle Cariche</h2>
+      <p>Un tool a sé stante nella sezione &laquo;DOPO IL POLIGONO&raquo; del launcher &mdash;
+        classifica <strong>ogni carica mai registrata</strong> nel Diario,
         non una sola combinazione calibro/polvere/proiettile alla volta come <em>Trova miglior
         Ba</em>. Le cariche sono raggruppate per calibro + polvere + proiettile + peso della carica
         (la stessa ricetta testata in più giornate al poligono resta una sola carica, non diverse) e
@@ -678,12 +782,12 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="workflow">
-      <h2><span class="no">14</span>Workflow Distanze</h2>
-      <p>Un secondo tool a sé stante in &ldquo;VALUTA LE TUE CARICHE&rdquo;, accanto alla Classifica
-        delle Cariche. A prima vista sembra la stessa griglia e lo stesso punteggio da 0 a 10 &mdash;
+      <h2><span class="no">18</span>Workflow Distanze</h2>
+      <p>Un secondo tool a sé stante accanto alla Classifica delle Cariche, in &laquo;DOPO IL
+        POLIGONO&raquo;. A prima vista sembra la stessa griglia e lo stesso punteggio da 0 a 10 &mdash;
         ed è davvero lo stesso motore di punteggio &mdash; ma risponde a una domanda diversa, e i due
         tool sono facili da confondere a un primo sguardo:</p>
-      <table><thead><tr><th></th><th>Classifica delle Cariche (§13)</th><th>Workflow Distanze</th></tr></thead><tbody>
+      <table><thead><tr><th></th><th>Classifica delle Cariche (§17)</th><th>Workflow Distanze</th></tr></thead><tbody>
         <tr><td><strong>Domanda a cui risponde</strong></td><td>&ldquo;Di tutto ciò che ho mai testato per questo calibro, qual è il migliore in assoluto?&rdquo;</td><td>&ldquo;Delle cariche testate <strong>oggi a questa distanza</strong>, quale merita un test alla distanza successiva?&rdquo; (100&nbsp;m &rarr; 300&nbsp;m, ad esempio)</td></tr>
         <tr><td><strong>Ambito</strong></td><td>Ogni carica mai registrata, qualsiasi distanza, aggregata</td><td>Solo le cariche registrate a <strong>una distanza selezionata</strong></td></tr>
         <tr><td><strong>Punteggio</strong></td><td>Include un termine di <strong>coerenza</strong> tra sessioni (questa carica è rimasta stabile nel tempo?)</td><td>Nessun termine di coerenza &mdash; una decisione presa in giornata non va penalizzata per la <em>storia</em> di una carica</td></tr>
@@ -705,10 +809,80 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         pagina report corrispondente.</p>
     </section>
 
+    <section id="powdercompare">
+      <h2><span class="no">19</span>Confronto Polveri</h2>
+      <p>Un tool a sé stante, un gradino più largo della Classifica delle Cariche: invece di
+        classificare ricette esatte (calibro + polvere + proiettile + carica), raggruppa per
+        <strong>calibro + polvere soltanto</strong> e chiede &laquo;delle polveri che ho davvero
+        calibrato qui, quale tende a darmi risultati migliori?&raquo; Punteggio calcolato allo stesso
+        modo da 0 a 10 della Classifica, sugli stessi dati del Diario.</p>
+      <p>Non può considerare una polvere mai provata: il database polveri di fabbrica di GRT è un
+        unico file binario opaco che l&#39;API plugin non ha modo di elencare, quindi una polvere mai
+        provata semplicemente non è confrontabile qui &mdash; ciò che È confrontabile, le polveri che
+        hai davvero calibrato, è anche la domanda più solida, dato che i numeri predetti da GRT per una
+        polvere mai provata non sono più affidabili dei suoi stessi dati di fabbrica (che la community
+        GRT segnala come non aggiornati dalla morte di Gordon nel 2022).</p>
+      <p><strong>Compare</strong> gira all&#39;apertura e di nuovo su richiesta. <strong>Scrivi nota
+        confronto sul load GRT</strong> confronta all&#39;interno del calibro del load APERTO (a
+        prescindere dal filtro a schermo), trova la polvere di quel load nella classifica, e aggiunge
+        una riga che nessun altro tool ha: come il <code>Ba</code> di questo file si confronta con la
+        media di ogni altra volta che questa polvere è stata calibrata &mdash; la cosa più vicina a un
+        avviso di <code>Ba</code> potenzialmente obsoleto che questo plugin può dare senza accesso al
+        valore di fabbrica di GRT.</p>
+    </section>
+
+    <section id="velocitymodel">
+      <h2><span class="no">20</span>Modello Velocità</h2>
+      <p>Un fit empirico <code>MV ≈ a + b·carica + c·temperatura</code> dalle tue stesse sessioni
+        registrate nel Diario, per una combinazione calibro + polvere + proiettile &mdash;
+        deliberatamente <strong>indipendente dal modello fisico di GRT</strong> (nessun
+        <code>Ba</code>/<code>a0</code>/<code>tcc</code>/<code>tch</code> da nessuna parte), quindi è
+        un controllo incrociato sui dati misurati da confrontare con i numeri simulati/calibrati di
+        GRT, non un sostituto della Calibrazione canna (§9, calibra <code>Ba</code>, non ha bisogno di
+        variazione di temperatura) o dei Coefficienti temperatura polvere (§10, calibrano
+        <code>tcc</code>/<code>tch</code> di GRT, non hanno bisogno di variazione di carica).</p>
+      <p>Un fit a 2 variabili ha bisogno che <strong>sia</strong> la carica <strong>sia</strong> la
+        temperatura varino tra le tue sessioni registrate, <strong>e</strong> che varino in modo un
+        po&#39; indipendente l&#39;una dall&#39;altra &mdash; bloccata su una sola carica, o ogni
+        sessione sparata alla stessa temperatura, o carica e temperatura che finiscono per seguirsi a
+        vicenda in ogni sessione, rendono tutti il fit irrecuperabile. Lo strumento dice esattamente
+        quale di queste manca invece di restituire un numero di cui non può rispondere; servono almeno
+        5 sessioni registrate con carica, temperatura E una velocità misurata tutte presenti (§15 —
+        spunta <em>environment recorded</em> e compila la temperatura).</p>
+      <p>Una volta calcolato il fit: <strong>Prevedi MV per carica</strong> (data una carica +
+        temperatura) e <strong>Carica necessaria per MV</strong> (l&#39;inverso &mdash; la carica che
+        dovrebbe raggiungere una velocità target a una data temperatura) lavorano entrambi sullo
+        stesso fit. <strong>Scrivi nota modello su load GRT</strong> scrive il fit stesso (formula,
+        numero di campioni, R²) in una nota &mdash; non una previsione per il load aperto, dato che GRT
+        non porta alcun campo di temperatura ambiente su un load (solo il Diario lo fa).</p>
+      <div class="callout">Sempre nelle unità native di GRT — grani / °C / m/s — a prescindere
+        dall&#39;unità che GRT mostra altrove: i coefficienti di un fit a 2 assi hanno senso solo
+        insieme alle unità in cui sono stati calcolati, e il punto di questo strumento è la correttezza
+        numerica.</div>
+    </section>
+
+    <section id="diagnostics">
+      <h2><span class="no">21</span>Diagnostica Avanzata</h2>
+      <p>Sei diagnostiche in un solo strumento, nessuna delle quali richiede un <code>Ba</code>
+        calibrato. Cinque leggono le stringhe del cronografo dal load aperto in GRT (stesso lettore
+        delle Statistiche cronografo); una legge il Diario.</p>
+      <table><thead><tr><th>Tab</th><th>Legge</th><th>Segnala</th></tr></thead><tbody>
+        <tr><td>Fouling Tracker</td><td>i colpi di una stringa in ordine</td><td>una SD crescente / velocità in calo mentre la stringa procede (incrostazione della canna)</td></tr>
+        <tr><td>Cold Bore</td><td>il primo colpo di una stringa contro il resto</td><td>un&#39;euristica z-score onestamente etichettata come tale, non un test di significatività rigoroso</td></tr>
+        <tr><td>Primer Sensitivity</td><td>più stringhe, stessa carica</td><td>SD/ES confrontate tra lotti di inneschi (usa il nome GRT di ogni stringa come etichetta del lotto)</td></tr>
+        <tr><td>Neck Tension Correlation</td><td>più stringhe nominate per tensione (es. &laquo;0.05&raquo;, &laquo;0.10&raquo;)</td><td>correlazione di Pearson tra tensione del colletto e ES/SD della velocità &mdash; serve che le stringhe siano davvero nominate per tensione perché abbia senso</td></tr>
+        <tr><td>Pressure Trend</td><td>una scalare di cariche</td><td>appiattimento della pendenza velocità/carica &mdash; fps-per-grano in calo al salire della carica segnala l&#39;avvicinarsi a un limite di pressione, un segnale diverso sia dal flat-spot del Ladder sia dal nodo OCW</td></tr>
+        <tr><td>Session Trend</td><td>il Diario</td><td>deriva di SD / ES / velocità tra sessioni RIPETUTE della stessa carica nel tempo &mdash; SD/ES in crescita sessione dopo sessione segnala polvere, inneschi o canna in degrado</td></tr>
+      </tbody></table>
+      <p><strong>Scrivi nota diagnostica sul load GRT</strong> scrive il risultato di ogni tab in
+        un&#39;unica nota; un tab senza nulla da segnalare stampa &laquo;Nessuna tendenza
+        preoccupante&raquo; invece di lasciare la sua sezione vuota.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">15</span>Template report GRT</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive undici pagine
-        di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
+      <h2><span class="no">22</span>Template report GRT</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive quattordici
+        pagine di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
         dei report. Va lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
         stesso). È idempotente e non distruttivo; per cancellare una pagina la salvi vuota in GRT.</p>
       <table><thead><tr><th>Pagina</th><th>Recupera</th></tr></thead><tbody>
@@ -723,10 +897,14 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Load sheet</td><td>ricetta + predetto + nota costo</td></tr>
         <tr><td>Load leaderboard report</td><td>la nota posizione/punteggio in classifica</td></tr>
         <tr><td>Distance workflow report</td><td>la nota posizione/punteggio nel workflow</td></tr>
+        <tr><td>Powder compare report</td><td>la nota posizione/punteggio confronto polveri</td></tr>
+        <tr><td>Advanced diagnostics report</td><td>la nota di tutte e sei le diagnostiche</td></tr>
+        <tr><td>Velocity model report</td><td>la nota del fit empirico</td></tr>
       </tbody></table>
       <p>Ogni strumento che scrive una nota ha ora una sua pagina dedicata, tranne <strong>Stima
-        forza di seduta (QC)</strong> (§10) &mdash; uno stimatore QC a sé stante senza alcun
-        collegamento a GRT, quindi non c&#39;è nulla da recuperare in un report.</p>
+        forza di seduta (QC)</strong> (§12) e il <strong>wizard Nuovo carico guidato</strong> (§4)
+        &mdash; lo stimatore QC non ha alcun collegamento a GRT, e il wizard si limita ad aprire altri
+        strumenti, non scrive mai nulla di suo.</p>
       <div class="callout"><b>Per vedere un report:</b> pannello Risultati → <strong>+</strong> (nuovo
         tab) → <strong>Add report</strong> → scegli una pagina &laquo;Toolkit — …&raquo;. Aprilo
         <strong>sullo snapshot <code>…_toolkit_…grtload</code></strong> — è lì che stanno le note e i
@@ -735,7 +913,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="cli">
-      <h2><span class="no">16</span>Riga di comando</h2>
+      <h2><span class="no">23</span>Riga di comando</h2>
       <p>Punti di ingresso di debug sull&#39;exe
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">autotest inventario / diario (scrive dati fittizi in
@@ -762,7 +940,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="faq">
-      <h2><span class="no">17</span>Limiti e FAQ</h2>
+      <h2><span class="no">24</span>Limiti e FAQ</h2>
       <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
       <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
         aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;
@@ -774,10 +952,10 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         è dentro il rumore del cronografo.</p>
       <h3>&laquo;No usable shot groups in that load.&raquo;</h3>
       <p>Il tuo load non ha tab &laquo;gruppo di colpi&raquo; di GRT — hai analizzato i gruppi in
-        Ballistic-X. Usa il percorso <code>.csv</code>, o crea prima i gruppi in GRT (§12).</p>
+        Ballistic-X. Usa il percorso <code>.csv</code>, o crea prima i gruppi in GRT (§14).</p>
       <h3>Lo strumento coefficienti temperatura non attiva &laquo;Write&raquo;.</h3>
       <p>Serve una carica a più temperature, non una scalare.</p>
-      <h3>Un&#39;icona sola in barra, non dieci.</h3>
+      <h3>Un&#39;icona sola in barra, non diciotto.</h3>
       <p>È voluto — apre il launcher; ogni strumento è un pulsante lì. Le modifiche al manifest
         richiedono un riavvio di GRT per comparire.</p>
       <h3>Numeri</h3>
@@ -789,6 +967,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.10 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.11 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>
