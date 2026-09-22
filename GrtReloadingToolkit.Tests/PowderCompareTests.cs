@@ -46,8 +46,8 @@ public sealed class PowderCompareTests
         Assert.Equal(8, row.Sd!.Value, 6); // averaged across both charges
     }
 
-    /// <summary>A charge repeated across range days is still one recipe, not two -- Recipes counts
-    /// distinct charge weights, Sessions counts journal rows.</summary>
+    /// <summary>The same recipe shot again on another range day is still one recipe, not two --
+    /// Recipes counts distinct bullet+charge combinations, Sessions counts journal rows.</summary>
     [Fact]
     public void TheSameChargeLoggedTwiceIsOneRecipeButTwoSessions()
     {
@@ -57,6 +57,79 @@ public sealed class PowderCompareTests
 
         Assert.Equal(1, row.Recipes);
         Assert.Equal(2, row.Sessions);
+    }
+
+    /// <summary>The same charge under two different bullets is two recipes, not one. A recipe is
+    /// caliber+powder+bullet+charge -- LeaderboardRanking's group key, and the definition all four
+    /// manuals give the reader. Counting charge weights alone hid the bullet, so a powder worked up
+    /// across two projectiles reported half the recipes it had actually been tried in.</summary>
+    [Fact]
+    public void TheSameChargeUnderTwoBulletsIsTwoRecipes()
+    {
+        var journal = new[]
+        {
+            Entry(powder: 1, bullet: 10, charge: 40.0),
+            Entry(powder: 1, bullet: 20, charge: 40.0),
+        };
+
+        var row = Assert.Single(PowderCompare.Compare(journal, Names, null, None));
+
+        Assert.Equal(2, row.Recipes);
+        Assert.Equal(2, row.Sessions);
+    }
+
+    /// <summary>Bullet and charge together make the recipe, so varying both counts every combination
+    /// -- two bullets at two charges is four recipes, not two.</summary>
+    [Fact]
+    public void BulletAndChargeCountAsAPair()
+    {
+        var journal = new[]
+        {
+            Entry(bullet: 10, charge: 40.0), Entry(bullet: 10, charge: 41.5),
+            Entry(bullet: 20, charge: 40.0), Entry(bullet: 20, charge: 41.5),
+        };
+
+        var row = Assert.Single(PowderCompare.Compare(journal, Names, null, None));
+
+        Assert.Equal(4, row.Recipes);
+    }
+
+    /// <summary>A bullet the journal never recorded is a bullet in its own right, not a match for
+    /// every other unrecorded one merged together -- but it IS one recipe with itself, so an
+    /// unbulleted journal still counts by charge exactly as it did before.</summary>
+    [Fact]
+    public void EntriesWithNoBulletStillCountByCharge()
+    {
+        var journal = new[]
+        {
+            Entry(bullet: null, charge: 40.0), Entry(bullet: null, charge: 40.0),
+            Entry(bullet: null, charge: 41.5),
+        };
+
+        var row = Assert.Single(PowderCompare.Compare(journal, Names, null, None));
+
+        Assert.Equal(2, row.Recipes);
+        Assert.Equal(3, row.Sessions);
+    }
+
+    /// <summary>Recipes counts within its own caliber+powder row, never across rows. The two powders
+    /// here were worked up differently on purpose -- one across two charges, one at a single charge --
+    /// so a count pooled over the whole journal would report three on both rows instead of two and one.
+    /// </summary>
+    [Fact]
+    public void RecipesAreCountedPerRowNotAcrossThem()
+    {
+        var journal = new[]
+        {
+            Entry(powder: 1, bullet: 10, charge: 40.0),
+            Entry(powder: 1, bullet: 10, charge: 41.5),
+            Entry(powder: 2, bullet: 10, charge: 42.0),
+        };
+
+        var rows = PowderCompare.Compare(journal, Names, null, None);
+
+        Assert.Equal(2, Assert.Single(rows, r => r.PowderId == 1).Recipes);
+        Assert.Equal(1, Assert.Single(rows, r => r.PowderId == 2).Recipes);
     }
 
     /// <summary>Different powders in the same caliber stay separate rows -- the whole reason to run
