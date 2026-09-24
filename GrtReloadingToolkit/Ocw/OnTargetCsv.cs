@@ -5,7 +5,7 @@ namespace GrtReloadingToolkit.Ocw;
 
 public sealed record Impact(double XMoa, double YMoa);
 
-/// <summary>One target group parsed from a Ballistic-X "Carica &lt;n&gt;.csv" export.</summary>
+/// <summary>One target group parsed from an OnTarget "Carica &lt;n&gt;.csv" export.</summary>
 public sealed class TargetGroup
 {
     public required string SourceFile { get; init; }
@@ -54,14 +54,21 @@ public sealed class TargetGroup
     public double VerticalSpreadMoa
         => Impacts.Count > 0 ? Impacts.Max(i => i.YMoa) - Impacts.Min(i => i.YMoa) : 0;
 
+    /// <summary>Horizontal spread of impacts (max X − min X), MOA.</summary>
+    public double HorizontalSpreadMoa
+        => Impacts.Count > 0 ? Impacts.Max(i => i.XMoa) - Impacts.Min(i => i.XMoa) : 0;
+
     private static double Dist(Impact a, Impact b)
         => Math.Sqrt((a.XMoa - b.XMoa) * (a.XMoa - b.XMoa) + (a.YMoa - b.YMoa) * (a.YMoa - b.YMoa));
 
     /// <summary>1 true MOA at 100 m ≈ 29.089 mm.</summary>
     public static double MoaToMm(double moa, double distanceM) => moa * 29.0888 * (distanceM / 100.0);
+
+    /// <summary>Inverse of <see cref="MoaToMm"/>: a physical mm offset at a given distance, as MOA.</summary>
+    public static double MmToMoa(double mm, double distanceM) => distanceM <= 0 ? 0 : mm / (29.0888 * (distanceM / 100.0));
 }
 
-public static class BallisticXCsv
+public static class OnTargetCsv
 {
     // header: Project Title,Group,Ammunition,Distance,Aim X,Aim Y,Center X,Center Y,Point X,Point Y,Velocity
     public static TargetGroup Parse(string path)

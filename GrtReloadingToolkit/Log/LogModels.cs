@@ -160,3 +160,25 @@ public sealed class Firearm
     public int RoundsBefore { get; set; }
     public bool Retired { get; set; }
 }
+
+/// <summary>
+/// One fired-case head-diameter reading at the 0.200"-from-head line, taken with a case gauge or
+/// micrometer -- the classic manual "pressure sign" measurement: read enough charges of the same
+/// powder through the same firearm and a sudden acceleration in expansion, well before GRT's own
+/// simulated pressure numbers say anything, is a real warning a chronograph and a target alone won't
+/// show. See <see cref="PressureSign"/> for the trend/acceleration logic built on top of this log.
+/// Keyed by <see cref="FirearmId"/> + <see cref="PowderId"/> (not by JournalEntry): a reading is
+/// normally taken case-in-hand at the bench, often before a session is even logged, and mixing two
+/// different powders' expansion into one trend would be meaningless -- the same reason
+/// <see cref="PressureSign"/> only ever compares readings within one firearm+powder group.
+/// </summary>
+public sealed class CaseHeadMeasurement
+{
+    public long Id { get; set; }
+    public string Date { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
+    public long FirearmId { get; set; }
+    public long? PowderId { get; set; }
+    public double ChargeGr { get; set; }
+    public double HeadDiameterMm { get; set; }
+    public string Notes { get; set; } = "";
+}

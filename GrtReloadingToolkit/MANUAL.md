@@ -16,7 +16,7 @@ set of printable GRT report templates into one window.
 3. A single toolbar button **"Reloading Toolkit"** (wrench + screwdriver icon) and a matching entry
    in the **Plugin** menu appear. Click either — a small **launcher** window opens with one button
    per tool.
-4. Optional: in the launcher, click **"Install GRT report templates"** once (see §23).
+4. Optional: in the launcher, click **"Install GRT report templates"** once (see §26).
 
 The toolkit is *on-demand*: GRT starts it on the first click and it exits when you close its last
 window. All tool windows are served by one background process, so opening a second tool while one is
@@ -239,7 +239,7 @@ Finds the accuracy node in a **charge ladder** from chronograph velocities and t
 
 **Two data sources for the groups:**
 
-- **Ballistic-X `.csv` exports** — put them in the same folder as the chrono files, one per charge.
+- **OnTarget `.csv` exports** — put them in the same folder as the chrono files, one per charge.
 - **GRT's own "Shot group" tabs** — see §14.
 
 **Velocities** come from the chrono `*.xlsx` in the picked folder. Any charge that has no chrono
@@ -252,7 +252,7 @@ folder always wins over the load's own numbers for that charge.
 
 | Control | Effect |
 |---|---|
-| **Pick ladder folder…** | Folder with chrono `*.xlsx` + Ballistic-X `Carica *.csv`, one pair per charge. |
+| **Pick ladder folder…** | Folder with chrono `*.xlsx` + OnTarget `Carica *.csv`, one pair per charge. |
 | **w POI**, **w MV**, **window** | Analysis weights and the node width (3–5 steps). |
 | **Re-analyze** | Recompute with the current weights. |
 | **Groups from GRT load** | Read the group data from GRT's Shot-group tabs instead of `.csv` (with the two unit boxes + *drop flyers*, see §14). |
@@ -269,7 +269,7 @@ spread (MOA). The recommended node is shaded green.
 - **Recommended node:** a weighted blend of MV flatness + POI stability + group size + SD.
 
 The report and chart are written as `~~result.Note("OCW Analysis")~~` and
-`~~result.picture.ocw_chart.png~~` — see §23.
+`~~result.picture.ocw_chart.png~~` — see §26.
 
 > Always confirm a node with a fresh group before committing. SD here is population SD (n).
 
@@ -464,7 +464,7 @@ Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** o
 
 A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`, shared with the Load Journal
 (§15) and Find best Ba (§16) — three separate windows over the same file, so anything logged in one
-shows up in the others the next time each window gets focus. Three tabs.
+shows up in the others the next time each window gets focus. Four tabs.
 
 - **Inventory** — powder / primer / brass / bullet / barrel stock with lot id, price and (for
   brass) an *expected uses* count that amortises the case cost. **Add / Edit / Restock / Archive**.
@@ -490,6 +490,13 @@ shows up in the others the next time each window gets focus. Three tabs.
   case-id log exists), uses since the last anneal, and a status of **OK**, **Anneal due** (uses
   since last anneal ≥ the lot's anneal-every count) or **Retire** (average uses ≥ the lot's
   *expected uses*). **Mark annealed now** resets the anneal counter to the lot's current average.
+- **Pressure Signs** — logs fired-case head diameter at the 0.200"-from-head line, per firearm and
+  powder, one reading per charge tested. Flags a charge-to-charge step whose expansion rate
+  accelerates well beyond that same ladder's own earlier average (2× by default, editable) — a
+  self-referential comparison on purpose, since brass lot, chamber and caliber all affect the
+  absolute expansion rate too much for one universal threshold to mean anything. **Add / Edit /
+  Delete**, filtered by firearm then by powder, with a diameter-vs-charge chart highlighting the
+  flagged step(s) in red.
 
 ### Using GRT's Shot-group tabs as an analyzer source
 
@@ -734,9 +741,115 @@ note, with the leave-one-out bar chart attached as a picture.
 
 ---
 
-## 23. GRT report templates
+## 23. Group Analysis  🎯📐
 
-**Install GRT report templates** (launcher / Plugin menu) writes fifteen DokuWiki report pages into
+SD Root-Cause (§22) diagnoses one chronograph string; this is its 2D sibling — for one shot
+**group**, is the dispersion actually good, how much should you trust that read given the sample
+size, and what specific problem (if any) explains a shot or a pattern dragging it down.
+
+**Three ways to load a group**, all producing the same internal group so every metric below works
+identically regardless of source:
+
+| Source | Use when |
+|---|---|
+| **OnTarget CSV** (one file, or a folder of them) | you photograph/scan targets and calibrate in OnTarget |
+| **GRT's own Shot-group tabs** | you already build groups inside GRT (see §14's note on that workflow) |
+| **Manual entry** | calipers on a printed target, or any other software — type X/Y per shot, in mm or inch |
+
+**Metrics**: extreme spread and mean radius, plus **CEP50** (the radius containing half of a
+Rayleigh-distributed group, σ√ln4) and separate horizontal/vertical spread.
+
+**Score (0–10) and Confidence (Low/Medium/High) are two separate numbers, never collapsed into
+one** — a tight group from 3 shots and a tight group from 15 shots are not the same claim. Score
+comes from dispersion against editable tier thresholds; Confidence comes from sample size alone,
+with a stricter minimum at long range than at short range (the range cutover, both minimums and
+the score tiers are editable in **Settings** — they are starting points, not a cited standard,
+since a citable long-range minimum-sample number does not exist in the literature the way CEP50's
+formula does).
+
+**Outlier detection** uses the group's own 2D covariance (Mahalanobis distance) rather than an
+assumed circular spread — the 2D analogue of the Chauvenet's-criterion outlier test Chronograph
+Statistics (§6) and SD Root-Cause (§22) use on a 1D string. Skipped, not guessed, below a minimum
+shot count.
+
+**Problem list**, each with the number behind it, never a bare claim: shots flagged as statistical
+outliers (named by index), sample size too small for a confident read at this distance (states the
+threshold used), horizontal/vertical spread ratio notably skewed, group centre offset from point of
+aim beyond a threshold, and — always shown at long range, never hidden — a caveat that raw
+dispersion still includes uncorrected wind effects.
+
+**Combine groups** pools several charges' groups into one by **recentring each on its own centroid
+first** — this isolates pooled dispersion (are these charges each behaving consistently?) from real
+point-of-impact differences between them, which a naive pooling would blur together.
+
+**Velocity ↔ dispersion correlation**: point a second folder at matching Athlon chronograph files
+(one per charge, same charges as the OnTarget folder) and the tool aligns each shot's velocity with
+its distance from the group centre by **firing order** — the same alignment SD Root-Cause's
+temperature correlation uses — and reports whether faster shots in this specific string land
+closer to or further from centre. This is a measurement of *your* data, never a general claim.
+
+**Write group-analysis note to GRT load** writes the score, confidence, metrics and every triggered
+problem into one note, with the target-plane chart (impacts, centroid, point of aim, outliers
+highlighted) attached as a picture.
+
+---
+
+## 24. Print Ladder/OCW Target  🎯🖨
+
+A true-scale printable target for a charge ladder, prepared **before** you leave for the range —
+the "before the range" counterpart to the Ladder / OCW analyzer (§7), which only reads a group back
+afterward. No GRT connection needed.
+
+**Two target types**, both with a shared aim-point row sized to the number of charges (3–12 for
+OCW, 3–20 for Ladder) and both showing mm **and** inch scales:
+
+| Target | Layout | Shots per point |
+|---|---|---|
+| **OCW** | one aim disc per charge, round-robin style, a dashed line connecting every point at the same height | 1–5, repeated in passes |
+| **Ladder / Audette** | one aim disc per charge with a ±50 mm ruler centred on it, sized to read at ~200–300 m | 1–5, fired together |
+
+Charge weights are optional (typed in, comma-separated, printed under each point) or left blank for
+you to fill in by hand after the range decides the actual step. **Pages per sheet** (0 = all) splits
+a long ladder across several A3 sheets, each repeating the header and instructions.
+
+**Print at 100% ("actual size"), never "fit to page"** — the printed 100 mm bar at the bottom is
+there to verify the printer didn't silently rescale anything before you shoot at it. Needs A3
+paper: an OCW grid plus the header and instructions need more vertical room than A4 has without the
+header colliding with the grid.
+
+**Save PDF…** renders straight to a real PDF file at a guaranteed true A3 page, through Windows'
+built-in "Microsoft Print to PDF" — unlike whatever printer happens to be selected under **Print…**,
+which may not list A3 at all (best-effort there; a clear warning fires if it can't, rather than
+silently printing at the wrong scale). **Save PNG…** exports the current preview page as an image.
+
+---
+
+## 25. Load Book Export  📚
+
+Walks a folder of `.grtload` files — recursively, one row per real recipe even when this toolkit's
+own write-back siblings (or GRT's own auto-saved ones) sit right next to the original — and renders
+one HTML document, grouped by caliber: powder, charge, bullet, COAL, the propellant-model
+coefficients (`Ba`/`a0`) GRT's simulation is calibrated to for that recipe, and whatever was
+measured. "Measured" prefers a Load Journal (§15) entry logged against that exact file (richer:
+bullet name, group size, distance, notes) and falls back to the `.grtload`'s own embedded shot data
+when nothing was ever logged for it — those rows are shown in grey italic in both the on-screen
+preview and the exported page, so you can tell at a glance which recipes were only ever chrono'd
+inside GRT itself.
+
+**Pick folder…** scans; the grid previews what will be exported before you commit to a file.
+**Export HTML…** saves the page and opens it in your default browser, where you can print it (to
+paper or to PDF, the same "Save PDF…" idea as §24) at whatever page size you choose — deliberately
+HTML rather than a bundled PDF generator, so this plugin never carries a PDF library of its own.
+
+A file renamed by a *later* toolkit save, after already being logged in the Journal, won't be
+matched back to that Journal entry — the same accepted limitation every other file-path-keyed
+lookup in this toolkit lives with.
+
+---
+
+## 26. GRT report templates
+
+**Install GRT report templates** (launcher / Plugin menu) writes sixteen DokuWiki report pages into
 `GRT\doku\<language>\report\` and links them in the report index. Run it once per GRT install
 (and tell anyone you share the plugin with to do the same). It is idempotent and non-destructive;
 delete a page by saving it empty in GRT.
@@ -757,11 +870,13 @@ delete a page by saving it empty in GRT.
 | **Toolkit — Powder compare report** | the powder-compare rank/score note |
 | **Toolkit — Advanced diagnostics report** | all six diagnostics tabs' note |
 | **Toolkit — SD root-cause report** | the root-cause note + leave-one-out chart |
+| **Toolkit — Group analysis report** | the group-analysis note + target-plane chart |
 | **Toolkit — Velocity model report** | the empirical fit note |
 
 Every tool that writes a note has its own dedicated page now, except **Seating Force Estimate
-(QC)** (§12) and the **Guided New Load wizard** (§4) — the QC estimator has no GRT linkage at all,
-and the wizard only opens other tools, it never writes anything of its own.
+(QC)** (§12), the **Guided New Load wizard** (§4), **Print Ladder/OCW Target** (§24) and **Load
+Book Export** (§25) — none of the four write anything back to an open GRT load (the last two need
+no GRT connection at all).
 
 **To view a report in GRT:** Results panel → **+** (new tab) → **Add report** → pick a "Toolkit —
 …" page. Open it **on the `…_toolkit_…grtload` snapshot** (that's where the notes and charts live),
@@ -769,7 +884,7 @@ not on your original file. Empty sections just mean you haven't run that tool ye
 
 ---
 
-## 24. Debug command line
+## 27. Debug command line
 
 All on the exe (`plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe`):
 
@@ -797,7 +912,7 @@ fills a wide results panel, a near-square value a tall one.
 
 ---
 
-## 25. Limitations & FAQ
+## 28. Limitations & FAQ
 
 **Why a pile of `_toolkit_…` files?** GRT's plugin API can't edit the open load and can't reload an
 already-open tab — so each write is a fresh timestamped snapshot. Each snapshot is complete; keep
@@ -809,12 +924,12 @@ newest snapshot), or the correction is genuinely tiny — a 0.1 % offset moves V
 is inside chronograph noise.
 
 **"No usable shot groups in that load."** Your load has no GRT Shot-group tabs — you analysed groups
-in Ballistic-X instead. Use the `.csv` path, or build the groups in GRT first (§14).
+in OnTarget instead. Use the `.csv` path, or build the groups in GRT first (§14).
 
 **Temp-coefficient tool won't enable "Write".** It needs one charge at several temperatures, not a
 ladder.
 
-**One toolbar icon, not eighteen.** By design — it opens the launcher; every tool is a button there.
+**One toolbar icon, not twenty-two.** By design — it opens the launcher; every tool is a button there.
 Manifest changes need a GRT restart to show.
 
 **Numbers:** every field accepts `.` or `,` as the decimal separator regardless of your Windows

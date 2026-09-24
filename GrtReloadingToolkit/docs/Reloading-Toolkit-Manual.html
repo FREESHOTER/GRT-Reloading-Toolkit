@@ -115,7 +115,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manual · v0.2.14</span>
+  <span class="k">Manual · v0.2.15</span>
 </div></div>
 
 <div class="shell">
@@ -144,6 +144,9 @@
       <li><a href="#velocitymodel">Velocity Model</a></li>
       <li><a href="#diagnostics">Advanced Diagnostics</a></li>
       <li><a href="#sdrootcause">SD Root-Cause</a></li>
+      <li><a href="#groupanalysis">Group Analysis</a></li>
+      <li><a href="#targetprint">Print Ladder/OCW Target</a></li>
+      <li><a href="#loadbook">Load Book Export</a></li>
       <li><a href="#reports">GRT report templates</a></li>
       <li><a href="#cli">Command line</a></li>
       <li><a href="#faq">Limitations &amp; FAQ</a></li>
@@ -153,7 +156,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manual</h1>
-      <p class="sub">A community plugin for Gordon&#39;s Reloading Tool. Nineteen reloading tools and a
+      <p class="sub">A community plugin for Gordon&#39;s Reloading Tool. Twenty-two reloading tools and a
         set of printable GRT report templates in one window.</p>
       <p class="lede">Plugin id <code>com.grt.plugin.reloadingtoolkit</code>. Ships as a self-contained
         Windows single-file executable &mdash; no .NET runtime needed on the machine it runs on.</p>
@@ -168,7 +171,7 @@
           icon) and a matching entry in the <strong>Plugin</strong> menu appear. Click either &mdash; a
           small <strong>launcher</strong> window opens with one button per tool.</li>
         <li>Optional: in the launcher, click <strong>&ldquo;Install GRT report templates&rdquo;</strong>
-          once (see&nbsp;§22).</li>
+          once (see&nbsp;§26).</li>
       </ol>
       <p>The toolkit is <em>on-demand</em>: GRT starts it on the first click and it exits when you close
         its last window. All tool windows are served by one background process, so opening a second tool
@@ -381,7 +384,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <h2><span class="no">07</span>Ladder / OCW Analyzer</h2>
       <p>Finds the accuracy node in a <strong>charge ladder</strong> from chronograph velocities and
         target groups.</p>
-      <p><strong>Group data can come from:</strong> Ballistic-X <code>.csv</code> exports (one per charge,
+      <p><strong>Group data can come from:</strong> OnTarget <code>.csv</code> exports (one per charge,
         in the same folder as the chrono files), <em>or</em> GRT&#39;s own &ldquo;Shot group&rdquo; tabs
         (see&nbsp;§14).</p>
       <p><strong>Velocities</strong> come from the chrono <code>*.xlsx</code> in the picked folder. Any
@@ -390,7 +393,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         chrono import first, the MV flat-spot and the blue MV line show up even when the folder holds
         only target <code>.csv</code> files. A chrono file in the folder always wins for that charge.</p>
       <table><thead><tr><th>Control</th><th>Effect</th></tr></thead><tbody>
-        <tr><td>Pick ladder folder…</td><td>Folder with chrono <code>*.xlsx</code> + Ballistic-X <code>Carica *.csv</code>, one pair per charge.</td></tr>
+        <tr><td>Pick ladder folder…</td><td>Folder with chrono <code>*.xlsx</code> + OnTarget <code>Carica *.csv</code>, one pair per charge.</td></tr>
         <tr><td>w POI · w MV · window</td><td>Analysis weights and the node width (3–5 steps).</td></tr>
         <tr><td>Re-analyze</td><td>Recompute with the current weights.</td></tr>
         <tr><td>Groups from GRT load</td><td>Read groups from GRT&#39;s Shot-group tabs instead of <code>.csv</code>, with the ref-distance / shoot-distance unit boxes and a <em>drop flyers</em> toggle.</td></tr>
@@ -613,7 +616,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <h2><span class="no">14</span>Inventory</h2>
       <p>A small SQLite database at <code>%AppData%\GRTPlugins\reloading_log.db</code>, shared with the
         Load Journal (§15) and Find best Ba (§16) &mdash; three separate windows over the same file, so
-        anything logged in one shows up in the others the next time each window gets focus. Three
+        anything logged in one shows up in the others the next time each window gets focus. Four
         tabs.</p>
       <ul>
         <li><strong>Inventory</strong> &mdash; powder / primer / brass / bullet / barrel stock with lot
@@ -643,6 +646,14 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           anneal ≥ the lot&#39;s anneal-every count) or <strong>Retire</strong> (average uses ≥ the
           lot&#39;s <em>expected uses</em>). <strong>Mark annealed now</strong> resets the anneal
           counter to the lot&#39;s current average.</li>
+        <li><strong>Pressure Signs</strong> &mdash; logs fired-case head diameter at the
+          0.200&Prime;-from-head line, per firearm and powder, one reading per charge tested. Flags a
+          charge-to-charge step whose expansion rate accelerates well beyond that same ladder&#39;s
+          own earlier average (2&times; by default, editable) &mdash; a self-referential comparison
+          on purpose, since brass lot, chamber and caliber all affect the absolute expansion rate too
+          much for one universal threshold to mean anything. Add / Edit / Delete, filtered by firearm
+          then by powder, with a diameter-vs-charge chart highlighting the flagged step(s) in
+          red.</li>
       </ul>
 
       <h3>Using GRT&#39;s Shot-group tabs as an analyzer source</h3>
@@ -889,9 +900,108 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         triggered cause into one note, with the leave-one-out bar chart attached as a picture.</p>
     </section>
 
+    <section id="groupanalysis">
+      <h2><span class="no">23</span>Group Analysis</h2>
+      <p>SD Root-Cause (§22) diagnoses one chronograph string; this is its 2D sibling &mdash; for one
+        shot <strong>group</strong>, is the dispersion actually good, how much should you trust that
+        read given the sample size, and what specific problem (if any) explains a shot or a pattern
+        dragging it down.</p>
+      <p><strong>Three ways to load a group</strong>, all producing the same internal group so every
+        metric below works identically regardless of source:</p>
+      <table><thead><tr><th>Source</th><th>Use when</th></tr></thead><tbody>
+        <tr><td>OnTarget CSV (one file, or a folder of them)</td><td>you photograph/scan targets and calibrate in OnTarget</td></tr>
+        <tr><td>GRT&#39;s own Shot-group tabs</td><td>you already build groups inside GRT (see §14&#39;s note on that workflow)</td></tr>
+        <tr><td>Manual entry</td><td>calipers on a printed target, or any other software &mdash; type X/Y per shot, in mm or inch</td></tr>
+      </tbody></table>
+      <p><strong>Metrics</strong>: extreme spread and mean radius, plus <strong>CEP50</strong> (the
+        radius containing half of a Rayleigh-distributed group, σ√ln4) and separate
+        horizontal/vertical spread.</p>
+      <div class="callout"><strong>Score (0&ndash;10) and Confidence (Low/Medium/High) are two
+        separate numbers, never collapsed into one</strong> &mdash; a tight group from 3 shots and a
+        tight group from 15 shots are not the same claim. Score comes from dispersion against
+        editable tier thresholds; Confidence comes from sample size alone, with a stricter minimum at
+        long range than at short range (the range cutover, both minimums and the score tiers are
+        editable in <strong>Settings</strong> &mdash; they are starting points, not a cited standard,
+        since a citable long-range minimum-sample number does not exist in the literature the way
+        CEP50&#39;s formula does).</div>
+      <p><strong>Outlier detection</strong> uses the group&#39;s own 2D covariance (Mahalanobis
+        distance) rather than an assumed circular spread &mdash; the 2D analogue of the
+        Chauvenet&#39;s-criterion outlier test Chronograph Statistics (§6) and SD Root-Cause (§22) use
+        on a 1D string. Skipped, not guessed, below a minimum shot count.</p>
+      <p><strong>Problem list</strong>, each with the number behind it, never a bare claim: shots
+        flagged as statistical outliers (named by index), sample size too small for a confident read
+        at this distance (states the threshold used), horizontal/vertical spread ratio notably
+        skewed, group centre offset from point of aim beyond a threshold, and &mdash; always shown at
+        long range, never hidden &mdash; a caveat that raw dispersion still includes uncorrected wind
+        effects.</p>
+      <p><strong>Combine groups</strong> pools several charges&#39; groups into one by
+        <strong>recentring each on its own centroid first</strong> &mdash; this isolates pooled
+        dispersion (are these charges each behaving consistently?) from real point-of-impact
+        differences between them, which a naive pooling would blur together.</p>
+      <p><strong>Velocity ↔ dispersion correlation</strong>: point a second folder at matching Athlon
+        chronograph files (one per charge, same charges as the OnTarget folder) and the tool aligns
+        each shot&#39;s velocity with its distance from the group centre by <strong>firing
+        order</strong> &mdash; the same alignment SD Root-Cause&#39;s temperature correlation uses
+        &mdash; and reports whether faster shots in this specific string land closer to or further
+        from centre. This is a measurement of <em>your</em> data, never a general claim.</p>
+      <p><strong>Write group-analysis note to GRT load</strong> writes the score, confidence, metrics
+        and every triggered problem into one note, with the target-plane chart (impacts, centroid,
+        point of aim, outliers highlighted) attached as a picture.</p>
+    </section>
+
+    <section id="targetprint">
+      <h2><span class="no">24</span>Print Ladder/OCW Target</h2>
+      <p>A true-scale printable target for a charge ladder, prepared <strong>before</strong> you leave
+        for the range &mdash; the &ldquo;before the range&rdquo; counterpart to the Ladder / OCW
+        analyzer (§7), which only reads a group back afterward. No GRT connection needed.</p>
+      <p><strong>Two target types</strong>, both with a shared aim-point row sized to the number of
+        charges (3&ndash;12 for OCW, 3&ndash;20 for Ladder) and both showing mm <strong>and</strong>
+        inch scales:</p>
+      <table><thead><tr><th>Target</th><th>Layout</th><th>Shots per point</th></tr></thead><tbody>
+        <tr><td>OCW</td><td>one aim disc per charge, round-robin style, a dashed line connecting every point at the same height</td><td>1&ndash;5, repeated in passes</td></tr>
+        <tr><td>Ladder / Audette</td><td>one aim disc per charge with a &plusmn;50&nbsp;mm ruler centred on it, sized to read at ~200&ndash;300&nbsp;m</td><td>1&ndash;5, fired together</td></tr>
+      </tbody></table>
+      <p>Charge weights are optional (typed in, comma-separated, printed under each point) or left
+        blank for you to fill in by hand after the range decides the actual step. <strong>Pages per
+        sheet</strong> (0 = all) splits a long ladder across several A3 sheets, each repeating the
+        header and instructions.</p>
+      <div class="callout"><strong>Print at 100% (&ldquo;actual size&rdquo;), never &ldquo;fit to
+        page&rdquo;</strong> &mdash; the printed 100&nbsp;mm bar at the bottom is there to verify the
+        printer didn&#39;t silently rescale anything before you shoot at it. Needs A3 paper: an OCW
+        grid plus the header and instructions need more vertical room than A4 has without the header
+        colliding with the grid.</div>
+      <p><strong>Save PDF…</strong> renders straight to a real PDF file at a guaranteed true A3 page,
+        through Windows&#39; built-in &ldquo;Microsoft Print to PDF&rdquo; &mdash; unlike whatever
+        printer happens to be selected under <strong>Print…</strong>, which may not list A3 at all
+        (best-effort there; a clear warning fires if it can&#39;t, rather than silently printing at
+        the wrong scale). <strong>Save PNG…</strong> exports the current preview page as an image.</p>
+    </section>
+
+    <section id="loadbook">
+      <h2><span class="no">25</span>Load Book Export</h2>
+      <p>Walks a folder of <code>.grtload</code> files &mdash; recursively, one row per real recipe
+        even when this toolkit&#39;s own write-back siblings (or GRT&#39;s own auto-saved ones) sit
+        right next to the original &mdash; and renders one HTML document, grouped by caliber: powder,
+        charge, bullet, COAL, the propellant-model coefficients (<code>Ba</code>/<code>a0</code>)
+        GRT&#39;s simulation is calibrated to for that recipe, and whatever was measured.
+        &ldquo;Measured&rdquo; prefers a Load Journal (§15) entry logged against that exact file
+        (richer: bullet name, group size, distance, notes) and falls back to the
+        <code>.grtload</code>&#39;s own embedded shot data when nothing was ever logged for it &mdash;
+        those rows are shown in grey italic in both the on-screen preview and the exported page, so
+        you can tell at a glance which recipes were only ever chrono&#39;d inside GRT itself.</p>
+      <p><strong>Pick folder…</strong> scans; the grid previews what will be exported before you
+        commit to a file. <strong>Export HTML…</strong> saves the page and opens it in your default
+        browser, where you can print it (to paper or to PDF, the same &ldquo;Save PDF…&rdquo; idea as
+        §24) at whatever page size you choose &mdash; deliberately HTML rather than a bundled PDF
+        generator, so this plugin never carries a PDF library of its own.</p>
+      <p>A file renamed by a <em>later</em> toolkit save, after already being logged in the Journal,
+        won&#39;t be matched back to that Journal entry &mdash; the same accepted limitation every
+        other file-path-keyed lookup in this toolkit lives with.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">23</span>GRT report templates</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / Plugin menu) writes fifteen DokuWiki
+      <h2><span class="no">26</span>GRT report templates</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / Plugin menu) writes sixteen DokuWiki
         report pages into <code>GRT\doku\&lt;language&gt;\report\</code> and links them in the report
         index. Run it once per GRT install (and tell anyone you share the plugin with to do the same).
         It is idempotent and non-destructive; delete a page by saving it empty in GRT.</p>
@@ -910,12 +1020,14 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>Powder compare report</td><td>the powder-compare rank/score note</td></tr>
         <tr><td>Advanced diagnostics report</td><td>all six diagnostics tabs&#39; note</td></tr>
         <tr><td>SD root-cause report</td><td>the root-cause note + leave-one-out chart</td></tr>
+        <tr><td>Group analysis report</td><td>the group-analysis note + target-plane chart</td></tr>
         <tr><td>Velocity model report</td><td>the empirical fit note</td></tr>
       </tbody></table>
       <p>Every tool that writes a note has its own dedicated page now, except <strong>Seating Force
-        Estimate (QC)</strong> (§12) and the <strong>Guided New Load wizard</strong> (§4) &mdash; the QC
-        estimator has no GRT linkage at all, and the wizard only opens other tools, it never writes
-        anything of its own.</p>
+        Estimate (QC)</strong> (§12), the <strong>Guided New Load wizard</strong> (§4), <strong>Print
+        Ladder/OCW Target</strong> (§24) and <strong>Load Book Export</strong> (§25) &mdash; none of
+        the four write anything back to an open GRT load (the last two need no GRT connection at
+        all).</p>
       <div class="callout"><b>To view a report:</b> Results panel → <strong>+</strong> (new tab) →
         <strong>Add report</strong> → pick a &ldquo;Toolkit — …&rdquo; page. Open it <strong>on the
         <code>…_toolkit_…grtload</code> snapshot</strong> &mdash; that&#39;s where the notes and charts
@@ -923,7 +1035,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="cli">
-      <h2><span class="no">24</span>Command line</h2>
+      <h2><span class="no">27</span>Command line</h2>
       <p>Debug entry points on the exe (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">inventory / journal self-test (writes fixture data to
                                                   [db], or a throwaway temp file if omitted -- NEVER
@@ -949,7 +1061,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="faq">
-      <h2><span class="no">25</span>Limitations &amp; FAQ</h2>
+      <h2><span class="no">28</span>Limitations &amp; FAQ</h2>
       <h3>Why a pile of <code>_toolkit_…</code> files?</h3>
       <p>GRT&#39;s plugin API can&#39;t edit the open load and can&#39;t reload an already-open tab &mdash;
         so each write is a fresh timestamped snapshot. Each snapshot is complete; keep the newest (Save
@@ -959,11 +1071,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         genuinely tiny &mdash; a 0.1&nbsp;% offset moves V₀ by ~0.6&nbsp;m/s, which is inside
         chronograph noise.</p>
       <h3>&ldquo;No usable shot groups in that load.&rdquo;</h3>
-      <p>Your load has no GRT Shot-group tabs &mdash; you analysed groups in Ballistic-X instead. Use the
+      <p>Your load has no GRT Shot-group tabs &mdash; you analysed groups in OnTarget instead. Use the
         <code>.csv</code> path, or build the groups in GRT first (§14).</p>
       <h3>The temp-coefficient tool won&#39;t enable &ldquo;Write&rdquo;.</h3>
       <p>It needs one charge at several temperatures, not a ladder.</p>
-      <h3>One toolbar icon, not nineteen.</h3>
+      <h3>One toolbar icon, not twenty-two.</h3>
       <p>By design &mdash; it opens the launcher; every tool is a button there. Manifest changes need a
         GRT restart to show.</p>
       <h3>Numbers</h3>
@@ -975,6 +1087,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.14 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.15 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

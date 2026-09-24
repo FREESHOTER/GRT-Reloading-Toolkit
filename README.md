@@ -22,7 +22,7 @@ the Assets list on that page.
 | **Guided New Load** | A checklist for one new load, front to back — opens the real tool for each step (never reimplements one). Two paths: single load (brass prep → card → calibration) or ladder test (brass prep → chrono import → Ladder/OCW → calibration → card, printed last for whichever charge the ladder pointed at). |
 | **Chronograph Import** | Athlon Rangecraft and Garmin Xero C1 Pro / ShotView exports (`.xlsx` / `.csv`), one file or a whole folder → a GRT Imported Measurement. Auto-detects fps vs m/s. |
 | **Chronograph Statistics** | Confidence interval on the true mean, shots needed for a target margin, Chauvenet-flagged outliers, Welch t-test / F-test comparing any two strings. |
-| **Ladder / OCW Analyzer** | Velocity flat-spot (Satterlee) + vertical-POI node (OCW / Audette) + a weighted best node → an *OCW Analysis* note and chart. Groups from Ballistic-X CSV or GRT's own shot-group tabs. |
+| **Ladder / OCW Analyzer** | Velocity flat-spot (Satterlee) + vertical-POI node (OCW / Audette) + a weighted best node → an *OCW Analysis* note and chart. Groups from OnTarget CSV or GRT's own shot-group tabs. |
 | **Seating-Depth Analyzer** | Group-size plateau + vertical-POI node for a seating / jump test. |
 | **Barrel Calibration** | Sweeps GRT for the simulated MV at every measured charge, compares to your chrono, suggests a `Ba` tweak (`Ba × (meas ÷ sim)²`); when the offset varies with charge, an optional `a0` shape-fit sweep fits `Ba` and `a0` together. Warns when the open load's `Ba` differs from your own last calibration of that caliber+powder. |
 | **Powder Temp Coefficients** | Fits `tcc` / `tch` from one charge shot cold, normal and hot. |

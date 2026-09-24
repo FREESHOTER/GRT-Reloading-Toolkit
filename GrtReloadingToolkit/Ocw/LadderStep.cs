@@ -60,7 +60,7 @@ public sealed class LadderStep
     public double SdMps { get; set; }
     public double EsMps { get; set; }
 
-    // target group (from Ballistic-X csv), all MOA
+    // target group (from OnTarget csv), all MOA
     public int Impacts { get; set; }
     public double DistanceM { get; set; }
     public double PoiXMoa { get; set; }

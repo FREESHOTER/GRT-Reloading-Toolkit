@@ -55,8 +55,14 @@
     <Compile Include="..\GrtReloadingToolkit\Brass\SeatingForceCalc.cs" Link="Brass\SeatingForceCalc.cs" />
     <!-- And for the shot-group reader, which decides what unit an unlabelled reference
          distance is in. TargetGroup is its output type and lives next door. -->
-    <Compile Include="..\GrtReloadingToolkit\Ocw\BallisticXCsv.cs" Link="Ocw\BallisticXCsv.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ocw\OnTargetCsv.cs" Link="Ocw\OnTargetCsv.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ocw\GrtShotGroups.cs" Link="Ocw\GrtShotGroups.cs" />
+    <!-- And for Group Analysis, the 2D sibling of SD Root-Cause: pure logic over TargetGroup above. -->
+    <Compile Include="..\GrtReloadingToolkit\Log\GroupAnalysis.cs" Link="Log\GroupAnalysis.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\GroupAnalysisConfig.cs" Link="Log\GroupAnalysisConfig.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\PressureSign.cs" Link="Log\PressureSign.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\LoadBook.cs" Link="Log\LoadBook.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\LoadBookHtml.cs" Link="Log\LoadBookHtml.cs" />
     <!-- And for the card model, which decides what a printed card and its QR actually say.
          CardRenderer next door is GDI+ and stays out; LoadCard itself is plain data. -->
     <Compile Include="..\GrtReloadingToolkit\Cards\LoadCard.cs" Link="Cards\LoadCard.cs" />

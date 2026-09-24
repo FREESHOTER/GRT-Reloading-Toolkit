@@ -46,6 +46,10 @@
          RootNamespace, and renaming that would silently break the lookup instead of failing
          the build. -->
     <EmbeddedResource Include="app.ico" LogicalName="GrtReloadingToolkit.app.ico" />
+    <!-- GRT's own official logo (bundled by GRT itself at doku\en\media\grt-logo-512x512-transparent.png),
+         printed on the ladder/OCW targets: this plugin only ever ships inside a GRT install, so
+         crediting the host application on its own printed output is the point, not incidental. -->
+    <EmbeddedResource Include="Targets\grt-logo.png" LogicalName="GrtReloadingToolkit.grt-logo.png" />
   </ItemGroup>
 
   <ItemGroup>

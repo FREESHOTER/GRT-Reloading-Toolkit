@@ -117,8 +117,8 @@ internal static class Lang
         ["Dist"] = "Dist",
         ["Grp MR MOA"] = "Raggio medio gruppo MOA",
         ["Vert MOA"] = "Disp. verticale MOA",
-        ["Folder with chrono *.xlsx (Athlon/Garmin) and Ballistic-X *.csv for one ladder"] =
-            "Cartella con file cronografo *.xlsx (Athlon/Garmin) e *.csv Ballistic-X per una scalare",
+        ["Folder with chrono *.xlsx (Athlon/Garmin) and OnTarget *.csv for one ladder"] =
+            "Cartella con file cronografo *.xlsx (Athlon/Garmin) e *.csv OnTarget per una scalare",
         ["Not connected to GRT."] = "Non connesso a GRT.",
         ["No saved load is open in GRT."] = "Nessun load salvato è aperto in GRT.",
         ["Groups from GRT"] = "Gruppi da GRT",
@@ -345,6 +345,22 @@ internal static class Lang
         ["Edit firearm"] = "Modifica arma",
         ["Name"] = "Nome",
         ["Rounds before"] = "Colpi precedenti",
+        // Pressure Signs tab
+        ["Pressure Signs"] = "Segni di Pressione",
+        ["Head Ø (0.200\" line)"] = "Ø testa (linea 0.200\")",
+        ["Delete this reading?"] = "Eliminare questa lettura?",
+        ["Add a firearm in the Firearms tab first."] = "Aggiungi prima un'arma nella scheda Armi.",
+        ["No readings logged yet for this firearm. Click Add to log the first one."] =
+            "Nessuna lettura registrata per quest'arma. Clicca Aggiungi per registrare la prima.",
+        ["Not enough distinct charges yet for a trend ({0} of {1} needed)."] =
+            "Non ci sono ancora abbastanza cariche distinte per un trend ({0} di {1} necessarie).",
+        ["No accelerating expansion detected across this ladder."] =
+            "Nessuna accelerazione dell'espansione rilevata in questa scaletta.",
+        ["⚠ {0}→{1}: expansion rate {2}× the ladder's own prior average."] =
+            "⚠ {0}→{1}: velocità di espansione {2}× la media precedente della scaletta.",
+        ["Add reading"] = "Aggiungi lettura",
+        ["Edit reading"] = "Modifica lettura",
+        ["Add a powder in the Inventory tab first."] = "Aggiungi prima una polvere nella scheda Inventario.",
         ["Save"] = "Salva",
         ["Cancel"] = "Annulla",
         ["Inventory"] = "Inventario",
@@ -709,5 +725,109 @@ internal static class Lang
             "Presuppone che l'ordine dei colpi nella tab gruppo corrisponda all'ordine di sparo di questa misurazione -- GRT non le collega da solo.",
         ["{0} chronographed shot(s) but {1} hit(s) in the shot-group tab -- cannot align."] =
             "{0} colpo/i cronografato/i ma {1} colpo/i nella tab gruppo -- impossibile allineare.",
+
+        // GroupAnalysisForm
+        ["🎯📐  Group analysis"] = "🎯📐  Analisi gruppo",
+        ["Group Analysis"] = "Analisi Gruppo",
+        ["Load GRT's shot-group tabs…"] = "Carica tab gruppo da GRT…",
+        ["Load Athlon velocities…"] = "Carica velocità Athlon…",
+        ["Folder with Athlon *.xlsx velocity files (one per charge) — can be a different folder than the OnTarget one"] =
+            "Cartella con i file *.xlsx Athlon (uno per carica) — può essere diversa da quella OnTarget",
+        ["Matched Athlon velocities to {0} of {1} loaded group(s)."] = "Velocità Athlon abbinate a {0} gruppi su {1} caricati.",
+        ["Load OnTarget CSV…"] = "Carica CSV OnTarget…",
+        ["⚙ Thresholds…"] = "⚙ Soglie…",
+        ["Write group analysis note to GRT load"] = "Scrivi nota analisi gruppo sul load GRT",
+        ["Group"] = "Gruppo",
+        ["Distance range"] = "Fascia di distanza",
+        ["Auto (from the group's own distance)"] = "Automatica (dalla distanza del gruppo)",
+        ["Short range"] = "Corta distanza",
+        ["Long range"] = "Lunga distanza",
+        ["or enter a group manually"] = "oppure inserisci un gruppo a mano",
+        ["Shooting distance"] = "Distanza di tiro",
+        ["Per-shot offsets from centre"] = "Scostamenti per colpo dal centro",
+        ["Aim X/Y"] = "Mira X/Y",
+        ["Build group from manual entry"] = "Costruisci gruppo dai dati inseriti",
+        ["{0} shot-group tab(s) loaded."] = "{0} tab gruppo caricate.",
+        ["Loaded {0} impacts from {1}."] = "Caricati {0} colpi da {1}.",
+        ["Enter at least one shot's X/Y first."] = "Inserisci prima almeno un colpo X/Y.",
+        ["Load or build a group first."] = "Carica o costruisci prima un gruppo.",
+        ["Score {0}/10, Confidence: {1} ({2}, n={3}, {4})."] = "Punteggio {0}/10, Confidenza: {1} ({2}, n={3}, {4}).",
+        // "High"/"Medium" reuse Log/PressureTrend.cs's own labels above; only "Low" is new here.
+        ["Low"] = "Bassa",
+        ["Mean radius {0} MOA · Extreme spread {1} MOA · CEP50 {2} MOA"] =
+            "Raggio medio {0} MOA · Extreme spread {1} MOA · CEP50 {2} MOA",
+        ["Horizontal spread {0} MOA · Vertical spread {1} MOA"] = "Disp. orizzontale {0} MOA · Disp. verticale {1} MOA",
+        ["No problems found."] = "Nessun problema rilevato.",
+        ["Problems found:"] = "Problemi rilevati:",
+        ["Group analysis note written and opened in GRT."] = "Nota analisi gruppo scritta e aperta in GRT.",
+        ["Load a group first."] = "Carica prima un gruppo.",
+        ["Load OnTarget folder…"] = "Carica cartella OnTarget…",
+        ["Folder with one OnTarget *.csv per charge (Athlon *.xlsx alongside is used to label it, not required)"] =
+            "Cartella con un *.csv OnTarget per carica (gli *.xlsx Athlon accanto servono solo per l'etichetta, non obbligatori)",
+        ["{0} charge group(s) loaded from folder."] = "{0} gruppi per carica caricati dalla cartella.",
+        ["Combine all loaded groups"] = "Unisci tutti i gruppi caricati",
+        ["Load at least two groups first."] = "Carica prima almeno due gruppi.",
+        ["combined ({0} groups)"] = "combinato ({0} gruppi)",
+        ["Charge (gr)"] = "Carica (gr)",
+        ["Hits"] = "Colpi",
+        ["Chrono shots"] = "Colpi cronografati",
+        ["Source"] = "Fonte",
+        ["manual entry"] = "inserimento manuale",
+        ["paste supported"] = "incolla supportato",
+        ["Per-shot velocity <-> distance-from-centre correlation: r={0}."] = "Correlazione velocità per colpo <-> distanza dal centro: r={0}.",
+
+        // GroupAnalysisSettingsForm
+        ["Group Analysis Thresholds"] = "Soglie Analisi Gruppo",
+        ["Short range score"] = "Punteggio corta distanza",
+        ["Long range score"] = "Punteggio lunga distanza",
+        ["Confidence = Medium at (short range) shots"] = "Confidenza = Media a (corta distanza) colpi",
+        ["Confidence = High at (short range) shots"] = "Confidenza = Alta a (corta distanza) colpi",
+        ["Confidence = Medium at (long range) shots"] = "Confidenza = Media a (lunga distanza) colpi",
+        ["Confidence = High at (long range) shots"] = "Confidenza = Alta a (lunga distanza) colpi",
+        ["Minimum shots for outlier detection"] = "Colpi minimi per il rilevamento anomalie",
+        ["Off-centre flag threshold (MOA)"] = "Soglia segnalazione fuori centro (MOA)",
+        ["Spread-ratio skew flag threshold"] = "Soglia segnalazione asimmetria dispersione",
+        ["App-centre mismatch flag threshold (MOA)"] = "Soglia segnalazione scarto centro applicazione (MOA)",
+        ["Velocity <-> dispersion correlation flag threshold (|r|)"] = "Soglia segnalazione correlazione velocità <-> dispersione (|r|)",
+        ["Each score row means \"at or below this mean-radius MOA, this score\". The last row is the floor for anything worse."] =
+            "Ogni riga significa \"fino a questo raggio medio in MOA, questo punteggio\". L'ultima riga è il minimo per tutto ciò che è peggiore.",
+
+        // TargetForm
+        ["🎯🖨  Print ladder/OCW target"] = "🎯🖨  Stampa bersaglio ladder/OCW",
+        ["Print Ladder/OCW Target"] = "Stampa Bersaglio Ladder/OCW",
+        ["OCW (round-robin group per charge)"] = "OCW (gruppo round-robin per carica)",
+        ["Ladder / Audette (repeated shot per charge, ~200-300 m)"] = "Ladder / Audette (colpo/i ripetuti per carica, ~200-300 m)",
+        ["Shots per aim point (1-5)"] = "Colpi per mira (1-5)",
+        ["Target type"] = "Tipo di bersaglio",
+        ["Number of charges"] = "Numero di cariche",
+        ["Charge weights (gr, comma-separated, optional)"] = "Pesi delle cariche (gr, separati da virgola, opzionale)",
+        ["per page (0 = all)"] = "per pagina (0 = tutte)",
+        ["Distance (m, optional)"] = "Distanza (m, opzionale)",
+        ["Firearm (optional)"] = "Arma (opzionale)",
+        ["Powder (optional)"] = "Polvere (opzionale)",
+        ["Bullet (optional)"] = "Palla (opzionale)",
+        ["Preview page"] = "Pagina anteprima",
+        ["Page {0} of {1}."] = "Pagina {0} di {1}.",
+        ["Needs A3 paper. Print at 100% / \"actual size\", never \"fit to page\". After printing, measure the 100 mm bar at the bottom with a ruler before shooting."] =
+            "Serve carta A3. Stampa al 100% / \"dimensioni reali\", mai \"adatta alla pagina\". Dopo la stampa, misura con un righello la barra da 100 mm in basso prima di sparare.",
+        ["Save PDF…"] = "Salva PDF…",
+        ["\"Microsoft Print to PDF\" is not installed on this PC. Use Print… instead and choose a printer that supports A3 paper."] =
+            "\"Microsoft Print to PDF\" non è installato su questo PC. Usa Stampa… scegliendo una stampante che supporti la carta A3.",
+        ["The selected printer has no A3 paper size, so printing now would come out at the wrong scale with overlapping text. Use \"Save PDF…\" instead (always true A3), or pick a printer that supports A3. Continue anyway?"] =
+            "La stampante selezionata non ha il formato A3, quindi la stampa uscirebbe in scala sbagliata con testo sovrapposto. Usa \"Salva PDF…\" (sempre in vero A3), oppure scegli una stampante che supporti l'A3. Continuare comunque?",
+
+        // LoadBookForm
+        ["📚  Load book export"] = "📚  Esporta libro carichi",
+        ["Load Book Export"] = "Esporta Libro Carichi",
+        ["Pick folder…"] = "Scegli cartella…",
+        ["Export HTML…"] = "Esporta HTML…",
+        ["Folder with .grtload files to include (searched recursively)"] =
+            "Cartella con i file .grtload da includere (cercati anche nelle sottocartelle)",
+        ["Velocity"] = "Velocità",
+        ["file only"] = "solo file",
+        ["(error)"] = "(errore)",
+        ["{0} recipes found."] = "{0} ricette trovate.",
+        ["Nothing to export yet — pick a folder first."] = "Niente da esportare — scegli prima una cartella.",
+        ["Load Book"] = "Libro Carichi",
     };
 }

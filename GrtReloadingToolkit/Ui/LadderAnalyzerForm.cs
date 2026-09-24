@@ -161,7 +161,7 @@ internal abstract class LadderAnalyzerForm : Form
 
     private async Task PickFolderAsync()
     {
-        using var d = new FolderBrowserDialog { Description = Lang.T("Folder with chrono *.xlsx (Athlon/Garmin) and Ballistic-X *.csv for one ladder") };
+        using var d = new FolderBrowserDialog { Description = Lang.T("Folder with chrono *.xlsx (Athlon/Garmin) and OnTarget *.csv for one ladder") };
         if (d.ShowDialog(this) != DialogResult.OK) return;
         _folderPath = d.SelectedPath;
         _folder.Text = _folderPath;

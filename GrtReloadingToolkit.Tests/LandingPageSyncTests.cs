@@ -56,16 +56,17 @@ public class LandingPageSyncTests
     /// both are checked here against the same card count.
     /// </summary>
     [Theory]
-    [InlineData(@"<h1>(\w+) reloading tools, one GRT window\.</h1>")]
-    [InlineData(@"<h2>The (\w+) tools</h2>")]
+    [InlineData(@"<h1>([\w-]+) reloading tools, one GRT window\.</h1>")]
+    [InlineData(@"<h2>The ([\w-]+) tools</h2>")]
     public void EveryToolCountOnThePageMatchesTheCards(string pattern)
     {
         // These spell the number out, so they cannot drift silently the way a digit would --
-        // they read fine while being wrong. This is what actually went stale, twice.
+        // they read fine while being wrong. This is what actually went stale, twice. The pattern
+        // allows a hyphen (not just \w+) once the count passed twenty and needed one ("twenty-one").
         string[] words =
         {
             "zero", "one", "two", "three", "four", "five", "six", "seven",
-            "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+            "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "twenty-one", "twenty-two",
         };
         int cards = LandingPageCards();
         Assert.InRange(cards, 1, words.Length - 1);

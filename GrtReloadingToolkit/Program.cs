@@ -66,7 +66,7 @@ internal static class Program
     }
 }
 
-internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, Wizard, VelocityModel, Reports }
+internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -114,8 +114,11 @@ internal sealed class ToolkitContext : ApplicationContext
         id.EndsWith(".powdercompare", StringComparison.Ordinal) ? Tool.PowderCompare :
         id.EndsWith(".diagnostics", StringComparison.Ordinal) ? Tool.Diagnostics :
         id.EndsWith(".sdrootcause", StringComparison.Ordinal) ? Tool.SdRootCause :
+        id.EndsWith(".groupanalysis", StringComparison.Ordinal) ? Tool.GroupAnalysis :
+        id.EndsWith(".targetprint", StringComparison.Ordinal) ? Tool.TargetPrint :
         id.EndsWith(".wizard", StringComparison.Ordinal) ? Tool.Wizard :
         id.EndsWith(".velocitymodel", StringComparison.Ordinal) ? Tool.VelocityModel :
+        id.EndsWith(".loadbook", StringComparison.Ordinal) ? Tool.LoadBook :
         id.EndsWith(".reports", StringComparison.Ordinal) ? Tool.Reports :
         Tool.Launcher;
 
@@ -151,8 +154,11 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.PowderCompare => new PowderCompareForm(_grt, _db),
             Tool.Diagnostics => new AdvancedDiagnosticsForm(_grt, _db),
             Tool.SdRootCause => new SdRootCauseForm(_grt, _db),
+            Tool.GroupAnalysis => new GroupAnalysisForm(_grt),
+            Tool.TargetPrint => new TargetForm(),
             Tool.Wizard => new WizardForm(Open),
             Tool.VelocityModel => new VelocityModelForm(_grt, _db),
+            Tool.LoadBook => new LoadBookForm(_db),
             _ => new LauncherForm(Open),
         });
         f.FormClosed += (_, _) =>

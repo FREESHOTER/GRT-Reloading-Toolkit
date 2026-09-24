@@ -67,7 +67,14 @@ CREATE TABLE IF NOT EXISTS shot_measurements (
   created_at TEXT DEFAULT (datetime('now')),
   UNIQUE(caliber, label, shot_index)
 );
-CREATE INDEX IF NOT EXISTS ix_shot_measurements_key ON shot_measurements(caliber, label);");
+CREATE INDEX IF NOT EXISTS ix_shot_measurements_key ON shot_measurements(caliber, label);
+CREATE TABLE IF NOT EXISTS case_head_measurements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  date TEXT NOT NULL, firearm_id INTEGER NOT NULL, powder_id INTEGER,
+  charge_gr REAL NOT NULL, head_diameter_mm REAL NOT NULL, notes TEXT DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id, powder_id);");
         // additive column migration (older DBs)
         if (!ColumnExists("journal", "firearm_id"))
             Exec("ALTER TABLE journal ADD COLUMN firearm_id INTEGER");
@@ -524,6 +531,62 @@ CREATE INDEX IF NOT EXISTS ix_shot_measurements_key ON shot_measurements(caliber
                ON CONFLICT(caliber,label,shot_index) DO UPDATE SET temperature_c=$t",
             null, ("$cal", caliber), ("$lbl", label), ("$idx", shotIndex), ("$t", (object?)temperatureC ?? DBNull.Value));
     }
+
+    // ---- case-head measurements (pressure signs) ------------------------
+
+    /// <summary>Every reading logged for one firearm, optionally narrowed to one powder lot --
+    /// ordered by charge so a caller never has to re-sort before handing this to
+    /// <see cref="PressureSign.BuildSeries"/>.</summary>
+    public List<CaseHeadMeasurement> CaseHeadMeasurements(long firearmId, long? powderId = null)
+    {
+        var list = new List<CaseHeadMeasurement>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "SELECT * FROM case_head_measurements WHERE firearm_id=$fid" +
+            (powderId is null ? "" : " AND powder_id=$pid") + " ORDER BY charge_gr, id";
+        cmd.Parameters.AddWithValue("$fid", firearmId);
+        if (powderId is { } pid) cmd.Parameters.AddWithValue("$pid", pid);
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+            list.Add(new CaseHeadMeasurement
+            {
+                Id = Lng(r, "id"), Date = Str(r, "date"), FirearmId = Lng(r, "firearm_id"),
+                PowderId = (long?)NulL(r, "powder_id"), ChargeGr = Dbl(r, "charge_gr"),
+                HeadDiameterMm = Dbl(r, "head_diameter_mm"), Notes = Str(r, "notes"),
+            });
+        return list;
+    }
+
+    /// <summary>Distinct powders that have at least one case-head reading logged for this firearm --
+    /// what the tool's own powder filter offers, so it never lists a powder with nothing to show.</summary>
+    public List<long> CaseHeadPowderIds(long firearmId)
+    {
+        var ids = new List<long>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "SELECT DISTINCT powder_id FROM case_head_measurements WHERE firearm_id=$fid AND powder_id IS NOT NULL ORDER BY powder_id";
+        cmd.Parameters.AddWithValue("$fid", firearmId);
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) ids.Add(r.GetInt64(0));
+        return ids;
+    }
+
+    public long UpsertCaseHeadMeasurement(CaseHeadMeasurement m)
+    {
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = m.Id == 0
+            ? "INSERT INTO case_head_measurements(date,firearm_id,powder_id,charge_gr,head_diameter_mm,notes) VALUES ($d,$fid,$pid,$chg,$dia,$n); SELECT last_insert_rowid();"
+            : "UPDATE case_head_measurements SET date=$d,firearm_id=$fid,powder_id=$pid,charge_gr=$chg,head_diameter_mm=$dia,notes=$n WHERE id=$id; SELECT $id;";
+        if (m.Id != 0) cmd.Parameters.AddWithValue("$id", m.Id);
+        cmd.Parameters.AddWithValue("$d", m.Date);
+        cmd.Parameters.AddWithValue("$fid", m.FirearmId);
+        cmd.Parameters.AddWithValue("$pid", (object?)m.PowderId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$chg", m.ChargeGr);
+        cmd.Parameters.AddWithValue("$dia", m.HeadDiameterMm);
+        cmd.Parameters.AddWithValue("$n", m.Notes);
+        return Convert.ToInt64(cmd.ExecuteScalar());
+    }
+
+    public void DeleteCaseHeadMeasurement(long id) =>
+        Exec("DELETE FROM case_head_measurements WHERE id=$id", null, ("$id", id));
 
     // ---- helpers -------------------------------------------------------
 

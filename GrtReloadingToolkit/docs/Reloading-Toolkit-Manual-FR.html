@@ -115,7 +115,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuel · v0.2.14</span>
+  <span class="k">Manuel · v0.2.15</span>
 </div></div>
 
 <div class="shell">
@@ -144,6 +144,9 @@
       <li><a href="#velocitymodel">Modèle de vitesse</a></li>
       <li><a href="#diagnostics">Diagnostics avancés</a></li>
       <li><a href="#sdrootcause">Cause racine de la SD</a></li>
+      <li><a href="#groupanalysis">Analyse de groupement</a></li>
+      <li><a href="#targetprint">Imprimer une cible Ladder/OCW</a></li>
+      <li><a href="#loadbook">Export du carnet de charges</a></li>
       <li><a href="#reports">Modèles de rapport GRT</a></li>
       <li><a href="#cli">Ligne de commande</a></li>
       <li><a href="#faq">Limites &amp; FAQ</a></li>
@@ -153,7 +156,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manuel</h1>
-      <p class="sub">Un plugin communautaire pour Gordon&#39;s Reloading Tool. Dix-neuf outils de
+      <p class="sub">Un plugin communautaire pour Gordon&#39;s Reloading Tool. Vingt-deux outils de
         rechargement et un jeu de modèles de rapport GRT imprimables, dans une seule fenêtre.</p>
       <p class="lede">Identifiant du plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribué
         comme exécutable Windows autonome &mdash; aucun runtime .NET requis sur la machine qui
@@ -170,7 +173,7 @@
           apparaissent. Cliquez sur l&#39;un ou l&#39;autre &mdash; une petite fenêtre
           <strong>launcher</strong> s&#39;ouvre avec un bouton par outil.</li>
         <li>Facultatif&nbsp;: dans le launcher, cliquez une fois sur
-          <strong>&laquo;&nbsp;Install GRT report templates&nbsp;&raquo;</strong> (voir&nbsp;§22).</li>
+          <strong>&laquo;&nbsp;Install GRT report templates&nbsp;&raquo;</strong> (voir&nbsp;§26).</li>
       </ol>
       <p>Le toolkit est <em>à la demande</em>&nbsp;: GRT le démarre au premier clic et il se ferme
         quand vous fermez sa dernière fenêtre. Toutes les fenêtres d&#39;outils sont servies par un
@@ -410,7 +413,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
       <h2><span class="no">07</span>Analyseur Ladder / OCW</h2>
       <p>Trouve le nœud de précision dans un <strong>ladder de charges</strong> à partir des vitesses
         au chronographe et des groupements sur cible.</p>
-      <p><strong>Les données de groupement peuvent venir de&nbsp;:</strong> exports Ballistic-X
+      <p><strong>Les données de groupement peuvent venir de&nbsp;:</strong> exports OnTarget
         <code>.csv</code> (un par charge, dans le même dossier que les fichiers chronographe),
         <em>ou</em> des propres onglets &laquo;&nbsp;Shot group&nbsp;&raquo; de GRT (voir&nbsp;§14).</p>
       <p><strong>Les vitesses</strong> viennent des fichiers chronographe <code>*.xlsx</code> du
@@ -421,7 +424,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         des <code>.csv</code> de cibles. Un fichier chronographe dans le dossier l&#39;emporte
         toujours pour cette charge.</p>
       <table><thead><tr><th>Contrôle</th><th>Effet</th></tr></thead><tbody>
-        <tr><td>Pick ladder folder…</td><td>Dossier avec chronographe <code>*.xlsx</code> + Ballistic-X <code>Carica *.csv</code>, une paire par charge.</td></tr>
+        <tr><td>Pick ladder folder…</td><td>Dossier avec chronographe <code>*.xlsx</code> + OnTarget <code>Carica *.csv</code>, une paire par charge.</td></tr>
         <tr><td>w POI · w MV · window</td><td>Poids d&#39;analyse et largeur du nœud (3–5 pas).</td></tr>
         <tr><td>Re-analyze</td><td>Recalcule avec les poids actuels.</td></tr>
         <tr><td>Groups from GRT load</td><td>Lit les groupements depuis les onglets Shot-group de GRT au lieu du <code>.csv</code>, avec les cases d&#39;unité distance de référence / distance de tir et une option <em>drop flyers</em>.</td></tr>
@@ -671,7 +674,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
       <p>Une petite base SQLite dans <code>%AppData%\GRTPlugins\reloading_log.db</code>, partagée avec
         le Journal de charges (§15) et Trouver meilleur Ba (§16) &mdash; trois fenêtres distinctes sur
         le même fichier, donc tout ce qui est enregistré dans l&#39;une apparaît dans les autres dès
-        que cette fenêtre reprend le focus. Trois onglets.</p>
+        que cette fenêtre reprend le focus. Quatre onglets.</p>
       <ul>
         <li><strong>Inventory</strong> &mdash; stock de poudre / amorces / étuis / balles / canons
           avec identifiant de lot, prix et (pour les étuis) un compteur d&#39;<em>utilisations
@@ -707,6 +710,14 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
           les du lot) ou <strong>À retirer</strong> (utilisations moyennes ≥ les <em>utilisations
           prévues</em> du lot). <strong>Mark annealed now</strong> réinitialise le compteur de recuit à
           la moyenne actuelle du lot.</li>
+        <li><strong>Pressure Signs</strong> &mdash; enregistre le diamètre de la tête d&#39;étui tiré à
+          la ligne 0,200&nbsp;po depuis la tête, par arme et par poudre, une mesure par charge testée.
+          Signale un passage d&#39;une charge à la suivante dont le taux d&#39;expansion accélère bien
+          au-delà de la moyenne précédente de cette même série (2&times; par défaut, modifiable)
+          &mdash; une comparaison volontairement autoréférentielle, car le lot d&#39;étuis, la chambre
+          et le calibre influencent trop le taux d&#39;expansion absolu pour qu&#39;un seuil universel
+          ait un sens. Add / Edit / Delete, filtré par arme puis par poudre, avec un graphique
+          diamètre-charge mettant en évidence en rouge le(s) passage(s) signalé(s).</li>
       </ul>
 
       <h3>Utiliser les onglets Shot-group de GRT comme source d&#39;analyse</h3>
@@ -983,9 +994,122 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         qu&#39;image.</p>
     </section>
 
+    <section id="groupanalysis">
+      <h2><span class="no">23</span>Analyse de groupement</h2>
+      <p>La Cause racine de la SD (§22) diagnostique une série chronographe&nbsp;; ceci en est le
+        pendant 2D &mdash; pour un <strong>groupement</strong> de tirs, la dispersion est-elle
+        vraiment bonne, à quel point faut-il faire confiance à cette lecture vu la taille de
+        l&#39;échantillon, et quel problème précis (le cas échéant) explique un tir ou un motif qui la
+        tire vers le bas.</p>
+      <p><strong>Trois façons de charger un groupement</strong>, toutes produisant le même groupement
+        interne, si bien que chaque mesure ci-dessous fonctionne à l&#39;identique quelle que soit la
+        source&nbsp;:</p>
+      <table><thead><tr><th>Source</th><th>À utiliser quand</th></tr></thead><tbody>
+        <tr><td>CSV OnTarget (un fichier, ou tout un dossier)</td><td>vous photographiez/numérisez les cibles et calibrez dans OnTarget</td></tr>
+        <tr><td>Les onglets groupement natifs de GRT</td><td>vous construisez déjà les groupements dans GRT (voir la note à ce sujet au §14)</td></tr>
+        <tr><td>Saisie manuelle</td><td>pied à coulisse sur une cible imprimée, ou tout autre logiciel &mdash; saisissez X/Y par tir, en mm ou en pouces</td></tr>
+      </tbody></table>
+      <p><strong>Mesures</strong>&nbsp;: l&#39;extreme spread et le rayon moyen, plus le
+        <strong>CEP50</strong> (le rayon contenant la moitié d&#39;un groupement à distribution de
+        Rayleigh, σ√ln4) et la dispersion horizontale/verticale séparée.</p>
+      <div class="callout"><strong>Le score (0&ndash;10) et la confiance (Faible/Moyenne/Haute) sont
+        deux nombres séparés, jamais réduits à un seul</strong> &mdash; un groupement serré de 3 tirs
+        et un groupement serré de 15 tirs ne sont pas la même affirmation. Le score vient de la
+        dispersion comparée à des seuils par palier modifiables&nbsp;; la confiance vient uniquement de
+        la taille de l&#39;échantillon, avec un minimum plus strict à longue distance qu&#39;à courte
+        distance (le seuil de bascule de distance, les deux minimums et les paliers de score sont
+        modifiables dans les <strong>Réglages</strong> &mdash; ce sont des points de départ, pas une
+        norme citable, car il n&#39;existe pas dans la littérature de nombre minimal d&#39;échantillon
+        citable à longue distance, contrairement à la formule du CEP50).</div>
+      <p><strong>La détection d&#39;anomalies</strong> utilise la covariance 2D propre au groupement
+        (distance de Mahalanobis) plutôt qu&#39;une dispersion circulaire supposée &mdash;
+        l&#39;équivalent 2D du test d&#39;anomalies par critère de Chauvenet qu&#39;utilisent les
+        Statistiques chronographe (§6) et la Cause racine de la SD (§22) sur une série 1D. Ignorée, et
+        non devinée, en dessous d&#39;un nombre minimal de tirs.</p>
+      <p><strong>Liste des problèmes</strong>, chacun avec le chiffre qui le justifie, jamais une
+        simple affirmation&nbsp;: tirs signalés comme anomalies statistiques (nommés par indice),
+        échantillon trop petit pour une lecture fiable à cette distance (indique le seuil utilisé),
+        rapport de dispersion horizontale/verticale nettement asymétrique, centre du groupement décalé
+        du point de visée au-delà d&#39;un seuil, et &mdash; toujours affiché à longue distance, jamais
+        masqué &mdash; un avertissement que la dispersion brute inclut encore des effets du vent non
+        corrigés.</p>
+      <p><strong>Combiner des groupements</strong> regroupe les groupements de plusieurs charges en un
+        seul en <strong>recentrant d&#39;abord chacun sur son propre centroïde</strong> &mdash; cela
+        isole la dispersion combinée (chacune de ces charges se comporte-t-elle de façon cohérente en
+        elle-même&nbsp;?) des vraies différences de point d&#39;impact entre elles, qu&#39;une
+        combinaison naïve mélangerait.</p>
+      <p><strong>Corrélation vitesse ↔ dispersion</strong>&nbsp;: pointez un second dossier vers des
+        fichiers chronographe Athlon correspondants (un par charge, les mêmes charges que le dossier
+        OnTarget), et l&#39;outil aligne la vitesse de chaque tir avec sa distance au centre du
+        groupement par <strong>ordre de tir</strong> &mdash; le même alignement qu&#39;utilise la
+        corrélation de température de la Cause racine de la SD &mdash; et indique si les tirs les plus
+        rapides de cette série précise atterrissent plus près ou plus loin du centre. C&#39;est une
+        mesure de <em>vos</em> données, jamais une affirmation générale.</p>
+      <p><strong>Write group-analysis note to GRT load</strong> écrit le score, la confiance, les
+        mesures et chaque problème déclenché dans une seule note, avec le graphique du plan de cible
+        (impacts, centroïde, point de visée, anomalies mises en évidence) joint en tant qu&#39;image.</p>
+    </section>
+
+    <section id="targetprint">
+      <h2><span class="no">24</span>Imprimer une cible Ladder/OCW</h2>
+      <p>Une cible imprimable à l&#39;échelle réelle pour une série de charges, préparée
+        <strong>avant</strong> de partir au stand &mdash; le pendant &laquo;&nbsp;avant le
+        stand&nbsp;&raquo; de l&#39;Analyseur Ladder / OCW (§7), qui ne relit un groupement
+        qu&#39;après coup. Aucune connexion GRT nécessaire.</p>
+      <p><strong>Deux types de cible</strong>, tous deux avec une rangée de points de visée
+        dimensionnée au nombre de charges (3&ndash;12 pour OCW, 3&ndash;20 pour Ladder) et tous deux
+        avec des échelles en mm <strong>et</strong> en pouces&nbsp;:</p>
+      <table><thead><tr><th>Cible</th><th>Disposition</th><th>Tirs par point</th></tr></thead><tbody>
+        <tr><td>OCW</td><td>un disque de visée par charge, style round-robin, une ligne en pointillés relie tous les points à la même hauteur</td><td>1&ndash;5, répétés en passes</td></tr>
+        <tr><td>Ladder / Audette</td><td>un disque de visée par charge avec une règle de &plusmn;50&nbsp;mm centrée dessus, dimensionnée pour se lire à ~200&ndash;300&nbsp;m</td><td>1&ndash;5, tirés ensemble</td></tr>
+      </tbody></table>
+      <p>Les poids de charge sont facultatifs (saisis, séparés par des virgules, imprimés sous chaque
+        point) ou laissés vides pour être remplis à la main une fois le pas réel décidé au stand.
+        <strong>Charges par feuille</strong> (0 = toutes) répartit une longue série sur plusieurs
+        feuilles A3, chacune répétant l&#39;en-tête et les instructions.</p>
+      <div class="callout"><strong>Imprimer à 100&nbsp;% (&laquo;&nbsp;taille réelle&nbsp;&raquo;),
+        jamais &laquo;&nbsp;ajuster à la page&nbsp;&raquo;</strong> &mdash; la barre de 100&nbsp;mm
+        imprimée en bas sert à vérifier que l&#39;imprimante n&#39;a rien remis à l&#39;échelle en
+        silence avant de tirer dessus. Nécessite du papier A3&nbsp;: une grille OCW plus l&#39;en-tête
+        et les instructions ont besoin de plus de hauteur que n&#39;en offre l&#39;A4 sans que
+        l&#39;en-tête ne chevauche la grille.</div>
+      <p><strong>Enregistrer en PDF…</strong> génère directement un vrai fichier PDF avec une page A3
+        garantie, via &laquo;&nbsp;Microsoft Print to PDF&nbsp;&raquo; intégré à Windows &mdash;
+        contrairement à l&#39;imprimante sélectionnée sous <strong>Imprimer…</strong>, qui peut ne pas
+        proposer l&#39;A3 du tout (là, c&#39;est du mieux possible&nbsp;; un avertissement clair
+        s&#39;affiche si ce n&#39;est pas possible, plutôt que d&#39;imprimer silencieusement à la
+        mauvaise échelle). <strong>Enregistrer en PNG…</strong> exporte la page d&#39;aperçu actuelle
+        en image.</p>
+    </section>
+
+    <section id="loadbook">
+      <h2><span class="no">25</span>Export du carnet de charges</h2>
+      <p>Parcourt un dossier de fichiers <code>.grtload</code> &mdash; récursivement, une ligne par
+        recette réelle même quand les propres fichiers de réécriture de ce toolkit (ou ceux
+        automatiquement enregistrés par GRT) se trouvent juste à côté de l&#39;original &mdash; et
+        génère un unique document HTML, regroupé par calibre&nbsp;: poudre, charge, balle, COAL, les
+        coefficients du modèle de poudre (<code>Ba</code>/<code>a0</code>) sur lesquels la simulation
+        de GRT est calibrée pour cette recette, et ce qui a été mesuré. &laquo;&nbsp;Mesuré&nbsp;&raquo;
+        privilégie une entrée du Journal de charges (§15) enregistrée pour ce fichier précis (plus
+        riche&nbsp;: nom de la balle, taille du groupement, distance, notes) et retombe sur les
+        données de tir intégrées au <code>.grtload</code> lui-même quand rien n&#39;a jamais été
+        enregistré pour lui &mdash; ces lignes apparaissent en gris italique aussi bien dans
+        l&#39;aperçu à l&#39;écran que sur la page exportée, pour repérer d&#39;un coup d&#39;œil
+        quelles recettes n&#39;ont jamais été chronographiées que dans GRT lui-même.</p>
+      <p><strong>Choisir un dossier…</strong> scanne&nbsp;; la grille prévisualise ce qui sera exporté
+        avant de valider un fichier. <strong>Exporter en HTML…</strong> enregistre la page et
+        l&#39;ouvre dans le navigateur par défaut, où vous pouvez l&#39;imprimer (sur papier ou en PDF,
+        la même idée que &laquo;&nbsp;Enregistrer en PDF…&nbsp;&raquo; au §24) au format de page de
+        votre choix &mdash; volontairement en HTML plutôt qu&#39;avec un générateur PDF intégré, pour
+        que ce plugin n&#39;embarque jamais sa propre bibliothèque PDF.</p>
+      <p>Un fichier renommé par un enregistrement du toolkit <em>postérieur</em> à son enregistrement
+        dans le Journal ne sera plus rattaché à cette entrée du Journal &mdash; la même limite acceptée
+        que toute autre recherche basée sur le chemin de fichier dans ce toolkit.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">23</span>Modèles de rapport GRT</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) écrit quinze pages
+      <h2><span class="no">26</span>Modèles de rapport GRT</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) écrit seize pages
         de rapport DokuWiki dans <code>GRT\doku\&lt;langue&gt;\report\</code> et les relie dans l&#39;index
         des rapports. Lancez-le une fois par installation GRT (et demandez à quiconque partage le
         plugin de faire de même). C&#39;est idempotent et non destructif&nbsp;; supprimez une page en
@@ -1005,12 +1129,15 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         <tr><td>Powder compare report</td><td>la note de rang/score de la comparaison des poudres</td></tr>
         <tr><td>Advanced diagnostics report</td><td>la note des six diagnostics</td></tr>
         <tr><td>SD root-cause report</td><td>la note de cause racine + diagramme leave-one-out</td></tr>
+        <tr><td>Group analysis report</td><td>la note d&#39;analyse de groupement + graphique du plan de cible</td></tr>
         <tr><td>Velocity model report</td><td>la note du fit empirique</td></tr>
       </tbody></table>
       <p>Chaque outil qui écrit une note a désormais sa propre page dédiée, à l&#39;exception de
-        l&#39;<strong>Estimation force de seating (QC)</strong> (§12) et de l&#39;<strong>assistant
-        Nouvelle charge guidée</strong> (§4) &mdash; l&#39;estimateur QC n&#39;a aucun lien avec GRT, et
-        l&#39;assistant se contente d&#39;ouvrir d&#39;autres outils, il n&#39;écrit jamais rien lui-même.</p>
+        l&#39;<strong>Estimation force de seating (QC)</strong> (§12), de l&#39;<strong>assistant
+        Nouvelle charge guidée</strong> (§4), d&#39;<strong>Imprimer une cible Ladder/OCW</strong>
+        (§24) et de l&#39;<strong>Export du carnet de charges</strong> (§25) &mdash; aucun des quatre
+        n&#39;écrit rien dans un load GRT ouvert (les deux derniers ne nécessitent même aucune
+        connexion GRT).</p>
       <div class="callout"><b>Pour voir un rapport&nbsp;:</b> panneau Results → <strong>+</strong>
         (nouvel onglet) → <strong>Add report</strong> → choisissez une page
         &laquo;&nbsp;Toolkit — …&nbsp;&raquo;. Ouvrez-la <strong>sur l&#39;instantané
@@ -1020,7 +1147,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
     </section>
 
     <section id="cli">
-      <h2><span class="no">24</span>Ligne de commande</h2>
+      <h2><span class="no">27</span>Ligne de commande</h2>
       <p>Points d&#39;entrée de débogage sur l&#39;exécutable
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>)&nbsp;:</p>
       <pre>--dbtest [db]                                    <span class="c">auto-test inventaire / journal (écrit des données fictives
@@ -1048,7 +1175,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
     </section>
 
     <section id="faq">
-      <h2><span class="no">25</span>Limites &amp; FAQ</h2>
+      <h2><span class="no">28</span>Limites &amp; FAQ</h2>
       <h3>Pourquoi une pile de fichiers <code>_toolkit_…</code>&nbsp;?</h3>
       <p>L&#39;API plugin de GRT ne peut pas modifier le load ouvert ni recharger un onglet déjà
         ouvert &mdash; donc chaque écriture est un nouvel instantané horodaté. Chaque instantané est
@@ -1060,11 +1187,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         0,6&nbsp;m/s, ce qui est dans le bruit du chronographe.</p>
       <h3>&laquo;&nbsp;No usable shot groups in that load.&nbsp;&raquo;</h3>
       <p>Votre load n&#39;a pas d&#39;onglets Shot-group GRT &mdash; vous avez analysé les groupements
-        dans Ballistic-X à la place. Utilisez le chemin <code>.csv</code>, ou créez d&#39;abord les
+        dans OnTarget à la place. Utilisez le chemin <code>.csv</code>, ou créez d&#39;abord les
         groupements dans GRT (§14).</p>
       <h3>L&#39;outil de coefficient de température n&#39;active pas &laquo;&nbsp;Write&nbsp;&raquo;.</h3>
       <p>Il lui faut une charge à plusieurs températures, pas un ladder.</p>
-      <h3>Une seule icône dans la barre, pas dix-neuf.</h3>
+      <h3>Une seule icône dans la barre, pas vingt-deux.</h3>
       <p>C&#39;est voulu &mdash; elle ouvre le launcher&nbsp;; chaque outil y est un bouton. Les
         changements de manifeste nécessitent un redémarrage de GRT pour apparaître.</p>
       <h3>Nombres</h3>
@@ -1076,6 +1203,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.14 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.15 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

@@ -53,6 +53,7 @@ internal sealed class LauncherForm : Form
         B(Lang.T("🔧  Brass prep (case vol / seating / neck)"), Tool.Brass);
         B(Lang.T("⚖️  Seating force estimate (QC)"), Tool.SeatingForce);
         B(Lang.T("🏷  Load card / label"), Tool.Label);
+        B(Lang.T("🎯🖨  Print ladder/OCW target"), Tool.TargetPrint);
 
         Section(Lang.T("AFTER THE RANGE"));
         // Journal and Find best Ba lead this section on purpose: the journal is where every other
@@ -72,9 +73,11 @@ internal sealed class LauncherForm : Form
         B(Lang.T("📉  Velocity model (charge + temperature)"), Tool.VelocityModel);
         B(Lang.T("🔬  Advanced diagnostics"), Tool.Diagnostics);
         B(Lang.T("🌡🎯  SD root-cause"), Tool.SdRootCause);
+        B(Lang.T("🎯📐  Group analysis"), Tool.GroupAnalysis);
 
         Divider();
         B(Lang.T("📒  Inventory"), Tool.Log);
+        B(Lang.T("📚  Load book export"), Tool.LoadBook);
         B(Lang.T("📄  Install GRT report templates"), Tool.Reports);
 
         Controls.Add(flow);

@@ -112,7 +112,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2.14</span>
+  <span class="k">Manuale · v0.2.15</span>
 </div></div>
 
 <div class="shell">
@@ -141,6 +141,9 @@
       <li><a href="#velocitymodel">Modello Velocità</a></li>
       <li><a href="#diagnostics">Diagnostica Avanzata</a></li>
       <li><a href="#sdrootcause">Diagnosi SD</a></li>
+      <li><a href="#groupanalysis">Analisi Gruppo</a></li>
+      <li><a href="#targetprint">Stampa Bersaglio Ladder/OCW</a></li>
+      <li><a href="#loadbook">Esporta Libro Carichi</a></li>
       <li><a href="#reports">Template report GRT</a></li>
       <li><a href="#cli">Riga di comando</a></li>
       <li><a href="#faq">Limiti e FAQ</a></li>
@@ -150,7 +153,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manuale</h1>
-      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Diciannove strumenti di ricarica e
+      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Ventidue strumenti di ricarica e
         una serie di template di report GRT in un&#39;unica finestra.</p>
       <p class="lede">Id plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribuito come
         eseguibile Windows a file singolo — non serve il runtime .NET sulla macchina che lo esegue
@@ -166,7 +169,7 @@
           (icona chiave + cacciavite) e una voce nel menu <strong>Plugin</strong>. Clicca uno dei due
           — si apre una piccola finestra <strong>launcher</strong> con un pulsante per ogni strumento.</li>
         <li>Facoltativo: nel launcher, clicca una volta
-          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§22).</li>
+          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§26).</li>
       </ol>
       <p>Il toolkit è <em>on-demand</em>: GRT lo avvia al primo click ed esce quando chiudi la sua
         ultima finestra. Un solo processo serve tutte le finestre, quindi aprire un secondo strumento
@@ -385,7 +388,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <h2><span class="no">07</span>Analizzatore Ladder / OCW</h2>
       <p>Trova il nodo di precisione in una <strong>scalare di cariche</strong> dalle velocità al
         cronografo e dai gruppi a bersaglio.</p>
-      <p><strong>I gruppi possono venire da:</strong> export Ballistic-X <code>.csv</code> (uno per
+      <p><strong>I gruppi possono venire da:</strong> export OnTarget <code>.csv</code> (uno per
         carica, nella stessa cartella dei file del cronografo), <em>oppure</em> dai tab &laquo;Analisi
         gruppo di colpi&raquo; di GRT stesso (vedi&nbsp;§14).</p>
       <p><strong>Le velocità</strong> vengono dai file <code>*.xlsx</code> del cronografo nella
@@ -395,7 +398,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         velocità e la linea MV blu compaiono anche quando la cartella contiene solo i <code>.csv</code>
         dei bersagli. Un file del cronografo nella cartella ha sempre la precedenza per quella carica.</p>
       <table><thead><tr><th>Controllo</th><th>Effetto</th></tr></thead><tbody>
-        <tr><td>Pick ladder folder…</td><td>Cartella con <code>*.xlsx</code> del cronografo + <code>Carica *.csv</code> di Ballistic-X, una coppia per carica.</td></tr>
+        <tr><td>Pick ladder folder…</td><td>Cartella con <code>*.xlsx</code> del cronografo + <code>Carica *.csv</code> di OnTarget, una coppia per carica.</td></tr>
         <tr><td>w POI · w MV · window</td><td>Pesi dell&#39;analisi e larghezza del nodo (3–5 gradini).</td></tr>
         <tr><td>Re-analyze</td><td>Ricalcola con i pesi attuali.</td></tr>
         <tr><td>Groups from GRT load</td><td>Legge i gruppi dai tab &laquo;gruppo di colpi&raquo; di GRT invece che dai <code>.csv</code>, con i due menù unità (distanza di riferimento / distanza di tiro) e l&#39;opzione <em>drop flyers</em>.</td></tr>
@@ -629,7 +632,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p>Un piccolo database SQLite in <code>%AppData%\GRTPlugins\reloading_log.db</code>, condiviso
         con il Diario di carico (§15) e Trova miglior Ba (§16) &mdash; tre finestre separate sullo
         stesso file, quindi qualsiasi cosa registrata in una compare nelle altre appena quella finestra
-        torna in primo piano. Tre tab.</p>
+        torna in primo piano. Quattro tab.</p>
       <ul>
         <li><strong>Inventory</strong> — scorte di polvere / inneschi / bossoli / palle / canne con id lotto,
           prezzo e (per i bossoli) un contatore <em>usi previsti</em> che ammortizza il costo del
@@ -662,6 +665,14 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           lotto) o <strong>Da ritirare</strong> (usi medi ≥ gli <em>usi previsti</em> del lotto).
           <strong>Segna come ricotto ora</strong> azzera il contatore di ricottura riportandolo alla
           media attuale del lotto.</li>
+        <li><strong>Segni di Pressione</strong> — registra il diametro della testa bossolo sparato
+          alla linea 0.200&Prime;, per arma e polvere, una lettura per carica testata. Segnala un
+          passaggio da una carica alla successiva la cui velocità di espansione accelera ben oltre la
+          media precedente della stessa scaletta (2&times; di default, modificabile) &mdash; un
+          confronto volutamente autoreferenziale, dato che lotto di bossoli, camera e calibro
+          influenzano troppo la velocità di espansione assoluta perché una soglia universale abbia
+          senso. Add / Edit / Delete, filtrato per arma e poi per polvere, con un grafico
+          diametro-carica che evidenzia in rosso il/i passaggio/i segnalato/i.</li>
       </ul>
 
       <h3>Usare i tab &laquo;gruppo di colpi&raquo; di GRT come sorgente</h3>
@@ -923,9 +934,117 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         immagine.</p>
     </section>
 
+    <section id="groupanalysis">
+      <h2><span class="no">23</span>Analisi Gruppo</h2>
+      <p>La Diagnosi SD (§22) diagnostica una stringa al cronografo; questo è il suo gemello 2D
+        &mdash; per un <strong>gruppo</strong> di colpi, la dispersione è davvero buona, quanto ci si
+        può fidare di quella lettura data la dimensione del campione, e qual è il problema specifico
+        (se c&#39;è) che spiega un colpo o un pattern che la sta trascinando in basso.</p>
+      <p><strong>Tre modi per caricare un gruppo</strong>, tutti producono lo stesso gruppo interno
+        così ogni metrica sotto funziona identicamente qualunque sia la sorgente:</p>
+      <table><thead><tr><th>Sorgente</th><th>Quando usarla</th></tr></thead><tbody>
+        <tr><td>CSV OnTarget (un file, o una cartella intera)</td><td>fotografi/scansioni i bersagli e calibri in OnTarget</td></tr>
+        <tr><td>Tab &laquo;gruppo di colpi&raquo; di GRT</td><td>costruisci già i gruppi dentro GRT (vedi la nota al §14 su quel flusso)</td></tr>
+        <tr><td>Inserimento manuale</td><td>calibro su un bersaglio stampato, o qualsiasi altro software &mdash; digiti X/Y per colpo, in mm o pollici</td></tr>
+      </tbody></table>
+      <p><strong>Metriche</strong>: extreme spread e raggio medio, più il <strong>CEP50</strong> (il
+        raggio che contiene metà di un gruppo con distribuzione di Rayleigh, σ√ln4) e la dispersione
+        orizzontale/verticale separata.</p>
+      <div class="callout"><strong>Punteggio (0&ndash;10) e Confidenza (Bassa/Media/Alta) sono due
+        numeri separati, mai uniti in uno solo</strong> &mdash; un gruppo stretto da 3 colpi e un
+        gruppo stretto da 15 colpi non sono la stessa affermazione. Il punteggio viene dalla
+        dispersione contro soglie modificabili; la Confidenza viene solo dalla dimensione del
+        campione, con un minimo più severo a lunga distanza che a corta distanza (il punto di
+        passaggio, entrambi i minimi e le soglie del punteggio sono modificabili in
+        <strong>Impostazioni</strong> &mdash; sono valori di partenza, non uno standard citabile, dato
+        che un numero minimo di campione a lunga distanza citabile non esiste in letteratura come
+        invece esiste la formula del CEP50).</div>
+      <p><strong>Il rilevamento anomalie</strong> usa la covarianza 2D del gruppo stesso (distanza di
+        Mahalanobis) invece di una dispersione circolare presunta &mdash; l&#39;analogo 2D del test di
+        anomalie basato sul criterio di Chauvenet che Statistiche Cronografo (§6) e Diagnosi SD (§22)
+        usano su una stringa 1D. Saltato, non indovinato, sotto un numero minimo di colpi.</p>
+      <p><strong>Elenco problemi</strong>, ognuno con il numero che lo sostiene, mai un&#39;affermazione
+        nuda: colpi segnalati come anomalie statistiche (indicati per indice), campione troppo piccolo
+        per una lettura affidabile a questa distanza (indica la soglia usata), rapporto di dispersione
+        orizzontale/verticale notevolmente asimmetrico, centro del gruppo scostato dal punto di mira
+        oltre una soglia, e &mdash; sempre mostrato a lunga distanza, mai nascosto &mdash; un avviso che
+        la dispersione grezza include ancora effetti del vento non corretti.</p>
+      <p><strong>Combina gruppi</strong> unisce i gruppi di più cariche in uno solo
+        <strong>ricentrando prima ciascuno sul proprio centroide</strong> &mdash; questo isola la
+        dispersione unita (queste cariche si comportano ognuna in modo coerente?) dalle reali
+        differenze di punto d&#39;impatto tra loro, che un&#39;unione ingenua confonderebbe insieme.</p>
+      <p><strong>Correlazione velocità ↔ dispersione</strong>: punta una seconda cartella con i file
+        cronografo Athlon corrispondenti (uno per carica, le stesse cariche della cartella OnTarget) e
+        lo strumento allinea la velocità di ogni colpo con la sua distanza dal centro del gruppo per
+        <strong>ordine di sparo</strong> &mdash; lo stesso allineamento che usa la correlazione
+        temperatura della Diagnosi SD &mdash; e riporta se i colpi più veloci in questa specifica
+        stringa cadono più vicini o più lontani dal centro. È una misura dei <em>tuoi</em> dati, mai
+        un&#39;affermazione generale.</p>
+      <p><strong>Scrivi nota analisi gruppo sul load GRT</strong> scrive punteggio, confidenza,
+        metriche e ogni problema attivato in un&#39;unica nota, con il grafico del piano bersaglio
+        (impatti, centroide, punto di mira, anomalie evidenziate) allegato come immagine.</p>
+    </section>
+
+    <section id="targetprint">
+      <h2><span class="no">24</span>Stampa Bersaglio Ladder/OCW</h2>
+      <p>Un bersaglio stampabile in scala reale per una scaletta di cariche, preparato
+        <strong>prima</strong> di partire per il poligono &mdash; la controparte &laquo;prima del
+        poligono&raquo; dell&#39;Analizzatore Ladder / OCW (§7), che legge un gruppo solo dopo. Non
+        serve alcuna connessione a GRT.</p>
+      <p><strong>Due tipi di bersaglio</strong>, entrambi con una riga di punti di mira dimensionata
+        al numero di cariche (3&ndash;12 per OCW, 3&ndash;20 per Ladder) ed entrambi con scale in mm
+        <strong>e</strong> pollici:</p>
+      <table><thead><tr><th>Bersaglio</th><th>Struttura</th><th>Colpi per punto</th></tr></thead><tbody>
+        <tr><td>OCW</td><td>un disco di mira per carica, stile round-robin, una linea tratteggiata collega ogni punto alla stessa altezza</td><td>1&ndash;5, ripetuti in passate</td></tr>
+        <tr><td>Ladder / Audette</td><td>un disco di mira per carica con un righello di &plusmn;50&nbsp;mm centrato su di esso, dimensionato per leggersi a ~200&ndash;300&nbsp;m</td><td>1&ndash;5, sparati insieme</td></tr>
+      </tbody></table>
+      <p>I pesi delle cariche sono facoltativi (digitati, separati da virgola, stampati sotto ogni
+        punto) oppure lasciati vuoti per essere compilati a mano dopo che il poligono ha deciso il
+        passo reale. <strong>Cariche per pagina</strong> (0 = tutte) divide una scaletta lunga su più
+        fogli A3, ognuno con intestazione e istruzioni ripetute.</p>
+      <div class="callout"><strong>Stampa al 100% (&laquo;dimensioni reali&raquo;), mai &laquo;adatta
+        alla pagina&raquo;</strong> &mdash; la barra da 100&nbsp;mm stampata in basso serve a
+        verificare che la stampante non abbia silenziosamente riscalato nulla prima di sparare su di
+        essa. Serve carta A3: una griglia OCW più intestazione e istruzioni hanno bisogno di più
+        spazio verticale di quanto ne offra l&#39;A4 senza che l&#39;intestazione si sovrapponga alla
+        griglia.</div>
+      <p><strong>Salva PDF…</strong> genera direttamente un vero file PDF in un formato A3
+        garantito, tramite &laquo;Microsoft Print to PDF&raquo; integrata in Windows &mdash; a
+        differenza di qualunque stampante sia selezionata sotto <strong>Stampa…</strong>, che
+        potrebbe non avere affatto l&#39;A3 tra i formati (lì è un tentativo migliore possibile; un
+        avviso chiaro scatta se non ci riesce, invece di stampare silenziosamente nella scala
+        sbagliata). <strong>Salva PNG…</strong> esporta la pagina di anteprima corrente come
+        immagine.</p>
+    </section>
+
+    <section id="loadbook">
+      <h2><span class="no">25</span>Esporta Libro Carichi</h2>
+      <p>Percorre una cartella di file <code>.grtload</code> &mdash; anche nelle sottocartelle, una
+        riga per ogni ricetta reale anche quando accanto all&#39;originale ci sono i file generati
+        automaticamente da questo toolkit (o quelli salvati automaticamente da GRT stesso) &mdash; e
+        genera un unico documento HTML, raggruppato per calibro: polvere, carica, palla, COAL, i
+        coefficienti del modello propellente (<code>Ba</code>/<code>a0</code>) a cui è calibrata la
+        simulazione di GRT per quella ricetta, e quanto è stato misurato. &laquo;Misurato&raquo;
+        preferisce una voce del Diario di carico (§15) registrata proprio contro quel file (più
+        ricca: nome della palla, dimensione del gruppo, distanza, note) e ripiega sui dati di sparo
+        incorporati nel file <code>.grtload</code> stesso quando non è mai stato registrato nulla per
+        esso &mdash; quelle righe compaiono in grigio corsivo sia nell&#39;anteprima a schermo sia
+        nella pagina esportata, così a colpo d&#39;occhio si vede quali ricette sono state cronografate
+        solo dentro GRT.</p>
+      <p><strong>Scegli cartella…</strong> scansiona; la griglia mostra un&#39;anteprima di cosa
+        verrà esportato prima di salvare su file. <strong>Esporta HTML…</strong> salva la pagina e
+        l&#39;apre nel browser predefinito, dove puoi stamparla (su carta o in PDF, la stessa idea di
+        &laquo;Salva PDF…&raquo; del §24) nel formato pagina che preferisci &mdash; volutamente HTML
+        invece di un generatore PDF integrato, così questo plugin non porta mai con sé una libreria
+        PDF propria.</p>
+      <p>Un file rinominato da un salvataggio del toolkit <em>successivo</em> alla sua registrazione
+        nel Diario non verrà più abbinato a quella voce &mdash; lo stesso limite accettato che ha
+        ogni altra ricerca basata sul percorso file in questo toolkit.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">23</span>Template report GRT</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive quindici
+      <h2><span class="no">26</span>Template report GRT</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive sedici
         pagine di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
         dei report. Va lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
         stesso). È idempotente e non distruttivo; per cancellare una pagina la salvi vuota in GRT.</p>
@@ -944,12 +1063,14 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Powder compare report</td><td>la nota posizione/punteggio confronto polveri</td></tr>
         <tr><td>Advanced diagnostics report</td><td>la nota di tutte e sei le diagnostiche</td></tr>
         <tr><td>SD root-cause report</td><td>la nota diagnosi + grafico leave-one-out</td></tr>
+        <tr><td>Group analysis report</td><td>la nota analisi gruppo + grafico piano bersaglio</td></tr>
         <tr><td>Velocity model report</td><td>la nota del fit empirico</td></tr>
       </tbody></table>
       <p>Ogni strumento che scrive una nota ha ora una sua pagina dedicata, tranne <strong>Stima
-        forza di seduta (QC)</strong> (§12) e il <strong>wizard Nuovo carico guidato</strong> (§4)
-        &mdash; lo stimatore QC non ha alcun collegamento a GRT, e il wizard si limita ad aprire altri
-        strumenti, non scrive mai nulla di suo.</p>
+        forza di seduta (QC)</strong> (§12), il <strong>wizard Nuovo carico guidato</strong> (§4),
+        <strong>Stampa Bersaglio Ladder/OCW</strong> (§24) ed <strong>Esporta Libro Carichi</strong>
+        (§25) &mdash; nessuno dei quattro scrive nulla su un load GRT aperto (gli ultimi due non
+        richiedono affatto una connessione a GRT).</p>
       <div class="callout"><b>Per vedere un report:</b> pannello Risultati → <strong>+</strong> (nuovo
         tab) → <strong>Add report</strong> → scegli una pagina &laquo;Toolkit — …&raquo;. Aprilo
         <strong>sullo snapshot <code>…_toolkit_…grtload</code></strong> — è lì che stanno le note e i
@@ -958,7 +1079,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="cli">
-      <h2><span class="no">24</span>Riga di comando</h2>
+      <h2><span class="no">27</span>Riga di comando</h2>
       <p>Punti di ingresso di debug sull&#39;exe
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">autotest inventario / diario (scrive dati fittizi in
@@ -985,7 +1106,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="faq">
-      <h2><span class="no">25</span>Limiti e FAQ</h2>
+      <h2><span class="no">28</span>Limiti e FAQ</h2>
       <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
       <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
         aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;
@@ -997,10 +1118,10 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         è dentro il rumore del cronografo.</p>
       <h3>&laquo;No usable shot groups in that load.&raquo;</h3>
       <p>Il tuo load non ha tab &laquo;gruppo di colpi&raquo; di GRT — hai analizzato i gruppi in
-        Ballistic-X. Usa il percorso <code>.csv</code>, o crea prima i gruppi in GRT (§14).</p>
+        OnTarget. Usa il percorso <code>.csv</code>, o crea prima i gruppi in GRT (§14).</p>
       <h3>Lo strumento coefficienti temperatura non attiva &laquo;Write&raquo;.</h3>
       <p>Serve una carica a più temperature, non una scalare.</p>
-      <h3>Un&#39;icona sola in barra, non diciannove.</h3>
+      <h3>Un&#39;icona sola in barra, non ventidue.</h3>
       <p>È voluto — apre il launcher; ogni strumento è un pulsante lì. Le modifiche al manifest
         richiedono un riavvio di GRT per comparire.</p>
       <h3>Numeri</h3>
@@ -1012,6 +1133,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.14 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.15 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

@@ -18,15 +18,30 @@ public sealed record LadderVelocity(double Step, IReadOnlyList<double> Velocitie
 
 /// <summary>
 /// Builds ladder steps from a folder of Athlon Rangecraft <c>*.xlsx</c> (velocities) and
-/// Ballistic-X <c>*.csv</c> (target coords), pairing them by the step value.
+/// OnTarget <c>*.csv</c> (target coords), pairing them by the step value.
 /// Charge mode keys on charge weight (gr); Seating mode keys on a number in the file name.
 /// </summary>
 public static class LadderLoader
 {
     public static LoadReport FromFolder(string folder, LadderMode mode)
     {
+        var (tgts, vels, log) = ScanFolder(folder, mode);
         var rep = new LoadReport();
+        rep.Log.AddRange(log);
+        Merge(rep, vels, tgts);
+        return rep;
+    }
 
+    /// <summary>
+    /// The raw scan behind <see cref="FromFolder"/>, kept separate because <see cref="FromFolder"/>
+    /// immediately reduces every target to a <see cref="LadderStep"/>'s summary numbers (impact count,
+    /// centre, ES, mean radius) and discards the actual <see cref="TargetGroup.Impacts"/> list — fine
+    /// for a ladder table, but Group Analysis needs the raw impacts (for Mahalanobis outliers, CEP50,
+    /// and pooling several charges into one combined group), so it calls this directly instead.
+    /// </summary>
+    public static (Dictionary<double, TargetGroup> Targets, Dictionary<double, IReadOnlyList<double>> Velocities, List<string> Log) ScanFolder(string folder, LadderMode mode)
+    {
+        var log = new List<string>();
         var vels = new Dictionary<double, IReadOnlyList<double>>();
         var chronoExt = new[] { ".xlsx", ".csv" };
         var chronoFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -36,14 +51,14 @@ public static class LadderLoader
             {
                 var a = AthlonParser.Parse(f);
                 double? x = StepValue(mode, a.ChargeGrains, a.SessionNote, f);
-                if (x is { } v) { vels[Key(v)] = a.Velocities.ToList(); chronoFiles.Add(f); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
-                else rep.Log.Add($"velocity {Path.GetFileName(f)}: no step value, skipped");
+                if (x is { } v) { vels[Key(v)] = a.Velocities.ToList(); chronoFiles.Add(f); log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
+                else log.Add($"velocity {Path.GetFileName(f)}: no step value, skipped");
             }
             catch (Exception) when (Path.GetExtension(f).Equals(".csv", StringComparison.OrdinalIgnoreCase))
             {
-                // a .csv that isn't a chrono export is probably a Ballistic-X target — handled below
+                // a .csv that isn't a chrono export is probably an OnTarget target — handled below
             }
-            catch (Exception ex) { rep.Log.Add($"velocity {Path.GetFileName(f)}: {ex.Message}"); }
+            catch (Exception ex) { log.Add($"velocity {Path.GetFileName(f)}: {ex.Message}"); }
         }
 
         var tgts = new Dictionary<double, TargetGroup>();
@@ -51,20 +66,19 @@ public static class LadderLoader
         {
             try
             {
-                var t = BallisticXCsv.Parse(f);
+                var t = OnTargetCsv.Parse(f);
                 double? x = StepValue(mode, t.ChargeGrains, null, f);
-                if (x is { } v) { tgts[Key(v)] = t; rep.Log.Add($"target {Path.GetFileName(f)} -> {StepText(mode, v)}, {t.Impacts.Count} impacts @ {GrtUnits.Current.Distance(t.DistanceM)}"); }
-                else rep.Log.Add($"target {Path.GetFileName(f)}: no step value, skipped");
+                if (x is { } v) { tgts[Key(v)] = t; log.Add($"target {Path.GetFileName(f)} -> {StepText(mode, v)}, {t.Impacts.Count} impacts @ {GrtUnits.Current.Distance(t.DistanceM)}"); }
+                else log.Add($"target {Path.GetFileName(f)}: no step value, skipped");
             }
             catch (Exception) when (chronoFiles.Contains(f))
             {
                 // already consumed as a chrono file
             }
-            catch (Exception ex) { rep.Log.Add($"target {Path.GetFileName(f)}: {ex.Message}"); }
+            catch (Exception ex) { log.Add($"target {Path.GetFileName(f)}: {ex.Message}"); }
         }
 
-        Merge(rep, vels, tgts);
-        return rep;
+        return (tgts, vels, log);
     }
 
     /// <summary>

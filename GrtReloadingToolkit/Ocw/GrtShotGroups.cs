@@ -13,7 +13,7 @@ public enum ShootUnit { Meters, Yards }
 
 /// <summary>
 /// Turns GRT "Shot group analysis" tabs (stored in a .grtload) into <see cref="TargetGroup"/>s
-/// the ladder analyzer already understands — no Ballistic-X export needed.
+/// the ladder analyzer already understands — no OnTarget export needed.
 ///
 /// GRT stores hits as image fractions (0..1). Two reference points a known distance apart
 /// calibrate the scale; the picture's width/height give the pixel aspect ratio.

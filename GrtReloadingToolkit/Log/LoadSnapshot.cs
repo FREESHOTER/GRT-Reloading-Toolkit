@@ -13,6 +13,7 @@ public sealed class LoadSnapshot
     public string PowderName { get; init; } = "";
     public string BulletName { get; init; } = "";
     public double? BulletWeightGr { get; init; }
+    public double? CoalMm { get; init; }
     public double? ChargeGr { get; init; }
     public double? VelocityAvgMs { get; init; }
     public double? SdMs { get; init; }
@@ -56,6 +57,9 @@ public sealed class LoadSnapshot
             Caliber = doc.CaliberName,
             Firearm = doc.GunName,
             PowderName = doc.PropellantName,
+            BulletName = doc.ProjectileName,
+            BulletWeightGr = doc.BulletMassGr is > 0 ? doc.BulletMassGr : null,
+            CoalMm = doc.CoalMm is > 0 ? doc.CoalMm : null,
             ChargeGr = chg,
             VelocityAvgMs = st is { N: > 0 } ? st.Value.Mean : null,
             SdMs = st is { N: > 0 } ? st.Value.Sd : null,

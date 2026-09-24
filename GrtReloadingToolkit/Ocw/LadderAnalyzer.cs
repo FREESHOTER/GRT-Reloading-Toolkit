@@ -140,7 +140,7 @@ public static class LadderAnalyzer
             foreach (var wn in r.Warnings) sb.AppendLine("! " + wn);
         }
         sb.AppendLine();
-        sb.AppendLine("Method: MOA target coordinates from Ballistic-X" + (seat ? "." : ", velocities from Athlon Rangecraft."));
+        sb.AppendLine("Method: MOA target coordinates from OnTarget" + (seat ? "." : ", velocities from Athlon Rangecraft."));
         sb.AppendLine("SD is population (n). Confirm any node with a fresh confirmation group before committing.");
         return sb.ToString();
 
