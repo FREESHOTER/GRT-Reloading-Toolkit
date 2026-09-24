@@ -2,7 +2,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/FREESHOTER/GRT-Reloading-Toolkit?label=latest%20release&color=brightgreen)](https://github.com/FREESHOTER/GRT-Reloading-Toolkit/releases/latest)
 
-A community plugin for [Gordon's Reloading Tool](https://grtools.de) that bundles eighteen small
+A community plugin for [Gordon's Reloading Tool](https://grtools.de) that bundles nineteen small
 reloading tools into one window and writes their results back into your load — as notes, charts,
 and corrected inputs (`Ba`, `a0`, `casevol`, `gdepth`, `tcc`/`tch`) — plus a set of installable GRT
 report templates.
@@ -11,7 +11,7 @@ report templates.
 — grab `ReloadingToolkit.zip` (or the smaller `-lite.zip`, see [Install](#install-users) below) from
 the Assets list on that page.
 
-> **Status: v0.2.13.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
+> **Status: v0.2.14.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
 > every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
@@ -37,7 +37,8 @@ the Assets list on that page.
 | **Powder Compare** | Same scoring, one level coarser: groups by caliber+powder only, over powders you've actually calibrated. |
 | **Velocity Model** | An empirical `MV ≈ a + b·charge + c·temperature` fit from your own logged sessions, independent of GRT's physics model — plus a predictor and an inverse solver (target MV → needed charge). |
 | **Advanced Diagnostics** | Six diagnostics needing no calibrated `Ba`: Fouling Tracker, Cold Bore, Primer Sensitivity, Neck Tension Correlation, Pressure Trend, Session Trend. |
-| **Install GRT report templates** | Writes fourteen DokuWiki report pages into `GRT\doku\<lang>\report\`. |
+| **SD Root-Cause** | For one shot string: a leave-one-out ranking of which shot(s) are dragging the SD down, classified (single/partial-outlier vs. systematic) by Chauvenet's criterion rather than an invented cutoff — plus cold-bore, progressive-drift, and (with a per-shot barrel temperature you log by hand) real temperature↔velocity and temperature↔group-dispersion correlation using GRT's own shot-group data. |
+| **Install GRT report templates** | Writes fifteen DokuWiki report pages into `GRT\doku\<lang>\report\`. |
 
 Full details: **[MANUAL.md](GrtReloadingToolkit/MANUAL.md)**, or as HTML
 ([EN](GrtReloadingToolkit/docs/Reloading-Toolkit-Manual.html) /
@@ -109,7 +110,7 @@ grt-plugins-shared/
   make-icons.ps1
 ```
 
-Debug CLIs (headless, on the built exe) are listed in [MANUAL.md §23](GrtReloadingToolkit/MANUAL.md).
+Debug CLIs (headless, on the built exe) are listed in [MANUAL.md §24](GrtReloadingToolkit/MANUAL.md).
 
 ## Credits
 

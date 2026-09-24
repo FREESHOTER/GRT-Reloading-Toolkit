@@ -71,6 +71,7 @@ internal sealed class LauncherForm : Form
         B(Lang.T("🧪  Powder compare"), Tool.PowderCompare);
         B(Lang.T("📉  Velocity model (charge + temperature)"), Tool.VelocityModel);
         B(Lang.T("🔬  Advanced diagnostics"), Tool.Diagnostics);
+        B(Lang.T("🌡🎯  SD root-cause"), Tool.SdRootCause);
 
         Divider();
         B(Lang.T("📒  Inventory"), Tool.Log);

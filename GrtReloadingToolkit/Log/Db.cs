@@ -59,7 +59,15 @@ CREATE TABLE IF NOT EXISTS firearms (
   name TEXT NOT NULL, caliber TEXT DEFAULT '', notes TEXT DEFAULT '',
   rounds_before INTEGER DEFAULT 0, retired INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
-);");
+);
+CREATE TABLE IF NOT EXISTS shot_measurements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  caliber TEXT NOT NULL, label TEXT NOT NULL, shot_index INTEGER NOT NULL,
+  temperature_c REAL,
+  created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(caliber, label, shot_index)
+);
+CREATE INDEX IF NOT EXISTS ix_shot_measurements_key ON shot_measurements(caliber, label);");
         // additive column migration (older DBs)
         if (!ColumnExists("journal", "firearm_id"))
             Exec("ALTER TABLE journal ADD COLUMN firearm_id INTEGER");
@@ -483,6 +491,38 @@ CREATE TABLE IF NOT EXISTS firearms (
         double avgUses = c.QtyInitial > 0 ? BrassRoundsFired(id) / c.QtyInitial : 0;
         Exec("UPDATE components SET annealed_at_uses=$v WHERE id=$id", null, ("$v", avgUses), ("$id", id));
         return true;
+    }
+
+    // ---- shot measurements (SD Root-Cause manual per-shot temperature) --
+
+    /// <summary>Every manually-entered per-shot temperature for one string, ordered by shot index —
+    /// <see cref="ShotMeasurement.TemperatureC"/> may itself be null for a shot the user hasn't
+    /// filled in yet (a saved row with the key but no value), so callers must still check it.</summary>
+    public List<ShotMeasurement> ShotTemperatures(string caliber, string label)
+    {
+        var list = new List<ShotMeasurement>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "SELECT * FROM shot_measurements WHERE caliber=$cal COLLATE NOCASE AND label=$lbl ORDER BY shot_index";
+        cmd.Parameters.AddWithValue("$cal", caliber);
+        cmd.Parameters.AddWithValue("$lbl", label);
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+            list.Add(new ShotMeasurement
+            {
+                Id = Lng(r, "id"), Caliber = Str(r, "caliber"), Label = Str(r, "label"),
+                ShotIndex = (int)Lng(r, "shot_index"), TemperatureC = Nul(r, "temperature_c"),
+            });
+        return list;
+    }
+
+    /// <summary>Upserts one shot's temperature by its (caliber, label, shot_index) key; a null
+    /// <paramref name="temperatureC"/> clears a previously-entered value rather than deleting the
+    /// row, so re-saving an emptied grid cell is idempotent.</summary>
+    public void SaveShotTemperature(string caliber, string label, int shotIndex, double? temperatureC)
+    {
+        Exec(@"INSERT INTO shot_measurements(caliber,label,shot_index,temperature_c) VALUES ($cal,$lbl,$idx,$t)
+               ON CONFLICT(caliber,label,shot_index) DO UPDATE SET temperature_c=$t",
+            null, ("$cal", caliber), ("$lbl", label), ("$idx", shotIndex), ("$t", (object?)temperatureC ?? DBNull.Value));
     }
 
     // ---- helpers -------------------------------------------------------

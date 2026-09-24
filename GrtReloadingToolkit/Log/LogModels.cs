@@ -133,6 +133,24 @@ public sealed class JournalEntry
     public double? A0 { get; set; }
 }
 
+/// <summary>
+/// A manually-measured per-shot barrel temperature (a probe clipped to the barrel, read at the
+/// moment of that shot) — GRT's own plugin API carries no per-shot data beyond velocity (see
+/// <c>GrtPluginKit.Grt.GrtShot</c>), so this is the toolkit's own record, keyed by
+/// (<see cref="Caliber"/>, <see cref="Label"/>, <see cref="ShotIndex"/>) rather than by .grtload
+/// file path: the write-back pattern renames the file on every save, which would silently orphan
+/// every entered temperature on the very next write. It is orphaned instead only if the user
+/// renames the Measurement/charge in GRT — a smaller, rarer edit than every save.
+/// </summary>
+public sealed class ShotMeasurement
+{
+    public long Id { get; set; }
+    public string Caliber { get; set; } = "";
+    public string Label { get; set; } = "";
+    public int ShotIndex { get; set; }
+    public double? TemperatureC { get; set; }
+}
+
 public sealed class Firearm
 {
     public long Id { get; set; }

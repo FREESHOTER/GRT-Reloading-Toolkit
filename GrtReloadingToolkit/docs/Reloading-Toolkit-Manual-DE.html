@@ -112,7 +112,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Handbuch · v0.2.13</span>
+  <span class="k">Handbuch · v0.2.14</span>
 </div></div>
 
 <div class="shell">
@@ -140,6 +140,7 @@
       <li><a href="#powdercompare">Pulververgleich</a></li>
       <li><a href="#velocitymodel">Geschwindigkeitsmodell</a></li>
       <li><a href="#diagnostics">Erweiterte Diagnostik</a></li>
+      <li><a href="#sdrootcause">SD-Ursachendiagnose</a></li>
       <li><a href="#reports">GRT-Berichtsvorlagen</a></li>
       <li><a href="#cli">Kommandozeile</a></li>
       <li><a href="#faq">Einschränkungen &amp; FAQ</a></li>
@@ -149,7 +150,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Handbuch</h1>
-      <p class="sub">Ein Community-Plugin für Gordon&#39;s Reloading Tool. Achtzehn Wiederlade-Werkzeuge
+      <p class="sub">Ein Community-Plugin für Gordon&#39;s Reloading Tool. Neunzehn Wiederlade-Werkzeuge
         und ein Satz druckbarer GRT-Berichtsvorlagen in einem Fenster.</p>
       <p class="lede">Plugin-Id <code>com.grt.plugin.reloadingtoolkit</code>. Ausgeliefert als
         eigenständige Windows-Einzeldatei-exe &mdash; auf dem Zielrechner wird keine .NET-Laufzeit
@@ -925,9 +926,53 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         Abschnitt leer zu lassen.</p>
     </section>
 
+    <section id="sdrootcause">
+      <h2><span class="no">22</span>SD-Ursachendiagnose</h2>
+      <p>Die Erweiterte Diagnostik (§21) sind sechs getrennte Tabs, bei denen man schon vermuten muss,
+        welche Ursache man öffnen soll. Dieses Werkzeug beantwortet direkt eine andere Frage: für
+        <strong>eine</strong> ausgewählte Serie, welche(r) Schuss/Schüsse &mdash; falls vorhanden &mdash;
+        eine ansonsten gute SD nach unten zieht, automatisch eingestuft, ohne vorher etwas einrichten zu
+        müssen.</p>
+      <p><strong>Leave-one-out-Rangliste:</strong> für jeden Schuss die SD, die die Serie hätte, wenn
+        nur dieser Schuss entfernt würde. Der Schuss mit dem größten Rückgang steht an erster Stelle.
+        <strong>Muster</strong>, danach wie viele Schüsse das Chauvenet-Kriterium (derselbe Test wie bei
+        der Chronograph-Statistik, §6) tatsächlich als statistische Ausreißer meldet &mdash; keine
+        erfundene Prozentschwelle:</p>
+      <table><thead><tr><th>Muster</th><th>Bedeutung</th></tr></thead><tbody>
+        <tr><td>Einzelner Ausreißer</td><td>ein Schuss ist statistisch deutlich vom Rest verschieden</td></tr>
+        <tr><td>Teilweiser Ausreißer</td><td>einige Schüsse sind es</td></tr>
+        <tr><td>Systematisch</td><td>keiner ist es &mdash; die Streuung verteilt sich über die ganze Serie</td></tr>
+      </tbody></table>
+      <p><strong>Ursachen</strong>, jeweils nur gezeigt, wenn die Daten der Serie sie stützen:</p>
+      <table><thead><tr><th>Ursache</th><th>Braucht</th><th>Wiederverwendet aus</th></tr></thead><tbody>
+        <tr><td>Kalter Lauf</td><td>Sie markieren die ersten N Schüsse</td><td>dieselbe <em>Cold Bore</em>-Analyse wie in §21</td></tr>
+        <tr><td>Fortschreitende Drift</td><td>nichts zusätzlich &mdash; greift nur, wenn keine Temperatur pro Schuss eingegeben wurde</td><td>derselbe <em>Fouling Tracker</em>-Trend wie in §21, ehrlich umbenannt als <em>ungemessene, wahrscheinliche</em> thermische Ursache, da es eigentlich nur ein Trend über die Schussreihenfolge ist, der eine Temperatur ersetzt, die GRT nicht liefern kann</td></tr>
+        <tr><td>Temperatur &harr; Geschwindigkeit</td><td>Lauftemperatur pro Schuss, manuell eingegeben</td><td>&mdash;</td></tr>
+        <tr><td>Temperatur &harr; Gruppenstreuung</td><td>Temperatur pro Schuss <strong>und</strong> ein passender GRT-Trefferbild-Tab</td><td>GRTs eigene native Pro-Schuss-Trefferdaten (derselbe Ladder/OCW-Leser wie in §7)</td></tr>
+        <tr><td>Verteilungsform</td><td>(nur bei Muster Systematisch) ein informeller Schiefe-Hinweis, kein wiederladespezifischer Richtwert</td><td>&mdash;</td></tr>
+      </tbody></table>
+      <p><strong>Die Lauftemperatur pro Schuss liefert GRT nie selbst</strong> &mdash; die Plugin-API
+        führt nur die Geschwindigkeit pro Schuss. Wenn Sie einen Temperaturfühler am Lauf anbringen und
+        ihn im Moment jedes Schusses ablesen, tragen Sie jeden Messwert neben der Geschwindigkeit dieses
+        Schusses in das Raster ein; er wird gespeichert (verknüpft mit genau dieser Serie, nach Kaliber +
+        Name &mdash; nicht mit der <code>.grtload</code>-Datei, die bei jedem Rückschreiben umbenannt
+        wird), sodass er beim nächsten Öffnen derselben Serie noch da ist. Leer lassen ist voll
+        unterstützt: das Werkzeug funktioniert dann allein mit kaltem Lauf und fortschreitender Drift.</p>
+      <div class="callout"><strong>Temperatur &harr; Gruppenstreuung</strong> ist die einzige Analyse,
+        die sonst nichts im Toolkit macht: mit einem passenden GRT-&ldquo;Trefferbild&rdquo;-Tab für
+        dieselbe Serie (gleiche Schusszahl, gleiche Schussreihenfolge &mdash; GRT verknüpft die beiden
+        nicht selbst, und das Werkzeug zeigt diese Annahme immer auf dem Bildschirm, nicht nur wenn sie
+        fehlschlägt) korreliert es Ihre Temperatur pro Schuss mit dem Abstand jedes Schusses vom
+        Gruppenzentrum, nicht nur mit seiner Geschwindigkeit &mdash; die direkte Antwort auf &ldquo;hört
+        dieser Lauf ab einer bestimmten Temperatur auf, enge Gruppen zu halten?&rdquo;</div>
+      <p><strong>Ursachendiagnose-Notiz auf GRT-Ladung schreiben</strong> schreibt die Rangliste, das
+        Muster und jede ausgelöste Ursache in eine Notiz, mit dem Leave-one-out-Balkendiagramm als
+        Bild angehängt.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">22</span>GRT-Berichtsvorlagen</h2>
-      <p><strong>Install GRT report templates</strong> (Launcher / Plugin-Menü) schreibt vierzehn
+      <h2><span class="no">23</span>GRT-Berichtsvorlagen</h2>
+      <p><strong>Install GRT report templates</strong> (Launcher / Plugin-Menü) schreibt fünfzehn
         DokuWiki-Berichtsseiten nach <code>GRT\doku\&lt;Sprache&gt;\report\</code> und verlinkt sie im
         Berichtsindex. Einmal pro GRT-Installation ausführen (und jedem, mit dem das Plugin geteilt
         wird, dasselbe sagen). Es ist idempotent und nicht-destruktiv; eine Seite löschen, indem sie in
@@ -948,6 +993,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         <tr><td>Distance workflow report</td><td>die Rang-/Score-Notiz des Workflows</td></tr>
         <tr><td>Powder compare report</td><td>die Rang-/Score-Notiz des Pulververgleichs</td></tr>
         <tr><td>Advanced diagnostics report</td><td>die Notiz aller sechs Diagnosen</td></tr>
+        <tr><td>SD root-cause report</td><td>die Ursachendiagnose-Notiz + Leave-one-out-Diagramm</td></tr>
         <tr><td>Velocity model report</td><td>die Notiz des empirischen Fits</td></tr>
       </tbody></table>
       <p>Jedes Werkzeug, das eine Notiz schreibt, hat jetzt seine eigene Seite, außer der
@@ -962,7 +1008,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
     </section>
 
     <section id="cli">
-      <h2><span class="no">23</span>Kommandozeile</h2>
+      <h2><span class="no">24</span>Kommandozeile</h2>
       <p>Debug-Einstiegspunkte auf der exe
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">Inventar-/Journal-Selbsttest (schreibt
@@ -990,7 +1036,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
     </section>
 
     <section id="faq">
-      <h2><span class="no">24</span>Einschränkungen &amp; FAQ</h2>
+      <h2><span class="no">25</span>Einschränkungen &amp; FAQ</h2>
       <h3>Warum ein Haufen <code>_toolkit_…</code>-Dateien?</h3>
       <p>GRTs Plugin-API kann die offene Ladung nicht bearbeiten und kann einen bereits offenen Tab nicht
         neu laden &mdash; jeder Schreibvorgang ist also ein frischer zeitgestempelter Snapshot. Jeder
@@ -1005,7 +1051,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         ausgewertet. Den <code>.csv</code>-Weg nehmen, oder die Gruppen zuerst in GRT anlegen (§14).</p>
       <h3>Das Temperaturkoeffizienten-Werkzeug aktiviert &ldquo;Write&rdquo; nicht.</h3>
       <p>Es braucht eine Ladung bei mehreren Temperaturen, keinen Ladder.</p>
-      <h3>Ein Symbolleisten-Symbol, nicht achtzehn.</h3>
+      <h3>Ein Symbolleisten-Symbol, nicht neunzehn.</h3>
       <p>Absicht &mdash; es öffnet den Launcher; jedes Werkzeug ist dort eine Schaltfläche.
         Manifest-Änderungen brauchen einen GRT-Neustart, um zu erscheinen.</p>
       <h3>Zahlen</h3>
@@ -1017,6 +1063,6 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.13 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.14 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

@@ -146,7 +146,11 @@ public static class AdvancedDiagnostics
     public sealed record NeckTensionResult(int NPoints, double? CorrelationEs, double? CorrelationSd,
         double? OptimalTensionEs, double? OptimalTensionSd);
 
-    private static double? Pearson(IReadOnlyList<(double X, double Y)> pairs)
+    /// <summary>Pearson correlation coefficient. <c>internal</c> rather than private so
+    /// <see cref="SdRootCause"/> can reuse the same formula instead of re-deriving it a second time
+    /// in the same folder — <see cref="LinearSlope"/> above is already shared the same way, with
+    /// <c>SessionTrend</c>.</summary>
+    internal static double? Pearson(IReadOnlyList<(double X, double Y)> pairs)
     {
         if (pairs.Count < 3) return null;
         double mx = pairs.Average(p => p.X), my = pairs.Average(p => p.Y);

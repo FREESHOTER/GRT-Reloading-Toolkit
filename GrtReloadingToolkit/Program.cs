@@ -66,7 +66,7 @@ internal static class Program
     }
 }
 
-internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, Wizard, VelocityModel, Reports }
+internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, Wizard, VelocityModel, Reports }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -113,6 +113,7 @@ internal sealed class ToolkitContext : ApplicationContext
         id.EndsWith(".workflow", StringComparison.Ordinal) ? Tool.Workflow :
         id.EndsWith(".powdercompare", StringComparison.Ordinal) ? Tool.PowderCompare :
         id.EndsWith(".diagnostics", StringComparison.Ordinal) ? Tool.Diagnostics :
+        id.EndsWith(".sdrootcause", StringComparison.Ordinal) ? Tool.SdRootCause :
         id.EndsWith(".wizard", StringComparison.Ordinal) ? Tool.Wizard :
         id.EndsWith(".velocitymodel", StringComparison.Ordinal) ? Tool.VelocityModel :
         id.EndsWith(".reports", StringComparison.Ordinal) ? Tool.Reports :
@@ -149,6 +150,7 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.Workflow => new WorkflowForm(_grt, _db),
             Tool.PowderCompare => new PowderCompareForm(_grt, _db),
             Tool.Diagnostics => new AdvancedDiagnosticsForm(_grt, _db),
+            Tool.SdRootCause => new SdRootCauseForm(_grt, _db),
             Tool.Wizard => new WizardForm(Open),
             Tool.VelocityModel => new VelocityModelForm(_grt, _db),
             _ => new LauncherForm(Open),

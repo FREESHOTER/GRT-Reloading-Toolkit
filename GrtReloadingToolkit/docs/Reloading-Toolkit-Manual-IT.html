@@ -112,7 +112,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2.13</span>
+  <span class="k">Manuale · v0.2.14</span>
 </div></div>
 
 <div class="shell">
@@ -140,6 +140,7 @@
       <li><a href="#powdercompare">Confronto Polveri</a></li>
       <li><a href="#velocitymodel">Modello Velocità</a></li>
       <li><a href="#diagnostics">Diagnostica Avanzata</a></li>
+      <li><a href="#sdrootcause">Diagnosi SD</a></li>
       <li><a href="#reports">Template report GRT</a></li>
       <li><a href="#cli">Riga di comando</a></li>
       <li><a href="#faq">Limiti e FAQ</a></li>
@@ -149,7 +150,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manuale</h1>
-      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Diciotto strumenti di ricarica e
+      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Diciannove strumenti di ricarica e
         una serie di template di report GRT in un&#39;unica finestra.</p>
       <p class="lede">Id plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribuito come
         eseguibile Windows a file singolo — non serve il runtime .NET sulla macchina che lo esegue
@@ -879,9 +880,52 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         preoccupante&raquo; invece di lasciare la sua sezione vuota.</p>
     </section>
 
+    <section id="sdrootcause">
+      <h2><span class="no">22</span>Diagnosi SD</h2>
+      <p>La Diagnostica Avanzata (§21) sono sei tab separati che devi già aprire sapendo cosa
+        sospettare. Questo strumento risponde a una domanda diversa, direttamente: per <strong>una</strong>
+        stringa selezionata, quale/i colpo/i &mdash; se esiste &mdash; sta trascinando in basso una SD
+        altrimenti buona, classificato automaticamente, senza dover impostare nulla prima.</p>
+      <p><strong>Classifica leave-one-out:</strong> per ogni colpo, la SD che avrebbe la stringa
+        togliendo solo quel colpo. Il colpo con il calo maggiore è primo in classifica.
+        <strong>Pattern</strong>, da quanti colpi il criterio di Chauvenet (lo stesso test usato dalle
+        Statistiche cronografo, §6) segnala davvero come anomalie statistiche &mdash; non una soglia
+        percentuale inventata:</p>
+      <table><thead><tr><th>Pattern</th><th>Significato</th></tr></thead><tbody>
+        <tr><td>Outlier singolo</td><td>un colpo è statisticamente distinto dal resto</td></tr>
+        <tr><td>Outlier parziale</td><td>alcuni colpi lo sono</td></tr>
+        <tr><td>Sistematico</td><td>nessuno lo è &mdash; la dispersione è distribuita su tutta la stringa</td></tr>
+      </tbody></table>
+      <p><strong>Cause</strong>, mostrate solo quando i dati della stringa le supportano:</p>
+      <table><thead><tr><th>Causa</th><th>Richiede</th><th>Riusata da</th></tr></thead><tbody>
+        <tr><td>Canna fredda</td><td>marchi i primi N colpi</td><td>la stessa analisi <em>Cold Bore</em> del §21</td></tr>
+        <tr><td>Deriva progressiva</td><td>nulla in più &mdash; scatta solo se non è stata inserita nessuna temperatura per colpo</td><td>lo stesso trend <em>Fouling Tracker</em> del §21, onestamente rietichettato come causa termica <em>probabile non misurata</em>, dato che è in realtà solo un trend sull&#39;ordine di sparo che sostituisce una temperatura che GRT non può fornire</td></tr>
+        <tr><td>Temperatura &harr; velocità</td><td>temperatura canna per colpo, inserita a mano</td><td>&mdash;</td></tr>
+        <tr><td>Temperatura &harr; dispersione gruppo</td><td>temperatura per colpo <strong>e</strong> una tab gruppo GRT corrispondente</td><td>i dati nativi per-colpo di GRT stesso (lo stesso lettore Ladder/OCW del §7)</td></tr>
+        <tr><td>Forma della distribuzione</td><td>(solo pattern Sistematico) una nota di asimmetria informale, non uno standard specifico per la ricarica</td><td>&mdash;</td></tr>
+      </tbody></table>
+      <p><strong>La temperatura canna per colpo non è mai qualcosa che GRT fornisce</strong> &mdash;
+        l&#39;API del plugin porta solo la velocità per colpo. Se applichi una sonda di temperatura alla
+        canna e la leggi al momento di ogni colpo, digita ogni lettura nella griglia accanto alla
+        velocità di quel colpo; viene salvata (associata a questa esatta stringa, per calibro + nome
+        &mdash; non al file <code>.grtload</code>, che viene rinominato ad ogni scrittura) quindi resta
+        disponibile la prossima volta che apri la stessa stringa. Lasciarla vuota è pienamente
+        supportato: lo strumento funziona comunque solo con canna fredda e deriva progressiva.</p>
+      <div class="callout"><strong>Temperatura &harr; dispersione gruppo</strong> è l&#39;unica analisi
+        che nient&#39;altro nel Toolkit fa: con una tab GRT &laquo;Shot group analysis&raquo;
+        corrispondente per la stessa stringa (stesso numero di colpi, stesso ordine di sparo &mdash;
+        GRT non collega le due cose da solo, e lo strumento mostra sempre questa assunzione a schermo,
+        non solo quando fallisce), correla la tua temperatura per colpo con la distanza di ogni colpo
+        dal centro del gruppo, non solo con la sua velocità &mdash; la risposta diretta a &laquo;questa
+        canna smette di tenere gruppi stretti sopra una certa temperatura?&raquo;</div>
+      <p><strong>Scrivi nota diagnosi sul load GRT</strong> scrive la classifica, il pattern e ogni
+        causa attivata in un&#39;unica nota, con il grafico a barre leave-one-out allegato come
+        immagine.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">22</span>Template report GRT</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive quattordici
+      <h2><span class="no">23</span>Template report GRT</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive quindici
         pagine di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
         dei report. Va lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
         stesso). È idempotente e non distruttivo; per cancellare una pagina la salvi vuota in GRT.</p>
@@ -899,6 +943,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Distance workflow report</td><td>la nota posizione/punteggio nel workflow</td></tr>
         <tr><td>Powder compare report</td><td>la nota posizione/punteggio confronto polveri</td></tr>
         <tr><td>Advanced diagnostics report</td><td>la nota di tutte e sei le diagnostiche</td></tr>
+        <tr><td>SD root-cause report</td><td>la nota diagnosi + grafico leave-one-out</td></tr>
         <tr><td>Velocity model report</td><td>la nota del fit empirico</td></tr>
       </tbody></table>
       <p>Ogni strumento che scrive una nota ha ora una sua pagina dedicata, tranne <strong>Stima
@@ -913,7 +958,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="cli">
-      <h2><span class="no">23</span>Riga di comando</h2>
+      <h2><span class="no">24</span>Riga di comando</h2>
       <p>Punti di ingresso di debug sull&#39;exe
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">autotest inventario / diario (scrive dati fittizi in
@@ -940,7 +985,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="faq">
-      <h2><span class="no">24</span>Limiti e FAQ</h2>
+      <h2><span class="no">25</span>Limiti e FAQ</h2>
       <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
       <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
         aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;
@@ -955,7 +1000,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         Ballistic-X. Usa il percorso <code>.csv</code>, o crea prima i gruppi in GRT (§14).</p>
       <h3>Lo strumento coefficienti temperatura non attiva &laquo;Write&raquo;.</h3>
       <p>Serve una carica a più temperature, non una scalare.</p>
-      <h3>Un&#39;icona sola in barra, non diciotto.</h3>
+      <h3>Un&#39;icona sola in barra, non diciannove.</h3>
       <p>È voluto — apre il launcher; ogni strumento è un pulsante lì. Le modifiche al manifest
         richiedono un riavvio di GRT per comparire.</p>
       <h3>Numeri</h3>
@@ -967,6 +1012,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.13 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.14 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

@@ -40,6 +40,7 @@
     <Compile Include="..\GrtReloadingToolkit\Log\LeaderboardRanking.cs" Link="Log\LeaderboardRanking.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\PowderCompare.cs" Link="Log\PowderCompare.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\AdvancedDiagnostics.cs" Link="Log\AdvancedDiagnostics.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\SdRootCause.cs" Link="Log\SdRootCause.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\SessionTrend.cs" Link="Log\SessionTrend.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\PressureTrend.cs" Link="Log\PressureTrend.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\BaStaleness.cs" Link="Log\BaStaleness.cs" />

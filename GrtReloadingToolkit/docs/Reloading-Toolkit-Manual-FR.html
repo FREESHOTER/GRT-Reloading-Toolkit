@@ -115,7 +115,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuel · v0.2.13</span>
+  <span class="k">Manuel · v0.2.14</span>
 </div></div>
 
 <div class="shell">
@@ -143,6 +143,7 @@
       <li><a href="#powdercompare">Comparaison des poudres</a></li>
       <li><a href="#velocitymodel">Modèle de vitesse</a></li>
       <li><a href="#diagnostics">Diagnostics avancés</a></li>
+      <li><a href="#sdrootcause">Cause racine de la SD</a></li>
       <li><a href="#reports">Modèles de rapport GRT</a></li>
       <li><a href="#cli">Ligne de commande</a></li>
       <li><a href="#faq">Limites &amp; FAQ</a></li>
@@ -152,7 +153,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manuel</h1>
-      <p class="sub">Un plugin communautaire pour Gordon&#39;s Reloading Tool. Dix-huit outils de
+      <p class="sub">Un plugin communautaire pour Gordon&#39;s Reloading Tool. Dix-neuf outils de
         rechargement et un jeu de modèles de rapport GRT imprimables, dans une seule fenêtre.</p>
       <p class="lede">Identifiant du plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribué
         comme exécutable Windows autonome &mdash; aucun runtime .NET requis sur la machine qui
@@ -935,9 +936,56 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         trend&nbsp;&raquo; plutôt que de laisser sa section vide.</p>
     </section>
 
+    <section id="sdrootcause">
+      <h2><span class="no">22</span>Cause racine de la SD</h2>
+      <p>Les Diagnostics avancés (§21) sont six onglets séparés qu&#39;il faut déjà savoir ouvrir en
+        soupçonnant une cause. Cet outil répond directement à une question différente&nbsp;: pour
+        <strong>une</strong> série sélectionnée, quel(s) coup(s) &mdash; s&#39;il y en a &mdash; tire(nt)
+        vers le bas une SD par ailleurs bonne, classé automatiquement, sans rien avoir à configurer au
+        préalable.</p>
+      <p><strong>Classement leave-one-out&nbsp;:</strong> pour chaque coup, la SD que la série aurait en
+        retirant seulement ce coup. Le coup à la plus forte baisse est premier au classement.
+        <strong>Motif</strong>, d&#39;après le nombre de coups que le critère de Chauvenet (le même test
+        qu&#39;utilisent les Statistiques chronographe, §6) signale réellement comme aberrants
+        statistiquement &mdash; pas un seuil en pourcentage inventé&nbsp;:</p>
+      <table><thead><tr><th>Motif</th><th>Signification</th></tr></thead><tbody>
+        <tr><td>Aberrant unique</td><td>un coup se distingue statistiquement du reste</td></tr>
+        <tr><td>Aberrant partiel</td><td>quelques coups le sont</td></tr>
+        <tr><td>Systématique</td><td>aucun ne l&#39;est &mdash; la dispersion est répartie sur toute la série</td></tr>
+      </tbody></table>
+      <p><strong>Causes</strong>, chacune affichée seulement quand les données de la série la
+        confirment&nbsp;:</p>
+      <table><thead><tr><th>Cause</th><th>Nécessite</th><th>Réutilisée depuis</th></tr></thead><tbody>
+        <tr><td>Canon froid</td><td>vous marquez les N premiers coups</td><td>la même analyse <em>Cold Bore</em> qu&#39;au §21</td></tr>
+        <tr><td>Dérive progressive</td><td>rien de plus &mdash; ne se déclenche que si aucune température par coup n&#39;a été saisie</td><td>la même tendance <em>Fouling Tracker</em> qu&#39;au §21, honnêtement requalifiée en cause thermique <em>probable non mesurée</em>, puisqu&#39;il s&#39;agit en réalité seulement d&#39;une tendance sur l&#39;ordre de tir remplaçant une température que GRT ne peut pas fournir</td></tr>
+        <tr><td>Température &harr; vitesse</td><td>température du canon par coup, saisie à la main</td><td>&mdash;</td></tr>
+        <tr><td>Température &harr; dispersion du groupement</td><td>température par coup <strong>et</strong> un onglet groupement GRT correspondant</td><td>les données natives par coup de GRT lui-même (le même lecteur Ladder/OCW qu&#39;au §7)</td></tr>
+        <tr><td>Forme de la distribution</td><td>(motif Systématique seulement) une note d&#39;asymétrie informelle, pas une référence propre à la rechargement</td><td>&mdash;</td></tr>
+      </tbody></table>
+      <p><strong>La température du canon par coup n&#39;est jamais fournie par GRT</strong> &mdash;
+        l&#39;API du plugin ne transporte que la vitesse par coup. Si vous fixez une sonde de température
+        sur le canon et la relevez au moment de chaque coup, saisissez chaque valeur dans la grille à
+        côté de la vitesse de ce coup&nbsp;; elle est enregistrée (associée à cette série exacte, par
+        calibre + nom &mdash; pas au fichier <code>.grtload</code>, qui est renommé à chaque
+        réécriture), donc elle reste disponible la prochaine fois que vous ouvrez la même série. La
+        laisser vide est pleinement pris en charge&nbsp;: l&#39;outil fonctionne alors seulement avec le
+        canon froid et la dérive progressive.</p>
+      <div class="callout"><strong>Température &harr; dispersion du groupement</strong> est la seule
+        analyse que rien d&#39;autre dans le Toolkit ne fait&nbsp;: avec un onglet GRT &laquo;&nbsp;Shot
+        group analysis&nbsp;&raquo; correspondant pour la même série (même nombre de coups, même ordre
+        de tir &mdash; GRT ne relie pas les deux lui-même, et l&#39;outil affiche toujours cette
+        hypothèse à l&#39;écran, pas seulement quand elle échoue), il corrèle votre température par coup
+        avec la distance de chaque coup au centre du groupement, pas seulement sa vitesse &mdash; la
+        réponse directe à &laquo;&nbsp;ce canon cesse-t-il de tenir des groupements serrés au-delà d&#39;une
+        certaine température&nbsp;?&nbsp;&raquo;</div>
+      <p><strong>Write root-cause note to GRT load</strong> écrit le classement, le motif et chaque
+        cause déclenchée dans une seule note, avec le diagramme en barres leave-one-out joint en tant
+        qu&#39;image.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">22</span>Modèles de rapport GRT</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) écrit quatorze pages
+      <h2><span class="no">23</span>Modèles de rapport GRT</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) écrit quinze pages
         de rapport DokuWiki dans <code>GRT\doku\&lt;langue&gt;\report\</code> et les relie dans l&#39;index
         des rapports. Lancez-le une fois par installation GRT (et demandez à quiconque partage le
         plugin de faire de même). C&#39;est idempotent et non destructif&nbsp;; supprimez une page en
@@ -956,6 +1004,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         <tr><td>Distance workflow report</td><td>la note de rang/score du flux de travail</td></tr>
         <tr><td>Powder compare report</td><td>la note de rang/score de la comparaison des poudres</td></tr>
         <tr><td>Advanced diagnostics report</td><td>la note des six diagnostics</td></tr>
+        <tr><td>SD root-cause report</td><td>la note de cause racine + diagramme leave-one-out</td></tr>
         <tr><td>Velocity model report</td><td>la note du fit empirique</td></tr>
       </tbody></table>
       <p>Chaque outil qui écrit une note a désormais sa propre page dédiée, à l&#39;exception de
@@ -971,7 +1020,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
     </section>
 
     <section id="cli">
-      <h2><span class="no">23</span>Ligne de commande</h2>
+      <h2><span class="no">24</span>Ligne de commande</h2>
       <p>Points d&#39;entrée de débogage sur l&#39;exécutable
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>)&nbsp;:</p>
       <pre>--dbtest [db]                                    <span class="c">auto-test inventaire / journal (écrit des données fictives
@@ -999,7 +1048,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
     </section>
 
     <section id="faq">
-      <h2><span class="no">24</span>Limites &amp; FAQ</h2>
+      <h2><span class="no">25</span>Limites &amp; FAQ</h2>
       <h3>Pourquoi une pile de fichiers <code>_toolkit_…</code>&nbsp;?</h3>
       <p>L&#39;API plugin de GRT ne peut pas modifier le load ouvert ni recharger un onglet déjà
         ouvert &mdash; donc chaque écriture est un nouvel instantané horodaté. Chaque instantané est
@@ -1015,7 +1064,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         groupements dans GRT (§14).</p>
       <h3>L&#39;outil de coefficient de température n&#39;active pas &laquo;&nbsp;Write&nbsp;&raquo;.</h3>
       <p>Il lui faut une charge à plusieurs températures, pas un ladder.</p>
-      <h3>Une seule icône dans la barre, pas dix-huit.</h3>
+      <h3>Une seule icône dans la barre, pas dix-neuf.</h3>
       <p>C&#39;est voulu &mdash; elle ouvre le launcher&nbsp;; chaque outil y est un bouton. Les
         changements de manifeste nécessitent un redémarrage de GRT pour apparaître.</p>
       <h3>Nombres</h3>
@@ -1027,6 +1076,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.13 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.14 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

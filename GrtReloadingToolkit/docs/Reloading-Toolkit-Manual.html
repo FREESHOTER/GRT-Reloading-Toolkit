@@ -115,7 +115,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manual · v0.2.13</span>
+  <span class="k">Manual · v0.2.14</span>
 </div></div>
 
 <div class="shell">
@@ -143,6 +143,7 @@
       <li><a href="#powdercompare">Powder Compare</a></li>
       <li><a href="#velocitymodel">Velocity Model</a></li>
       <li><a href="#diagnostics">Advanced Diagnostics</a></li>
+      <li><a href="#sdrootcause">SD Root-Cause</a></li>
       <li><a href="#reports">GRT report templates</a></li>
       <li><a href="#cli">Command line</a></li>
       <li><a href="#faq">Limitations &amp; FAQ</a></li>
@@ -152,7 +153,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manual</h1>
-      <p class="sub">A community plugin for Gordon&#39;s Reloading Tool. Eighteen reloading tools and a
+      <p class="sub">A community plugin for Gordon&#39;s Reloading Tool. Nineteen reloading tools and a
         set of printable GRT report templates in one window.</p>
       <p class="lede">Plugin id <code>com.grt.plugin.reloadingtoolkit</code>. Ships as a self-contained
         Windows single-file executable &mdash; no .NET runtime needed on the machine it runs on.</p>
@@ -847,9 +848,50 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         its section blank.</p>
     </section>
 
+    <section id="sdrootcause">
+      <h2><span class="no">22</span>SD Root-Cause</h2>
+      <p>Advanced Diagnostics (§21) is six separate tabs you have to already suspect a cause to open.
+        This tool answers a different question directly: for <strong>one</strong> selected string,
+        which shot(s) &mdash; if any &mdash; are dragging an otherwise-good SD down, ranked
+        automatically, without setting anything up first.</p>
+      <p><strong>Leave-one-out ranking:</strong> for every shot, the SD the string would have with just
+        that shot removed. The shot with the biggest drop ranks first. <strong>Pattern</strong>, from
+        how many shots Chauvenet&#39;s criterion (the same test Chronograph Statistics uses, §6)
+        actually flags as statistical outliers &mdash; not an invented percentage cutoff:</p>
+      <table><thead><tr><th>Pattern</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td>Single outlier</td><td>one shot is statistically distinct from the rest</td></tr>
+        <tr><td>Partial outlier</td><td>a few shots are</td></tr>
+        <tr><td>Systematic</td><td>none are &mdash; the dispersion is spread across the whole string</td></tr>
+      </tbody></table>
+      <p><strong>Causes</strong>, each shown only when the string&#39;s data supports it:</p>
+      <table><thead><tr><th>Cause</th><th>Needs</th><th>Reused from</th></tr></thead><tbody>
+        <tr><td>Cold bore</td><td>you mark the first N shots</td><td>the same <em>Cold Bore</em> analysis as §21</td></tr>
+        <tr><td>Progressive drift</td><td>nothing extra &mdash; only fires when no per-shot temperature was entered</td><td>the same <em>Fouling Tracker</em> trend as §21, honestly relabelled as an <em>unmeasured probable</em> thermal cause, since it&#39;s really just a firing-order trend standing in for a temperature GRT cannot supply</td></tr>
+        <tr><td>Temperature &harr; velocity</td><td>per-shot barrel temperature, entered by hand</td><td>&mdash;</td></tr>
+        <tr><td>Temperature &harr; group dispersion</td><td>per-shot temperature <strong>and</strong> a matching GRT Shot-group tab</td><td>GRT&#39;s own native per-shot hit data (§7&#39;s Ladder/OCW reader)</td></tr>
+        <tr><td>Distribution shape</td><td>(Systematic pattern only) an informal skewness note, not a reloading-specific benchmark</td><td>&mdash;</td></tr>
+      </tbody></table>
+      <p><strong>Per-shot barrel temperature is never something GRT supplies</strong> &mdash; the plugin
+        API carries only velocity per shot. If you clip a temperature probe to the barrel and read it at
+        the moment of each shot, type each reading into the grid next to that shot&#39;s velocity;
+        it&#39;s saved (keyed to this exact string, by caliber + name &mdash; not to the
+        <code>.grtload</code> file, which gets renamed on every write-back) so it&#39;s still there next
+        time you open the same string. Leaving it blank is fully supported: the tool still runs on
+        cold-bore and progressive-drift alone.</p>
+      <div class="callout"><strong>Temperature &harr; group dispersion</strong> is the one analysis
+        nothing else in the Toolkit does: with a matching GRT &ldquo;Shot group analysis&rdquo; tab for
+        the same string (same shot count, same firing order &mdash; GRT does not link the two itself,
+        and the tool always shows this assumption on screen, not only when it fails), it correlates
+        your per-shot temperature against each shot&#39;s distance from the group centre, not just its
+        velocity &mdash; the direct answer to &ldquo;does this barrel stop holding tight groups above
+        some temperature?&rdquo;</div>
+      <p><strong>Write root-cause note to GRT load</strong> writes the ranking, pattern and every
+        triggered cause into one note, with the leave-one-out bar chart attached as a picture.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">22</span>GRT report templates</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / Plugin menu) writes fourteen DokuWiki
+      <h2><span class="no">23</span>GRT report templates</h2>
+      <p><strong>Install GRT report templates</strong> (launcher / Plugin menu) writes fifteen DokuWiki
         report pages into <code>GRT\doku\&lt;language&gt;\report\</code> and links them in the report
         index. Run it once per GRT install (and tell anyone you share the plugin with to do the same).
         It is idempotent and non-destructive; delete a page by saving it empty in GRT.</p>
@@ -867,6 +909,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>Distance workflow report</td><td>the workflow rank/score note</td></tr>
         <tr><td>Powder compare report</td><td>the powder-compare rank/score note</td></tr>
         <tr><td>Advanced diagnostics report</td><td>all six diagnostics tabs&#39; note</td></tr>
+        <tr><td>SD root-cause report</td><td>the root-cause note + leave-one-out chart</td></tr>
         <tr><td>Velocity model report</td><td>the empirical fit note</td></tr>
       </tbody></table>
       <p>Every tool that writes a note has its own dedicated page now, except <strong>Seating Force
@@ -880,7 +923,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="cli">
-      <h2><span class="no">23</span>Command line</h2>
+      <h2><span class="no">24</span>Command line</h2>
       <p>Debug entry points on the exe (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">inventory / journal self-test (writes fixture data to
                                                   [db], or a throwaway temp file if omitted -- NEVER
@@ -906,7 +949,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="faq">
-      <h2><span class="no">24</span>Limitations &amp; FAQ</h2>
+      <h2><span class="no">25</span>Limitations &amp; FAQ</h2>
       <h3>Why a pile of <code>_toolkit_…</code> files?</h3>
       <p>GRT&#39;s plugin API can&#39;t edit the open load and can&#39;t reload an already-open tab &mdash;
         so each write is a fresh timestamped snapshot. Each snapshot is complete; keep the newest (Save
@@ -920,7 +963,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <code>.csv</code> path, or build the groups in GRT first (§14).</p>
       <h3>The temp-coefficient tool won&#39;t enable &ldquo;Write&rdquo;.</h3>
       <p>It needs one charge at several temperatures, not a ladder.</p>
-      <h3>One toolbar icon, not eighteen.</h3>
+      <h3>One toolbar icon, not nineteen.</h3>
       <p>By design &mdash; it opens the launcher; every tool is a button there. Manifest changes need a
         GRT restart to show.</p>
       <h3>Numbers</h3>
@@ -932,6 +975,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.13 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.14 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

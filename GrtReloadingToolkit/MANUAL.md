@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit — Manual
 
-A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles eighteen reloading tools plus a
+A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles nineteen reloading tools plus a
 set of printable GRT report templates into one window.
 
 - **Author:** community
@@ -16,7 +16,7 @@ set of printable GRT report templates into one window.
 3. A single toolbar button **"Reloading Toolkit"** (wrench + screwdriver icon) and a matching entry
    in the **Plugin** menu appear. Click either — a small **launcher** window opens with one button
    per tool.
-4. Optional: in the launcher, click **"Install GRT report templates"** once (see §22).
+4. Optional: in the launcher, click **"Install GRT report templates"** once (see §23).
 
 The toolkit is *on-demand*: GRT starts it on the first click and it exits when you close its last
 window. All tool windows are served by one background process, so opening a second tool while one is
@@ -269,7 +269,7 @@ spread (MOA). The recommended node is shaded green.
 - **Recommended node:** a weighted blend of MV flatness + POI stability + group size + SD.
 
 The report and chart are written as `~~result.Note("OCW Analysis")~~` and
-`~~result.picture.ocw_chart.png~~` — see §22.
+`~~result.picture.ocw_chart.png~~` — see §23.
 
 > Always confirm a node with a fresh group before committing. SD here is population SD (n).
 
@@ -688,9 +688,55 @@ to flag prints "No concerning trend" rather than leaving its section blank.
 
 ---
 
-## 22. GRT report templates
+## 22. SD Root-Cause  🌡🎯
 
-**Install GRT report templates** (launcher / Plugin menu) writes fourteen DokuWiki report pages into
+Advanced Diagnostics (§21) is six separate tabs you have to already suspect a cause to open. This
+tool answers a different question directly: for **one** selected string, which shot(s) — if any —
+are dragging an otherwise-good SD down, ranked automatically, without setting anything up first.
+
+**Leave-one-out ranking:** for every shot, the SD the string would have with just that shot removed.
+The shot with the biggest drop ranks first. **Pattern**, from how many shots Chauvenet's criterion
+(the same test Chronograph Statistics uses, §6) actually flags as statistical outliers — not an
+invented percentage cutoff:
+
+| Pattern | Meaning |
+|---|---|
+| **Single outlier** | one shot is statistically distinct from the rest |
+| **Partial outlier** | a few shots are |
+| **Systematic** | none are — the dispersion is spread across the whole string |
+
+**Causes**, each shown only when the string's data supports it:
+
+| Cause | Needs | Reused from |
+|---|---|---|
+| **Cold bore** | you mark the first N shots | the same `Cold Bore` analysis as §21 |
+| **Progressive drift** | nothing extra — only fires when no per-shot temperature was entered | the same `Fouling Tracker` trend as §21, honestly relabelled as an *unmeasured probable* thermal cause, since it's really just a firing-order trend standing in for a temperature GRT cannot supply |
+| **Temperature ↔ velocity** | per-shot barrel temperature, entered by hand | — |
+| **Temperature ↔ group dispersion** | per-shot temperature **and** a matching GRT Shot-group tab | GRT's own native per-shot hit data (§7's Ladder/OCW reader) |
+| **Distribution shape** | (Systematic pattern only) an informal skewness note, not a reloading-specific benchmark | — |
+
+**Per-shot barrel temperature is never something GRT supplies** — the plugin API carries only
+velocity per shot. If you clip a temperature probe to the barrel and read it at the moment of each
+shot, type each reading into the grid next to that shot's velocity; it's saved (keyed to this exact
+string, by caliber + name — not to the `.grtload` file, which gets renamed on every write-back) so
+it's still there next time you open the same string. Leaving it blank is fully supported: the tool
+still runs on cold-bore and progressive-drift alone.
+
+**Temperature ↔ group dispersion** is the one analysis nothing else in the Toolkit does: with a
+matching GRT "Shot group analysis" tab for the same string (same shot count, same firing order —
+GRT does not link the two itself, and the tool always shows this assumption on screen, not only when
+it fails), it correlates your per-shot temperature against each shot's distance from the group
+centre, not just its velocity — the direct answer to "does this barrel stop holding tight groups
+above some temperature?"
+
+**Write root-cause note to GRT load** writes the ranking, pattern and every triggered cause into one
+note, with the leave-one-out bar chart attached as a picture.
+
+---
+
+## 23. GRT report templates
+
+**Install GRT report templates** (launcher / Plugin menu) writes fifteen DokuWiki report pages into
 `GRT\doku\<language>\report\` and links them in the report index. Run it once per GRT install
 (and tell anyone you share the plugin with to do the same). It is idempotent and non-destructive;
 delete a page by saving it empty in GRT.
@@ -710,6 +756,7 @@ delete a page by saving it empty in GRT.
 | **Toolkit — Distance workflow report** | the workflow rank/score note |
 | **Toolkit — Powder compare report** | the powder-compare rank/score note |
 | **Toolkit — Advanced diagnostics report** | all six diagnostics tabs' note |
+| **Toolkit — SD root-cause report** | the root-cause note + leave-one-out chart |
 | **Toolkit — Velocity model report** | the empirical fit note |
 
 Every tool that writes a note has its own dedicated page now, except **Seating Force Estimate
@@ -722,7 +769,7 @@ not on your original file. Empty sections just mean you haven't run that tool ye
 
 ---
 
-## 23. Debug command line
+## 24. Debug command line
 
 All on the exe (`plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe`):
 
@@ -750,7 +797,7 @@ fills a wide results panel, a near-square value a tall one.
 
 ---
 
-## 24. Limitations & FAQ
+## 25. Limitations & FAQ
 
 **Why a pile of `_toolkit_…` files?** GRT's plugin API can't edit the open load and can't reload an
 already-open tab — so each write is a fresh timestamped snapshot. Each snapshot is complete; keep

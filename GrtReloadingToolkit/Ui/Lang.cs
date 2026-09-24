@@ -663,5 +663,51 @@ internal static class Lang
         ["Independent of GRT's own model (no Ba/a0/tcc/tch) -- a measured-data cross-check, not a replacement for calibration."] =
             "Indipendente dal modello di GRT (nessun Ba/a0/tcc/tch) -- un controllo incrociato sui dati misurati, non un sostituto della calibrazione.",
         ["Model note written and opened in GRT."] = "Nota del modello scritta e aperta in GRT.",
+        // SdRootCauseForm
+        ["🌡🎯  SD root-cause"] = "🌡🎯  Diagnosi SD",
+        ["SD Root-Cause"] = "Diagnosi SD",
+        ["Write root-cause note to GRT load"] = "Scrivi nota diagnosi sul load GRT",
+        ["{0} string(s), {1} shot-group tab(s) loaded."] = "{0} stringa/e, {1} tab gruppo caricate.",
+        ["Cold-bore shots (0 = none marked)"] = "Colpi a canna fredda (0 = nessuno)",
+        ["Shot-group tab (optional, for group dispersion)"] = "Tab gruppo (opzionale, per la dispersione)",
+        ["hits"] = "colpi",
+        ["Per-shot barrel temperature (optional — probe reading at each shot)"] = "Temperatura canna per colpo (opzionale — lettura sonda ad ogni colpo)",
+        ["without"] = "senza",
+        ["Reduction"] = "Riduzione",
+        ["Outlier?"] = "Anomalo?",
+        ["Ranking"] = "Classifica",
+        ["SD contribution"] = "Contributo alla SD",
+        ["Temp → velocity"] = "Temp → velocità",
+        ["Temp → group"] = "Temp → gruppo",
+        ["Run the analysis first."] = "Esegui prima l'analisi.",
+        ["No per-shot temperature entered for this string."] = "Nessuna temperatura per colpo inserita per questa stringa.",
+        ["No matching shot-group data for this string."] = "Nessun dato di gruppo corrispondente per questa stringa.",
+        ["one shot statistically stands out (Chauvenet)"] = "un colpo si distingue statisticamente (Chauvenet)",
+        ["a few shots statistically stand out (Chauvenet)"] = "alcuni colpi si distinguono statisticamente (Chauvenet)",
+        ["no single shot statistically stands out -- dispersion is spread across the string"] =
+            "nessun colpo si distingue statisticamente -- la dispersione è distribuita su tutta la stringa",
+        ["SD = {0} {1}: {2}."] = "SD = {0} {1}: {2}.",
+        ["Shot #{0} contributes the most: removing it alone would take the SD to {1} {2} (a {3:0}% reduction)."] =
+            "Il colpo #{0} contribuisce di più: rimuovendolo solo, la SD scenderebbe a {1} {2} (una riduzione del {3:0}%).",
+        ["Shot #{0} contributes the most: removing it alone would take the SD to {1} {2} ({3:0}% HIGHER, not lower)."] =
+            "Il colpo #{0} contribuisce di più: rimuovendolo solo, la SD salirebbe a {1} {2} ({3:0}% PIÙ ALTA, non più bassa).",
+        ["Cold-bore shot(s) print {0} than the rest by {1} {2} (z={3})."] =
+            "Il/i colpo/i a canna fredda escono {0} rispetto al resto di {1} {2} (z={3}).",
+        ["faster"] = "più veloce/i",
+        ["slower"] = "più lento/i",
+        ["No notable cold-bore effect."] = "Nessun effetto canna fredda rilevante.",
+        ["Temperature <-> velocity correlation: r={0}."] = "Correlazione temperatura <-> velocità: r={0}.",
+        ["Temperature <-> group-dispersion correlation: r={0}{1}"] = "Correlazione temperatura <-> dispersione gruppo: r={0}{1}",
+        ["-- this barrel may be opening groups up as it warms."] = "-- questa canna potrebbe allargare i gruppi scaldandosi.",
+        ["Probable unmeasured thermal/fouling cause: SD rises as the string progresses (no per-shot temperature was entered for this string)."] =
+            "Probabile causa termica/incrostazione non misurata: la SD sale mentre la stringa procede (nessuna temperatura per colpo inserita per questa stringa).",
+        ["No progressive drift detected across the string."] = "Nessuna deriva progressiva rilevata nella stringa.",
+        ["Note (informal convention, not a reloading-specific benchmark): the velocity distribution is notably skewed ({0})."] =
+            "Nota (convenzione informale, non uno standard specifico per la ricarica): la distribuzione delle velocità è notevolmente asimmetrica ({0}).",
+        ["Root-cause note written and opened in GRT."] = "Nota diagnosi scritta e aperta in GRT.",
+        ["Assumes the shot-group tab's hit order matches this Measurement's firing order -- GRT does not link them itself."] =
+            "Presuppone che l'ordine dei colpi nella tab gruppo corrisponda all'ordine di sparo di questa misurazione -- GRT non le collega da solo.",
+        ["{0} chronographed shot(s) but {1} hit(s) in the shot-group tab -- cannot align."] =
+            "{0} colpo/i cronografato/i ma {1} colpo/i nella tab gruppo -- impossibile allineare.",
     };
 }
