@@ -112,7 +112,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Handbuch · v0.2.15</span>
+  <span class="k">Handbuch · v0.2.16</span>
 </div></div>
 
 <div class="shell">
@@ -1003,11 +1003,18 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         getrennte Zahlen, nie zu einer zusammengefasst</strong> &mdash; eine enge Gruppe aus 3 Schüssen
         und eine enge Gruppe aus 15 Schüssen sind nicht dieselbe Aussage. Der Score kommt aus der
         Streuung gegen änderbare Stufenschwellen; die Konfidenz kommt allein aus der Stichprobengröße,
-        mit einem strengeren Minimum auf große Distanz als auf kurze (der Distanz-Umschlagpunkt,
-        beide Minima und die Score-Stufen sind in den <strong>Einstellungen</strong> änderbar &mdash;
-        es sind Ausgangswerte, kein zitierfähiger Standard, da es für ein zitierfähiges
-        Mindeststichproben-Maß auf große Distanz keine Literaturquelle gibt, anders als für die
-        CEP50-Formel).</div>
+        gegen eine <strong>Distanzband</strong>, das aus der eigenen Schussdistanz der Gruppe gewählt
+        wird &mdash; <strong>100, 200, 300, 600, 800 oder 1000&nbsp;m</strong>, nicht ein einzelner
+        Kurz/Lang-Umschlagpunkt, weil nicht jeder Schütze auf 1000&nbsp;m testen kann und eine auf
+        300&nbsp;m bewährte Ladung ihre eigene Messlatte verdient, nicht dieselbe wie eine Ladung, die
+        nur je auf 100&nbsp;m geschossen wurde. Nur die Enden 100&nbsp;m und 1000&nbsp;m dieser Skala
+        sind an etwas Reales verankert (der ursprüngliche Standardwert dieses Werkzeugs, und das
+        praktische Minimum &mdash; 10 Schüsse &mdash; unter dem ein Wettkampf-F-Class-Schütze angab,
+        einer Ablesung nie zu vertrauen, unabhängig von der Distanz); die Zwischenschritte sind eine
+        einfache Interpolation, keine unabhängig belegte Quelle, genau wie die Score-Stufen selbst (für
+        ein zitierfähiges Mindeststichproben-Maß auf große Distanz gibt es keine Literaturquelle,
+        anders als für die CEP50-Formel). Alles änderbar in den <strong>Einstellungen</strong>, ein
+        Tab pro Band.</div>
       <p><strong>Die Ausreißererkennung</strong> nutzt die eigene 2D-Kovarianz der Gruppe
         (Mahalanobis-Distanz) statt einer angenommenen kreisförmigen Streuung &mdash; das 2D-Gegenstück
         zum Chauvenet-Kriterium-Ausreißertest, den Chronograph-Statistik (§6) und SD-Ursachendiagnose
@@ -1017,8 +1024,30 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         statistische Ausreißer markierte Schüsse (nach Index benannt), Stichprobe zu klein für eine
         verlässliche Ablesung auf dieser Distanz (nennt die verwendete Schwelle), auffällig schiefes
         horizontales/vertikales Streuungsverhältnis, Gruppenzentrum über eine Schwelle hinaus vom
-        Zielpunkt versetzt, und &mdash; auf große Distanz immer gezeigt, nie versteckt &mdash; ein
-        Hinweis, dass die rohe Streuung noch unkorrigierte Windeffekte enthält.</p>
+        Zielpunkt versetzt, und &mdash; auf den dafür konfigurierten Bändern immer gezeigt (standardmäßig
+        600&nbsp;m und mehr), nie versteckt &mdash; ein Hinweis, dass die rohe Streuung noch
+        unkorrigierte Windeffekte enthält.</p>
+      <p><strong>&bdquo;Die Ladung hat ihre Aufgabe erfüllt, jetzt ist es der Wind&ldquo;</strong>:
+        unterhalb einer änderbaren Schwelle der vertikalen Streuung (Standard ~0,57 MOA, aus 6 Zoll
+        Vertikalstreuung auf 1000 Yards &mdash; ein Wettkampf-F-Class-Richtwert) meldet das Werkzeug
+        dies als schlichten, positiven Hinweis, statt zu schweigen: jenseits dieses Punktes geht es
+        beim weiteren Verengen der Gruppe um das Lesen des Windes, nicht um die Ladung. MOA ist
+        distanzunabhängig, daher liest sich das gleich, ob die Gruppe tatsächlich auf 1000 Yards,
+        1000&nbsp;m oder auf 300&nbsp;m mit proportional kleinerer Vertikalstreuung in Zoll geschossen
+        wurde. An dieselbe Mindeststichprobengrenze wie alles andere hier gebunden &mdash; eine kleine,
+        glückliche Gruppe, die an dieser Schwelle eng ausfällt, ist noch kein Beweis für irgendetwas.</p>
+      <p><strong>Abgleich mit dem eigenen Knoten des Ladder/OCW-Analyzers</strong>: wenn eine Gruppe
+        über &bdquo;GRTs Trefferbild-Tabs laden&hellip;&ldquo; geladen wird und dieselbe
+        <code>.grtload</code> bereits eine &bdquo;OCW Analysis&ldquo;-Notiz (§7) mit einem gefundenen
+        Knoten trägt, meldet Gruppenanalyse, ob die eigene Ladung dieser Gruppe innerhalb oder außerhalb
+        davon liegt &mdash; eine mögliche Erklärung, die neben den Streuungszahlen vermerkt wird, nie
+        als bewiesene Ursache behauptet. Dies ist bewusst die <em>empirische</em> Hälfte der Verbindung
+        zwischen der Form einer Gruppe und einem möglichen physikalischen Grund: Der Knoten selbst
+        stammt aus der eigenen gemessenen Ladder-Serie des Nutzers, nicht aus einer Simulation, daher
+        behauptet der Abgleich nie mehr als &bdquo;dies passt zu einem Muster, das Sie bereits in Ihren
+        eigenen Daten gefunden haben&ldquo;. Eine aus einer OnTarget-CSV geladene oder von Hand
+        eingegebene Gruppe wird nie so abgeglichen, da keine Gewissheit besteht, dass sie zu demselben
+        Gewehr/derselben Ladung gehört wie die gerade geöffnete <code>.grtload</code>.</p>
       <p><strong>Gruppen zusammenführen</strong> fasst die Gruppen mehrerer Ladungen zu einer zusammen,
         indem <strong>jede zuerst auf ihren eigenen Schwerpunkt zentriert wird</strong> &mdash; das
         trennt die zusammengeführte Streuung (verhält sich jede dieser Ladungen für sich konsistent?)
@@ -1186,6 +1215,6 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.15 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.16 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

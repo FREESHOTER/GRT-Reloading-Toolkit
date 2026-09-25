@@ -2,19 +2,25 @@ using GrtReloadingToolkit.Ocw;
 
 namespace GrtReloadingToolkit.Log;
 
-public enum DistanceRangeKind { ShortRange, LongRange }
-
 public enum ConfidenceLevel { Low, Medium, High }
 
 public enum ProblemKind { StatisticalOutlier, SmallSample, SpreadRatioSkewed, OffCenter, CenterMismatch, LongRangeWindCaveat, VelocityCorrelation }
+
+public enum NodeRelation { Inside, Outside }
 
 /// <summary>Mahalanobis distance of one impact from the group's own centroid, using the group's own sample covariance.</summary>
 public sealed record MahalanobisOutlier(int Index, double DistanceSquared, bool Flagged);
 
 public sealed record GroupProblem(ProblemKind Kind, string Message);
 
+/// <summary>Whether this group's own charge falls inside or outside a node the Ladder/OCW Analyzer
+/// already found for the same load — see <see cref="GroupAnalysis.CheckAgainstNode"/> for why this
+/// is the "reliable" half of connecting Group Analysis's own dispersion read to a candidate physical
+/// explanation, and why the other half (a barrel-vibration model) deliberately is not wired in here.</summary>
+public sealed record NodeCrossCheck(double ChargeGrains, double NodeLowGrains, double NodeHighGrains, NodeRelation Relation);
+
 public sealed record GroupAnalysisReport(
-    DistanceRangeKind Range,
+    DistanceBand Band,
     double Score,
     ConfidenceLevel Confidence,
     double MeanRadiusMoa,
@@ -24,7 +30,9 @@ public sealed record GroupAnalysisReport(
     double VerticalSpreadMoa,
     IReadOnlyList<MahalanobisOutlier> Outliers,
     IReadOnlyList<GroupProblem> Problems,
-    double? VelocityPoiR = null);
+    double? VelocityPoiR = null,
+    NodeCrossCheck? NodeCrossCheck = null,
+    string? WindNotLoadNote = null);
 
 /// <summary>
 /// The 2D sibling of <see cref="SdRootCause"/>: given one shot group (from OnTarget, GRT's own
@@ -40,8 +48,18 @@ public static class GroupAnalysis
     /// same convention as <c>LoadScoring.Config</c>.</summary>
     public static GroupAnalysisConfig Config { get; set; } = GroupAnalysisConfig.Load();
 
-    public static DistanceRangeKind ClassifyRange(double distanceM, GroupAnalysisConfig cfg)
-        => distanceM > cfg.ShortRangeMaxM ? DistanceRangeKind.LongRange : DistanceRangeKind.ShortRange;
+    /// <summary>Picks the first configured band (ordered near to far) whose own distance is at or
+    /// above the group's actual distance; a group beyond every configured band's distance reads the
+    /// longest one — so "1000 m and beyond" all share one band without a separate unbounded entry to
+    /// maintain. Re-sorts defensively rather than trusting <see cref="GroupAnalysisConfig.DistanceBands"/>'
+    /// own order, since a hand-edited settings file could list them out of sequence.</summary>
+    public static DistanceBand ClassifyBand(double distanceM, GroupAnalysisConfig cfg)
+    {
+        var ordered = cfg.DistanceBands.OrderBy(b => b.MaxDistanceM).ToList();
+        foreach (var band in ordered)
+            if (distanceM <= band.MaxDistanceM) return band;
+        return ordered[^1];
+    }
 
     private static (double VarX, double VarY, double CovXY) Covariance(TargetGroup group)
     {
@@ -103,25 +121,34 @@ public static class GroupAnalysis
         return result;
     }
 
-    /// <summary>
-    /// 0-10 from <c>MeanRadiusMoa</c> against the config's tiers for this range — mean radius rather
-    /// than extreme spread, since ES is far noisier on the small samples a rifle group usually is.
-    /// </summary>
-    public static double Score(TargetGroup group, DistanceRangeKind range, GroupAnalysisConfig cfg)
-    {
-        var tiers = range == DistanceRangeKind.LongRange ? cfg.LongRangeScoreTiers : cfg.ShortRangeScoreTiers;
-        return LoadScoringConfig.Score(tiers, group.MeanRadiusMoa);
-    }
+    /// <summary>0-10 from <c>MeanRadiusMoa</c> against this band's own tiers — mean radius rather than
+    /// extreme spread, since ES is far noisier on the small samples a rifle group usually is (a choice
+    /// Empirical Precision's own group-analysis methodology reaches independently, for the same
+    /// reason: mean radius uses every shot, not just the two widest).</summary>
+    public static double Score(TargetGroup group, DistanceBand band) => LoadScoringConfig.Score(band.ScoreTiers, group.MeanRadiusMoa);
 
     /// <summary>From sample size alone — deliberately independent of <see cref="Score"/>, so a tight
     /// group from 3 shots and a tight group from 15 shots are never collapsed into one number.</summary>
-    public static ConfidenceLevel Confidence(int shotCount, DistanceRangeKind range, GroupAnalysisConfig cfg)
+    public static ConfidenceLevel Confidence(int shotCount, DistanceBand band)
     {
-        int highAt = range == DistanceRangeKind.LongRange ? cfg.LongRangeHighAt : cfg.ShortRangeHighAt;
-        int mediumAt = range == DistanceRangeKind.LongRange ? cfg.LongRangeMediumAt : cfg.ShortRangeMediumAt;
-        if (shotCount >= highAt) return ConfidenceLevel.High;
-        if (shotCount >= mediumAt) return ConfidenceLevel.Medium;
+        if (shotCount >= band.HighAt) return ConfidenceLevel.High;
+        if (shotCount >= band.MediumAt) return ConfidenceLevel.Medium;
         return ConfidenceLevel.Low;
+    }
+
+    /// <summary>
+    /// Below the config's <see cref="GroupAnalysisConfig.WindNotLoadVerticalThresholdMoa"/>, this is
+    /// deliberately good news, not a problem to fix: <c>@xquizitclaw-creator</c>'s own framing (GitHub
+    /// issue #31) is that once vertical dispersion is at or below a competitive benchmark, the load has
+    /// done its job and everything left to explain is wind, not the rifle. Gated on the band's own
+    /// <see cref="DistanceBand.MediumAt"/> shot count first, same as every other read here — a lucky
+    /// 3-shot group reading tight at this threshold is not evidence of anything yet.</summary>
+    public static string? WindNotLoadNote(TargetGroup group, GroupAnalysisConfig cfg, DistanceBand band)
+    {
+        if (group.Impacts.Count < band.MediumAt) return null;
+        if (group.VerticalSpreadMoa <= 0 || group.VerticalSpreadMoa > cfg.WindNotLoadVerticalThresholdMoa) return null;
+        return FormattableString.Invariant(
+            $"Vertical spread ({group.VerticalSpreadMoa:F2} MOA) is at or below the competitive benchmark for \"the load has done its job\" (~{cfg.WindNotLoadVerticalThresholdMoa:F2} MOA, from 6\" of vertical at 1000 yards) — from here, tightening the group further is about reading wind, not the load.");
     }
 
     /// <summary>
@@ -132,7 +159,7 @@ public static class GroupAnalysis
     /// than left at their unset default — a manually-entered or GRT-native group has nothing to cross-check against.
     /// </summary>
     public static IReadOnlyList<GroupProblem> DiagnoseProblems(
-        TargetGroup group, DistanceRangeKind range, GroupAnalysisConfig cfg,
+        TargetGroup group, DistanceBand band, GroupAnalysisConfig cfg,
         IReadOnlyList<MahalanobisOutlier>? outliers = null, bool crossCheckAppCenter = false,
         double? velocityPoiR = null)
     {
@@ -144,10 +171,9 @@ public static class GroupAnalysis
                 problems.Add(new GroupProblem(ProblemKind.StatisticalOutlier,
                     FormattableString.Invariant($"Shot #{o.Index + 1} is a statistical outlier (Mahalanobis distance² {o.DistanceSquared:F2}).")));
 
-        int mediumAt = range == DistanceRangeKind.LongRange ? cfg.LongRangeMediumAt : cfg.ShortRangeMediumAt;
-        if (group.Impacts.Count < mediumAt)
+        if (group.Impacts.Count < band.MediumAt)
             problems.Add(new GroupProblem(ProblemKind.SmallSample,
-                $"Sample size (n={group.Impacts.Count}) is below the {mediumAt} shots this tool wants for a confident read at this distance."));
+                FormattableString.Invariant($"Sample size (n={group.Impacts.Count}) is below the {band.MediumAt} shots this tool wants for a confident read at this distance.")));
 
         double h = group.HorizontalSpreadMoa, v = group.VerticalSpreadMoa;
         if (Math.Min(h, v) > 0)
@@ -181,7 +207,7 @@ public static class GroupAnalysis
                 FormattableString.Invariant($"Velocity correlates with distance from the group centre (r={vr:F2}) — faster shots tend to land {direction} the centre; worth investigating, not a diagnosed cause on this data alone.")));
         }
 
-        if (range == DistanceRangeKind.LongRange)
+        if (band.WindCaveat)
             problems.Add(new GroupProblem(ProblemKind.LongRangeWindCaveat,
                 "This raw dispersion includes uncorrected wind effects at long range — read the score cautiously until a future version adds wind correction."));
 
@@ -204,16 +230,17 @@ public static class GroupAnalysis
         return AdvancedDiagnostics.Pearson(pairs);
     }
 
-    public static GroupAnalysisReport Diagnose(TargetGroup group, GroupAnalysisConfig cfg, bool crossCheckAppCenter = false, IReadOnlyList<double>? velocities = null)
+    public static GroupAnalysisReport Diagnose(TargetGroup group, GroupAnalysisConfig cfg, bool crossCheckAppCenter = false,
+        IReadOnlyList<double>? velocities = null, (double Low, double High)? ocwNodeGrains = null)
     {
-        var range = ClassifyRange(group.DistanceM, cfg);
+        var band = ClassifyBand(group.DistanceM, cfg);
         var outliers = MahalanobisOutliers(group, cfg);
         double? velR = velocities is { Count: >= 3 } vs ? VelocityPoiCorrelation(vs, group) : null;
-        var problems = DiagnoseProblems(group, range, cfg, outliers, crossCheckAppCenter, velR);
+        var problems = DiagnoseProblems(group, band, cfg, outliers, crossCheckAppCenter, velR);
         return new GroupAnalysisReport(
-            range,
-            Score(group, range, cfg),
-            Confidence(group.Impacts.Count, range, cfg),
+            band,
+            Score(group, band),
+            Confidence(group.Impacts.Count, band),
             group.MeanRadiusMoa,
             group.GroupEsMoa,
             Cep50Moa(group),
@@ -221,7 +248,46 @@ public static class GroupAnalysis
             group.VerticalSpreadMoa,
             outliers,
             problems,
-            velR);
+            VelocityPoiR: velR,
+            NodeCrossCheck: CheckAgainstNode(group.ChargeGrains, ocwNodeGrains),
+            WindNotLoadNote: WindNotLoadNote(group, cfg, band));
+    }
+
+    /// <summary>Parses the machine-readable line <see cref="Ocw.LadderAnalyzer.BuildReport"/> appends
+    /// to its own "OCW Analysis" note (<c>NODE_GR=low-high</c>, always raw grains) — deliberately not
+    /// the human-readable "Recommended node (weighted): ..." line above it, which follows whatever
+    /// unit GRT is currently displaying and would need the unit re-parsed and converted too. Returns
+    /// null for a note from an older build that predates this line, or any other text that doesn't
+    /// match — a missing cross-check costs nothing this tool didn't already have.</summary>
+    public static (double Low, double High)? TryParseOcwNodeGrains(string? noteText)
+    {
+        if (string.IsNullOrEmpty(noteText)) return null;
+        var m = System.Text.RegularExpressions.Regex.Match(noteText, @"NODE_GR=([0-9.]+)-([0-9.]+)");
+        if (!m.Success) return null;
+        if (double.TryParse(m.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double low) &&
+            double.TryParse(m.Groups[2].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double high))
+            return (low, high);
+        return null;
+    }
+
+    /// <summary>
+    /// The "reliable" half of connecting Group Analysis's own statistical read to a candidate physical
+    /// explanation (see the class doc on <see cref="NodeCrossCheck"/>): whether this group's own
+    /// charge falls inside a node the Ladder/OCW Analyzer already found FOR THE SAME LOAD. This is
+    /// deliberately scoped to only that comparison — the Ladder/OCW node is itself an empirical read
+    /// of the user's own measured ladder, not a physics model, so cross-checking against it never
+    /// asserts anything beyond "does this match a pattern you already found in your own data". A
+    /// second, physics-model-based connection (GRT Model OBT's barrel-vibration curve) was considered
+    /// and deliberately NOT wired in here: that model simulates LONGITUDINAL barrel vibration while
+    /// GRT's own native OBT concept assumes TRANSVERSE vibration (see this project's own notes on that
+    /// discrepancy) — presenting it as a reliable cross-check risked explaining a real group pattern
+    /// with a model that may not even be simulating the right physical phenomenon for that barrel.
+    /// </summary>
+    public static NodeCrossCheck? CheckAgainstNode(double? chargeGrains, (double Low, double High)? node)
+    {
+        if (chargeGrains is not { } charge || node is not { } n) return null;
+        var relation = charge >= n.Low && charge <= n.High ? NodeRelation.Inside : NodeRelation.Outside;
+        return new NodeCrossCheck(charge, n.Low, n.High, relation);
     }
 
     /// <summary>
@@ -231,7 +297,8 @@ public static class GroupAnalysis
     /// difference, not dispersion) would inflate the combined spread and the two would be
     /// indistinguishable. This measures pooled DISPERSION consistency, not point-of-impact
     /// consistency — the same "virtual group" idea OnTarget TDS uses to combine several small groups
-    /// into one larger statistical sample.
+    /// into one larger statistical sample, and the same idea Empirical Precision's own compositing
+    /// reaches independently ("ten 5-shot groups aligned by their centres give you a 50-shot picture").
     /// </summary>
     public static TargetGroup CombineGroups(IReadOnlyList<TargetGroup> groups)
     {

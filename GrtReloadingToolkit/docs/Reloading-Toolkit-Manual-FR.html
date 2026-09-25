@@ -115,7 +115,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuel · v0.2.15</span>
+  <span class="k">Manuel · v0.2.16</span>
 </div></div>
 
 <div class="shell">
@@ -1016,11 +1016,19 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         deux nombres séparés, jamais réduits à un seul</strong> &mdash; un groupement serré de 3 tirs
         et un groupement serré de 15 tirs ne sont pas la même affirmation. Le score vient de la
         dispersion comparée à des seuils par palier modifiables&nbsp;; la confiance vient uniquement de
-        la taille de l&#39;échantillon, avec un minimum plus strict à longue distance qu&#39;à courte
-        distance (le seuil de bascule de distance, les deux minimums et les paliers de score sont
-        modifiables dans les <strong>Réglages</strong> &mdash; ce sont des points de départ, pas une
-        norme citable, car il n&#39;existe pas dans la littérature de nombre minimal d&#39;échantillon
-        citable à longue distance, contrairement à la formule du CEP50).</div>
+        la taille de l&#39;échantillon, comparée à une <strong>tranche de distance</strong> choisie à
+        partir de la distance de tir propre au groupement &mdash; <strong>100, 200, 300, 600, 800 ou
+        1000&nbsp;m</strong>, et non un unique seuil de bascule courte/longue, car tous les tireurs
+        n&#39;ont pas la possibilité de tester à 1000&nbsp;m et une charge éprouvée à 300&nbsp;m mérite
+        sa propre barre, pas la même que pour une charge tirée seulement à 100&nbsp;m. Seules les deux
+        extrémités 100&nbsp;m et 1000&nbsp;m de cette échelle sont ancrées à quelque chose de réel (la
+        valeur par défaut d&#39;origine de l&#39;outil, et le minimum pratique &mdash; 10 tirs &mdash;
+        en dessous duquel un tireur F-Class de compétition a dit ne jamais faire confiance à une
+        lecture, quelle que soit la distance)&nbsp;; les paliers intermédiaires sont une simple
+        interpolation, pas une source indépendante, tout comme les paliers de score eux-mêmes (il
+        n&#39;existe pas dans la littérature de nombre minimal d&#39;échantillon citable à longue
+        distance, contrairement à la formule du CEP50). Le tout modifiable dans les
+        <strong>Réglages</strong>, un onglet par tranche.</div>
       <p><strong>La détection d&#39;anomalies</strong> utilise la covariance 2D propre au groupement
         (distance de Mahalanobis) plutôt qu&#39;une dispersion circulaire supposée &mdash;
         l&#39;équivalent 2D du test d&#39;anomalies par critère de Chauvenet qu&#39;utilisent les
@@ -1030,9 +1038,32 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         simple affirmation&nbsp;: tirs signalés comme anomalies statistiques (nommés par indice),
         échantillon trop petit pour une lecture fiable à cette distance (indique le seuil utilisé),
         rapport de dispersion horizontale/verticale nettement asymétrique, centre du groupement décalé
-        du point de visée au-delà d&#39;un seuil, et &mdash; toujours affiché à longue distance, jamais
-        masqué &mdash; un avertissement que la dispersion brute inclut encore des effets du vent non
-        corrigés.</p>
+        du point de visée au-delà d&#39;un seuil, et &mdash; toujours affiché sur les tranches
+        configurées pour cela (600&nbsp;m et au-delà par défaut), jamais masqué &mdash; un avertissement
+        que la dispersion brute inclut encore des effets du vent non corrigés.</p>
+      <p><strong>&laquo;&nbsp;La charge a fait son travail, c&#39;est le vent maintenant&nbsp;&raquo;</strong>&nbsp;:
+        sous un seuil modifiable de dispersion verticale (par défaut ~0,57 MOA, soit 6 pouces de
+        verticale à 1000 yards &mdash; une référence F-Class de compétition), l&#39;outil le signale
+        comme une simple note positive plutôt que de rester silencieux&nbsp;: au-delà de ce point,
+        resserrer davantage le groupement relève de la lecture du vent, pas de la charge. Le MOA étant
+        indépendant de la distance, la lecture est identique que le groupement ait été tiré réellement à
+        1000 yards, à 1000&nbsp;m, ou à 300&nbsp;m avec une dispersion verticale en pouces
+        proportionnellement plus petite. Soumis au même plancher de taille d&#39;échantillon que tout le
+        reste ici &mdash; un petit groupement chanceux qui se révèle serré à ce seuil n&#39;est pas
+        encore une preuve de quoi que ce soit.</p>
+      <p><strong>Recoupement avec le nœud propre à l&#39;analyseur Ladder/OCW</strong>&nbsp;: quand un
+        groupement est chargé via &laquo;&nbsp;Charger les onglets groupement de GRT&hellip;&nbsp;&raquo;
+        et que ce même <code>.grtload</code> porte déjà une note &laquo;&nbsp;OCW Analysis&nbsp;&raquo;
+        (§7) avec un nœud trouvé, Analyse de groupement indique si la charge de ce groupement tombe à
+        l&#39;intérieur ou à l&#39;extérieur de celui-ci &mdash; une explication candidate à noter à côté
+        des chiffres de dispersion, jamais présentée comme une cause prouvée. C&#39;est délibérément la
+        moitié <em>empirique</em> du lien entre la forme d&#39;un groupement et une raison physique
+        possible&nbsp;: le nœud lui-même provient de la propre échelle de charges mesurée par
+        l&#39;utilisateur, pas d&#39;une simulation, donc le recoupement n&#39;affirme jamais plus que
+        &laquo;&nbsp;ceci correspond à un motif que vous avez déjà trouvé dans vos propres
+        données&nbsp;&raquo;. Un groupement chargé depuis un CSV OnTarget ou saisi à la main n&#39;est
+        jamais recoupé de cette façon, faute de certitude qu&#39;il appartienne à la même arme/charge que
+        le <code>.grtload</code> actuellement ouvert.</p>
       <p><strong>Combiner des groupements</strong> regroupe les groupements de plusieurs charges en un
         seul en <strong>recentrant d&#39;abord chacun sur son propre centroïde</strong> &mdash; cela
         isole la dispersion combinée (chacune de ces charges se comporte-t-elle de façon cohérente en
@@ -1203,6 +1234,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.15 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.16 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

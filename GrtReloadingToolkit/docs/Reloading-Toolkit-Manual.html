@@ -115,7 +115,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manual · v0.2.15</span>
+  <span class="k">Manual · v0.2.16</span>
 </div></div>
 
 <div class="shell">
@@ -919,11 +919,17 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <div class="callout"><strong>Score (0&ndash;10) and Confidence (Low/Medium/High) are two
         separate numbers, never collapsed into one</strong> &mdash; a tight group from 3 shots and a
         tight group from 15 shots are not the same claim. Score comes from dispersion against
-        editable tier thresholds; Confidence comes from sample size alone, with a stricter minimum at
-        long range than at short range (the range cutover, both minimums and the score tiers are
-        editable in <strong>Settings</strong> &mdash; they are starting points, not a cited standard,
-        since a citable long-range minimum-sample number does not exist in the literature the way
-        CEP50&#39;s formula does).</div>
+        editable tier thresholds; Confidence comes from sample size alone, against a
+        <strong>distance band</strong> picked from the group&#39;s own shooting distance &mdash;
+        <strong>100, 200, 300, 600, 800 or 1000&nbsp;m</strong>, not a single short/long cutover,
+        because not every shooter can test at 1000&nbsp;m and a load proven at 300&nbsp;m deserves its
+        own bar, not the same one as a load only ever shot at 100&nbsp;m. Only the 100&nbsp;m and
+        1000&nbsp;m ends of that scale are anchored to anything real (this tool&#39;s own original
+        default, and the practical minimum &mdash; 10 shots &mdash; a competitive F-Class shooter said
+        he never trusts a read below, whatever the distance); the steps in between are a plain
+        interpolation, not independently sourced, same as the score tiers themselves (a citable
+        long-range minimum-sample number does not exist in the literature the way CEP50&#39;s formula
+        does). All of it is editable in <strong>Settings</strong>, one tab per band.</div>
       <p><strong>Outlier detection</strong> uses the group&#39;s own 2D covariance (Mahalanobis
         distance) rather than an assumed circular spread &mdash; the 2D analogue of the
         Chauvenet&#39;s-criterion outlier test Chronograph Statistics (§6) and SD Root-Cause (§22) use
@@ -931,9 +937,28 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <p><strong>Problem list</strong>, each with the number behind it, never a bare claim: shots
         flagged as statistical outliers (named by index), sample size too small for a confident read
         at this distance (states the threshold used), horizontal/vertical spread ratio notably
-        skewed, group centre offset from point of aim beyond a threshold, and &mdash; always shown at
-        long range, never hidden &mdash; a caveat that raw dispersion still includes uncorrected wind
-        effects.</p>
+        skewed, group centre offset from point of aim beyond a threshold, and &mdash; always shown on
+        the bands configured for it (600&nbsp;m and up by default), never hidden &mdash; a caveat that
+        raw dispersion still includes uncorrected wind effects.</p>
+      <p><strong>&ldquo;The load has done its job, it&#39;s wind now&rdquo;</strong>: below a
+        configurable vertical-spread threshold (default ~0.57 MOA, from 6 inches of vertical at
+        1000 yards &mdash; a competitive F-Class benchmark), the tool says so as a plain, positive note
+        rather than staying silent: past this point, tightening the group further is about reading
+        wind, not the load. MOA is distance-independent, so this reads the same whether the group was
+        actually shot at 1000 yards, 1000&nbsp;m, or 300&nbsp;m with a proportionally smaller vertical
+        spread in inches. Gated on the same sample-size floor as everything else here &mdash; a lucky
+        small group reading tight at this threshold is not evidence of anything yet.</p>
+      <p><strong>Cross-check against the Ladder/OCW Analyzer&#39;s own node</strong>: when a group is
+        loaded via &ldquo;Load GRT&#39;s shot-group tabs&hellip;&rdquo; and that same
+        <code>.grtload</code> already carries an &ldquo;OCW Analysis&rdquo; note (§7) with a found
+        node, Group Analysis reports whether this group&#39;s own charge falls inside or outside it
+        &mdash; a candidate explanation worth noting alongside the dispersion numbers, never claimed as
+        a proven cause. This is deliberately the <em>empirical</em> half of connecting a group&#39;s
+        shape to a possible physical reason: the node itself came from the user&#39;s own measured
+        ladder, not a simulation, so the cross-check never asserts more than &ldquo;this matches a
+        pattern you already found in your own data&rdquo;. A group loaded from an OnTarget CSV or
+        typed in by hand is never cross-checked this way, since there is no way to be sure it belongs
+        to the same rifle/load as whatever <code>.grtload</code> happens to be open.</p>
       <p><strong>Combine groups</strong> pools several charges&#39; groups into one by
         <strong>recentring each on its own centroid first</strong> &mdash; this isolates pooled
         dispersion (are these charges each behaving consistently?) from real point-of-impact
@@ -1087,6 +1112,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.15 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.16 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

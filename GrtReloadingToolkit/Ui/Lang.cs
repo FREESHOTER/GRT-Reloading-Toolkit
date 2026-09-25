@@ -738,20 +738,24 @@ internal static class Lang
         ["⚙ Thresholds…"] = "⚙ Soglie…",
         ["Write group analysis note to GRT load"] = "Scrivi nota analisi gruppo sul load GRT",
         ["Group"] = "Gruppo",
-        ["Distance range"] = "Fascia di distanza",
+        ["Distance band"] = "Fascia di distanza",
         ["Auto (from the group's own distance)"] = "Automatica (dalla distanza del gruppo)",
-        ["Short range"] = "Corta distanza",
-        ["Long range"] = "Lunga distanza",
+        ["{0} band"] = "fascia {0}",
         ["or enter a group manually"] = "oppure inserisci un gruppo a mano",
         ["Shooting distance"] = "Distanza di tiro",
         ["Per-shot offsets from centre"] = "Scostamenti per colpo dal centro",
         ["Aim X/Y"] = "Mira X/Y",
         ["Build group from manual entry"] = "Costruisci gruppo dai dati inseriti",
         ["{0} shot-group tab(s) loaded."] = "{0} tab gruppo caricate.",
+        ["OCW node found: {0}-{1} gr."] = "Nodo OCW trovato: {0}-{1} gr.",
+        ["◆ This charge ({0}) is inside the Ladder/OCW node already found for this load ({1}–{2}) — worth noting alongside the dispersion above, not a claimed cause."] =
+            "◆ Questa carica ({0}) è dentro il nodo Ladder/OCW già trovato per questo load ({1}–{2}) — da tenere presente insieme alla dispersione sopra, non una causa dichiarata.",
+        ["◆ This charge ({0}) is outside the Ladder/OCW node already found for this load ({1}–{2})."] =
+            "◆ Questa carica ({0}) è fuori dal nodo Ladder/OCW già trovato per questo load ({1}–{2}).",
         ["Loaded {0} impacts from {1}."] = "Caricati {0} colpi da {1}.",
         ["Enter at least one shot's X/Y first."] = "Inserisci prima almeno un colpo X/Y.",
         ["Load or build a group first."] = "Carica o costruisci prima un gruppo.",
-        ["Score {0}/10, Confidence: {1} ({2}, n={3}, {4})."] = "Punteggio {0}/10, Confidenza: {1} ({2}, n={3}, {4}).",
+        ["Score {0}/10, Confidence: {1} ({2}, n={3}, actual distance {4})."] = "Punteggio {0}/10, Confidenza: {1} ({2}, n={3}, distanza reale {4}).",
         // "High"/"Medium" reuse Log/PressureTrend.cs's own labels above; only "Low" is new here.
         ["Low"] = "Bassa",
         ["Mean radius {0} MOA · Extreme spread {1} MOA · CEP50 {2} MOA"] =
@@ -778,19 +782,18 @@ internal static class Lang
 
         // GroupAnalysisSettingsForm
         ["Group Analysis Thresholds"] = "Soglie Analisi Gruppo",
-        ["Short range score"] = "Punteggio corta distanza",
-        ["Long range score"] = "Punteggio lunga distanza",
-        ["Confidence = Medium at (short range) shots"] = "Confidenza = Media a (corta distanza) colpi",
-        ["Confidence = High at (short range) shots"] = "Confidenza = Alta a (corta distanza) colpi",
-        ["Confidence = Medium at (long range) shots"] = "Confidenza = Media a (lunga distanza) colpi",
-        ["Confidence = High at (long range) shots"] = "Confidenza = Alta a (lunga distanza) colpi",
+        ["Confidence = Medium at"] = "Confidenza = Media a",
+        ["shots, High at"] = "colpi, Alta a",
+        ["shots"] = "colpi",
+        ["Show the uncorrected-wind caveat at this distance"] = "Mostra l'avviso vento-non-corretto a questa distanza",
         ["Minimum shots for outlier detection"] = "Colpi minimi per il rilevamento anomalie",
         ["Off-centre flag threshold (MOA)"] = "Soglia segnalazione fuori centro (MOA)",
         ["Spread-ratio skew flag threshold"] = "Soglia segnalazione asimmetria dispersione",
         ["App-centre mismatch flag threshold (MOA)"] = "Soglia segnalazione scarto centro applicazione (MOA)",
         ["Velocity <-> dispersion correlation flag threshold (|r|)"] = "Soglia segnalazione correlazione velocità <-> dispersione (|r|)",
-        ["Each score row means \"at or below this mean-radius MOA, this score\". The last row is the floor for anything worse."] =
-            "Ogni riga significa \"fino a questo raggio medio in MOA, questo punteggio\". L'ultima riga è il minimo per tutto ciò che è peggiore.",
+        ["\"Load is done, it's wind now\" vertical spread threshold (MOA)"] = "Soglia dispersione verticale \"il carico ha finito, ora è vento\" (MOA)",
+        ["Each score row means \"at or below this mean-radius MOA, this score\". The last row is the floor for anything worse. A group's own distance picks its band automatically; only the 100 m and 1000 m sample-size minimums are anchored to anything (this tool's own original default, and the practical minimum a competitive shooter said he trusts) — the steps between are a plain interpolation, not independently sourced."] =
+            "Ogni riga significa \"fino a questo raggio medio in MOA, questo punteggio\". L'ultima riga è il minimo per tutto ciò che è peggiore. La distanza del gruppo sceglie da sola la sua fascia; solo i minimi di campione a 100 m e 1000 m sono ancorati a qualcosa (il valore originale di questo strumento, e il minimo pratico che un tiratore competitivo ha detto di considerare affidabile) — i passi intermedi sono una semplice interpolazione, non ricavati da fonti indipendenti.",
 
         // TargetForm
         ["🎯🖨  Print ladder/OCW target"] = "🎯🖨  Stampa bersaglio ladder/OCW",

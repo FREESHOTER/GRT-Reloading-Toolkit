@@ -112,7 +112,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2.15</span>
+  <span class="k">Manuale · v0.2.16</span>
 </div></div>
 
 <div class="shell">
@@ -954,11 +954,17 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         numeri separati, mai uniti in uno solo</strong> &mdash; un gruppo stretto da 3 colpi e un
         gruppo stretto da 15 colpi non sono la stessa affermazione. Il punteggio viene dalla
         dispersione contro soglie modificabili; la Confidenza viene solo dalla dimensione del
-        campione, con un minimo più severo a lunga distanza che a corta distanza (il punto di
-        passaggio, entrambi i minimi e le soglie del punteggio sono modificabili in
-        <strong>Impostazioni</strong> &mdash; sono valori di partenza, non uno standard citabile, dato
-        che un numero minimo di campione a lunga distanza citabile non esiste in letteratura come
-        invece esiste la formula del CEP50).</div>
+        campione, contro una <strong>fascia di distanza</strong> scelta dalla distanza di tiro del
+        gruppo stesso &mdash; <strong>100, 200, 300, 600, 800 o 1000&nbsp;m</strong>, non un unico
+        punto di passaggio corta/lunga, perché non tutti i tiratori possono provare a 1000&nbsp;m e un
+        carico dimostrato a 300&nbsp;m merita la propria soglia, non la stessa di un carico sparato
+        solo a 100&nbsp;m. Solo gli estremi 100&nbsp;m e 1000&nbsp;m di quella scala sono ancorati a
+        qualcosa di reale (il valore di default originale dello strumento, e il minimo pratico &mdash;
+        10 colpi &mdash; sotto il quale un tiratore F-Class agonista ha detto di non fidarsi mai di una
+        lettura, qualunque sia la distanza); i passi intermedi sono una semplice interpolazione, non
+        una fonte indipendente, come le soglie del punteggio stesse (un numero minimo di campione a
+        lunga distanza citabile non esiste in letteratura come invece esiste la formula del CEP50).
+        Tutto modificabile in <strong>Impostazioni</strong>, una scheda per fascia.</div>
       <p><strong>Il rilevamento anomalie</strong> usa la covarianza 2D del gruppo stesso (distanza di
         Mahalanobis) invece di una dispersione circolare presunta &mdash; l&#39;analogo 2D del test di
         anomalie basato sul criterio di Chauvenet che Statistiche Cronografo (§6) e Diagnosi SD (§22)
@@ -967,8 +973,30 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         nuda: colpi segnalati come anomalie statistiche (indicati per indice), campione troppo piccolo
         per una lettura affidabile a questa distanza (indica la soglia usata), rapporto di dispersione
         orizzontale/verticale notevolmente asimmetrico, centro del gruppo scostato dal punto di mira
-        oltre una soglia, e &mdash; sempre mostrato a lunga distanza, mai nascosto &mdash; un avviso che
-        la dispersione grezza include ancora effetti del vento non corretti.</p>
+        oltre una soglia, e &mdash; sempre mostrato sulle fasce configurate per farlo (600&nbsp;m in su
+        per default), mai nascosto &mdash; un avviso che la dispersione grezza include ancora effetti
+        del vento non corretti.</p>
+      <p><strong>&laquo;Il carico ha fatto il suo lavoro, ora è il vento&raquo;</strong>: sotto una
+        soglia configurabile di dispersione verticale (default ~0,57 MOA, da 6 pollici di verticale a
+        1000 yard &mdash; un riferimento F-Class agonistico), lo strumento lo segnala come nota
+        positiva invece di restare in silenzio: oltre questo punto, stringere ulteriormente il gruppo
+        è una questione di lettura del vento, non del carico. Il MOA è indipendente dalla distanza,
+        quindi la lettura è identica sia che il gruppo sia stato sparato davvero a 1000 yard, a
+        1000&nbsp;m, o a 300&nbsp;m con una dispersione verticale in pollici proporzionalmente minore.
+        Vincolato alla stessa soglia minima di campione di tutto il resto qui &mdash; un gruppo piccolo
+        e fortunato che risulta stretto a questa soglia non è ancora prova di nulla.</p>
+      <p><strong>Riscontro con il nodo dell&#39;Analizzatore Ladder/OCW</strong>: quando un gruppo viene
+        caricato tramite &laquo;Carica tab gruppi di colpi di GRT&hellip;&raquo; e lo stesso
+        <code>.grtload</code> porta già una nota &laquo;OCW Analysis&raquo; (§7) con un nodo trovato,
+        Analisi Gruppo riporta se la carica di questo gruppo cade dentro o fuori da esso &mdash; una
+        spiegazione candidata da annotare accanto ai numeri di dispersione, mai presentata come causa
+        dimostrata. Questa è deliberatamente la metà <em>empirica</em> del collegare la forma di un
+        gruppo a una possibile ragione fisica: il nodo stesso viene dalla scaletta misurata
+        dall&#39;utente, non da una simulazione, quindi il riscontro non afferma mai più di &laquo;
+        questo corrisponde a un pattern che hai già trovato nei tuoi dati&raquo;. Un gruppo caricato da
+        un CSV OnTarget o inserito a mano non viene mai confrontato così, perché non c&#39;è modo di
+        essere certi che appartenga allo stesso fucile/carico di qualunque <code>.grtload</code> sia
+        aperto.</p>
       <p><strong>Combina gruppi</strong> unisce i gruppi di più cariche in uno solo
         <strong>ricentrando prima ciascuno sul proprio centroide</strong> &mdash; questo isola la
         dispersione unita (queste cariche si comportano ognuna in modo coerente?) dalle reali
@@ -1133,6 +1161,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.15 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.16 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

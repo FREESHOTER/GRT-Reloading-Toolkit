@@ -762,10 +762,15 @@ Rayleigh-distributed group, σ√ln4) and separate horizontal/vertical spread.
 **Score (0–10) and Confidence (Low/Medium/High) are two separate numbers, never collapsed into
 one** — a tight group from 3 shots and a tight group from 15 shots are not the same claim. Score
 comes from dispersion against editable tier thresholds; Confidence comes from sample size alone,
-with a stricter minimum at long range than at short range (the range cutover, both minimums and
-the score tiers are editable in **Settings** — they are starting points, not a cited standard,
-since a citable long-range minimum-sample number does not exist in the literature the way CEP50's
-formula does).
+against a **distance band** picked from the group's own shooting distance — **100, 200, 300, 600,
+800 or 1000 m**, not a single short/long cutover, because not every shooter can test at 1000 m and
+a load proven at 300 m deserves its own bar, not the same one as a load only ever shot at 100 m.
+Only the 100 m and 1000 m ends of that scale are anchored to anything real (this tool's own
+original default, and the practical minimum — 10 shots — a competitive F-Class shooter said he
+never trusts a read below, whatever the distance); the steps in between are a plain interpolation,
+not independently sourced, same as the score tiers themselves (a citable long-range minimum-sample
+number does not exist in the literature the way CEP50's formula does). All of it is editable in
+**Settings**, one tab per band.
 
 **Outlier detection** uses the group's own 2D covariance (Mahalanobis distance) rather than an
 assumed circular spread — the 2D analogue of the Chauvenet's-criterion outlier test Chronograph
@@ -775,8 +780,26 @@ shot count.
 **Problem list**, each with the number behind it, never a bare claim: shots flagged as statistical
 outliers (named by index), sample size too small for a confident read at this distance (states the
 threshold used), horizontal/vertical spread ratio notably skewed, group centre offset from point of
-aim beyond a threshold, and — always shown at long range, never hidden — a caveat that raw
-dispersion still includes uncorrected wind effects.
+aim beyond a threshold, and — always shown on the bands configured for it (600 m and up by
+default), never hidden — a caveat that raw dispersion still includes uncorrected wind effects.
+
+**"The load has done its job, it's wind now"**: below a configurable vertical-spread threshold
+(default ~0.57 MOA, from 6 inches of vertical at 1000 yards — a competitive F-Class benchmark), the
+tool says so as a plain, positive note rather than staying silent: past this point, tightening the
+group further is about reading wind, not the load. MOA is distance-independent, so this reads the
+same whether the group was actually shot at 1000 yards, 1000 m, or 300 m with a proportionally
+smaller vertical spread in inches. Gated on the same sample-size floor as everything else here — a
+lucky small group reading tight at this threshold is not evidence of anything yet.
+
+**Cross-check against the Ladder/OCW Analyzer's own node**: when a group is loaded via **"Load GRT's
+shot-group tabs…"** and that same `.grtload` already carries an "OCW Analysis" note (§7) with a
+found node, Group Analysis reports whether this group's own charge falls inside or outside it — a
+candidate explanation worth noting alongside the dispersion numbers, never claimed as a proven
+cause. This is deliberately the *empirical* half of connecting a group's shape to a possible
+physical reason: the node itself came from the user's own measured ladder, not a simulation, so the
+cross-check never asserts more than "this matches a pattern you already found in your own data". A
+group loaded from an OnTarget CSV or typed in by hand is never cross-checked this way, since there
+is no way to be sure it belongs to the same rifle/load as whatever `.grtload` happens to be open.
 
 **Combine groups** pools several charges' groups into one by **recentring each on its own centroid
 first** — this isolates pooled dispersion (are these charges each behaving consistently?) from real

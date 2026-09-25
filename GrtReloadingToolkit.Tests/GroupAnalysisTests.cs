@@ -14,16 +14,39 @@ public sealed class GroupAnalysisTests
         return g;
     }
 
-    // ── Range classification ────────────────────────────────────────────
+    /// <summary>One of the six default bands, picked by its own label distance -- 100 m (this tool's
+    /// original short-range default, MediumAt=5/HighAt=10) and 1000 m (the collaborator's real
+    /// "10 shots minimum" anchor, MediumAt=10/HighAt=15) are the two bands worth testing against by
+    /// name; the 200/300/600/800 m bands in between are a plain interpolation with nothing distinct
+    /// to assert about them individually.</summary>
+    private static DistanceBand Band(double maxDistanceM) =>
+        new GroupAnalysisConfig().DistanceBands.First(b => b.MaxDistanceM == maxDistanceM);
+
+    // ── Band classification ──────────────────────────────────────────────
 
     [Theory]
-    [InlineData(100, DistanceRangeKind.ShortRange)]
-    [InlineData(500, DistanceRangeKind.ShortRange)]
-    [InlineData(500.1, DistanceRangeKind.LongRange)]
-    [InlineData(1000, DistanceRangeKind.LongRange)]
-    public void ClassifyRangeUsesTheConfiguredCutoverInclusiveOfTheBoundary(double distanceM, DistanceRangeKind expected)
+    [InlineData(50, 100)]
+    [InlineData(100, 100)]
+    [InlineData(150, 200)]
+    [InlineData(300, 300)]
+    [InlineData(301, 600)]
+    [InlineData(999, 1000)]
+    [InlineData(1000, 1000)]
+    [InlineData(1500, 1000)] // beyond every configured band -- falls back to the longest one, not an exception
+    public void ClassifyBandPicksTheNearestBandAtOrAboveTheGroupsDistance(double distanceM, double expectedBandMaxM)
     {
-        Assert.Equal(expected, ClassifyRange(distanceM, new GroupAnalysisConfig()));
+        var band = ClassifyBand(distanceM, new GroupAnalysisConfig());
+        Assert.Equal(expectedBandMaxM, band.MaxDistanceM);
+    }
+
+    [Fact]
+    public void ClassifyBandToleratesAnOutOfOrderBandList()
+    {
+        // A hand-edited settings file could list bands out of sequence -- classification must still
+        // find the right one rather than silently misreading a shuffled list.
+        var cfg = new GroupAnalysisConfig();
+        cfg.DistanceBands = cfg.DistanceBands.OrderByDescending(b => b.MaxDistanceM).ToList();
+        Assert.Equal(300, ClassifyBand(250, cfg).MaxDistanceM);
     }
 
     // ── CEP50 ────────────────────────────────────────────────────────────
@@ -84,32 +107,32 @@ public sealed class GroupAnalysisTests
     // ── Score ────────────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData(0.4, DistanceRangeKind.ShortRange, 10.0)]
-    [InlineData(0.5, DistanceRangeKind.ShortRange, 10.0)]
-    [InlineData(0.6, DistanceRangeKind.ShortRange, 8.0)]
-    [InlineData(3.0, DistanceRangeKind.ShortRange, 0.0)]
-    [InlineData(0.6, DistanceRangeKind.LongRange, 10.0)] // same MOA scores higher long range: more lenient tiers
-    public void ScoreUsesMeanRadiusAgainstTheRangeAppropriateTiers(double meanRadiusMoa, DistanceRangeKind range, double expected)
+    [InlineData(0.4, 100.0, 10.0)]
+    [InlineData(0.5, 100.0, 10.0)]
+    [InlineData(0.6, 100.0, 8.0)]
+    [InlineData(3.0, 100.0, 0.0)]
+    [InlineData(0.6, 1000.0, 10.0)] // same MOA scores higher long range: more lenient tiers
+    public void ScoreUsesMeanRadiusAgainstTheBandsOwnTiers(double meanRadiusMoa, double bandMaxM, double expected)
     {
         // Build a group whose MeanRadiusMoa is exactly the requested value: two impacts symmetric
         // about the origin at that radius put the centroid at (0,0) and each impact's distance
         // from it at meanRadiusMoa.
-        var g = Group(range == DistanceRangeKind.LongRange ? 800 : 100, (meanRadiusMoa, 0), (-meanRadiusMoa, 0));
-        Assert.Equal(expected, Score(g, range, new GroupAnalysisConfig()));
+        var g = Group(bandMaxM, (meanRadiusMoa, 0), (-meanRadiusMoa, 0));
+        Assert.Equal(expected, Score(g, Band(bandMaxM)));
     }
 
     // ── Confidence ───────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData(4, DistanceRangeKind.ShortRange, ConfidenceLevel.Low)]
-    [InlineData(5, DistanceRangeKind.ShortRange, ConfidenceLevel.Medium)]
-    [InlineData(10, DistanceRangeKind.ShortRange, ConfidenceLevel.High)]
-    [InlineData(7, DistanceRangeKind.LongRange, ConfidenceLevel.Low)] // would be Medium short range, not long
-    [InlineData(8, DistanceRangeKind.LongRange, ConfidenceLevel.Medium)]
-    [InlineData(15, DistanceRangeKind.LongRange, ConfidenceLevel.High)]
-    public void ConfidenceIsStricterAtLongRangeThanShortRange(int shotCount, DistanceRangeKind range, ConfidenceLevel expected)
+    [InlineData(4, 100.0, ConfidenceLevel.Low)]
+    [InlineData(5, 100.0, ConfidenceLevel.Medium)]
+    [InlineData(10, 100.0, ConfidenceLevel.High)]
+    [InlineData(9, 1000.0, ConfidenceLevel.Low)] // would be High at 100 m, not even Medium at 1000 m
+    [InlineData(10, 1000.0, ConfidenceLevel.Medium)]
+    [InlineData(15, 1000.0, ConfidenceLevel.High)]
+    public void ConfidenceIsStricterAtLongerDistanceBands(int shotCount, double bandMaxM, ConfidenceLevel expected)
     {
-        Assert.Equal(expected, Confidence(shotCount, range, new GroupAnalysisConfig()));
+        Assert.Equal(expected, Confidence(shotCount, Band(bandMaxM)));
     }
 
     [Fact]
@@ -118,12 +141,12 @@ public sealed class GroupAnalysisTests
         // A tight group and a loose group with the same shot count score very differently, but they
         // must report the same Confidence -- the two axes are independent by design, never collapsed
         // into one number (a tight group from few shots is not the same claim as one from many).
-        var cfg = new GroupAnalysisConfig();
+        var band = Band(100);
         var tight = Group(100, (0.1, 0), (-0.1, 0), (0, 0.1), (0, -0.1), (0.05, 0.05));
         var loose = Group(100, (3, 0), (-3, 0), (0, 3), (0, -3), (1.5, 1.5));
 
-        Assert.NotEqual(Score(tight, DistanceRangeKind.ShortRange, cfg), Score(loose, DistanceRangeKind.ShortRange, cfg));
-        Assert.Equal(Confidence(tight.Impacts.Count, DistanceRangeKind.ShortRange, cfg), Confidence(loose.Impacts.Count, DistanceRangeKind.ShortRange, cfg));
+        Assert.NotEqual(Score(tight, band), Score(loose, band));
+        Assert.Equal(Confidence(tight.Impacts.Count, band), Confidence(loose.Impacts.Count, band));
     }
 
     // ── Problem diagnosis ────────────────────────────────────────────────
@@ -131,8 +154,8 @@ public sealed class GroupAnalysisTests
     [Fact]
     public void DiagnoseProblemsFlagsASmallSample()
     {
-        var g = Group(100, (0, 0), (0.1, 0), (0, 0.1)); // n = 3, below ShortRangeMediumAt = 5
-        var problems = DiagnoseProblems(g, DistanceRangeKind.ShortRange, new GroupAnalysisConfig());
+        var g = Group(100, (0, 0), (0.1, 0), (0, 0.1)); // n = 3, below the 100 m band's MediumAt = 5
+        var problems = DiagnoseProblems(g, Band(100), new GroupAnalysisConfig());
         Assert.Contains(problems, p => p.Kind == ProblemKind.SmallSample);
     }
 
@@ -141,7 +164,7 @@ public sealed class GroupAnalysisTests
     {
         // Vertical spread (4) is well over 1.5x the horizontal spread (1) -- default threshold.
         var g = Group(100, (0, -2), (0, 2), (0.5, 0), (-0.5, 0), (0.2, 1), (-0.2, -1));
-        var problems = DiagnoseProblems(g, DistanceRangeKind.ShortRange, new GroupAnalysisConfig());
+        var problems = DiagnoseProblems(g, Band(100), new GroupAnalysisConfig());
         var p = Assert.Single(problems, p => p.Kind == ProblemKind.SpreadRatioSkewed);
         Assert.Contains("vertical", p.Message);
     }
@@ -151,16 +174,16 @@ public sealed class GroupAnalysisTests
     {
         var g = Group(100, (2, 2), (2.1, 1.9), (1.9, 2.1), (2.05, 1.95), (1.95, 2.05));
         g.AimXMoa = 0; g.AimYMoa = 0; // point of aim is the origin, group centres near (2,2)
-        var problems = DiagnoseProblems(g, DistanceRangeKind.ShortRange, new GroupAnalysisConfig());
+        var problems = DiagnoseProblems(g, Band(100), new GroupAnalysisConfig());
         Assert.Contains(problems, p => p.Kind == ProblemKind.OffCenter);
     }
 
     [Fact]
-    public void DiagnoseProblemsAlwaysAddsTheWindCaveatAtLongRangeOnly()
+    public void DiagnoseProblemsAddsTheWindCaveatOnlyOnBandsConfiguredForIt()
     {
         var g = Group(800, (0, 0), (0.1, 0), (0, 0.1), (0.1, 0.1), (-0.1, -0.1));
-        var longRange = DiagnoseProblems(g, DistanceRangeKind.LongRange, new GroupAnalysisConfig());
-        var shortRange = DiagnoseProblems(g, DistanceRangeKind.ShortRange, new GroupAnalysisConfig());
+        var longRange = DiagnoseProblems(g, Band(800), new GroupAnalysisConfig());
+        var shortRange = DiagnoseProblems(g, Band(100), new GroupAnalysisConfig());
         Assert.Contains(longRange, p => p.Kind == ProblemKind.LongRangeWindCaveat);
         Assert.DoesNotContain(shortRange, p => p.Kind == ProblemKind.LongRangeWindCaveat);
     }
@@ -171,11 +194,120 @@ public sealed class GroupAnalysisTests
         var g = Group(100, (0, 0), (0.1, 0), (0, 0.1), (0.1, 0.1), (-0.1, -0.1));
         g.AppCenterXMoa = 5; g.AppCenterYMoa = 5; // wildly different from the impact-mean centroid
 
-        var withoutCrossCheck = DiagnoseProblems(g, DistanceRangeKind.ShortRange, new GroupAnalysisConfig(), crossCheckAppCenter: false);
-        var withCrossCheck = DiagnoseProblems(g, DistanceRangeKind.ShortRange, new GroupAnalysisConfig(), crossCheckAppCenter: true);
+        var withoutCrossCheck = DiagnoseProblems(g, Band(100), new GroupAnalysisConfig(), crossCheckAppCenter: false);
+        var withCrossCheck = DiagnoseProblems(g, Band(100), new GroupAnalysisConfig(), crossCheckAppCenter: true);
 
         Assert.DoesNotContain(withoutCrossCheck, p => p.Kind == ProblemKind.CenterMismatch);
         Assert.Contains(withCrossCheck, p => p.Kind == ProblemKind.CenterMismatch);
+    }
+
+    // ── "Load is done, it's wind now" note ──────────────────────────────
+
+    [Fact]
+    public void WindNotLoadNoteFiresWhenVerticalSpreadIsAtOrBelowTheBenchmarkAndSampleIsBigEnough()
+    {
+        // Vertical spread exactly 0.5 MOA, comfortably under the ~0.573 MOA default (6" at 1000 yd),
+        // with enough shots (5, meeting the 100 m band's MediumAt) to trust the read.
+        var g = Group(100, (0, 0.25), (0, -0.25), (0.3, 0), (-0.3, 0), (0.1, 0.1));
+        var note = WindNotLoadNote(g, new GroupAnalysisConfig(), Band(100));
+        Assert.NotNull(note);
+        Assert.Contains("wind", note);
+    }
+
+    [Fact]
+    public void WindNotLoadNoteIsSilentWhenVerticalSpreadIsAboveTheBenchmark()
+    {
+        var g = Group(100, (0, 2), (0, -2), (0.3, 0), (-0.3, 0), (0.1, 0.1));
+        Assert.Null(WindNotLoadNote(g, new GroupAnalysisConfig(), Band(100)));
+    }
+
+    [Fact]
+    public void WindNotLoadNoteIsSilentBelowTheBandsOwnMediumAtEvenIfTight()
+    {
+        // Only 2 shots, both essentially on top of each other -- a tiny vertical spread here is luck,
+        // not evidence, so the note must not fire despite clearing the MOA threshold numerically.
+        var g = Group(100, (0, 0.01), (0, -0.01));
+        Assert.Null(WindNotLoadNote(g, new GroupAnalysisConfig(), Band(100)));
+    }
+
+    [Fact]
+    public void DiagnoseIncludesTheWindNotLoadNoteOnTheReportWhenApplicable()
+    {
+        var g = Group(1000, (0, 0.2), (0, -0.2), (0.15, 0), (-0.15, 0), (0.1, 0.05),
+            (0.05, -0.1), (-0.05, 0.1), (0.1, -0.05), (-0.1, -0.05), (0.05, 0.05));
+        var report = Diagnose(g, new GroupAnalysisConfig());
+        Assert.NotNull(report.WindNotLoadNote);
+    }
+
+    // ── Ladder/OCW node cross-check ──────────────────────────────────────
+
+    [Fact]
+    public void TryParseOcwNodeGrainsReadsTheMachineReadableLine()
+    {
+        string note = "Recommended node (weighted): 40.0-40.4 gr  (center 40.2)  -- weighted\nNODE_GR=40.0-40.4\n";
+        var node = TryParseOcwNodeGrains(note);
+        Assert.Equal((40.0, 40.4), node);
+    }
+
+    [Fact]
+    public void TryParseOcwNodeGrainsIgnoresTheHumanReadableLineAlone()
+    {
+        // Older notes (written before this line existed) or notes from a Seating ladder have no
+        // NODE_GR= line at all -- the human-readable line must never be parsed as a fallback, since
+        // it can be in grams, not grains (see LadderModes.XValue).
+        string note = "Recommended node (weighted): 2.592-2.6244 g  (center 2.61)  -- weighted";
+        Assert.Null(TryParseOcwNodeGrains(note));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("no node here")]
+    public void TryParseOcwNodeGrainsReturnsNullForMissingOrUnparsableText(string? note)
+    {
+        Assert.Null(TryParseOcwNodeGrains(note));
+    }
+
+    [Fact]
+    public void CheckAgainstNodeReturnsNullWithoutBothAChargeAndANode()
+    {
+        Assert.Null(CheckAgainstNode(null, (40.0, 40.4)));
+        Assert.Null(CheckAgainstNode(40.2, null));
+    }
+
+    [Theory]
+    [InlineData(40.0, NodeRelation.Inside)]  // exactly on the low edge
+    [InlineData(40.2, NodeRelation.Inside)]
+    [InlineData(40.4, NodeRelation.Inside)]  // exactly on the high edge
+    [InlineData(39.9, NodeRelation.Outside)]
+    [InlineData(40.5, NodeRelation.Outside)]
+    public void CheckAgainstNodeClassifiesInclusiveOfBothEdges(double chargeGrains, NodeRelation expected)
+    {
+        var check = CheckAgainstNode(chargeGrains, (40.0, 40.4));
+        Assert.NotNull(check);
+        Assert.Equal(expected, check!.Relation);
+        Assert.Equal(chargeGrains, check.ChargeGrains);
+        Assert.Equal(40.0, check.NodeLowGrains);
+        Assert.Equal(40.4, check.NodeHighGrains);
+    }
+
+    [Fact]
+    public void DiagnoseIncludesTheNodeCrossCheckWhenAChargeAndNodeAreBothKnown()
+    {
+        var g = Group(100, (0, 0), (0.1, 0), (0, 0.1), (0.1, 0.1), (-0.1, -0.1));
+        g.ChargeGrains = 40.2;
+        var report = Diagnose(g, new GroupAnalysisConfig(), ocwNodeGrains: (40.0, 40.4));
+        Assert.NotNull(report.NodeCrossCheck);
+        Assert.Equal(NodeRelation.Inside, report.NodeCrossCheck!.Relation);
+    }
+
+    [Fact]
+    public void DiagnoseOmitsTheNodeCrossCheckWithoutANode()
+    {
+        var g = Group(100, (0, 0), (0.1, 0), (0, 0.1), (0.1, 0.1), (-0.1, -0.1));
+        g.ChargeGrains = 40.2;
+        var report = Diagnose(g, new GroupAnalysisConfig());
+        Assert.Null(report.NodeCrossCheck);
     }
 
     // ── Manual entry (third data source) ────────────────────────────────
@@ -268,7 +400,7 @@ public sealed class GroupAnalysisTests
         double? r = VelocityPoiCorrelation(velocities, g);
         Assert.Equal(-1.0, r!.Value, 6);
 
-        var problems = DiagnoseProblems(g, DistanceRangeKind.ShortRange, new GroupAnalysisConfig(), velocityPoiR: r);
+        var problems = DiagnoseProblems(g, Band(100), new GroupAnalysisConfig(), velocityPoiR: r);
         var p = Assert.Single(problems, p => p.Kind == ProblemKind.VelocityCorrelation);
         Assert.Contains("closer to", p.Message);
         Assert.DoesNotContain("further from", p.Message);
@@ -324,7 +456,7 @@ public sealed class GroupAnalysisTests
 
         var report = Diagnose(g, cfg);
 
-        Assert.Equal(DistanceRangeKind.LongRange, report.Range);
+        Assert.Equal(800, report.Band.MaxDistanceM);
         Assert.Equal(g.MeanRadiusMoa, report.MeanRadiusMoa, 9);
         Assert.Equal(g.GroupEsMoa, report.GroupEsMoa, 9);
         Assert.True(report.Outliers[9].Flagged);

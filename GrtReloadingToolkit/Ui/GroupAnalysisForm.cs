@@ -39,6 +39,13 @@ internal sealed class GroupAnalysisForm : Form
         /// to -- its own explicit column, so "charge 39.20 gr produced these N chrono shots AND this
         /// OnTarget group" is a fact you can see in one row, not something to infer from a filename.</summary>
         public double? ChargeGrains { get; init; }
+
+        /// <summary>The Ladder/OCW Analyzer's own node (raw grains), when this group was loaded
+        /// straight from GRT's currently-open load AND that same file's "OCW Analysis" note carried
+        /// one -- null for every other source, since cross-checking against a node found for a
+        /// DIFFERENT rifle/load would be a coincidence dressed up as a finding, not a real connection.
+        /// See <see cref="GroupAnalysis.CheckAgainstNode"/>.</summary>
+        public (double Low, double High)? OcwNodeGrains { get; init; }
     }
 
     private readonly GrtClient? _grt;
@@ -79,7 +86,7 @@ internal sealed class GroupAnalysisForm : Form
         top.Controls.Add(_loadStatus);
         _loadStatus.Margin = new Padding(10, 10, 0, 0);
         var settingsBtn = new Button { Text = Lang.T("⚙ Thresholds…"), AutoSize = true, Margin = new Padding(20, 2, 0, 0) };
-        settingsBtn.Click += (_, _) => { using var f = new GroupAnalysisSettingsForm(); f.ShowDialog(this); };
+        settingsBtn.Click += (_, _) => { using var f = new GroupAnalysisSettingsForm(); f.ShowDialog(this); PopulateRangeOverride(); };
         top.Controls.Add(settingsBtn);
         var writeBtn = new Button { Text = Lang.T("Write group analysis note to GRT load"), AutoSize = true, Margin = new Padding(20, 2, 0, 0) };
         writeBtn.Enabled = _grt is { Connected: true };
@@ -133,11 +140,8 @@ internal sealed class GroupAnalysisForm : Form
         combineBtn.Click += (_, _) => CombineLoadedGroups();
         Add(combineBtn);
 
-        Add(new Label { Text = Lang.T("Distance range"), AutoSize = true, Margin = new Padding(0, 10, 0, 2) });
-        _rangeOverride.Items.Add(Lang.T("Auto (from the group's own distance)"));
-        _rangeOverride.Items.Add(Lang.T("Short range"));
-        _rangeOverride.Items.Add(Lang.T("Long range"));
-        _rangeOverride.SelectedIndex = 0;
+        Add(new Label { Text = Lang.T("Distance band"), AutoSize = true, Margin = new Padding(0, 10, 0, 2) });
+        PopulateRangeOverride();
         Add(_rangeOverride);
 
         Add(new Label { Text = "— " + Lang.T("or enter a group manually") + " —", AutoSize = true, Margin = new Padding(0, 14, 0, 2), ForeColor = SystemColors.GrayText });
@@ -193,12 +197,16 @@ internal sealed class GroupAnalysisForm : Form
 
             var doc = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
             var (groups, log) = GrtShotGroups.FromDoc(doc);
+            // Same file, so a node found here genuinely belongs to these groups -- see OcwNodeGrains'
+            // own doc comment for why this is the one case this cross-check is trusted in.
+            var node = GroupAnalysis.TryParseOcwNodeGrains(doc.FindNoteText("OCW Analysis"));
             foreach (var g in groups)
-                _entries.Add(new GroupEntry { Source = g.SourceFile, Group = g, HasAppCenter = false, ChargeGrains = g.ChargeGrains });
+                _entries.Add(new GroupEntry { Source = g.SourceFile, Group = g, HasAppCenter = false, ChargeGrains = g.ChargeGrains, OcwNodeGrains = node });
 
             RefreshGroupGrid();
             _loadStatus.Text = string.Format(Lang.T("{0} shot-group tab(s) loaded."), groups.Count)
-                + (log.Count > 0 ? " " + string.Join(" ", log) : "");
+                + (log.Count > 0 ? " " + string.Join(" ", log) : "")
+                + (node is { } n ? " " + string.Format(Lang.T("OCW node found: {0}-{1} gr."), n.Low.ToString("0.##", CultureInfo.InvariantCulture), n.High.ToString("0.##", CultureInfo.InvariantCulture)) : "");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
@@ -351,27 +359,41 @@ internal sealed class GroupAnalysisForm : Form
 
     // ── Analyze ──────────────────────────────────────────────────────────
 
+    /// <summary>Rebuilds the override list from the live config's own bands (not a hardcoded
+    /// short/long pair) — called at form build and again after the Settings dialog closes, since the
+    /// band count/distances themselves are user-editable there.</summary>
+    private void PopulateRangeOverride()
+    {
+        var bands = GroupAnalysis.Config.DistanceBands.OrderBy(b => b.MaxDistanceM).ToList();
+        int keep = _rangeOverride.SelectedIndex;
+        _rangeOverride.Items.Clear();
+        _rangeOverride.Items.Add(Lang.T("Auto (from the group's own distance)"));
+        foreach (var band in bands) _rangeOverride.Items.Add(_u.Distance(band.MaxDistanceM));
+        _rangeOverride.SelectedIndex = keep >= 0 && keep < _rangeOverride.Items.Count ? keep : 0;
+    }
+
     private void Analyze()
     {
         if (SelectedEntryIndex < 0) { _verdict.Text = Lang.T("Load or build a group first."); return; }
         var entry = _entries[SelectedEntryIndex];
         var group = entry.Group;
         var cfg = GroupAnalysis.Config;
+        var bands = cfg.DistanceBands.OrderBy(b => b.MaxDistanceM).ToList();
 
-        var range = _rangeOverride.SelectedIndex switch
-        {
-            1 => DistanceRangeKind.ShortRange,
-            2 => DistanceRangeKind.LongRange,
-            _ => GroupAnalysis.ClassifyRange(group.DistanceM, cfg),
-        };
+        // "Auto" reads the band from the group's own distance, same as GroupAnalysis.Diagnose does
+        // internally; an explicit override (e.g. comparing a 300 m group against the 1000 m bar on
+        // purpose) picks straight from the same ordered list the dropdown itself was built from.
+        var band = _rangeOverride.SelectedIndex > 0 && _rangeOverride.SelectedIndex - 1 < bands.Count
+            ? bands[_rangeOverride.SelectedIndex - 1]
+            : GroupAnalysis.ClassifyBand(group.DistanceM, cfg);
 
         var outliers = GroupAnalysis.MahalanobisOutliers(group, cfg);
         double? velR = entry.Velocities is { Count: >= 3 } vs ? GroupAnalysis.VelocityPoiCorrelation(vs, group) : null;
-        var problems = GroupAnalysis.DiagnoseProblems(group, range, cfg, outliers, entry.HasAppCenter, velR);
+        var problems = GroupAnalysis.DiagnoseProblems(group, band, cfg, outliers, entry.HasAppCenter, velR);
         var report = new GroupAnalysisReport(
-            range,
-            GroupAnalysis.Score(group, range, cfg),
-            GroupAnalysis.Confidence(group.Impacts.Count, range, cfg),
+            band,
+            GroupAnalysis.Score(group, band),
+            GroupAnalysis.Confidence(group.Impacts.Count, band),
             group.MeanRadiusMoa,
             group.GroupEsMoa,
             GroupAnalysis.Cep50Moa(group),
@@ -379,7 +401,9 @@ internal sealed class GroupAnalysisForm : Form
             group.VerticalSpreadMoa,
             outliers,
             problems,
-            velR);
+            VelocityPoiR: velR,
+            NodeCrossCheck: GroupAnalysis.CheckAgainstNode(group.ChargeGrains, entry.OcwNodeGrains),
+            WindNotLoadNote: GroupAnalysis.WindNotLoadNote(group, cfg, band));
 
         _lastReport = report;
         _lastGroup = group;
@@ -391,15 +415,15 @@ internal sealed class GroupAnalysisForm : Form
     {
         var ci = CultureInfo.InvariantCulture;
         var sb = new StringBuilder();
-        string rangeLabel = report.Range == DistanceRangeKind.LongRange ? Lang.T("long range") : Lang.T("short range");
+        string bandLabel = string.Format(Lang.T("{0} band"), _u.Distance(report.Band.MaxDistanceM));
         string confLabel = report.Confidence switch
         {
             ConfidenceLevel.High => Lang.T("High"),
             ConfidenceLevel.Medium => Lang.T("Medium"),
             _ => Lang.T("Low"),
         };
-        sb.AppendLine(string.Format(Lang.T("Score {0}/10, Confidence: {1} ({2}, n={3}, {4})."),
-            report.Score.ToString("0.#", ci), confLabel, rangeLabel, group.Impacts.Count, _u.Distance(group.DistanceM)));
+        sb.AppendLine(string.Format(Lang.T("Score {0}/10, Confidence: {1} ({2}, n={3}, actual distance {4})."),
+            report.Score.ToString("0.#", ci), confLabel, bandLabel, group.Impacts.Count, _u.Distance(group.DistanceM)));
         sb.AppendLine();
         sb.AppendLine(string.Format(Lang.T("Mean radius {0} MOA · Extreme spread {1} MOA · CEP50 {2} MOA"),
             report.MeanRadiusMoa.ToString("0.00", ci), report.GroupEsMoa.ToString("0.00", ci), report.Cep50Moa.ToString("0.00", ci)));
@@ -408,6 +432,21 @@ internal sealed class GroupAnalysisForm : Form
         if (report.VelocityPoiR is { } vr)
             sb.AppendLine(string.Format(Lang.T("Per-shot velocity <-> distance-from-centre correlation: r={0}."), vr.ToString("0.00", ci)));
         sb.AppendLine();
+
+        if (report.NodeCrossCheck is { } nc)
+        {
+            string chargeStr = _u.Charge(nc.ChargeGrains), lowStr = _u.Charge(nc.NodeLowGrains), highStr = _u.Charge(nc.NodeHighGrains);
+            sb.AppendLine(nc.Relation == NodeRelation.Inside
+                ? string.Format(Lang.T("◆ This charge ({0}) is inside the Ladder/OCW node already found for this load ({1}–{2}) — worth noting alongside the dispersion above, not a claimed cause."), chargeStr, lowStr, highStr)
+                : string.Format(Lang.T("◆ This charge ({0}) is outside the Ladder/OCW node already found for this load ({1}–{2})."), chargeStr, lowStr, highStr));
+            sb.AppendLine();
+        }
+
+        if (report.WindNotLoadNote is { } wn)
+        {
+            sb.AppendLine("✓ " + wn);
+            sb.AppendLine();
+        }
 
         if (report.Problems.Count == 0)
             sb.AppendLine(Lang.T("No problems found."));

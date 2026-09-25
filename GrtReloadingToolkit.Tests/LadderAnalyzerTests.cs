@@ -41,6 +41,37 @@ public class LadderAnalyzerTests
         Step(41.5, poiY: 0.55, meanRadius: 0.98),
     };
 
+    // ── BuildReport's machine-readable node line (Group Analysis's own cross-check reads this) ─
+
+    [Fact]
+    public void BuildReportAppendsTheRawGrainsNodeLineForAChargeLadder()
+    {
+        var r = LadderAnalyzer.Analyze(PartlyChronographed, LadderMode.Charge, "gr");
+        string report = LadderAnalyzer.BuildReport(r, "OCW Analysis 2026-01-01");
+
+        var (low, high) = Bounds(r.BestNode);
+        Assert.Contains(
+            FormattableString.Invariant($"NODE_GR={low:0.####}-{high:0.####}"),
+            report);
+    }
+
+    [Fact]
+    public void BuildReportOmitsTheNodeLineForASeatingLadder()
+    {
+        // A seating step has no "grains" quantity at all, so the machine-readable line -- which
+        // only ever means raw grains -- must not appear here even if a node was found.
+        var seatingSteps = new[]
+        {
+            Step(0.000, mv: 800, sd: 6, poiY: 0.20, meanRadius: 0.60),
+            Step(0.010, mv: 800, sd: 6, poiY: 0.10, meanRadius: 0.40),
+            Step(0.020, mv: 800, sd: 6, poiY: 0.30, meanRadius: 0.50),
+        };
+        var r = LadderAnalyzer.Analyze(seatingSteps, LadderMode.Seating, "mm");
+        string report = LadderAnalyzer.BuildReport(r, "Seating Depth Analysis 2026-01-01");
+
+        Assert.DoesNotContain("NODE_GR=", report);
+    }
+
     [Fact]
     public void RecommendedNodeIgnoresWindowsWithNoChrono()
     {

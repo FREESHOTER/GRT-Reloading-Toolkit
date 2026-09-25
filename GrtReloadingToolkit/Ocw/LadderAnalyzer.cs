@@ -134,6 +134,14 @@ public static class LadderAnalyzer
         Line(sb, seat ? "Group-size plateau" : "Velocity flat-spot (Satterlee)", r.PrimaryNode, r);
         Line(sb, "Vertical-POI node", r.PoiNode, r);
         Line(sb, "Recommended node (weighted)", r.BestNode, r);
+        // Machine-readable, always raw grains regardless of what unit GRT is currently displaying --
+        // the human-readable line above follows GrtUnits (see LadderModes.XValue's own doc comment),
+        // so a reader parsing it back would need to also parse the unit suffix and convert, which is
+        // exactly the kind of thing this one extra line exists to avoid. Group Analysis's own
+        // cross-check against this node reads this line, not the formatted one above. Seating-depth
+        // ladders have no equivalent "grains" quantity, so this only applies to a charge ladder.
+        if (!seat && r.BestNode is { } bestGrains)
+            sb.AppendLine(FormattableString.Invariant($"NODE_GR={bestGrains.Low:0.####}-{bestGrains.High:0.####}"));
         if (r.Warnings.Count > 0)
         {
             sb.AppendLine();

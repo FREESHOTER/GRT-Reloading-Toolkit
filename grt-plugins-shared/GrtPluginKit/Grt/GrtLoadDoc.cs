@@ -247,6 +247,22 @@ public sealed class GrtLoadDoc
         return n;
     }
 
+    /// <summary>The decoded text of the newest appendix note whose (decoded) title starts with
+    /// <paramref name="titlePrefix"/>, or null if there is none — the read-only counterpart to
+    /// <see cref="RemoveByTitlePrefix"/>, for a tool that wants to read another tool's own
+    /// already-written note back (e.g. Group Analysis cross-referencing the Ladder/OCW Analyzer's own
+    /// node) instead of removing or replacing it. Matches only <c>&lt;note&gt;</c> elements, the same
+    /// "starts with" case-insensitive comparison on the encoded prefix as <see cref="RemoveByTitlePrefix"/>
+    /// uses; <c>AddNote</c> always appends, so the last match in document order is the newest.</summary>
+    public string? FindNoteText(string titlePrefix)
+    {
+        string enc = Enc(titlePrefix);
+        return _appendix.ChildNodes.OfType<XmlElement>()
+            .Where(e => e.Name == "note" && e.GetAttribute("title").StartsWith(enc, StringComparison.OrdinalIgnoreCase))
+            .Select(e => Uri.UnescapeDataString(e.GetAttribute("text")))
+            .LastOrDefault();
+    }
+
     public void AddNote(string title, string text, bool showInReport = true)
     {
         int idx = NextIndex();
