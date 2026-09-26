@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Xunit;
 
@@ -81,5 +82,31 @@ public class VersionSyncTests
     {
         string html = File.ReadAllText(Path.Combine(RepoRoot(), "GrtReloadingToolkit", "docs", file));
         Assert.Contains($"v{DeclaredVersion()}", html);
+    }
+
+    /// <summary>
+    /// The README's status line is the first version anyone reads, and it was the last one still
+    /// bumped purely by hand: it tracked every release from 0.2.6 through 0.2.14, then sat at
+    /// 0.2.14 through both 0.2.15 and 0.2.16 with CI green, because nothing here was watching it --
+    /// exactly how the manual badge stuck at v0.2 and the landing page stuck at v0.1. The README
+    /// says the version lives in Directory.Build.props "and nowhere else"; this is the test that
+    /// makes that sentence true of the README too.
+    ///
+    /// Every v-prefixed version in the file has to match, rather than one of them merely being
+    /// present. A plain Contains would go green again the moment a second version appeared
+    /// anywhere in the README -- a download link, say -- while leaving the status line stale
+    /// beside it, which is the failure this is here to catch.
+    /// </summary>
+    [Fact]
+    public void ReadmeVersionsMatchTheBuiltVersion()
+    {
+        string readme = File.ReadAllText(Path.Combine(RepoRoot(), "README.md"));
+        string[] found = Regex.Matches(readme, @"\bv(\d+\.\d+\.\d+)\b")
+                              .Select(m => m.Groups[1].Value)
+                              .Distinct()
+                              .ToArray();
+
+        Assert.NotEmpty(found);
+        Assert.Equal(new[] { DeclaredVersion() }, found);
     }
 }
