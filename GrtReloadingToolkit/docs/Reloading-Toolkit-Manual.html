@@ -116,7 +116,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manual · v0.2.17</span>
+  <span class="k">Manual · v0.2.18</span>
 </div></div>
 
 <div class="shell">
@@ -665,7 +665,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <ol class="plain">
         <li><strong>Name each group with its charge / seating</strong> &mdash; &ldquo;40.0&rdquo;,
           &ldquo;Gruppo 40.2 gr&rdquo;, &ldquo;salto 0.02&rdquo;. The analyzer parses the number.
-          Several groups may share one shot-group tab (same photo), or use one tab per charge.</li>
+          Several groups may share one shot-group tab (same photo), or use one tab per charge. Leave
+          a group at GRT&#39;s own auto-generated name (&ldquo;Gruppo 1&rdquo;, &ldquo;Group 2&rdquo;…)
+          and it reads as no charge at all, never as that number &mdash; a shot-group tab carries no
+          charge value of its own the way a Measurement does, so a bare, keyword-less integer is
+          indistinguishable from GRT&#39;s own numbering and is deliberately never guessed at.</li>
         <li><strong>Save the load</strong> so the shot-group tabs are written into the
           <code>.grtload</code>.</li>
         <li>In the Ladder / Seating analyzer set <strong>ref dist</strong> (mm / cm / inch) and
@@ -1114,6 +1118,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.17 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.18 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

@@ -506,7 +506,10 @@ and `(+) Shot` markers, mark one point as *Point of Aim*, flag flyers):
 
 1. **Name each `<group>` with its charge / seating** — "40.0", "Gruppo 40.2 gr", "salto 0.02". The
    analyzer parses the number. Several groups may share one shot-group tab (same target photo) or
-   you can use one tab per charge.
+   you can use one tab per charge. Leave a group at GRT's own auto-generated name ("Gruppo 1",
+   "Group 2"…) and it reads as no charge at all, never as that number — a shot-group tab carries no
+   charge value of its own the way a Measurement does, so a bare, keyword-less integer is
+   indistinguishable from GRT's own numbering and is deliberately never guessed at.
 2. **Save the load** so the shot-group tabs are written into the `.grtload`.
 3. In the Ladder / Seating analyzer set **ref dist** (mm / cm / inch) and **shoot dist** (m / yd) —
    GRT does not store which unit the reference-distance field used, so tell the tool — optionally

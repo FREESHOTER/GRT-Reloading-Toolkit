@@ -116,7 +116,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuel · v0.2.17</span>
+  <span class="k">Manuel · v0.2.18</span>
 </div></div>
 
 <div class="shell">
@@ -732,7 +732,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
           &laquo;&nbsp;40.0&nbsp;&raquo;, &laquo;&nbsp;Gruppo 40.2 gr&nbsp;&raquo;,
           &laquo;&nbsp;salto 0.02&nbsp;&raquo;. L&#39;analyseur y lit le nombre. Plusieurs groupes
           peuvent partager un même onglet shot-group (même photo), ou utiliser un onglet par
-          charge.</li>
+          charge. Laissé au nom généré automatiquement par GRT (&laquo;&nbsp;Gruppo 1&nbsp;&raquo;,
+          &laquo;&nbsp;Group 2&nbsp;&raquo;…), il est lu comme aucune charge du tout, jamais comme ce
+          nombre &mdash; un onglet shot-group ne porte pas sa propre valeur de charge comme le fait
+          une Measurement, donc un simple entier sans mot-clé est indiscernable de la numérotation
+          propre à GRT et n&#39;est délibérément jamais deviné.</li>
         <li><strong>Enregistrez le load</strong> pour que les onglets shot-group soient écrits dans
           le <code>.grtload</code>.</li>
         <li>Dans l&#39;analyseur Ladder / Seating, réglez <strong>ref dist</strong> (mm / cm / pouce)
@@ -1237,6 +1241,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.17 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.18 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

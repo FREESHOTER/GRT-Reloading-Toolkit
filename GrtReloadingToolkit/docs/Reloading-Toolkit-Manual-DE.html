@@ -113,7 +113,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Handbuch · v0.2.17</span>
+  <span class="k">Handbuch · v0.2.18</span>
 </div></div>
 
 <div class="shell">
@@ -720,7 +720,11 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         <li><strong>Jede Gruppe nach ihrer Ladung / Sitztiefe benennen</strong> &mdash;
           &ldquo;40.0&rdquo;, &ldquo;Gruppo 40.2 gr&rdquo;, &ldquo;salto 0.02&rdquo;. Der Analysator
           liest die Zahl aus. Mehrere Gruppen können sich einen Shot-group-Tab teilen (dasselbe Foto),
-          oder ein Tab pro Ladung verwendet werden.</li>
+          oder ein Tab pro Ladung verwendet werden. Bei GRTs eigenem automatisch vergebenen Namen
+          belassen (&ldquo;Gruppo 1&rdquo;, &ldquo;Group 2&rdquo;…), wird das als gar keine Ladung
+          gelesen, nie als diese Zahl &mdash; ein Shot-group-Tab trägt keinen eigenen Ladungswert wie
+          eine Messung, daher ist eine bloße Ganzzahl ohne Schlüsselwort von GRTs eigener Nummerierung
+          nicht zu unterscheiden und wird absichtlich nie erraten.</li>
         <li><strong>Die Ladung speichern</strong>, damit die Shot-group-Tabs in die
           <code>.grtload</code> geschrieben werden.</li>
         <li>Im Ladder-/Sitztiefen-Analysator <strong>ref dist</strong> (mm / cm / Inch) und
@@ -1218,6 +1222,6 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.17 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.18 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

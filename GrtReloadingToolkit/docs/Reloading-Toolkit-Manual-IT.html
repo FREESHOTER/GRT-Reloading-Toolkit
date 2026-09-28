@@ -113,7 +113,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2.17</span>
+  <span class="k">Manuale · v0.2.18</span>
 </div></div>
 
 <div class="shell">
@@ -685,7 +685,12 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <ol class="plain">
         <li><strong>Nomina ogni gruppo con la sua carica / seduta</strong> — &laquo;40.0&raquo;,
           &laquo;Gruppo 40.2 gr&raquo;, &laquo;salto 0.02&raquo;. L&#39;analizzatore legge il numero.
-          Più gruppi possono stare in un solo tab (stessa foto), o un tab per carica.</li>
+          Più gruppi possono stare in un solo tab (stessa foto), o un tab per carica. Lasciato al nome
+          generato automaticamente da GRT (&laquo;Gruppo 1&raquo;, &laquo;Group 2&raquo;…) viene letto
+          come nessuna carica, mai come quel numero — un tab gruppo di colpi non porta un proprio
+          valore di carica come invece fa una Misurazione, quindi un numero intero senza parola chiave
+          è indistinguibile dalla numerazione automatica di GRT e non viene mai indovinato di
+          proposito.</li>
         <li><strong>Salva il load</strong> così i tab gruppo finiscono nel <code>.grtload</code>.</li>
         <li>Nell&#39;analizzatore Ladder / Seating imposta <strong>ref dist</strong> (mm / cm /
           pollici) e <strong>shoot dist</strong> (m / yd) — GRT non memorizza quale unità usava il
@@ -1163,6 +1168,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.17 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.18 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

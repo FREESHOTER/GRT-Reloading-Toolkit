@@ -129,12 +129,26 @@ public static class GrtShotGroups
         return (outp, log);
     }
 
+    /// <summary>
+    /// A GRT "Shot group analysis" tab never carries its own charge-weight attribute (unlike a
+    /// Measurement &lt;charge&gt;, which has a real <c>value</c> in kg to fall back on) -- the group
+    /// name is the only place a step number can come from, and GRT itself auto-names every new
+    /// group "Gruppo N" / "Group N" (or whatever the install's own language calls it) until someone
+    /// renames it. A user who never renames it is the ordinary case, not a rare one, so this must
+    /// not mistake that auto-numbering for a real charge: requires either a recognised keyword
+    /// (caric.../charge/salto/jump/...) or a decimal point, since a ladder step in this domain is
+    /// always measured to at least one decimal place and a bare keyword-less integer is exactly
+    /// what GRT's own auto-numbering looks like.
+    /// </summary>
     private static double? StepOf(string s)
     {
         if (string.IsNullOrWhiteSpace(s)) return null;
-        var m = Regex.Match(s, @"(?:salto|jump|seat\w*|cbto|coal|profond\w*|caric\w*|charge|load)?\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)",
+        var m = Regex.Match(s, @"(salto|jump|seat\w*|cbto|coal|profond\w*|caric\w*|charge|load)?\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)",
             RegexOptions.IgnoreCase);
-        return m.Success && double.TryParse(m.Groups[1].Value.Replace(',', '.'),
+        if (!m.Success) return null;
+        string num = m.Groups[2].Value;
+        if (!m.Groups[1].Success && !num.Contains('.') && !num.Contains(',')) return null;
+        return double.TryParse(num.Replace(',', '.'),
             System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double v) ? v : null;
     }
 }
