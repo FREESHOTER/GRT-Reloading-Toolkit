@@ -539,9 +539,11 @@ lots, and environmental conditions + the calibrated propellant coefficients for 
   does nothing the second time. To undo one, edit that entry and set its `Ba` back to 0.
 
 **New**, **Log from GRT** (prefills from the open load — reads whichever `.grtload` is on top in
-GRT, so double-check the right GRT tab is frontmost before clicking if you keep several open),
-**Edit**, **Delete**, **Fill Ba from loads**. Editing or deleting an entry reconciles the inventory.
-Tick *deduct components from inventory on save* to draw stock down.
+GRT, so double-check the right GRT tab is frontmost before clicking if you keep several open; a
+load with more than one chronographed charge — any ladder — asks which one to log instead of
+silently always taking the last), **Edit**, **Delete**, **Fill Ba from loads**. Editing or
+deleting an entry reconciles the inventory. Tick *deduct components from inventory on save* to
+draw stock down.
 
 ---
 

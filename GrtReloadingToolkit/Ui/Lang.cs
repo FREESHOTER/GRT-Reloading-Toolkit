@@ -382,6 +382,9 @@ internal static class Lang
         ["Journal"] = "Diario",
         ["New"] = "Nuovo",
         ["Log from GRT"] = "Registra da GRT",
+        ["Which charge?"] = "Quale carica?",
+        ["This load has more than one chronographed charge. Which one do you want to log?"] =
+            "Questo load ha più di una carica cronografata. Quale vuoi registrare?",
         ["Delete"] = "Elimina",
         ["Date"] = "Data",
         ["Load"] = "Carico",

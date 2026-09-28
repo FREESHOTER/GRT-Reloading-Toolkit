@@ -181,7 +181,12 @@ internal sealed class JournalForm : Form
                 MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Log from GRT"));
                 return;
             }
-            var snap = LoadSnapshot.FromGrtload(top.file);
+            // A load with only one chronographed charge needs no picker -- the common case (log
+            // one session right after chronographing it) stays a single click, same as before.
+            var candidates = LoadSnapshot.AllFromGrtload(top.file);
+            LoadSnapshot? snap = candidates.Count == 1 ? candidates[0] : PickCharge(candidates);
+            if (snap is null) return;
+
             var entry = snap.ToEntry();
             entry.PowderId = _db.ResolvePowderId(snap.PowderName);
             NewEntry(entry);
@@ -190,5 +195,50 @@ internal sealed class JournalForm : Form
         {
             MessageBox.Show(this, ex.Message, Lang.T("Log from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
+
+    /// <summary>
+    /// A load with several chronographed charges (any ladder) used to always log the exact same one
+    /// silently -- the last measurement's last charge -- no matter which one the user actually
+    /// wanted, because <see cref="GrtClient.GetTabOnTopAsync"/> only reports which .grtload file is
+    /// on top, never which charge/string is selected inside it. Every other tool that reads charges
+    /// back out of a load (Chronograph Statistics, SD Root-Cause, Ladder/OCW Analyzer...) solves this
+    /// by listing every one and letting the user pick; this is that same picker for the Journal.
+    /// Defaults to the LAST charge (matches the old silent behaviour when the user just presses OK).
+    /// </summary>
+    private LoadSnapshot? PickCharge(IReadOnlyList<LoadSnapshot> candidates)
+    {
+        using var dlg = new Form
+        {
+            Text = Lang.T("Which charge?"),
+            Width = 420,
+            Height = 160,
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MinimizeBox = false,
+            MaximizeBox = false,
+        };
+        var label = new Label
+        {
+            Text = Lang.T("This load has more than one chronographed charge. Which one do you want to log?"),
+            Dock = DockStyle.Top, Height = 40, Padding = new Padding(8, 8, 8, 0),
+        };
+        var combo = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList };
+        foreach (var c in candidates) combo.Items.Add(c.ChargeLabel ?? c.LoadName);
+        combo.SelectedIndex = candidates.Count - 1;
+        var comboPanel = new Panel { Dock = DockStyle.Top, Height = 36, Padding = new Padding(8, 4, 8, 0) };
+        comboPanel.Controls.Add(combo);
+
+        var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 44, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8) };
+        var cancel = new Button { Text = Lang.T("Cancel"), DialogResult = DialogResult.Cancel, AutoSize = true };
+        var ok = new Button { Text = Lang.T("OK"), DialogResult = DialogResult.OK, AutoSize = true };
+        bar.Controls.Add(cancel); bar.Controls.Add(ok);
+
+        dlg.Controls.Add(comboPanel);
+        dlg.Controls.Add(label);
+        dlg.Controls.Add(bar);
+        dlg.AcceptButton = ok; dlg.CancelButton = cancel;
+
+        return dlg.ShowDialog(this) == DialogResult.OK ? candidates[combo.SelectedIndex] : null;
     }
 }
