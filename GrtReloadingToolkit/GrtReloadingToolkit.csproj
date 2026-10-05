@@ -37,6 +37,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\grt-plugins-shared\GrtPluginKit\GrtPluginKit.csproj" />
+    <!-- The ShotMarker import: readers, target renderer and GRT shot-group writer. Plain net8.0
+         and SkiaSharp-based on purpose — it stays out of this Windows-only project so the whole
+         pipeline is unit-testable, and only the form below it is WinForms. -->
+    <ProjectReference Include="..\ShotMarkerCore\ShotMarkerCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

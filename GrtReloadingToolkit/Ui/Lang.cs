@@ -877,5 +877,47 @@ internal static class Lang
         ["{0} recipes found."] = "{0} ricette trovate.",
         ["Nothing to export yet — pick a folder first."] = "Niente da esportare — scegli prima una cartella.",
         ["Load Book"] = "Libro Carichi",
+
+        // ShotMarkerForm
+        // "shots", "Score", "Charge", "Distance", "String", "Shots", "Load", "Wrote", "Import failed"
+        // are reused from the sections above -- this form says the same words those do.
+        // "SD", "ES" and ", sd {0} m/s" are deliberately absent: they read the same in Italian,
+        // and Lang.T returns the English literal when there is no entry.
+        ["🎯📄  ShotMarker import (target + velocities)"] = "🎯📄  Importa ShotMarker (bersaglio + velocità)",
+        ["ShotMarker import"] = "Importa ShotMarker",
+        ["Open export…"] = "Apri esportazione…",
+        ["Import selected"] = "Importa selezionati",
+        ["No load open"] = "Nessun carico aperto",
+        ["I shot from:"] = "Ho sparato da:",
+        ["When"] = "Quando",
+        ["Face"] = "Sagoma",
+        ["Mean v"] = "v media",
+        ["Excluded"] = "Esclusi",
+        ["Not attached to GRT — the import will ask where to write."] =
+            "Non collegato a GRT — l'importazione chiederà dove scrivere.",
+        ["Could not read the active tab:"] = "Impossibile leggere la scheda attiva:",
+        ["ShotMarker export"] = "Esportazione ShotMarker",
+        ["ShotMarker exports"] = "Esportazioni ShotMarker",
+        ["All files"] = "Tutti i file",
+        ["Write the import to"] = "Scrivi l'importazione in",
+        ["GRT loads"] = "Carichi GRT",
+        ["{0} string(s) read from {1}"] = "{0} stringa/e letta/e da {1}",
+        ["This frame was shared by {0} shooters ({1})."] =
+            "Questo telaio è stato condiviso da {0} tiratori ({1}).",
+        ["The export does not say which point was yours — assuming {0}. Set 'I shot from' if that is wrong."] =
+            "L'esportazione non indica quale piazzola fosse la tua — si assume {0}. Imposta 'Ho sparato da' se non è corretto.",
+        ["Your tablet had the {0} point selected when this was exported, so that is assumed to be yours. Set 'I shot from' if you were elsewhere."] =
+            "Il tuo tablet aveva selezionata la piazzola {0} al momento dell'esportazione, quindi si assume sia la tua. Imposta 'Ho sparato da' se eri altrove.",
+        ["{0} of {1}"] = "{0} di {1}",
+        ["{0} sighter(s) (red, not imported)"] = "{0} colpo/i di prova (in rosso, non importati)",
+        ["ShotMarker: group {0} mm"] = "ShotMarker: rosata {0} mm",
+        ["(full string, before strike-outs)"] = "(stringa completa, prima delle esclusioni)",
+        ["'{0}': could not be drawn ({1})"] = "'{0}': non è stato possibile disegnarlo ({1})",
+        ["sighter"] = "colpo di prova",
+        ["no position"] = "nessuna posizione",
+        ["excluded on device"] = "escluso sul dispositivo",
+        ["not in group"] = "non nella rosata",
+        ["Nothing ticked."] = "Nessuna selezione.",
+        ["GRT did not open it ({0}); open {1} by hand."] = "GRT non l'ha aperto ({0}); apri {1} manualmente.",
     };
 }
