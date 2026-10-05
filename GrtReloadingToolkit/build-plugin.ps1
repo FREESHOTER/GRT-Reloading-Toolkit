@@ -1,8 +1,8 @@
 <#
   Publishes the plugin and assembles drop-in GRT plugin folders.
 
-    ./dist/ReloadingToolkit/       self-contained (~64 MB exe) - no runtime needed, host it
-    ./dist/ReloadingToolkit-lite/  framework-dependent (~1.5 MB zip) - needs .NET 8 Desktop Runtime
+    ./dist/ReloadingToolkit/       self-contained (~69 MB exe) - no runtime needed, host it
+    ./dist/ReloadingToolkit-lite/  framework-dependent (~6 MB zip) - needs .NET 8 Desktop Runtime
 
   Usage:
     ./build-plugin.ps1

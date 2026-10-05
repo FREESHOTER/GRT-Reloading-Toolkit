@@ -11,5 +11,17 @@ dist/
 # which is committed. Kept so a stale local copy doesn't show up as untracked.
 grt-plugins-shared/icons/
 
+# ShotMarker's own web bundle, kept locally because ShotMarkerCore/tools/extract-targetfaces.js
+# reads it to regenerate Faces/targetfaces.json. It is ShotMarker's copyrighted code and this repo
+# is public, so it must never be committed; the generated targetfaces.json is, which is why a
+# normal build needs neither Node nor the bundle.
+fixtures/shotmarker/bundle/
+
+# ShotMarker's device software package (server.js, server_shot.js, the web bundle…). Same reason.
+SM_software_*.tar
+
+# Screenshots are a local scratch area for issue/PR attachments, never part of the plugin.
+screenshots/
+
 # local
 *.zip

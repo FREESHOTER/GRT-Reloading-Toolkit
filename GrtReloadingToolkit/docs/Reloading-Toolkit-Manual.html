@@ -116,7 +116,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manual · v0.2.20</span>
+  <span class="k">Manual · v0.2.21</span>
 </div></div>
 
 <div class="shell">
@@ -148,6 +148,7 @@
       <li><a href="#groupanalysis">Group Analysis</a></li>
       <li><a href="#targetprint">Print Ladder/OCW Target</a></li>
       <li><a href="#loadbook">Load Book Export</a></li>
+      <li><a href="#shotmarker">ShotMarker Import</a></li>
       <li><a href="#reports">GRT report templates</a></li>
       <li><a href="#cli">Command line</a></li>
       <li><a href="#faq">Limitations &amp; FAQ</a></li>
@@ -172,7 +173,7 @@
           icon) and a matching entry in the <strong>Plugin</strong> menu appear. Click either &mdash; a
           small <strong>launcher</strong> window opens with one button per tool.</li>
         <li>Optional: in the launcher, click <strong>&ldquo;Install GRT report templates&rdquo;</strong>
-          once (see&nbsp;§26).</li>
+          once (see&nbsp;§27).</li>
       </ol>
       <p>The toolkit is <em>on-demand</em>: GRT starts it on the first click and it exits when you close
         its last window. All tool windows are served by one background process, so opening a second tool
@@ -198,6 +199,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <li><strong>Every tool accumulates into the same snapshot family.</strong> Run the ladder
           analyzer, then Barrel Calibration, then Brass prep &mdash; the newest snapshot holds all
           three. Only the <strong>three most recent</strong> snapshots are kept; older ones are deleted.</li>
+        <li><strong>One exception: the ShotMarker import (§26) keeps its own family</strong>, named
+          <code>MyLoad_shotmarker_&lt;date&gt;.grtload</code>. It writes whole target pictures, so
+          pruning it alongside everything else would let a session&#39;s tabs be deleted by the next
+          calibration run &mdash; and the other way round. Its three newest are kept separately from
+          the toolkit&#39;s three.</li>
         <li><strong>Each write makes a new filename</strong> (timestamped to the second). GRT&#39;s
           <em>Load_File</em> will not reload a path it already has open, so a fixed name would show
           stale content after the second write.</li>
@@ -1050,8 +1056,56 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         other file-path-keyed lookup in this toolkit lives with.</p>
     </section>
 
+    <section id="shotmarker">
+      <h2><span class="no">26</span>ShotMarker Import</h2>
+      <p>Turns a <strong>ShotMarker</strong> session export into GRT shot-group tabs &mdash; the target
+        picture, every hit plotted on it, the velocities, and ShotMarker&#39;s own statistics &mdash; in
+        one pass. It is the target half of what Chronograph Import (§5) does for velocity alone: a
+        ShotMarker records both, so this writes both.</p>
+      <p><strong>Supported:</strong> the <code>.tar</code> session export the tablet writes, and the
+        <code>shotslog</code> <code>.csv</code>.</p>
+      <table><thead><tr><th>Control</th><th>Effect</th></tr></thead><tbody>
+        <tr><td>Open export…</td><td>Pick a <code>.tar</code> or <code>.csv</code>. Every string in it is listed.</td></tr>
+        <tr><td>I shot from:</td><td>Which firing point was yours, on a frame shared by several shooters.</td></tr>
+        <tr><td>Import selected</td><td>Write the ticked strings into the load and open the snapshot.</td></tr>
+      </tbody></table>
+      <p><strong>Grid:</strong> Use · String · When · Distance · Face · Shots · Score · Mean v · SD · ES ·
+        Charge (gr, editable).</p>
+      <p>Pick a row and the panel below shows that string drawn on its target face, with a per-shot list
+        you can untick. Sighters are drawn in red and never imported &mdash; a GRT shot group has nowhere
+        to put them. A shot is also left out when it has no recorded position, when it was excluded on the
+        tablet, or when it is outside the group selected on the device; the <strong>Excluded</strong>
+        column names the reason rather than silently dropping it.</p>
+      <p><strong>What gets written</strong>, per import, into a <code>_shotmarker_</code> sibling of the
+        open load (its own family, so the toolkit&#39;s own snapshots and this one never prune each other
+        away):</p>
+      <ul>
+        <li><strong>one shot-group tab per string</strong> &mdash; the rendered target as the picture, the hits as points on it;</li>
+        <li><strong>one velocity measurement</strong> holding every string&#39;s charge, which is the shape the Ladder&nbsp;/&nbsp;OCW Analyzer (§7) and GRT&#39;s own analyses want;</li>
+        <li><strong>one note</strong> with ShotMarker&#39;s reported group size, SD and the shots that were dropped.</li>
+      </ul>
+      <p>Tabs are deliberately <em>not</em> three per string: GRT&#39;s tab bar does not scroll, so a
+        five-string session written that way puts its last tabs past the right-hand edge of the window
+        where they cannot be reached at all.</p>
+      <p><strong>Scale.</strong> GRT recovers real-world size from two reference points a stated distance
+        apart. The importer draws the target itself and places those points on its own projection, so
+        their separation in millimetres is exact by construction rather than recomputed from board size
+        and pixel count. That separation and the shooting distance are both written in <strong>SI</strong>
+        &mdash; millimetres and metres &mdash; because that is what GRT stores whatever units it displays;
+        a group measured off one of these tabs reads the same on a metric and an imperial install.</p>
+      <p><strong>Shared frames.</strong> Several shooters often share one target frame, and the export
+        then contains everyone&#39;s shots. When the tablet recorded which firing point was selected, that
+        one is used and the window says so; when it does not, the importer assumes one, says which, and
+        leaves the <strong>I shot from:</strong> picker there to correct it. It never guesses silently.</p>
+      <p><strong>Unknown target faces</strong> are plotted on a plain frame of the recorded size, without
+        scoring rings, and the log says so &mdash; the hit positions are still exact, only the rings are
+        missing.</p>
+      <p>One unreadable string never costs you the rest of the session: reading, drawing and writing are
+        each best-effort per string, and whatever failed is named in the log.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">26</span>GRT report templates</h2>
+      <h2><span class="no">27</span>GRT report templates</h2>
       <p><strong>Install GRT report templates</strong> (launcher / Plugin menu) writes sixteen DokuWiki
         report pages into <code>GRT\doku\&lt;language&gt;\report\</code> and links them in the report
         index. Run it once per GRT install (and tell anyone you share the plugin with to do the same).
@@ -1086,7 +1140,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="cli">
-      <h2><span class="no">27</span>Command line</h2>
+      <h2><span class="no">28</span>Command line</h2>
       <p>Debug entry points on the exe (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">inventory / journal self-test (writes fixture data to
                                                   [db], or a throwaway temp file if omitted -- NEVER
@@ -1112,7 +1166,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
     </section>
 
     <section id="faq">
-      <h2><span class="no">28</span>Limitations &amp; FAQ</h2>
+      <h2><span class="no">29</span>Limitations &amp; FAQ</h2>
       <h3>Why a pile of <code>_toolkit_…</code> files?</h3>
       <p>GRT&#39;s plugin API can&#39;t edit the open load and can&#39;t reload an already-open tab &mdash;
         so each write is a fresh timestamped snapshot. Each snapshot is complete; keep the newest (Save
@@ -1138,6 +1192,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.20 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.21 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>
