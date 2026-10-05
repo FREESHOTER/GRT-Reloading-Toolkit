@@ -113,7 +113,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2.18</span>
+  <span class="k">Manuale · v0.2.19</span>
 </div></div>
 
 <div class="shell">
@@ -188,6 +188,7 @@
           <strong>grafico</strong> nella gallery, a volte un <strong>input</strong> modificato
           (<code>Ba</code>, <code>a0</code>, <code>casevol</code>, <code>gdepth</code>,
           <code>tcc</code>/<code>tch</code>).</li>
+        <li><strong>Quale file leggono i tool:</strong> il più recente tra <em>il tuo file</em> e lo snapshot più nuovo. Di norma vince lo snapshot (contiene le note e le misurazioni aggiunte dal toolkit), ma se in seguito salvi il tuo file in GRT &mdash; una carica nuova, un <code>Ba</code> nuovo &mdash; quel salvataggio è più recente: è quello che ogni tool legge e da cui parte lo snapshot successivo.</li>
         <li>Salva uno <strong>snapshot con data e ora</strong> accanto al tuo file e dice a GRT di aprirlo.</li>
       </ol>
       <pre>MioLoad.grtload                          <span class="c">← il tuo originale, mai toccato</span>
@@ -366,10 +367,14 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         la SD campionaria (÷n−1), perché è su quella che sono costruite quelle formule — con n così
         piccoli la differenza conta.</p>
       <p><strong>Gli outlier</strong> vengono segnalati con il criterio di Chauvenet (formulazione
-        classica per distribuzione normale): un colpo viene scartato se il numero di misurazioni che
-        ti aspetteresti di vedere così lontane dalla media, su tutta la stringa, è sotto ½. I colpi
-        segnalati vengono esclusi da media/SD/CI della stringa, come farebbe un&#39;analisi accurata a
-        mano — restano comunque elencati, non vengono scartati in silenzio.</p>
+        classica per distribuzione normale): un colpo viene segnalato se il numero di misurazioni che
+        ti aspetteresti di vedere così lontane dalla media, su tutta la stringa, è sotto ½. Una
+        segnalazione è un <em>avviso</em>, non un verdetto: sui 3&ndash;10 colpi di una stringa reale
+        il criterio segnala spesso il primo colpo della stringa, che è il più veloce, perciò di
+        default <strong>ogni colpo conta</strong> in media/SD/ES/CI, esattamente come nel riepilogo del
+        cronografo, e i colpi segnalati restano elencati con un contrassegno nella griglia e nella
+        nota. Spunta <strong>Escludi dalle statistiche i colpi segnalati da Chauvenet</strong> per
+        escluderli da statistiche e confronto; la nota indica poi quali colpi sono stati esclusi.</p>
       <div class="formula">
         <span class="c">// medie, due stringhe qualsiasi</span><br>
         Welch t  =  (media<sub>A</sub> − media<sub>B</sub>) / √(sd<sub>A</sub>²/n<sub>A</sub> + sd<sub>B</sub>²/n<sub>B</sub>)<br><br>
@@ -482,32 +487,34 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         di fabbrica di GRT per una polvere non è leggibile via API plugin — quindi il banner resta in
         silenzio (non &laquo;a posto&raquo;) quando non hai mai calibrato quella polvere prima.</div>
 
-      <h3>Shape fit (Ba + a0), quando lo scarto varia con la carica</h3>
-      <p>Un singolo <code>Ba</code> può correggere solo un errore di <em>scala</em> (tutta la curva
-        troppo veloce/lenta della stessa percentuale) — se lo scarto stesso cambia con la carica, è la
-        <em>forma</em> di combustione della polvere a essere sbagliata, e il <code>Ba</code> da solo
-        non può sistemarla comunque tu lo regoli.</p>
-      <ol class="plain">
-        <li>Cattura prima la MV simulata di base (passi sopra), con <strong>3+ cariche</strong>.</li>
-        <li><strong>Capture shape-fit sweep (a0)</strong> — risimula le stesse cariche con
-          l&#39;<code>a0</code> della polvere (il suo coefficiente di forma di combustione
-          &laquo;prog/deg&raquo;) spostato del +5%, così lo strumento vede quanto è sensibile la MV di
-          ogni carica ad <code>a0</code> rispetto a <code>Ba</code>.</li>
-        <li>Il report guadagna una sezione &laquo;Shape fit (Ba + a0)&raquo; con un <code>Ba</code>
-          <strong>e</strong> un <code>a0</code> suggeriti insieme su tutte le cariche.
-          <strong>Write Ba+a0-corrected .grtload</strong> scrive entrambi.</li>
+      <h3>Correzione stile GRT (Ba e k insieme)</h3>
+      <p>La correzione solo Ba scarica tutto l&#39;errore su <code>Ba</code>. L&#39;OBT-Tool di GRT fa
+        un&#39;altra cosa: quando tara la simulazione su una velocità misurata scala <code>Ba</code> e
+        <code>k</code> (l&#39;esponente isentropico) dello <strong>stesso fattore</strong>. L&#39;abbiamo
+        verificato dal vivo su un load N550 a 40,2&nbsp;gr: per far coincidere 836,0&nbsp;m/s invece degli 830,1
+        simulati ha spostato entrambi di +0,1797&nbsp;%, per 825,0 entrambi di &minus;0,1552&nbsp;%. Poiché
+        <code>k</code> cambia la velocità molto più di <code>Ba</code> (circa 33&nbsp;m/s per ogni 1&nbsp;% di
+        entrambi insieme, contro circa 4&nbsp;m/s per ogni 1&nbsp;% del solo Ba), le due correzioni danno la
+        stessa velocità ma curve di pressione, BLT e nodi OBT diversi. La correzione stile GRT fa ciò che fa
+        GRT, quindi i nodi coincidono con quelli dell&#39;OBT-Tool.</p>
+      <ol>
+        <li>Prima cattura la MV simulata di base (passi sopra).</li>
+        <li><strong>Capture GRT-style sweep (Ba + k)</strong> &mdash; ri-simula le stesse cariche con
+          <code>Ba</code> e <code>k</code> entrambi spostati di +0,2%.</li>
+        <li>Il report aggiunge una sezione &laquo;GRT-style correction (Ba and k together)&raquo;: un fattore
+          comune (minimi quadrati su tutte le cariche) e i <code>Ba</code> e <code>k</code> suggeriti.</li>
+        <li><strong>Verify correction in GRT</strong> simula ogni carica con i valori proposti. Viene accettata
+          solo se lo scarto medio scende a un quarto o meno dell&#39;originale (o entro 0,3&nbsp;m/s) e la
+          dispersione tra le cariche non peggiora; altrimenti il report dice REFUSED.</li>
+        <li><strong>Write Ba+k-corrected .grtload</strong> scrive entrambi, ed è attivo solo dopo la conferma
+          di GRT.</li>
       </ol>
-      <p>Perché <code>a0</code> e non il <code>k</code> di GRT (che la documentazione dello strumento
-        OBT nomina insieme a <code>Ba</code>): <code>k</code> è il rapporto dei calori specifici dei
-        gas di combustione — una proprietà termochimica, non una manopola per la forma. Piegarlo per
-        forzare un match di velocità lascerebbe <code>Pmax</code> e i tempi di combustione (da cui
-        dipendono direttamente OBT/BLT) sbagliati in modi che questo fit basato solo sulla velocità
-        non può vedere. <code>a0</code> è quello che il <code>formalism.txt</code> di GRT stesso
-        descrive come il coefficiente pensato per essere regolato per adattarsi a una curva di
-        combustione misurata.</p>
-      <p>Serve che le cariche siano ben distanziate (non ammassate vicine) — con troppo poca
-        distanza, <code>Ba</code> e <code>a0</code> influenzano la simulazione in modo troppo simile
-        per essere separati in modo affidabile, e lo strumento lo dice invece di indovinare.</p>
+      <p>Il pulsante solo Ba resta per una correzione di scala rapida. Il Diario salva il <code>k</code>
+        accanto al <code>Ba</code> a cui è arrivata una calibrazione. Il tool rifiuta una correzione assurda
+        (oltre il 5&nbsp;%, o un <code>k</code> fuori da 1,05&ndash;1,50). Un fit indipendente Ba + k (o
+        Ba + a0) non è più offerto: <code>Ba</code> e <code>k</code> scalano entrambi soprattutto la velocità
+        e <code>a0</code> la influenza appena (un +30&nbsp;% l&#39;ha spostata di solo l&#39;1,7&nbsp;%),
+        quindi la sola velocità non può separarli.</p>
     </section>
 
     <section id="temp">
@@ -609,8 +616,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         stampabili, ciascuno con un <strong>QR code</strong> della ricetta completa.</p>
       <ul>
         <li><strong>Load from GRT</strong> — compila il cartellino dal load aperto (calibro, arma,
-          palla + peso, polvere, carica, COAL, profondità di seduta, e MV/SD dall&#39;ultima
-          misurazione).</li>
+          palla + peso, polvere, carica, COAL, profondità di seduta, e MV/SD dalla carica cronografata che corrisponde alla carica della ricetta &mdash; nessuna se quella carica non è mai stata cronografata).</li>
         <li>Menù a tendina <strong>lotto Polvere / InneSco / Bossolo / Palla</strong> — scegli un lotto
           dall&#39;inventario (§14) per calcolare il <strong>costo per colpo</strong> e stampare il
           lotto sul cartellino.</li>
@@ -690,7 +696,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           come nessuna carica, mai come quel numero — un tab gruppo di colpi non porta un proprio
           valore di carica come invece fa una Misurazione, quindi un numero intero senza parola chiave
           è indistinguibile dalla numerazione automatica di GRT e non viene mai indovinato di
-          proposito.</li>
+          proposito. Se i gruppi hanno ancora i nomi di GRT, <em>Groups from GRT load</em> propone di assegnare loro le cariche cronografate del load in ordine crescente (primo gruppo = carica più bassa), ti mostra l&#39;elenco e lo applica solo se confermi; rispondendo No quei gruppi vengono esclusi &mdash; non vengono mai numerati come grani.</li>
         <li><strong>Salva il load</strong> così i tab gruppo finiscono nel <code>.grtload</code>.</li>
         <li>Nell&#39;analizzatore Ladder / Seating imposta <strong>ref dist</strong> (mm / cm /
           pollici) e <strong>shoot dist</strong> (m / yd) — GRT non memorizza quale unità usava il
@@ -700,6 +706,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p>Ogni foro (memorizzato come frazione dell&#39;immagine) viene convertito in MOA usando i due
         punti di riferimento e le proporzioni dell&#39;immagine (1&nbsp;MOA = 29,0888&nbsp;mm a
         100&nbsp;m).</p>
+      <p><strong>Restock</strong> accetta <code>12.5</code> oppure <code>12,5</code>, avvisa quando il testo non è un numero (prima lo ignorava in silenzio) e chiede conferma prima di portare un lotto sotto zero.</p>
     </section>
 
     <section id="journal">
@@ -716,10 +723,10 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           <code>.grtload</code> reale: nessun tag del genere da nessuna parte), quindi si scrivono
           sempre a mano, mai lette dal load. Il Modello Velocità (§20) ha bisogno di questo campo
           compilato su almeno una manciata di voci per avere qualcosa da adattare.</li>
-        <li><strong>Ba</strong> e <strong>a0</strong> — i valori a cui è arrivato il fit della
+        <li><strong>Ba</strong>, <strong>a0</strong> e <strong>k</strong> — i valori a cui è arrivato il fit della
           Calibrazione canna per quella sessione. <strong>Log from GRT</strong> li legge direttamente
           dal load aperto se hai lanciato lì prima <em>Write Ba-corrected</em> o <em>Write
-          Ba+a0-corrected .grtload</em> ed è il load ora aperto; altrimenti scrivili a mano.</li>
+          Ba+k-corrected .grtload</em> ed è il load ora aperto; altrimenti scrivili a mano.</li>
         <li><strong>Recupera Ba dai load</strong> serve per un diario scritto prima che
           <code>Ba</code>/<code>a0</code> venissero memorizzati: per ogni voce senza <code>Ba</code>
           che indica ancora un <code>.grtload</code>, rilegge il valore da quel file. Elenca ciò che ha
@@ -735,6 +742,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <strong>Edit</strong>, <strong>Delete</strong>, <strong>Fill Ba from loads</strong>.
         Modificare o cancellare una voce riconcilia l&#39;inventario. Spunta <em>deduct components
         from inventory on save</em> per scalare le scorte.</p>
+      <p>Il nome del carico viene preso senza il timestamp <code>_toolkit_&hellip;</code> del toolkit, così lo stesso carico registrato da due snapshot diversi è un solo carico, non due.</p>
     </section>
 
     <section id="findba">
@@ -750,6 +758,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         registrata prima che quel campo esistesse non ci mette nulla: compila il suo <strong>Ba
         (calibrated)</strong>, oppure esegui <strong>Recupera Ba dai load</strong> (entrambi nel
         Diario, §15), e il suo calibro compare.</p>
+      <p>Le voci senza la misura scelta (ad esempio senza gruppo, ordinando per gruppo) sono elencate <strong>in fondo</strong>, mai nascoste.</p>
     </section>
 
     <section id="leaderboard">
@@ -798,6 +807,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         toccato. Se la carica aperta non è ancora stata registrata nel Diario, il tool lo segnala
         invece di scrivere nulla. Vedi <strong>Toolkit &mdash; Load leaderboard report</strong> qui
         sotto per la pagina report corrispondente.</p>
+      <p>Una voce del diario il cui polvere o proiettile non è collegato a un componente dell&#39;Inventario viene tenuta separata per carico (per nome del carico) &mdash; non viene più fusa con tutti gli altri carichi non collegati in un&#39;unica riga &ldquo;nessuno&rdquo;.</p>
     </section>
 
     <section id="workflow">
@@ -848,6 +858,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         media di ogni altra volta che questa polvere è stata calibrata &mdash; la cosa più vicina a un
         avviso di <code>Ba</code> potenzialmente obsoleto che questo plugin può dare senza accesso al
         valore di fabbrica di GRT.</p>
+      <p>Le voci senza polvere collegata sono raggruppate per carico (per nome del carico), mai in un&#39;unica polvere fittizia &ldquo;nessuna&rdquo; che fa la media di carichi non correlati.</p>
     </section>
 
     <section id="velocitymodel">
@@ -896,6 +907,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p><strong>Scrivi nota diagnostica sul load GRT</strong> scrive il risultato di ogni tab in
         un&#39;unica nota; un tab senza nulla da segnalare stampa &laquo;Nessuna tendenza
         preoccupante&raquo; invece di lasciare la sua sezione vuota.</p>
+      <p>I verdetti richiedono abbastanza dati: <strong>Cold Bore</strong> risponde &ldquo;non conclusivo&rdquo; con meno di 5 colpi a canna calda, e <strong>Pressure Trend</strong> risponde &ldquo;non conclusivo&rdquo; quando il rumore del cronografo sulle ultime due cariche è tale da cambiare il verdetto al passo di carica usato.</p>
     </section>
 
     <section id="sdrootcause">
@@ -1018,6 +1030,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p><strong>Scrivi nota analisi gruppo sul load GRT</strong> scrive punteggio, confidenza,
         metriche e ogni problema attivato in un&#39;unica nota, con il grafico del piano bersaglio
         (impatti, centroide, punto di mira, anomalie evidenziate) allegato come immagine.</p>
+      <p>Il rapporto tra dispersione orizzontale e verticale viene giudicato solo da 5 colpi in su (con 4 è soprattutto fortuna), e su un passo di scaletta la segnalazione &ldquo;fuori dal punto di mira&rdquo; ricorda che il centro si sposta con la carica per costruzione.</p>
     </section>
 
     <section id="targetprint">
@@ -1088,7 +1101,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Chronograph statistics report</td><td>la nota statistiche cronografo</td></tr>
         <tr><td>Ladder / OCW report</td><td>la nota OCW + grafico</td></tr>
         <tr><td>Seating-depth report</td><td>la nota seating + grafico</td></tr>
-        <tr><td>Barrel calibration report</td><td>la nota calibrazione (Ba, o shape fit Ba+a0) + nota coefficienti temperatura</td></tr>
+        <tr><td>Barrel calibration report</td><td>la nota calibrazione (Ba, o correzione stile GRT Ba+k) + nota coefficienti temperatura</td></tr>
         <tr><td>Powder temp-coefficients report</td><td>la nota coefficienti temperatura da sola</td></tr>
         <tr><td>Case volume report</td><td>la nota volume bossolo</td></tr>
         <tr><td>Seating depth (geometry) report</td><td>la nota profondità di seduta da comparatore</td></tr>
@@ -1168,6 +1181,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.18 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.19 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

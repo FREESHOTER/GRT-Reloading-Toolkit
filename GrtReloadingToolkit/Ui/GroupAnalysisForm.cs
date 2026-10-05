@@ -453,7 +453,7 @@ internal sealed class GroupAnalysisForm : Form
         else
         {
             sb.AppendLine(Lang.T("Problems found:"));
-            foreach (var p in report.Problems) sb.AppendLine("  • " + p.Message);
+            foreach (var p in report.Problems) sb.AppendLine("  • " + p.Localized(Lang.T));
         }
         return sb.ToString();
     }

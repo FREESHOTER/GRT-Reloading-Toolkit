@@ -133,6 +133,29 @@ public sealed class GrtLoadDoc
     public string ProjectileName => InputValue("projectile", "ProjectileName");
     public string PropellantName => InputValue("propellant", "pname");
     public double? PropellantChargeGr => ParseInputG("propellant", "mc");
+    /// <summary>
+    /// The chronographed charge that IS this load's recipe: the charge with shots whose weight is
+    /// closest to the recipe charge (<c>mc</c>), within <paramref name="tolGr"/>; the most recent
+    /// measurement wins a tie. Null when no chronographed charge matches the recipe -- a ladder's other
+    /// steps are not this load's velocity, and attributing them to it (as "the last charge in the file")
+    /// prints a card or a book entry whose charge and velocity belong to a different load. When the
+    /// recipe has no charge at all, a load with exactly one chronographed charge returns that one.
+    /// </summary>
+    public GrtCharge? ChargeMatchingRecipe(double tolGr = 0.06)
+    {
+        var withShots = Measurements().SelectMany(m => m.Charges).Where(c => c.Shots.Count > 0).ToList();
+        if (withShots.Count == 0) return null;
+        if (PropellantChargeGr is { } r and > 0)
+        {
+            GrtCharge? best = null; double bestD = double.MaxValue;
+            foreach (var c in withShots)   // later measurement wins a tie (<=)
+                if (c.ChargeGrains is { } g && Math.Abs(g - r) <= tolGr && Math.Abs(g - r) <= bestD) { best = c; bestD = Math.Abs(g - r); }
+            return best;
+        }
+        var weights = withShots.Select(c => c.ChargeGrains).Distinct().ToList();
+        return weights.Count == 1 ? withShots[^1] : null;
+    }
+
     /// <summary>Projectile weight in grains (from projectile <c>mp</c>, stored in g).</summary>
     public double? BulletMassGr => ParseInputG("projectile", "mp");
     /// <summary>Cartridge overall length L6/OAL in mm.</summary>
@@ -242,6 +265,32 @@ public sealed class GrtLoadDoc
         {
             while (e.PreviousSibling is XmlWhitespace ws) ws.ParentNode!.RemoveChild(ws);
             _appendix.RemoveChild(e);
+            n++;
+        }
+        return n;
+    }
+
+    /// <summary>
+    /// Keeps every note whose (decoded) title starts with <paramref name="titlePrefix"/> but renames
+    /// it to <paramref name="newTitle"/>, puts <paramref name="banner"/> above its text and takes it
+    /// out of GRT's reports -- for a note that describes data which has since changed, where deleting
+    /// it would throw away the only copy and leaving it as it is would let old numbers pass for
+    /// current ones. The new title must not itself start with the prefix, or a later
+    /// <see cref="RemoveByTitlePrefix"/>/<see cref="FindNoteText"/> on that prefix would hit it.
+    /// Returns how many notes were renamed.
+    /// </summary>
+    public int RetitleNotes(string titlePrefix, string newTitle, string banner)
+    {
+        string enc = Enc(titlePrefix);
+        int n = 0;
+        foreach (XmlElement e in _appendix.ChildNodes.OfType<XmlElement>()
+                     .Where(e => e.Name == "note" && e.GetAttribute("title").StartsWith(enc, StringComparison.OrdinalIgnoreCase))
+                     .ToList())
+        {
+            string text = Uri.UnescapeDataString(e.GetAttribute("text"));
+            e.SetAttribute("title", UniqueTitle(Enc(newTitle)));
+            e.SetAttribute("text", Enc(banner + "\r\n\r\n" + text));
+            e.SetAttribute("showinreport", "false");
             n++;
         }
         return n;
@@ -433,16 +482,66 @@ public sealed class GrtLoadDoc
                @"_(?!toolkit_)[a-z]+_\d{8}_\d{4}\.grtload$|^Athlon_Import_",
                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-    /// <summary>The file to READ toolkit data from: the newest toolkit-family sibling, else the active tab.</summary>
+    /// <summary>
+    /// The file a toolkit tool should treat as "this load, as it is now": whichever of the user's own
+    /// file and this toolkit's newest write-back sibling was written LAST. The sibling normally wins
+    /// (it carries the notes and measurements the toolkit added after the user's file was saved), but
+    /// if the user has saved their own file since -- a new charge, a new Ba -- that save is the newer
+    /// truth and the older sibling must not shadow it. Returns <paramref name="activeTabFile"/> when
+    /// the family has no other member.
+    /// </summary>
+    public static string FreshestFamilyFile(string activeTabFile)
+    {
+        string? sibling = NewestToolkitSibling(activeTabFile);
+        string pristine = PristineBasePath(activeTabFile);
+        bool havePristine = File.Exists(pristine);
+        if (sibling is null) return havePristine ? pristine : activeTabFile;
+        if (!havePristine) return sibling;
+        return File.GetLastWriteTimeUtc(pristine) > File.GetLastWriteTimeUtc(sibling) ? pristine : sibling;
+    }
+
+    /// <summary>The file to READ toolkit data from: see <see cref="FreshestFamilyFile"/>.</summary>
     public static string EffectiveReadPath(string activeTabFile)
-        => NewestToolkitSibling(activeTabFile) ?? activeTabFile;
+        => FreshestFamilyFile(activeTabFile);
 
     /// <summary>
-    /// Loads the document a toolkit tool should add to: the newest toolkit-family sibling if one
-    /// exists (so earlier notes/edits are kept), otherwise <paramref name="activeTabFile"/> itself.
+    /// Loads the document a toolkit tool should add to: the freshest member of the load's family
+    /// (<see cref="FreshestFamilyFile"/>), so earlier notes/edits are kept unless the user has since
+    /// saved their own file.
     /// </summary>
     public static GrtLoadDoc OpenForToolkitEdit(string activeTabFile)
-        => Load(NewestToolkitSibling(activeTabFile) ?? activeTabFile);
+    {
+        string path = FreshestFamilyFile(activeTabFile);
+        NoticeIfSnapshotHoldsMeasurementsTheFileLacks(activeTabFile, path);
+        return Load(path);
+    }
+
+    /// <summary>
+    /// Raised (siblingPath, count) when the user's own file is newer than the toolkit's newest snapshot
+    /// AND that snapshot holds chronograph measurements the user's file does not have. The toolkit then
+    /// builds on the user's file, as it must, but the imported strings live only in the older snapshot
+    /// and would silently drop out of the family once it is pruned -- so the user is told.
+    /// </summary>
+    public static event Action<string, int>? SnapshotHasMeasurementsMissingFromNewerFile;
+
+    private static readonly HashSet<string> NoticesGiven = new(StringComparer.OrdinalIgnoreCase);
+
+    private static void NoticeIfSnapshotHoldsMeasurementsTheFileLacks(string activeTabFile, string chosen)
+    {
+        try
+        {
+            string? sibling = NewestToolkitSibling(activeTabFile);
+            if (sibling is null || string.Equals(sibling, chosen, StringComparison.OrdinalIgnoreCase)) return;
+            static HashSet<string> Keys(GrtLoadDoc d) => d.Measurements()
+                .Select(m => m.Title + "|" + string.Join(";", m.Charges.Select(c => c.Name + ":" + c.Shots.Count))).ToHashSet();
+            var have = Keys(Load(chosen));
+            int missing = Keys(Load(sibling)).Count(k => !have.Contains(k));
+            if (missing == 0) return;
+            if (!NoticesGiven.Add(sibling + "|" + missing)) return;   // once per snapshot, not on every tool
+            SnapshotHasMeasurementsMissingFromNewerFile?.Invoke(sibling, missing);
+        }
+        catch { /* a notice must never stop a write */ }
+    }
 
     // ---- internals ------------------------------------------------------
 

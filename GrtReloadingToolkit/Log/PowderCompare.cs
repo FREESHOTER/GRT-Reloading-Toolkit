@@ -17,7 +17,7 @@ public static class PowderCompare
 {
     public sealed record Row(string Caliber, long? PowderId, string Powder,
         int Recipes, int Sessions, int Rounds, double? AvgBa, double? AvgA0,
-        double? Sd, double? Es, double? Group, LoadScoring.Breakdown Score);
+        double? Sd, double? Es, double? Group, LoadScoring.Breakdown Score, string Identity = "");
 
     /// <summary>
     /// Every caliber+powder in <paramref name="journal"/>, scored and ordered best first, with
@@ -33,7 +33,9 @@ public static class PowderCompare
         // note on why (".308 Win" / ".308 win" logged as two calibers becomes two half-populated rows).
         var groups = journal
             .Where(e => caliberFilter is null || string.Equals(e.Caliber, caliberFilter, StringComparison.OrdinalIgnoreCase))
-            .GroupBy(e => (Caliber: e.Caliber.ToUpperInvariant(), e.PowderId));
+            // An entry with no linked powder is grouped with other entries of the SAME load only: all of
+            // them together would be one fictional "powder" averaging unrelated loads.
+            .GroupBy(e => (Caliber: e.Caliber.ToUpperInvariant(), e.PowderId, Identity: e.PowderId is null ? LoadIdentity.Normalize(e.LoadName) : ""));
 
         var rows = new List<Row>();
         foreach (var g in groups)
@@ -54,8 +56,9 @@ public static class PowderCompare
             var score = LoadScoring.LeaderboardScore(avgSd, avgEs, avgGroup, totalRounds, sdAcrossSessions);
 
             rows.Add(new Row(entries[0].Caliber, g.Key.PowderId,
-                g.Key.PowderId is { } pid && componentNames.TryGetValue(pid, out var pn) ? pn : noneLabel,
-                recipes, entries.Count, totalRounds, avgBa, avgA0, avgSd, avgEs, avgGroup, score));
+                g.Key.PowderId is { } pid && componentNames.TryGetValue(pid, out var pn) ? pn
+                    : g.Key.Identity.Length > 0 ? $"{noneLabel} [{LoadIdentity.Display(entries[0].LoadName)}]" : noneLabel,
+                recipes, entries.Count, totalRounds, avgBa, avgA0, avgSd, avgEs, avgGroup, score, g.Key.Identity));
         }
 
         return rows.Where(r => r.Score.Total.HasValue).OrderByDescending(r => r.Score.Total)

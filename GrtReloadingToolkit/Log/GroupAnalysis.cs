@@ -11,7 +11,16 @@ public enum NodeRelation { Inside, Outside }
 /// <summary>Mahalanobis distance of one impact from the group's own centroid, using the group's own sample covariance.</summary>
 public sealed record MahalanobisOutlier(int Index, double DistanceSquared, bool Flagged);
 
-public sealed record GroupProblem(ProblemKind Kind, string Message);
+public sealed record GroupProblem(ProblemKind Kind, string Message, string? Template = null, object[]? Args = null)
+{
+    /// <summary>The finding in the caller's language: <paramref name="translate"/> maps the English
+    /// template (numbers still as {0}, {1}...) and the numbers are then filled in invariantly, so the
+    /// digits read the same as in every other GRT-side number. English <see cref="Message"/> when this
+    /// problem carries no template.</summary>
+    public string Localized(Func<string, string> translate) =>
+        Template is null ? translate(Message)
+            : string.Format(System.Globalization.CultureInfo.InvariantCulture, translate(Template), Args ?? Array.Empty<object>());
+}
 
 /// <summary>Whether this group's own charge falls inside or outside a node the Ladder/OCW Analyzer
 /// already found for the same load — see <see cref="GroupAnalysis.CheckAgainstNode"/> for why this
@@ -158,6 +167,9 @@ public static class GroupAnalysis
     /// <c>YMoa</c> are known to have been actually reported by a source app (e.g. an OnTarget CSV) rather
     /// than left at their unset default — a manually-entered or GRT-native group has nothing to cross-check against.
     /// </summary>
+    /// <summary>Fewest shots for which the horizontal/vertical spread ratio is judged at all.</summary>
+    public const int MinShotsForSpreadRatio = 5;
+
     public static IReadOnlyList<GroupProblem> DiagnoseProblems(
         TargetGroup group, DistanceBand band, GroupAnalysisConfig cfg,
         IReadOnlyList<MahalanobisOutlier>? outliers = null, bool crossCheckAppCenter = false,
@@ -166,46 +178,52 @@ public static class GroupAnalysis
         var problems = new List<GroupProblem>();
         outliers ??= MahalanobisOutliers(group, cfg);
 
+        static GroupProblem P(ProblemKind k, string template, params object[] args) =>
+            new(k, string.Format(System.Globalization.CultureInfo.InvariantCulture, template, args), template, args);
+
         foreach (var o in outliers)
             if (o.Flagged)
-                problems.Add(new GroupProblem(ProblemKind.StatisticalOutlier,
-                    FormattableString.Invariant($"Shot #{o.Index + 1} is a statistical outlier (Mahalanobis distance² {o.DistanceSquared:F2}).")));
+                problems.Add(P(ProblemKind.StatisticalOutlier,
+                    "Shot #{0} is a statistical outlier (Mahalanobis distance² {1:F2}).", o.Index + 1, o.DistanceSquared));
 
         if (group.Impacts.Count < band.MediumAt)
-            problems.Add(new GroupProblem(ProblemKind.SmallSample,
-                FormattableString.Invariant($"Sample size (n={group.Impacts.Count}) is below the {band.MediumAt} shots this tool wants for a confident read at this distance.")));
+            problems.Add(P(ProblemKind.SmallSample,
+                "Sample size (n={0}) is below the {1} shots this tool wants for a confident read at this distance.",
+                group.Impacts.Count, band.MediumAt));
 
+        // The ratio of two spreads measured on a handful of shots is mostly luck: with 4 shots, a
+        // horizontal/vertical ratio past 1.6 turns up in a large share of perfectly round groups, so
+        // it was flagged on every ladder step. Only judged from MinShotsForSpreadRatio shots up.
         double h = group.HorizontalSpreadMoa, v = group.VerticalSpreadMoa;
-        if (Math.Min(h, v) > 0)
+        if (Math.Min(h, v) > 0 && group.Impacts.Count >= MinShotsForSpreadRatio)
         {
             double ratio = Math.Max(h, v) / Math.Min(h, v);
             if (ratio > cfg.SpreadRatioThreshold)
-            {
-                string axis = v > h ? "vertical" : "horizontal";
-                problems.Add(new GroupProblem(ProblemKind.SpreadRatioSkewed,
-                    FormattableString.Invariant($"Spread is {axis}-dominant ({h:F2} MOA horizontal vs {v:F2} MOA vertical, ratio {ratio:F1}×) — worth investigating, not a diagnosed cause on this data alone.")));
-            }
+                problems.Add(P(ProblemKind.SpreadRatioSkewed,
+                    "Spread is {0}-dominant ({1:F2} MOA horizontal vs {2:F2} MOA vertical, ratio {3:F1}×) — worth investigating, not a diagnosed cause on this data alone.",
+                    v > h ? "vertical" : "horizontal", h, v, ratio));
         }
 
         double offCenter = Math.Sqrt(Math.Pow(group.CenterXMoa - group.AimXMoa, 2) + Math.Pow(group.CenterYMoa - group.AimYMoa, 2));
         if (offCenter > cfg.OffCenterThresholdMoa)
-            problems.Add(new GroupProblem(ProblemKind.OffCenter,
-                FormattableString.Invariant($"Group centre is {offCenter:F2} MOA off point-of-aim — possible zero drift, or a called flier pulling the centroid.")));
+            problems.Add(P(ProblemKind.OffCenter, group.ChargeGrains is null
+                ? "Group centre is {0:F2} MOA off point-of-aim — possible zero drift, or a called flier pulling the centroid."
+                : "Group centre is {0:F2} MOA off point-of-aim — on a ladder the centre moves with the charge by design, so judge it against the other steps (possible zero drift, or a called flier pulling the centroid).",
+                offCenter));
 
         if (crossCheckAppCenter)
         {
             double mismatch = Math.Sqrt(Math.Pow(group.CenterXMoa - group.AppCenterXMoa, 2) + Math.Pow(group.CenterYMoa - group.AppCenterYMoa, 2));
             if (mismatch > cfg.AppCenterMismatchThresholdMoa)
-                problems.Add(new GroupProblem(ProblemKind.CenterMismatch,
-                    FormattableString.Invariant($"This tool's impact-mean centre differs from the source app's reported centre by {mismatch:F2} MOA — check the calibration points.")));
+                problems.Add(P(ProblemKind.CenterMismatch,
+                    "This tool's impact-mean centre differs from the source app's reported centre by {0:F2} MOA — check the calibration points.", mismatch));
         }
 
         if (velocityPoiR is { } vr && Math.Abs(vr) > cfg.VelocityCorrelationThreshold)
-        {
-            string direction = vr > 0 ? "further from" : "closer to";
-            problems.Add(new GroupProblem(ProblemKind.VelocityCorrelation,
-                FormattableString.Invariant($"Velocity correlates with distance from the group centre (r={vr:F2}) — faster shots tend to land {direction} the centre; worth investigating, not a diagnosed cause on this data alone.")));
-        }
+            problems.Add(P(ProblemKind.VelocityCorrelation, vr > 0
+                    ? "Velocity correlates with distance from the group centre (r={0:F2}) — faster shots tend to land further from the centre; worth investigating, not a diagnosed cause on this data alone."
+                    : "Velocity correlates with distance from the group centre (r={0:F2}) — faster shots tend to land closer to the centre; worth investigating, not a diagnosed cause on this data alone.",
+                vr));
 
         if (band.WindCaveat)
             problems.Add(new GroupProblem(ProblemKind.LongRangeWindCaveat,

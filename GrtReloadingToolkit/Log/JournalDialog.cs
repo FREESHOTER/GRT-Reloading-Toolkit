@@ -60,6 +60,7 @@ internal sealed class JournalDialog : Form
     private readonly NumericUpDown _humidity = new() { DecimalPlaces = 0, Minimum = 0, Maximum = 100, Width = 90 };
     private readonly NumericUpDown _ba = new() { DecimalPlaces = 6, Increment = 0.001M, Minimum = 0, Maximum = 10, Width = 90 };
     private readonly NumericUpDown _a0 = new() { DecimalPlaces = 4, Increment = 0.001M, Minimum = 0, Maximum = 10, Width = 90 };
+    private readonly NumericUpDown _k = new() { DecimalPlaces = 6, Increment = 0.001M, Minimum = 0, Maximum = 3, Width = 90 };
     private bool _tempWasF;
     private bool _pressureWasInHg;
 
@@ -110,6 +111,7 @@ internal sealed class JournalDialog : Form
         if (e.HumidityPct is { } hp) _humidity.Value = (decimal)Math.Clamp(hp, (double)_humidity.Minimum, (double)_humidity.Maximum);
         if (e.Ba is { } ba) _ba.Value = Clamp(ba, _ba);
         if (e.A0 is { } a0) _a0.Value = Clamp(a0, _a0);
+        if (e.K is { } kx) _k.Value = Clamp(kx, _k);
         _tempUnit.SelectedIndexChanged += (_, _) => OnTempUnitChanged();
         _pressureUnit.SelectedIndexChanged += (_, _) => OnPressureUnitChanged();
         _notes.Text = e.Notes;
@@ -146,6 +148,7 @@ internal sealed class JournalDialog : Form
         Row(Ui.Lang.T("Humidity %"), _humidity);
         Row(Ui.Lang.T("Ba (calibrated)"), _ba);
         Row(Ui.Lang.T("a0 (calibrated)"), _a0);
+        Row(Ui.Lang.T("k (calibrated)"), _k);
         Row(Ui.Lang.T("Notes"), _notes);
         Row("", _applyStock);
         Row(Ui.Lang.T("Cost"), _cost);
@@ -273,6 +276,7 @@ internal sealed class JournalDialog : Form
         _e.HumidityPct = _envRecorded.Checked ? (double)_humidity.Value : null;
         _e.Ba = _ba.Value > 0 ? (double)_ba.Value : null;
         _e.A0 = _a0.Value > 0 ? (double)_a0.Value : null;
+        _e.K = _k.Value > 0 ? (double)_k.Value : null;
         _e.Notes = _notes.Text.Trim();
     }
 

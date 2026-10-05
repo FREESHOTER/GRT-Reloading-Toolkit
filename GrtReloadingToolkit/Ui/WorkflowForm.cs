@@ -37,6 +37,7 @@ internal sealed class WorkflowForm : Form
     {
         public long? PowderId => Row.PowderId;
         public long? BulletId => Row.BulletId;
+        public string Identity => Row.Identity;
         public double ChargeGr => Row.ChargeGr;
         public int Sessions => Row.Sessions;
         public int Rounds => Row.Rounds;
@@ -145,7 +146,7 @@ internal sealed class WorkflowForm : Form
         string Name(long? id) => id is { } i && componentNames.TryGetValue(i, out var n) ? n : Lang.T("— none —");
 
         return WorkflowRanking.ComputeGroups(_db.Journal(), caliber, distanceM)
-            .Select(r => new WorkflowRow(r, Name(r.PowderId), Name(r.BulletId)))
+            .Select(r => new WorkflowRow(r, r.PowderId is null && r.Identity.Length > 0 ? $"{Name(r.PowderId)} [{r.Identity}]" : Name(r.PowderId), Name(r.BulletId)))
             .ToList();
     }
 
@@ -225,7 +226,7 @@ internal sealed class WorkflowForm : Form
             double chargeGr = Math.Round(doc.PropellantChargeGr ?? 0, 2);
 
             var groups = ComputeGroups(caliber, dist.Meters);
-            var match = groups.FirstOrDefault(r => r.PowderId == powderId && r.BulletId == bulletId && Math.Abs(r.ChargeGr - chargeGr) < 0.005);
+            var match = groups.FirstOrDefault(r => r.PowderId == powderId && r.BulletId == bulletId && r.Identity == LoadIdentity.Of(powderId, bulletId, Path.GetFileNameWithoutExtension(top.file)) && Math.Abs(r.ChargeGr - chargeGr) < 0.005);
             if (match is null)
             {
                 MessageBox.Show(this,
@@ -242,7 +243,7 @@ internal sealed class WorkflowForm : Form
             }
 
             var ranked = Rank(groups);
-            int idx = ranked.FindIndex(r => r.PowderId == match.PowderId && r.BulletId == match.BulletId && Math.Abs(r.ChargeGr - match.ChargeGr) < 0.005);
+            int idx = ranked.FindIndex(r => r.PowderId == match.PowderId && r.BulletId == match.BulletId && r.Identity == match.Identity && Math.Abs(r.ChargeGr - match.ChargeGr) < 0.005);
             int scoredCount = ranked.Count(r => r.Score.Total.HasValue);
             int rank = match.Score.Total.HasValue ? ranked.Take(idx + 1).Count(r => r.Score.Total.HasValue) : -1;
             var u = GrtUnits.Current;

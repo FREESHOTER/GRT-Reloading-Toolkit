@@ -413,12 +413,24 @@ internal sealed class LogForm : Form
     {
         if (SelectedComponent is not { } c) return;
         string? s = Prompt(string.Format(Lang.T("Add how many {0} to '{1}'? (negative to correct down)"), c.Unit, c.Display));
-        if (s != null && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double d))
+        if (s == null) return;
+        if (!StockUnit.TryParseQuantity(s, out double d))
         {
-            // The prompt asked in the unit the lot is counted in; the ledger moves stored units.
-            _db.AdjustStock(c.Id, StockUnit.ToStore(d, c.Unit), "manual restock");
-            RefreshInventory();
+            // Said out loud: this used to do nothing at all, and an Italian "453,6" looked accepted.
+            MessageBox.Show(this, string.Format(Lang.T("'{0}' is not a number. Type it like 12.5 or 12,5."), s),
+                Lang.T("Restock"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
         }
+        double stored = StockUnit.ToStore(d, c.Unit);
+        if (c.QtyCurrent + stored < 0 &&
+            MessageBox.Show(this,
+                string.Format(Lang.T("This leaves '{0}' below zero ({1} {2}). Apply anyway?"),
+                    c.Display, StockUnit.FromStore(c.QtyCurrent + stored, c.Unit).ToString("0.##", CultureInfo.InvariantCulture), c.Unit),
+                Lang.T("Restock"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            return;
+        // The prompt asked in the unit the lot is counted in; the ledger moves stored units.
+        _db.AdjustStock(c.Id, stored, "manual restock");
+        RefreshInventory();
     }
 
     private void ArchiveComponent()

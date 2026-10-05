@@ -66,4 +66,18 @@ public static class StockUnit
 
     /// <summary>The matching numeric format, for a grid cell or a label.</summary>
     public static string Format(string? unit) => "0." + new string('#', Decimals(unit));
+
+    /// <summary>Parses a quantity typed by a person: "12.5" and the Italian "12,5" (and "1.234,5" /
+    /// "1,234.5": the LAST separator is the decimal one). Never guesses on anything else.</summary>
+    public static bool TryParseQuantity(string text, out double value)
+    {
+        string t = (text ?? "").Trim().Replace(" ", "");
+        int dot = t.LastIndexOf('.'), comma = t.LastIndexOf(',');
+        if (dot >= 0 && comma >= 0)
+            t = dot > comma ? t.Replace(",", "") : t.Replace(".", "").Replace(',', '.');
+        else if (comma >= 0)
+            t = t.Replace(',', '.');
+        return double.TryParse(t, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value)
+               && double.IsFinite(value);
+    }
 }

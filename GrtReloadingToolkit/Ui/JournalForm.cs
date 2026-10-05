@@ -183,7 +183,9 @@ internal sealed class JournalForm : Form
             }
             // A load with only one chronographed charge needs no picker -- the common case (log
             // one session right after chronographing it) stays a single click, same as before.
-            var candidates = LoadSnapshot.AllFromGrtload(top.file);
+            // Read the freshest member of the load's family, like every other tool: the active tab can be an
+            // older file than the one holding the chrono string the user just imported.
+            var candidates = LoadSnapshot.AllFromGrtload(GrtLoadDoc.EffectiveReadPath(top.file));
             LoadSnapshot? snap = candidates.Count == 1 ? candidates[0] : PickCharge(candidates);
             if (snap is null) return;
 

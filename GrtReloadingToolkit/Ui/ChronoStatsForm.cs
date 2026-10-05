@@ -34,6 +34,8 @@ internal sealed class ChronoStatsForm : Form
     private readonly ComboBox _cmpB = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170 };
     private readonly TextBox _cmpResult = new();
     private readonly Label _status = new();
+    private readonly CheckBox _exclude = new() { AutoSize = true, Margin = new Padding(14, 6, 0, 0),
+        Text = Lang.T("Exclude shots flagged by Chauvenet from the statistics") };
     private readonly Button _write = new() { Text = Lang.T("Write note to GRT load"), AutoSize = true, Enabled = false };
 
     private string? _basePath;
@@ -98,6 +100,8 @@ internal sealed class ChronoStatsForm : Form
         }
         _targetMargin.ValueChanged += (_, _) => Recompute();
         top.Controls.Add(_targetMargin);
+        _exclude.CheckedChanged += (_, _) => { Recompute(); if (_lastCompare is not null) Compare(); };
+        top.Controls.Add(_exclude);
 
         top.SetFlowBreak(_targetMargin, true);   // start a second row
         top.Controls.Add(new Label { Text = Lang.T("Compare"), AutoSize = true, Padding = new Padding(0, 8, 4, 0) });
@@ -139,6 +143,18 @@ internal sealed class ChronoStatsForm : Form
         Controls.Add(top);
     }
 
+    /// <summary>GRT names every imported Measurement "Misurazione", so two strings routinely carry the
+    /// same label; the comparison picks rows by label, so labels must be unique.</summary>
+    private string UniqueLabel(string label)
+    {
+        if (!_rows.Any(r => r.Label == label)) return label;
+        for (int i = 2; ; i++)
+        {
+            string cand = $"{label} #{i}";
+            if (!_rows.Any(r => r.Label == cand)) return cand;
+        }
+    }
+
     private double Confidence => _confidence.SelectedIndex switch { 0 => 0.90, 2 => 0.99, _ => 0.95 };
     /// <summary>What the user typed, back in stored m/s -- the calc layer stays metric.</summary>
     private double TargetMarginMps => _u.VelocityToMps((double)_targetMargin.Value);
@@ -177,7 +193,7 @@ internal sealed class ChronoStatsForm : Form
                 string label = a.ChargeGrains is { } g
                     ? FormattableString.Invariant($"{g:0.0##} gr ({Path.GetFileName(path)})")
                     : Path.GetFileName(path);
-                _rows.Add(new Row { Label = label, Values = vs });
+                _rows.Add(new Row { Label = UniqueLabel(label), Values = vs });
                 AppendLog($"{Path.GetFileName(path)}: {vs.Count} shots");
             }
             catch (Exception ex)
@@ -207,7 +223,7 @@ internal sealed class ChronoStatsForm : Form
                     string label = ch.ChargeGrains is { } g
                         ? FormattableString.Invariant($"{g:0.0##} gr ({meas.Title})")
                         : $"{ch.Name} ({meas.Title})";
-                    _rows.Add(new Row { Label = label, Values = vs });
+                    _rows.Add(new Row { Label = UniqueLabel(label), Values = vs });
                     added++;
                 }
             AppendLog($"load Measurement: {added} string(s) added");
@@ -219,7 +235,7 @@ internal sealed class ChronoStatsForm : Form
     private void Recompute()
     {
         double conf = Confidence;
-        foreach (var r in _rows) r.Summary = ChronoStatsCalc.Analyze(r.Values, conf);
+        foreach (var r in _rows) r.Summary = ChronoStatsCalc.Analyze(r.Values, conf, _exclude.Checked);
 
         _grid.Rows.Clear();
         foreach (var r in _rows)
@@ -234,7 +250,7 @@ internal sealed class ChronoStatsForm : Form
                 _u.VelocitySd(s.Es),
                 FormattableString.Invariant($"±{_u.VelocityValue(s.CiMarginMps):0.0}"),
                 needTxt,
-                flagged > 0 ? string.Format(Lang.T("{0} flagged"), flagged) : "–");
+                flagged > 0 ? string.Format(s.OutliersExcluded ? Lang.T("{0} flagged, excluded") : Lang.T("{0} flagged"), flagged) : "–");
         }
 
         string? selA = _cmpA.SelectedItem as string, selB = _cmpB.SelectedItem as string;
@@ -254,7 +270,8 @@ internal sealed class ChronoStatsForm : Form
         if (ra is null || rb is null) return;
         if (ReferenceEquals(ra, rb)) { MessageBox.Show(this, Lang.T("Pick two different strings.")); return; }
 
-        var result = ChronoStatsCalc.Compare(ra.Values, rb.Values);
+        // The same shots the table above was computed from, so the two never disagree.
+        var result = ChronoStatsCalc.Compare(ra.Summary.Values, rb.Summary.Values);
         _lastCompare = (la, lb, result);
         _cmpResult.Text = ChronoStatsCalc.BuildCompareReport(la, lb, result).Replace("\n", "\r\n");
     }

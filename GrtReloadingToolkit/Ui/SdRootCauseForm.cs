@@ -27,6 +27,9 @@ internal sealed class SdRootCauseForm : Form
     {
         public required string Label { get; init; }
         public required List<double> Velocities { get; init; }
+        /// <summary>What the stored per-shot temperatures are filed under: the label alone is not
+        /// enough (every GRT Measurement is called "Misurazione"), so the shots themselves are part of it.</summary>
+        public string StorageKey => $"{Label} [{RowLabels.Fingerprint(Velocities)}]";
     }
 
     private readonly GrtClient? _grt;
@@ -174,7 +177,7 @@ internal sealed class SdRootCauseForm : Form
                     string label = ch.ChargeGrains is { } g
                         ? FormattableString.Invariant($"{g:0.0##} gr ({meas.Title})")
                         : $"{ch.Name} ({meas.Title})";
-                    _rows.Add(new StringRow { Label = label, Velocities = vs });
+                    _rows.Add(new StringRow { Label = RowLabels.Unique(_rows.Select(r => r.Label), label), Velocities = vs });
                 }
 
             _groups.Clear();
@@ -199,7 +202,7 @@ internal sealed class SdRootCauseForm : Form
     {
         if (_stringPicker.SelectedIndex < 0) return;
         var row = _rows[_stringPicker.SelectedIndex];
-        var saved = string.IsNullOrEmpty(_caliber) ? new List<ShotMeasurement>() : _db.ShotTemperatures(_caliber, row.Label);
+        var saved = string.IsNullOrEmpty(_caliber) ? new List<ShotMeasurement>() : _db.ShotTemperatures(_caliber, row.StorageKey);
         var savedByIndex = saved.ToDictionary(s => s.ShotIndex, s => s.TemperatureC);
 
         _tempGrid.Rows.Clear();
@@ -245,7 +248,7 @@ internal sealed class SdRootCauseForm : Form
             string text = Convert.ToString(_tempGrid.Rows[i].Cells["temp"].Value) ?? "";
             double? tempC = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double tDisplay)
                 ? _u.TemperatureToCelsius(tDisplay) : null;
-            if (!string.IsNullOrEmpty(_caliber)) _db.SaveShotTemperature(_caliber, row.Label, i, tempC);
+            if (!string.IsNullOrEmpty(_caliber)) _db.SaveShotTemperature(_caliber, row.StorageKey, i, tempC);
             if (tempC.HasValue) manualTemps.Add((i, tempC.Value));
         }
 

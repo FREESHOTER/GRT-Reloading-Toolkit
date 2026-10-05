@@ -107,12 +107,13 @@ public sealed class LoadCard
             SourceFile = path,
         };
 
-        GrtCharge? last = doc.Measurements().SelectMany(m => m.Charges).LastOrDefault(c => c.Shots.Count > 0);
-        if (last is { Shots.Count: > 0 })
+        // Velocity only from the chronographed charge that matches the recipe charge: a card that says
+        // "41.0 gr, 849 m/s" for a 40.2 gr recipe (the ladder's last step) is a wrong card.
+        if (doc.ChargeMatchingRecipe() is { } match)
         {
-            var v = last.Shots.Select(s => s.VelocityMps).Where(x => x > 0).ToList();
+            var v = match.Shots.Select(s => s.VelocityMps).Where(x => x > 0).ToList();
             if (v.Count > 0) { var st = StringStats.From(v); card.MvMs = Math.Round(st.Mean, 1); card.SdMs = Math.Round(st.Sd, 1); }
-            if (last.ChargeGrains is { } g) card.ChargeGr = Math.Round(g, 2);
+            if (doc.PropellantChargeGr is null && match.ChargeGrains is { } g) card.ChargeGr = Math.Round(g, 2);
         }
         return card;
     }

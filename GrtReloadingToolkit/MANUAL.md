@@ -51,6 +51,10 @@ Key points:
   after the second write.
 - `Ba`, `tcc`/`tch` and `casevol` are always read from your **original** file, never from a
   snapshot that already carries a correction — so running a calibration twice never compounds.
+- **Which file the tools read:** the most recently written of *your own file* and the newest
+  snapshot. A snapshot normally wins (it holds the notes and measurements the toolkit added), but if
+  you save your own file in GRT afterwards — a new charge, a new `Ba` — that save is newer, and it is
+  what every tool reads and what the next snapshot starts from.
 - **When you are done:** in GRT open the newest `…_toolkit_…grtload`, use **File → Save As** to give
   it a clean name, then delete the `_toolkit_…` snapshots.
 - Do **not** press *Ctrl+S* on an old fixed-name `…_toolkit.grtload` tab that GRT opened before a
@@ -212,9 +216,12 @@ confidence interval and the two tests use sample SD (÷n−1) internally, since 
 formulas are built on — for n this small the difference matters.
 
 **Outliers** are flagged by Chauvenet's criterion (classic normal-distribution formulation): a shot
-is rejected if the number of measurements you'd expect to see that far from the mean, over the
-whole string, is under ½. Flagged shots are excluded from the string's mean/SD/CI, same as a
-careful hand analysis would do — they're still listed, not silently dropped.
+is flagged if the number of measurements you'd expect to see that far from the mean, over the whole
+string, is under ½. A flag is a *warning*, not a verdict: on the 3–10 shots of a real string the
+criterion often flags the string's own fast first shot, so by default **every shot counts** in the
+mean/SD/ES/CI, exactly like the chronograph's own summary, and flagged shots are listed with a mark
+in the grid and in the note. Tick **Exclude shots flagged by Chauvenet from the statistics** to
+leave them out of the statistics and the comparison; the note then says which shots were excluded.
 
 **Compare** answers "is charge A actually faster than charge B, or could that be chrono noise?"
 without assuming the two strings are the same size or the same spread:
@@ -327,28 +334,32 @@ past calibrations — GRT's factory default for a powder can't be read via the p
 nothing to compare against for a powder you've never calibrated, and the banner stays silent rather
 than guessing. Silence here means "nothing to compare yet", not "confirmed fine".
 
-**Shape fit (Ba + a0), for when the offset varies with charge**
+**GRT-style correction (Ba and k together)**
 
-A single `Ba` can only correct a *scale* error (the whole curve too fast/slow by the same %) — if
-the offset itself changes with charge, the propellant's burn *shape* is off, and `Ba` alone can't
-fix that no matter how you tune it.
+The Ba-only correction puts the whole error on `Ba`. GRT's own OBT tool does something different: when it
+calibrates the simulation to a measured velocity it scales `Ba` and `k` (the isentropic exponent) by the
+**same factor**. We checked it live on a 40.2 gr N550 load: matching 836.0 m/s instead of the simulated
+830.1 moved both by +0.1797 %, matching 825.0 moved both by −0.1552 %. Because `k` changes the velocity far
+more than `Ba` does (about 33 m/s per 1 % of both together, against about 4 m/s per 1 % of Ba alone), the two
+corrections give the same velocity but different pressure curves, BLT and OBT nodes. The GRT-style
+correction does what GRT does, so the nodes agree with GRT's OBT tool.
 
-1. Capture the baseline sim MV first (steps above), with **3+ charges**.
-2. **Capture shape-fit sweep (a0)** — re-simulates the same charges with the propellant's `a0`
-   (its "prog/deg" burn-shape coefficient) nudged by +5%, so the tool can see how sensitive each
-   charge's MV is to `a0` versus to `Ba`.
-3. The report gains a "Shape fit (Ba + a0)" section with a suggested `Ba` **and** `a0` fitted
-   together across every charge. **Write Ba+a0-corrected .grtload** writes both.
+1. Capture the baseline sim MV first (steps above).
+2. **Capture GRT-style sweep (Ba + k)** — re-simulates the same charges with `Ba` and `k` both nudged by
+   +0.2%.
+3. The report gains a "GRT-style correction (Ba and k together)" section: one common factor (least squares
+   over every charge) and the suggested `Ba` and `k`.
+4. **Verify correction in GRT** simulates every charge with the proposed values. It is accepted only if the
+   mean offset falls to a quarter or less of the original (or inside 0.3 m/s) and the charge-to-charge
+   scatter does not get worse; otherwise the report says REFUSED.
+5. **Write Ba+k-corrected .grtload** writes both, and is enabled only after GRT has confirmed the
+   correction.
 
-Why `a0` and not GRT's `k` (which the OBT tool's own docs mention alongside `Ba`): `k` is the
-combustion gases' ratio of specific heats — a thermochemical property, not a shape-fitting knob.
-Bending it to force a velocity match would leave `Pmax` and burn-time predictions (which OBT/BLT
-directly depend on) wrong in ways this velocity-only fit can't see. `a0` is what GRT's own
-`formalism.txt` describes as the coefficient meant to be adjusted to match a measured burn curve.
-
-This needs the charges spread out (not clustered close together) — with too little spread, `Ba`
-and `a0` affect the sim too similarly to separate reliably, and the tool will say so instead of
-guessing.
+The Ba-only button stays for a quick scale correction. The Journal stores the `k` next to the `Ba` a
+calibration landed on. The tool refuses an absurd correction (more than 5 %, or a `k` outside 1.05–1.50).
+An independent Ba + k (or Ba + a0) fit is no longer offered: `Ba` and `k` both mostly scale the velocity,
+and `a0` hardly affects it (a +30 % change moved the velocities by only 1.7 %), so velocity alone cannot
+separate them.
 
 ---
 
@@ -446,7 +457,8 @@ GRT's own reference values by roughly 4-5x and was removed.
 Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** of the full recipe.
 
 - **Load from GRT** — fill the card from the open load (caliber, firearm, bullet + weight, powder,
-  charge, COAL, seating depth, and MV/SD from the last measurement).
+  charge, COAL, seating depth, and MV/SD from the chronographed charge that matches the recipe
+  charge — none if the recipe charge was never chronographed).
 - **Powder / Primer / Brass / Bullet lot** drop-downs — pick a component lot from the Inventory
   (§14) to compute **cost per round** and stamp the lot on the card.
 - **Barrel** drop-down — pick a barrel from the Inventory (§14) and the card gains a **Barrel**
@@ -509,7 +521,11 @@ and `(+) Shot` markers, mark one point as *Point of Aim*, flag flyers):
    you can use one tab per charge. Leave a group at GRT's own auto-generated name ("Gruppo 1",
    "Group 2"…) and it reads as no charge at all, never as that number — a shot-group tab carries no
    charge value of its own the way a Measurement does, so a bare, keyword-less integer is
-   indistinguishable from GRT's own numbering and is deliberately never guessed at.
+   indistinguishable from GRT's own numbering and is deliberately never guessed at. If groups
+   still carry GRT's own names, **Groups from GRT load** offers to give them the load's
+   chronographed charges in ascending order (first group = lowest charge), shows you the list, and
+   applies it only if you say yes; answer No and those groups are left out — they are never
+   numbered as grains.
 2. **Save the load** so the shot-group tabs are written into the `.grtload`.
 3. In the Ladder / Seating analyzer set **ref dist** (mm / cm / inch) and **shoot dist** (m / yd) —
    GRT does not store which unit the reference-distance field used, so tell the tool — optionally
@@ -517,6 +533,8 @@ and `(+) Shot` markers, mark one point as *Point of Aim*, flag flyers):
 
 The tool converts each hit (stored as an image fraction) to MOA using the two reference points and
 the image aspect ratio (1 MOA = 29.0888 mm at 100 m).
+
+**Restock** accepts `12.5` or `12,5`, says so when the text is not a number (it used to ignore it silently), and asks before taking a lot below zero.
 
 ---
 
@@ -532,9 +550,9 @@ lots, and environmental conditions + the calibrated propellant coefficients for 
   (checked every field in a real `.grtload`: no such tag anywhere), so they're always typed in
   by hand, never read from the load. The Velocity Model (§20) needs this field filled in on at
   least a handful of entries to have anything to fit.
-- **Ba** and **a0** — the values Barrel Calibration's fit landed on for this session. **Log from
+- **Ba**, **a0** and **k** — the values Barrel Calibration's fit landed on for this session. **Log from
   GRT** reads these straight from the open load if you ran *Write Ba-corrected* or *Write
-  Ba+a0-corrected .grtload* there first and it's the load now open; otherwise type them in.
+  Ba+k-corrected .grtload* there first and it's the load now open; otherwise type them in.
 - **Fill Ba from loads** is for a journal written before `Ba`/`a0` were recorded: for every entry
   that has no `Ba` but still names a `.grtload`, it reads the value back out of that file. It
   lists what it found and what it is leaving alone (load moved, never calibrated, won't open)
@@ -548,6 +566,8 @@ silently always taking the last), **Edit**, **Delete**, **Fill Ba from loads**. 
 deleting an entry reconciles the inventory. Tick *deduct components from inventory on save* to
 draw stock down.
 
+The load name is taken without the toolkit's `_toolkit_…` timestamp, so the same load logged from two different snapshots is one load, not two.
+
 ---
 
 ## 16. Find best Ba  🔎
@@ -560,6 +580,8 @@ temperature also takes C or F). Read-only — it's a search over what the Journa
 recorded, not a place to enter new data. The caliber list is built from journal entries that carry a
 `Ba`, so an entry logged before that field existed puts nothing in it: fill in its **Ba
 (calibrated)**, or run **Fill Ba from loads** (both in the Journal, §15), and its caliber appears.
+Entries without the chosen measurement (for example no group size when ranking by group) are
+listed **last**, never hidden.
 
 ---
 
@@ -601,6 +623,8 @@ tested at that caliber, and writes its rank, score and full sub-score breakdown 
 same timestamped-snapshot pattern every other tool in the Toolkit uses, so your original file is
 never touched. If the open load hasn't been logged in the Journal yet, the tool says so instead of
 writing anything. See **Toolkit — Load leaderboard report** below for the matching report page.
+
+A journal entry whose powder or bullet is not linked to an Inventory component is kept apart per load (by load name) — it is no longer merged with every other unlinked load into one "none" row.
 
 ---
 
@@ -651,6 +675,8 @@ own powder in the ranking, and adds one line no other tool has: how this file's 
 the average of every other time this powder was calibrated — the closest thing to a possibly-stale
 `Ba` flag this plugin can give without access to GRT's own factory number.
 
+Entries with no linked powder are grouped per load (by load name), never into one fictional "none" powder that averages unrelated loads.
+
 ---
 
 ## 20. Velocity Model  📉
@@ -697,6 +723,8 @@ strings from the load open in GRT (same reader Chronograph Statistics uses); one
 
 **Write diagnostics note to GRT load** writes every tab's result into one note; a tab with nothing
 to flag prints "No concerning trend" rather than leaving its section blank.
+
+Verdicts need enough data: **Cold Bore** says "inconclusive" with fewer than 5 warm shots, and **Pressure Trend** says "inconclusive" when the chronograph noise on the last two charges is large enough to change the verdict at the charge step used.
 
 ---
 
@@ -820,6 +848,8 @@ closer to or further from centre. This is a measurement of *your* data, never a 
 problem into one note, with the target-plane chart (impacts, centroid, point of aim, outliers
 highlighted) attached as a picture.
 
+The horizontal/vertical spread ratio is only judged from 5 shots up (with 4 it is mostly luck), and on a ladder step the "off point-of-aim" finding says that the centre moves with the charge by design.
+
 ---
 
 ## 24. Print Ladder/OCW Target  🎯🖨
@@ -888,7 +918,7 @@ delete a page by saving it empty in GRT.
 | **Toolkit — Chronograph statistics report** | the chrono-statistics note |
 | **Toolkit — Ladder / OCW report** | the OCW note + chart |
 | **Toolkit — Seating-depth report** | the seating note + chart |
-| **Toolkit — Barrel calibration report** | the calibration note (Ba, or Ba+a0 shape fit) + temp-coefficient note |
+| **Toolkit — Barrel calibration report** | the calibration note (Ba, or Ba+k GRT-style correction) + temp-coefficient note |
 | **Toolkit — Powder temp-coefficients report** | the temp-coefficient note on its own |
 | **Toolkit — Case volume report** | the case-volume note |
 | **Toolkit — Seating depth (geometry) report** | the seating-depth-from-comparator note |

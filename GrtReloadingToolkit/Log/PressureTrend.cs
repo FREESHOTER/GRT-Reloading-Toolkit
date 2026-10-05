@@ -21,6 +21,7 @@ namespace GrtReloadingToolkit.Log;
 /// </summary>
 public static class PressureTrend
 {
+
     public sealed class PressureTrendError : ArgumentException
     {
         public PressureTrendError(string message) : base(message) { }
@@ -38,7 +39,10 @@ public static class PressureTrend
     /// <param name="chargesGr">Charges in whatever test order — re-sorted by ascending weight along
     /// with their matching velocities.</param>
     /// <param name="velocitiesMps">Mean velocity per charge, same order as <paramref name="chargesGr"/>.</param>
-    public static PressureTrendResult AnalyzePressureTrend(IReadOnlyList<double> chargesGr, IReadOnlyList<double> velocitiesMps)
+    /// <param name="meanSeMps">Optional standard error of each mean (same order); lets the analysis refuse
+    /// to read a pressure estimate from slopes that are smaller than the measurement noise.</param>
+    public static PressureTrendResult AnalyzePressureTrend(IReadOnlyList<double> chargesGr, IReadOnlyList<double> velocitiesMps,
+        IReadOnlyList<double>? meanSeMps = null)
     {
         if (chargesGr.Count != velocitiesMps.Count)
             throw new PressureTrendError("chargesGr and velocitiesMps must have the same length.");
@@ -73,14 +77,52 @@ public static class PressureTrend
         for (int i = slopes.Count - 1; i >= Math.Max(0, slopes.Count - 2); i--)
             if (slopes[i] < meanSlope * 0.2 && slopes[i] >= 0) { flattening = true; break; }
 
+        // Slope-between-neighbouring-means is differentiating noisy numbers: each mean carries the
+        // chronograph's own error, and over a small charge step that alone can swing a slope by tens
+        // of m/s per grain. When the caller supplies the standard error of each mean, a last slope whose
+        // own error is a big fraction of the mean slope cannot be read as "flattening" or "ample
+        // margin" -- the estimate below would shout "possible overpressure" (or "safe") at random.
+        if (meanSeMps is { } se && se.Count == velocities.Count && slopes.Count >= 1)
+        {
+            // charges were sorted above, so the standard errors must follow the same order
+            var seSorted = paired.Select(p => 0.0).ToList();
+            var order = chargesGr.Select((c, i) => (c, i)).OrderBy(t => t.c).Select(t => t.i).ToList();
+            for (int k = 0; k < order.Count; k++) seSorted[k] = se[order[k]];
+
+            double dcLast = charges[^1] - charges[^2];
+            double lastSlopeSe = dcLast > 0 ? Math.Sqrt(seSorted[^1] * seSorted[^1] + seSorted[^2] * seSorted[^2]) / dcLast : double.PositiveInfinity;
+            // Unreadable when the verdict would change within the slope's own 2-sigma error band.
+            string at = LevelFor(slopes[^1], meanSlope);
+            bool flips = double.IsInfinity(lastSlopeSe)
+                         || LevelFor(slopes[^1] - 2 * lastSlopeSe, meanSlope) != at
+                         || LevelFor(slopes[^1] + 2 * lastSlopeSe, meanSlope) != at;
+            if (Math.Abs(meanSlope) > 1e-9 && flips)
+            {
+                return new PressureTrendResult(charges, velocities, slopes.Select(s => Math.Round(s, 4)).ToList(),
+                    Math.Round(meanSlope, 4), jumps, false,
+                    "Inconclusive — the chronograph noise on the last two charges is too large for the charge step to read a pressure trend; use wider charge steps or more shots per charge",
+                    "unknown");
+            }
+        }
+
         double lastSlope = slopes.Count > 0 ? slopes[^1] : meanSlope;
-        string estimate, level;
-        if (lastSlope < meanSlope * 0.1) { estimate = "Maximum — possible overpressure signal"; level = "critical"; }
-        else if (lastSlope < meanSlope * 0.4) { estimate = "High — near the limit"; level = "warning"; }
-        else if (lastSlope > meanSlope * 1.5) { estimate = "Low — ample margin"; level = "safe"; }
-        else { estimate = "Normal"; level = "normal"; }
+        string level = LevelFor(lastSlope, meanSlope);
+        string estimate = level switch
+        {
+            "critical" => "Maximum — possible overpressure signal",
+            "warning" => "High — near the limit",
+            "safe" => "Low — ample margin",
+            _ => "Normal",
+        };
 
         return new PressureTrendResult(charges, velocities, slopes.Select(s => Math.Round(s, 4)).ToList(),
             Math.Round(meanSlope, 4), jumps, flattening, estimate, level);
     }
+
+    /// <summary>The heuristic's verdict for a last slope against the mean slope.</summary>
+    private static string LevelFor(double lastSlope, double meanSlope) =>
+        lastSlope < meanSlope * 0.1 ? "critical"
+        : lastSlope < meanSlope * 0.4 ? "warning"
+        : lastSlope > meanSlope * 1.5 ? "safe"
+        : "normal";
 }

@@ -28,11 +28,21 @@
          would make these tests Windows-only. Linking the two files it actually needs keeps
          them runnable on any machine and on CI. -->
     <Compile Include="..\GrtReloadingToolkit\Ocw\LadderStep.cs" Link="Ocw\LadderStep.cs" />
+    <!-- The ladder loader decides which groups become ladder steps, and the Athlon model/parser it
+         reads velocities with are plain parsing: no WinForms. -->
+    <Compile Include="..\GrtReloadingToolkit\Ocw\LadderLoader.cs" Link="Ocw\LadderLoader.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Athlon\AthlonModels.cs" Link="Athlon\AthlonModels.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Athlon\AthlonParser.cs" Link="Athlon\AthlonParser.cs" />
+    <!-- The calibration maths: the Ba + a0 fit and its report. -->
+    <Compile Include="..\GrtReloadingToolkit\Cal\Calibration.cs" Link="Cal\Calibration.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ocw\LadderAnalyzer.cs" Link="Ocw\LadderAnalyzer.cs" />
     <!-- Same story for the log store: SQLite and arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\Log\LogModels.cs" Link="Log\LogModels.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Db.cs" Link="Log\Db.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadSnapshot.cs" Link="Log\LoadSnapshot.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\StaleNotes.cs" Link="Log\StaleNotes.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\LoadIdentity.cs" Link="Log\LoadIdentity.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ui\RowLabels.cs" Link="Ui\RowLabels.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\BaBackfill.cs" Link="Log\BaBackfill.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadScoring.cs" Link="Log\LoadScoring.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadScoringConfig.cs" Link="Log\LoadScoringConfig.cs" />

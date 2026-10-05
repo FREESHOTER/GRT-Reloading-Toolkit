@@ -88,7 +88,7 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         // entry) + the propellant coefficients a calibration session actually produced, so a later
         // search can find "what Ba worked for this powder+bullet near this temperature" instead of
         // digging through old .grtload files by hand.
-        foreach (var col in new[] { "temperature_c", "pressure_hpa", "humidity_pct", "ba", "a0" })
+        foreach (var col in new[] { "temperature_c", "pressure_hpa", "humidity_pct", "ba", "a0", "k" })
             if (!ColumnExists("journal", col))
                 Exec($"ALTER TABLE journal ADD COLUMN {col} REAL");
         // Brass Life (see Log/BrassLife.cs): anneal reminder, expressed as an average-firings-per-
@@ -207,16 +207,16 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
                 cmd.CommandText = @"INSERT INTO journal
                   (date,load_name,caliber,firearm,firearm_id,powder_id,primer_id,brass_id,bullet_id,charge_gr,coal_mm,cbto_mm,rounds,
                    velocity_avg_ms,sd_ms,es_ms,group_moa,distance_m,notes,grtload_path,stock_applied,
-                   temperature_c,pressure_hpa,humidity_pct,ba,a0)
+                   temperature_c,pressure_hpa,humidity_pct,ba,a0,k)
                   VALUES ($date,$ln,$cal,$fa,$fid,$pw,$pr,$br,$bu,$chg,$coal,$cbto,$rnd,$v,$sd,$es,$grp,$dist,$notes,$path,$sa,
-                          $temp,$pres,$hum,$ba,$a0);
+                          $temp,$pres,$hum,$ba,$a0,$k);
                   SELECT last_insert_rowid();";
             else
             {
                 cmd.CommandText = @"UPDATE journal SET date=$date,load_name=$ln,caliber=$cal,firearm=$fa,firearm_id=$fid,powder_id=$pw,
                   primer_id=$pr,brass_id=$br,bullet_id=$bu,charge_gr=$chg,coal_mm=$coal,cbto_mm=$cbto,rounds=$rnd,
                   velocity_avg_ms=$v,sd_ms=$sd,es_ms=$es,group_moa=$grp,distance_m=$dist,notes=$notes,grtload_path=$path,
-                  stock_applied=$sa,temperature_c=$temp,pressure_hpa=$pres,humidity_pct=$hum,ba=$ba,a0=$a0 WHERE id=$id; SELECT $id;";
+                  stock_applied=$sa,temperature_c=$temp,pressure_hpa=$pres,humidity_pct=$hum,ba=$ba,a0=$a0,k=$k WHERE id=$id; SELECT $id;";
                 cmd.Parameters.AddWithValue("$id", e.Id);
             }
             void Q(string n, object? v) => cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
@@ -226,7 +226,7 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
             Q("$v", e.VelocityAvgMs); Q("$sd", e.SdMs); Q("$es", e.EsMs); Q("$grp", e.GroupMoa); Q("$dist", e.DistanceM);
             Q("$notes", e.Notes); Q("$path", e.GrtloadPath);
             Q("$sa", applyStock ? 1 : 0);
-            Q("$temp", e.TemperatureC); Q("$pres", e.PressureHpa); Q("$hum", e.HumidityPct); Q("$ba", e.Ba); Q("$a0", e.A0);
+            Q("$temp", e.TemperatureC); Q("$pres", e.PressureHpa); Q("$hum", e.HumidityPct); Q("$ba", e.Ba); Q("$a0", e.A0); Q("$k", e.K);
             id = Convert.ToInt64(cmd.ExecuteScalar());
         }
 
@@ -251,13 +251,17 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
     /// component combo aren't comparable. Caller sorts by whichever "best" means for them: tightest
     /// group, closest velocity, closest temperature.
     /// </summary>
+    /// <summary>Calibrated entries for a caliber. A null <paramref name="powderId"/> / <paramref name="bulletId"/>
+    /// means ANY powder / bullet (the form's "-- any --"), not "only entries with none": the old
+    /// <c>IS</c> comparison made "any" return just the unlinked entries and hid every load whose powder
+    /// or bullet was linked to the Inventory.</summary>
     public List<JournalEntry> FindCalibrations(string caliber, long? powderId, long? bulletId)
     {
         var list = new List<JournalEntry>();
         using var cmd = _cn.CreateCommand();
         cmd.CommandText = @"SELECT * FROM journal
             WHERE ba IS NOT NULL AND caliber = $cal COLLATE NOCASE
-              AND (powder_id IS $pw) AND (bullet_id IS $bu)
+              AND ($pw IS NULL OR powder_id = $pw) AND ($bu IS NULL OR bullet_id = $bu)
             ORDER BY date DESC, id DESC";
         cmd.Parameters.AddWithValue("$cal", caliber);
         cmd.Parameters.AddWithValue("$pw", (object?)powderId ?? DBNull.Value);
@@ -629,7 +633,7 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         Notes = Str(r, "notes"), GrtloadPath = Str(r, "grtload_path"), CreatedAt = Str(r, "created_at"),
         StockApplied = Lng(r, "stock_applied") != 0,
         TemperatureC = Nul(r, "temperature_c"), PressureHpa = Nul(r, "pressure_hpa"), HumidityPct = Nul(r, "humidity_pct"),
-        Ba = Nul(r, "ba"), A0 = Nul(r, "a0"),
+        Ba = Nul(r, "ba"), A0 = Nul(r, "a0"), K = Nul(r, "k"),
     };
 
     private static string Str(SqliteDataReader r, string c) { int i = r.GetOrdinal(c); return r.IsDBNull(i) ? "" : r.GetString(i); }

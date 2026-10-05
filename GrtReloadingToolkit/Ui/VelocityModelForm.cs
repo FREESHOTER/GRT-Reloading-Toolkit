@@ -143,7 +143,9 @@ internal sealed class VelocityModelForm : Form
     {
         long? keep = (cb.SelectedItem as Item)?.Id;
         cb.Items.Clear();
-        cb.Items.Add(new Item(0, Lang.T("-- any --")));
+        // Not "any": the fit must not mix powders or bullets, so the query for this entry means exactly
+        // "entries with no component linked" -- and the label has to say so.
+        cb.Items.Add(new Item(0, Lang.T("-- not linked to the Inventory --")));
         foreach (var c in items) cb.Items.Add(new Item(c.Id, c.Display));
         cb.SelectedIndex = 0;
         if (keep is { } id)

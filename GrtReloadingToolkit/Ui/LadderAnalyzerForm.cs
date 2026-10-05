@@ -205,7 +205,7 @@ internal abstract class LadderAnalyzerForm : Form
             {
                 MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Groups from GRT")); return;
             }
-            var doc = GrtLoadDoc.Load(top.file);
+            var doc = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
             var opt = new GrtShotGroups.Options(
                 _refUnit.SelectedIndex switch { 1 => RefUnit.Cm, 2 => RefUnit.Inch, _ => RefUnit.Mm },
                 _shootUnit.SelectedIndex == 1 ? ShootUnit.Yards : ShootUnit.Meters,
@@ -216,6 +216,36 @@ internal abstract class LadderAnalyzerForm : Form
 
             // so the MV flat-spot appears without also pointing at a chrono folder
             await RefreshLoadVelocitiesAsync();
+
+            // A group still called "Gruppo 1", "Gruppo 2"... says nothing about its charge. Never read
+            // those as 1, 2... grains: offer the load's own chronographed charges, in ascending
+            // order, and let the user confirm -- shooting order is an assumption, not data.
+            if (groups.Any(g => g.ChargeGrains is null))
+            {
+                var pairs = LadderLoader.AssignOrdinalSteps(groups, (_grtVels ?? new()).Select(v => v.Step));
+                if (pairs is not null)
+                {
+                    string list = string.Join("\n", pairs.Select(p =>
+                        $"  {Path.GetFileName(p.Group.SourceFile.Replace("GRT:", ""))}  →  " +
+                        Mode.XValue(p.Step).ToString(Mode.XFormat(), CultureInfo.InvariantCulture) + " " + XUnit));
+                    var ans = MessageBox.Show(this,
+                        Lang.T("Some shot groups have no charge in their name. Assign the load's chronographed charges to them in ascending order (first group = lowest charge)?")
+                        + "\n\n" + list + "\n\n"
+                        + Lang.T("Choose No if you did not shoot them in ascending order: rename the groups in GRT instead (e.g. \"40.2 gr\")."),
+                        Lang.T("Groups from GRT"), MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (ans == DialogResult.Yes) { LadderLoader.ApplySteps(pairs); AppendLog($"{pairs.Count} unnamed group(s) assigned to the load's charges in ascending order (confirmed)"); }
+                }
+                int skipped = groups.Count(g => g.ChargeGrains is null);
+                if (skipped > 0)
+                {
+                    groups = groups.Where(g => g.ChargeGrains is not null).ToList();
+                    AppendLog($"{skipped} shot group(s) without a charge in the name were left out");
+                    MessageBox.Show(this,
+                        string.Format(Lang.T("{0} shot group(s) were left out: their name has no charge, so they cannot be placed on the ladder. Rename them in GRT (e.g. \"40.2 gr\") and load again."), skipped),
+                        Lang.T("Groups from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    if (groups.Count == 0) return;
+                }
+            }
 
             _grtGroups = groups;
             _folder.Text = $"{Lang.T("GRT shot groups")} ({groups.Count}) — {Path.GetFileName(top.file)}";

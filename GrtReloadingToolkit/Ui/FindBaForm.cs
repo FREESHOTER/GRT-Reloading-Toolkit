@@ -90,7 +90,7 @@ internal sealed class FindBaForm : Form
         // Every column that carries a unit names it in the header and prints a bare number in the
         // cell, the way the rest of the toolkit does -- and names the unit GRT is configured for,
         // not the one the numbers happen to be stored in.
-        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("chg", Lang.T("Charge") + " " + fbU.ChargeUnitName), ("ba", "Ba"), ("a0", "a0"),
+        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("chg", Lang.T("Charge") + " " + fbU.ChargeUnitName), ("ba", "Ba"), ("a0", "a0"), ("k", "k"),
                      ("mv", "MV " + fbU.VelocityUnitName), ("sd", "SD " + fbU.VelocityUnitName), ("grp", Lang.T("Group MOA")),
                      ("temp", Lang.T("Temp") + " " + fbU.TemperatureUnitName), ("notes", Lang.T("Notes")) })
             _fb.Columns.Add(n, h);
@@ -185,13 +185,19 @@ internal sealed class FindBaForm : Form
         var results = _db.FindCalibrations(caliber, powderId, bulletId);
         _fbLastResults = results;
 
+        // Entries without the ranking metric are listed LAST, never dropped: a ladder logged without a
+        // measured group is still a calibration the user has, and hiding it (with a "nothing matches"
+        // message) made the whole tool look empty on a journal that had Ba in every entry.
         IEnumerable<JournalEntry> ranked = _fbSortBy.SelectedIndex switch
         {
             1 => results.Where(e => e.VelocityAvgMs.HasValue)
-                        .OrderBy(e => Math.Abs(e.VelocityAvgMs!.Value - u.VelocityToMps((double)_fbTargetMv.Value))),
+                        .OrderBy(e => Math.Abs(e.VelocityAvgMs!.Value - u.VelocityToMps((double)_fbTargetMv.Value)))
+                        .Concat(results.Where(e => !e.VelocityAvgMs.HasValue)),
             2 => results.Where(e => e.TemperatureC.HasValue)
-                        .OrderBy(e => Math.Abs(e.TemperatureC!.Value - TargetTempC())),
-            _ => results.Where(e => e.GroupMoa.HasValue).OrderBy(e => e.GroupMoa),
+                        .OrderBy(e => Math.Abs(e.TemperatureC!.Value - TargetTempC()))
+                        .Concat(results.Where(e => !e.TemperatureC.HasValue)),
+            _ => results.Where(e => e.GroupMoa.HasValue).OrderBy(e => e.GroupMoa)
+                        .Concat(results.Where(e => !e.GroupMoa.HasValue)),
         };
         var list = ranked.ToList();
 
@@ -204,6 +210,7 @@ internal sealed class FindBaForm : Form
             int i = _fb.Rows.Add(e.Date, e.LoadName, u.ChargeValue(e.ChargeGr).ToString(u.ChargeFormat, CultureInfo.InvariantCulture),
                 e.Ba?.ToString("0.######", CultureInfo.InvariantCulture) ?? "",
                 e.A0?.ToString("0.####", CultureInfo.InvariantCulture) ?? "",
+                e.K?.ToString("0.######", CultureInfo.InvariantCulture) ?? "",
                 e.VelocityAvgMs is { } mv ? u.VelocityValue(mv).ToString("0", CultureInfo.InvariantCulture) : "",
                 e.SdMs is { } sd ? u.VelocitySd(sd) : "",
                 e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
@@ -212,7 +219,7 @@ internal sealed class FindBaForm : Form
         }
         _fbStatus.Text = list.Count == 0
             ? Lang.T("No calibrated entries match this caliber/powder/bullet combo yet.")
-            : string.Format(Lang.T("{0} matching calibration(s), best first."), list.Count);
+            : string.Format(Lang.T("{0} matching calibration(s), best first (entries without that measurement are last)."), list.Count);
         UpdateFindBaChart();
     }
 

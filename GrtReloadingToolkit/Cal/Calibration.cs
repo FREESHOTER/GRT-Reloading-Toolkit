@@ -9,11 +9,17 @@ public sealed class CalPoint
     public double MeasMps { get; set; }
     public double SimMps { get; set; }
 
-    /// <summary>Sim MV at the SAME charge with the propellant's "a0" (prog/deg shape coefficient)
-    /// nudged by a small delta -- the second data series needed to fit a shape correction
-    /// alongside Ba's scale correction. 0 if that sweep hasn't been captured for this point.</summary>
-    public double SimMpsPertA0 { get; set; }
-    public bool HasPert => SimMpsPertA0 > 0;
+    /// <summary>Sim MV at the SAME charge with the propellant's "k" (isentropic exponent) nudged by a
+    /// small delta -- the second data series needed to fit k alongside Ba. 0 if that sweep hasn't been
+    /// captured for this point.</summary>
+    public double SimMpsPertK { get; set; }
+    public bool HasPert => SimMpsPertK > 0;
+
+    /// <summary>Sim MV at the SAME charge with the propellant's Ba AND k set to the shape fit's proposed
+    /// values: what GRT itself says the proposed correction predicts, as opposed to what the straight-line
+    /// fit believes it predicts. 0 until the verification sweep has been run.</summary>
+    public double SimMpsVerify { get; set; }
+    public bool HasVerify => SimMpsVerify > 0;
 
     public bool Valid => MeasMps > 0 && SimMps > 0;
     public double DeltaMps => MeasMps - SimMps;
@@ -44,68 +50,100 @@ public sealed class CalResult
     private IEnumerable<CalPoint> Valid() => Points.Where(p => p.Valid);
     public int NPert => Valid().Count(p => p.HasPert);
 
-    public sealed record ShapeFit(double NewBa, double NewA0, double DeltaBa, double DeltaA0, IReadOnlyList<string> Notes)
+    /// <summary>The outcome of checking a proposed joint Ba/k correction against GRT's own simulation.</summary>
+    public sealed record JointVerification(int N, double MeanOriginalMps, double MeanFitMps, double RmsOriginalMps,
+        double RmsFitMps, bool Accepted, string Reason);
+
+    /// <summary>Below this mean offset (m/s) the model already matches the chronograph to within its noise:
+    /// there is nothing to correct.</summary>
+    public const double NoiseFloorMps = 0.3;
+    /// <summary>The verified mean offset must fall to at most this share of the original (or to the noise floor).</summary>
+    public const double MaxResidualShare = 0.25;
+
+    /// <summary>
+    /// Judges the proposed correction by what GRT actually simulates with it
+    /// (<see cref="CalPoint.SimMpsVerify"/>) rather than by the straight-line fit that proposed it. Accepted
+    /// only if GRT's own simulation brings the mean offset from the measured velocities down to at most
+    /// <see cref="MaxResidualShare"/> of the original (or inside the noise floor) without making the scatter
+    /// worse. Null until every captured point has been verified.
+    /// </summary>
+    public JointVerification? VerifyJoint()
+    {
+        var all = Valid().ToList();
+        var pts = all.Where(p => p.HasVerify).ToList();
+        if (all.Count < 1 || pts.Count < all.Count) return null;
+
+        double Mean(IEnumerable<double> d) => d.Average();
+        double Rms(IEnumerable<double> d) { var l = d.ToList(); return Math.Sqrt(l.Sum(x => x * x) / l.Count); }
+        double meanOrig = Mean(pts.Select(p => p.MeasMps - p.SimMps));
+        double meanFit = Mean(pts.Select(p => p.MeasMps - p.SimMpsVerify));
+        double rmsOrig = Rms(pts.Select(p => p.MeasMps - p.SimMps));
+        double rmsFit = Rms(pts.Select(p => p.MeasMps - p.SimMpsVerify));
+
+        string reason;
+        bool ok;
+        if (Math.Abs(meanOrig) < NoiseFloorMps)
+        { ok = false; reason = "The model already matches the measured velocities to within chronograph noise: nothing to correct."; }
+        else if (Math.Abs(meanFit) > Math.Max(NoiseFloorMps, MaxResidualShare * Math.Abs(meanOrig)))
+        { ok = false; reason = "GRT's own simulation with the proposed values still leaves a clear offset from the measured velocities, so it is not offered."; }
+        else if (rmsFit > 1.05 * rmsOrig + 0.05)
+        { ok = false; reason = "GRT's own simulation with the proposed values makes the charge-to-charge scatter worse, so it is not offered."; }
+        else { ok = true; reason = "GRT's own simulation confirms the correction."; }
+        return new JointVerification(pts.Count, meanOrig, meanFit, rmsOrig, rmsFit, ok, reason);
+    }
+
+    public sealed record JointFit(double NewBa, double NewK, double Factor, IReadOnlyList<string> Notes)
     {
         public bool Ok => Notes.Count == 0;
+        public double DeltaBa(double baOld) => NewBa - baOld;
+        public double DeltaK(double kOld) => NewK - kOld;
     }
 
     /// <summary>
-    /// Fits BOTH Ba (scale) and a0 (the propellant's "prog/deg" burn-shape coefficient) so the
-    /// model matches measured MV across every captured charge at once -- the two-parameter
-    /// extension of <see cref="BaMultiplier"/>'s single-parameter fit, for when
-    /// <see cref="Consistent"/> is false (the offset varies with charge, meaning the burn SHAPE is
-    /// off, not just the scale). Chose a0 over the propellant's "k" (ratio of specific heats) as
-    /// the second knob: k is a thermochemical property of the combustion gases, not a curve-fitting
-    /// parameter -- bending it to match MV would leave Pmax and burn-time predictions (which is
-    /// exactly what OBT/BLT depend on) wrong in ways this MV-only fit can't see. a0 is what
-    /// GRT's own doku (formalism.txt, "form functions") describes as the coefficient meant to be
-    /// adjusted to match a measured burn curve.
+    /// GRT-style calibration: scale Ba AND k by one common factor f so the simulated velocity matches the
+    /// measured one. This is what GRT's own OBT tool does (checked live on a 40.2 gr N550 load: asked to match
+    /// 836.0 m/s instead of the simulated 830.1, it moved k and Ba both by exactly +0.1797 %; asked for 825.0 it
+    /// moved both by -0.1552 %), so a load calibrated this way has the same Pmax, BLT and OBT nodes GRT's own
+    /// tool would give it. Ba and k cannot be told apart from velocity alone -- both mostly scale it -- but a
+    /// single common factor needs no such separation, which is why this is well-conditioned where an
+    /// independent Ba + k (or Ba + a0) fit is not.
     ///
-    /// Linearized (Gauss-Newton, one step): dMV/dBa is estimated analytically from the same
-    /// MV~sqrt(Ba) relationship <see cref="BaMultiplier"/> already assumes (no extra simulation
-    /// needed for that column); dMV/da0 needs one extra simulated MV per charge, at a0 nudged by
-    /// <paramref name="deltaA0"/> (<see cref="CalPoint.SimMpsPertA0"/>). Solved by 2x2 least
-    /// squares (normal equations) across every point that has both series captured.
+    /// One Gauss-Newton step: dMV/df per charge comes from the sweep with Ba and k both nudged by
+    /// <paramref name="delta"/> (<see cref="CalPoint.SimMpsPertK"/>), and f - 1 is the least-squares solution over
+    /// every charge. A PROPOSAL only: it is offered for writing once GRT's own simulation confirms it
+    /// (<see cref="VerifyJoint"/>).
     /// </summary>
-    public ShapeFit? FitBaAndA0(double baOld, double a0Old, double deltaA0)
+    public JointFit? FitJoint(double baOld, double kOld, double delta)
     {
         var pts = Valid().Where(p => p.HasPert).ToList();
-        if (pts.Count < 2) return null;                    // 2 unknowns need at least 2 equations
+        if (pts.Count < 1 || delta <= 0) return null;
 
-        var notes = new List<string>();
-        if (pts.Count == 2)
-            notes.Add("only 2 points with shape-fit data -- an exact fit with no redundancy to check consistency. Capture a 3rd charge if you can.");
-
-        double sbb = 0, sba = 0, saa = 0, sbr = 0, sar = 0;
+        double sgg = 0, sgr = 0;
         foreach (var p in pts)
         {
-            double dBa = p.SimMps / (2.0 * baOld);              // d(MV)/d(Ba), from MV ~ sqrt(Ba)
-            double dA0 = (p.SimMpsPertA0 - p.SimMps) / deltaA0; // d(MV)/d(a0), numeric
-            double r = p.MeasMps - p.SimMps;                    // residual MV still unexplained
-            sbb += dBa * dBa; sba += dBa * dA0; saa += dA0 * dA0;
-            sbr += dBa * r; sar += dA0 * r;
+            double g = (p.SimMpsPertK - p.SimMps) / delta;   // d(MV)/d(relative change of Ba and k together)
+            double r = p.MeasMps - p.SimMps;
+            sgg += g * g; sgr += g * r;
         }
-
-        double det = sbb * saa - sba * sba;
-        if (Math.Abs(det) < 1e-9)
+        var notes = new List<string>();
+        if (sgg <= 0)
         {
-            notes.Add("Ba and a0 affect these charges too similarly to separate reliably -- spread the measured charges further apart (or add more) and try again.");
-            return new ShapeFit(baOld, a0Old, 0, 0, notes);
+            notes.Add("the simulated velocity did not respond to the nudge of Ba and k -- capture the sweep again.");
+            return new JointFit(baOld, kOld, 1.0, notes);
         }
-
-        double deltaBa = (sbr * saa - sar * sba) / det;
-        double deltaA0Sol = (sbb * sar - sba * sbr) / det;
-        double newBa = baOld + deltaBa;
-        double newA0 = a0Old + deltaA0Sol;
-        if (newBa <= 0)
+        double d = sgr / sgg;
+        double factor = 1.0 + d;
+        double newBa = baOld * factor, newK = kOld * factor;
+        if (Math.Abs(d) > MaxJointStep || newK < 1.05 || newK > 1.50)
         {
-            // Invariant, like every other line BuildReport below composes -- this note lands in
-            // the same report they do.
-            notes.Add(FormattableString.Invariant($"fit produced a non-physical Ba <= 0 ({newBa:0.####}) -- discard; the data is likely too noisy or the charges too close together."));
-            return new ShapeFit(baOld, a0Old, 0, 0, notes);
+            notes.Add(FormattableString.Invariant(
+                $"the correction asks for Ba and k to move together by {d:+0.00%;-0.00%} -- larger than a believable powder-model adjustment (limit +/-{MaxJointStep:0%}, k between 1.05 and 1.50). Check the measured velocities and the load before trusting any calibration."));
+            return new JointFit(baOld, kOld, 1.0, notes);
         }
-        return new ShapeFit(newBa, newA0, deltaBa, deltaA0Sol, notes);
+        return new JointFit(newBa, newK, factor, notes);
     }
+
+    private const double MaxJointStep = 0.05;
 
     public string BuildReport(string headline, double? baOld, string powderName)
     {
@@ -119,11 +157,19 @@ public sealed class CalResult
         sb.AppendLine($"charge in {gu.ChargeUnitName}, velocities in {gu.VelocityUnitName}");
         sb.AppendLine("charge   meas MV   sim MV     d MV    d %");
         foreach (var p in Points.OrderBy(p => p.ChargeGr))
-            sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "{0,6} {1,9:0.0} {2,9:0.0} {3,8:+0.0;-0.0;0.0} {4,7:+0.00;-0.00;0.00}",
-                gu.ChargeValue(p.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture),
-                gu.VelocityValue(p.MeasMps), gu.VelocityValue(p.SimMps),
-                gu.VelocityValue(p.DeltaMps), p.DeltaPct));
+            // A point whose sim MV has not been captured yet has no offset: printing meas - 0 gave a
+            // meaningless "+806.6" row.
+            if (p.Valid)
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                    "{0,6} {1,9:0.0} {2,9:0.0} {3,8:+0.0;-0.0;0.0} {4,7:+0.00;-0.00;0.00}",
+                    gu.ChargeValue(p.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture),
+                    gu.VelocityValue(p.MeasMps), gu.VelocityValue(p.SimMps),
+                    gu.VelocityValue(p.DeltaMps), p.DeltaPct));
+            else
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                    "{0,6} {1,9:0.0} {2,9} {3,8} {4,7}",
+                    gu.ChargeValue(p.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture),
+                    gu.VelocityValue(p.MeasMps), "-", "-", "-"));
         sb.AppendLine();
         if (N == 0) { sb.AppendLine("no valid points captured."); return sb.ToString(); }
 
@@ -133,7 +179,7 @@ public sealed class CalResult
         sb.AppendLine(N >= 2
             ? (Consistent ? "-> consistent across charges: a clean barrel-vs-model offset."
                           : "-> offset varies with charge: the powder model shape is off, not just a scale."
-                            + (N >= 3 ? " Try 'Capture shape-fit sweep (a0)' below." : " Capture a 3rd+ charge, then try the a0 shape fit."))
+                            + (N >= 3 ? " Try 'Capture shape-fit sweep (k)' below." : " Capture a 3rd+ charge, then try the k shape fit."))
             : "-> capture 2+ charges to tell a scale error from a shape error.");
         sb.AppendLine();
         if (baOld is { } ba)
@@ -150,27 +196,32 @@ public sealed class CalResult
         return sb.ToString();
     }
 
-    public string BuildShapeReport(ShapeFit fit, double baOld, double a0Old, string powderName)
+    public string BuildJointReport(JointFit fit, double baOld, double kOld, string powderName, JointVerification? verification = null)
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine();
-        sb.AppendLine("Shape fit (Ba + a0)");
-        sb.AppendLine(new string('-', 19));
+        sb.AppendLine("GRT-style correction (Ba and k together)");
+        sb.AppendLine(new string('-', 40));
         if (!fit.Ok)
         {
             foreach (var n in fit.Notes) sb.AppendLine("! " + n);
             return sb.ToString();
         }
         sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-            "suggested Ba for {0}: {1:0.######}  (was {2:0.######}, delta {3:+0.######;-0.######})",
-            powderName, fit.NewBa, baOld, fit.DeltaBa));
+            "common factor for {0}: x{1:0.#####}  ({2:+0.000%;-0.000%})", powderName, fit.Factor, fit.Factor - 1));
         sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-            "suggested a0 for {0}: {1:0.####}  (was {2:0.####}, delta {3:+0.####;-0.####})",
-            powderName, fit.NewA0, a0Old, fit.DeltaA0));
-        foreach (var n in fit.Notes) sb.AppendLine("! " + n);
-        sb.AppendLine("Fit over " + NPert + " charge(s) with both baseline and a0-perturbed sim MV captured.");
-        sb.AppendLine("a0 is the propellant's prog/deg burn-shape coefficient (GRT doku: \"form functions\") --");
-        sb.AppendLine("not the same as \"k\" (ratio of specific heats), which is a thermochemical property, not a fit knob.");
+            "suggested Ba: {0:0.######}  (was {1:0.######})", fit.NewBa, baOld));
+        sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
+            "suggested k:  {0:0.#######}  (was {1:0.#######})", fit.NewK, kOld));
+        sb.AppendLine("Fit over " + NPert + " charge(s) with both baseline and Ba/k-nudged sim MV captured.");
+        if (verification is { } v)
+            sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                "Verified in GRT at the proposed Ba and k: mean offset {0:+0.00;-0.00;0.00} m/s (was {1:+0.00;-0.00;0.00}), RMS {2:0.00} m/s (was {3:0.00}) -> {4}. {5}",
+                v.MeanFitMps, v.MeanOriginalMps, v.RmsFitMps, v.RmsOriginalMps, v.Accepted ? "ACCEPTED" : "REFUSED", v.Reason));
+        else
+            sb.AppendLine("! NOT verified yet: run 'Verify correction in GRT'. The Ba + k file is written only after GRT's own simulation confirms it.");
+        sb.AppendLine("This is the adjustment GRT's own OBT tool makes (Ba and k scaled by the same factor), so Pmax, BLT and the");
+        sb.AppendLine("OBT nodes of the corrected load agree with what GRT's OBT tool would give.");
         return sb.ToString();
     }
 }

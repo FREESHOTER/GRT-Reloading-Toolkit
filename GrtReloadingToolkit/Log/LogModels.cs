@@ -131,6 +131,9 @@ public sealed class JournalEntry
     /// exact powder+bullet combo, filtered/sorted by group size, velocity or temperature.</summary>
     public double? Ba { get; set; }
     public double? A0 { get; set; }
+    /// <summary>The propellant's isentropic exponent (k) the calibration landed on: with Ba, the other
+    /// coefficient GRT's own OBT tool moves, so a Ba without its k does not reproduce the calibration.</summary>
+    public double? K { get; set; }
 }
 
 /// <summary>

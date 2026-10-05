@@ -14,7 +14,7 @@ public static class WorkflowRanking
     public const int MinRoundsForRanking = 3;
 
     public sealed record Row(long? PowderId, long? BulletId, double ChargeGr, int Sessions, int Rounds,
-        double? Sd, double? Es, double? Group, LoadScoring.Breakdown Score);
+        double? Sd, double? Es, double? Group, LoadScoring.Breakdown Score, string Identity = "");
 
     /// <summary>Every caliber+powder+bullet+charge group tested at <paramref name="distanceM"/>
     /// (nearest metre), scored but NOT yet filtered by <see cref="MinRoundsForRanking"/> -- kept
@@ -25,7 +25,7 @@ public static class WorkflowRanking
         var groups = journal
             .Where(e => string.Equals(e.Caliber, caliber, StringComparison.OrdinalIgnoreCase)
                         && e.DistanceM.HasValue && Math.Round(e.DistanceM.Value) == Math.Round(distanceM))
-            .GroupBy(e => (e.PowderId, e.BulletId, Charge: Math.Round(e.ChargeGr, 2)));
+            .GroupBy(e => (e.PowderId, e.BulletId, Identity: LoadIdentity.Of(e), Charge: Math.Round(e.ChargeGr, 2)));
 
         var rows = new List<Row>();
         foreach (var g in groups)
@@ -38,7 +38,7 @@ public static class WorkflowRanking
             var score = LoadScoring.CompositeQualityScore(avgSd, avgEs, avgGroup, totalRounds);
 
             rows.Add(new Row(g.Key.PowderId, g.Key.BulletId, g.Key.Charge, entries.Count, totalRounds,
-                avgSd, avgEs, avgGroup, score));
+                avgSd, avgEs, avgGroup, score, g.Key.Identity));
         }
         return rows;
 

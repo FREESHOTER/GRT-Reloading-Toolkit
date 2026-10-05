@@ -160,7 +160,7 @@ internal sealed class PowderCompareForm : Form
             long? powderId = _db.ResolvePowderId(doc.PropellantName);
 
             var compared = ComputeCompared(caliber);
-            int idx = compared.FindIndex(r => r.PowderId == powderId);
+            int idx = compared.FindIndex(r => r.PowderId == powderId && r.Identity == (powderId is null ? LoadIdentity.Normalize(Path.GetFileNameWithoutExtension(top.file)) : ""));
             if (idx < 0)
             {
                 MessageBox.Show(this,

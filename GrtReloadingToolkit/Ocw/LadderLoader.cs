@@ -51,7 +51,7 @@ public static class LadderLoader
             {
                 var a = AthlonParser.Parse(f);
                 double? x = StepValue(mode, a.ChargeGrains, a.SessionNote, f);
-                if (x is { } v) { vels[Key(v)] = a.Velocities.ToList(); chronoFiles.Add(f); log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
+                if (x is { } v) { AddVelocities(vels, v, a.Velocities.ToList(), log, Path.GetFileName(f)); chronoFiles.Add(f); log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
                 else log.Add($"velocity {Path.GetFileName(f)}: no step value, skipped");
             }
             catch (Exception) when (Path.GetExtension(f).Equals(".csv", StringComparison.OrdinalIgnoreCase))
@@ -68,7 +68,7 @@ public static class LadderLoader
             {
                 var t = OnTargetCsv.Parse(f);
                 double? x = StepValue(mode, t.ChargeGrains, null, f);
-                if (x is { } v) { tgts[Key(v)] = t; log.Add($"target {Path.GetFileName(f)} -> {StepText(mode, v)}, {t.Impacts.Count} impacts @ {GrtUnits.Current.Distance(t.DistanceM)}"); }
+                if (x is { } v) { AddTarget(tgts, v, t, log, Path.GetFileName(f)); log.Add($"target {Path.GetFileName(f)} -> {StepText(mode, v)}, {t.Impacts.Count} impacts @ {GrtUnits.Current.Distance(t.DistanceM)}"); }
                 else log.Add($"target {Path.GetFileName(f)}: no step value, skipped");
             }
             catch (Exception) when (chronoFiles.Contains(f))
@@ -83,7 +83,11 @@ public static class LadderLoader
 
     /// <summary>
     /// Ladder from pre-built groups (e.g. GRT shot-group tabs), optionally paired with velocities
-    /// parsed from a folder of Athlon/Garmin exports. Groups whose step is null are numbered 1..N.
+    /// parsed from a folder of Athlon/Garmin exports. A group whose step is null is SKIPPED, never
+    /// numbered 1..N: GRT names a new group "Gruppo 1", "Gruppo 2"... and reading those as 1, 2... grains
+    /// invents a ladder (and a "node") that has nothing to do with the real charges. The caller
+    /// (<see cref="AssignOrdinalSteps"/>) is the only place an unlabelled group may be given a step,
+    /// and only after the user has confirmed the mapping.
     /// </summary>
     public static LoadReport FromGroups(IEnumerable<TargetGroup> groups, LadderMode mode, string? velFolder = null)
     {
@@ -98,21 +102,82 @@ public static class LadderLoader
                 {
                     var a = AthlonParser.Parse(f);
                     if (StepValue(mode, a.ChargeGrains, a.SessionNote, f) is { } v)
-                    { vels[Key(v)] = a.Velocities.ToList(); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
+                    { AddVelocities(vels, v, a.Velocities.ToList(), rep.Log, Path.GetFileName(f)); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
                 }
                 catch (Exception ex) { rep.Log.Add($"velocity {Path.GetFileName(f)}: {ex.Message}"); }
             }
 
         var tgts = new Dictionary<double, TargetGroup>();
-        int ord = 0;
         foreach (var t in groups)
         {
-            ord++;
-            double key = Key(t.ChargeGrains ?? ord);
-            tgts[key] = t;
+            if (t.ChargeGrains is not { } step)
+            {
+                rep.Log.Add($"{t.SourceFile}: no charge / step in the group name -- skipped (rename the group in GRT, e.g. \"40.2 gr\")");
+                continue;
+            }
+            AddTarget(tgts, step, t, rep.Log, t.SourceFile);
         }
         Merge(rep, vels, tgts);
         return rep;
+    }
+
+    /// <summary>
+    /// Gives each step-less group the next velocity step, in ascending order, when -- and only when --
+    /// there are exactly as many step-less groups as velocity steps not already taken by a named group.
+    /// Returns the (group, step) pairs it WOULD assign, or null if the counts do not line up. Nothing is
+    /// modified: the caller shows the pairs to the user and applies them only on a yes
+    /// (<see cref="ApplySteps"/>), because shooting order is an assumption, not data.
+    /// </summary>
+    public static IReadOnlyList<(TargetGroup Group, double Step)>? AssignOrdinalSteps(
+        IReadOnlyList<TargetGroup> groups, IEnumerable<double> velocitySteps)
+    {
+        var unlabelled = groups.Where(g => g.ChargeGrains is null).ToList();
+        if (unlabelled.Count == 0) return null;
+        var taken = groups.Where(g => g.ChargeGrains is not null).Select(g => Key(g.ChargeGrains!.Value)).ToHashSet();
+        var free = velocitySteps.Select(Key).Distinct().Where(k => !taken.Contains(k)).OrderBy(k => k).ToList();
+        if (free.Count != unlabelled.Count) return null;
+        return unlabelled.Select((g, i) => (g, free[i])).ToList();
+    }
+
+    public static void ApplySteps(IEnumerable<(TargetGroup Group, double Step)> pairs)
+    {
+        foreach (var (g, step) in pairs) g.ChargeGrains = step;
+    }
+
+    // Two strings or two groups at the same step are pooled, not "last one wins": a ladder shot over
+    // two sessions, or a chrono file re-exported, would otherwise silently lose all but one of them.
+    private static void AddVelocities(Dictionary<double, IReadOnlyList<double>> vels, double step,
+        List<double> v, List<string> log, string label)
+    {
+        double key = Key(step);
+        if (vels.TryGetValue(key, out var prev))
+        {
+            vels[key] = prev.Concat(v).ToList();
+            log.Add($"{label}: same step as an earlier string -- pooled ({prev.Count}+{v.Count} shots)");
+        }
+        else vels[key] = v;
+    }
+
+    private static void AddTarget(Dictionary<double, TargetGroup> tgts, double step, TargetGroup t,
+        List<string> log, string label)
+    {
+        double key = Key(step);
+        if (tgts.TryGetValue(key, out var prev))
+        {
+            var pooled = new TargetGroup
+            {
+                SourceFile = prev.SourceFile + " + " + t.SourceFile,
+                ChargeGrains = prev.ChargeGrains ?? t.ChargeGrains,
+                DistanceM = prev.DistanceM,
+                AimXMoa = prev.AimXMoa, AimYMoa = prev.AimYMoa,
+                AppCenterXMoa = prev.AppCenterXMoa, AppCenterYMoa = prev.AppCenterYMoa,
+            };
+            pooled.Impacts.AddRange(prev.Impacts);
+            pooled.Impacts.AddRange(t.Impacts);
+            tgts[key] = pooled;
+            log.Add($"{label}: same step as an earlier group -- pooled ({prev.Impacts.Count}+{t.Impacts.Count} hits)");
+        }
+        else tgts[key] = t;
     }
 
     /// <summary>
@@ -123,7 +188,7 @@ public static class LadderLoader
     {
         var map = extra.Where(v => v.Velocities.Count > 0)
                        .GroupBy(v => Key(v.Step))
-                       .ToDictionary(g => g.Key, g => g.Last().Velocities);
+                       .ToDictionary(g => g.Key, g => (IReadOnlyList<double>)g.SelectMany(v => v.Velocities).ToList());
         int filled = 0;
         foreach (var row in rep.Rows)
             if (row.VelN == 0 && map.TryGetValue(Key(row.X), out var vs))
@@ -189,10 +254,13 @@ public static class LadderLoader
         return NumberIn(Path.GetFileNameWithoutExtension(path));
     }
 
+    /// <summary>A step number inside a name. A number with a decimal point wins over a bare integer
+    /// ("N550 40.2" is 40.2, not the powder's 550); with no decimal number the first integer is used.</summary>
     private static double? NumberIn(string s)
     {
-        var m = Regex.Match(s, @"(-?\d+(?:[.,]\d+)?)");
-        return m.Success && TryNum(m.Groups[1].Value, out double v) ? v : null;
+        var all = Regex.Matches(s, @"(-?\d+(?:[.,]\d+)?)");
+        var pick = all.FirstOrDefault(m => m.Value.Contains('.') || m.Value.Contains(',')) ?? all.FirstOrDefault();
+        return pick is { Success: true } && TryNum(pick.Groups[1].Value, out double v) ? v : null;
     }
 
     private static bool TryNum(string s, out double v)

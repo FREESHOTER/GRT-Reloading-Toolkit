@@ -63,4 +63,35 @@ public sealed class FindBaFilterTests : IDisposable
         Assert.Single(db.FindCalibrations(".284 Shehane/KMR", null, null));
         Assert.Empty(db.FindCalibrations(".223 Rem", null, null));
     }
+
+    [Fact]
+    public void AnyPowderAndBulletReallyMeansAnyNotOnlyUnlinkedEntries()
+    {
+        var db = NewDb();
+        var linked = Entry("6.5 Creedmoor", 0.48784); linked.PowderId = 1; linked.BulletId = 2;
+        var other = Entry("6.5 Creedmoor", 0.5); other.PowderId = 3; other.BulletId = 2;
+        var unlinked = Entry("6.5 Creedmoor", 0.5814);
+        db.SaveEntry(linked, applyStock: false);
+        db.SaveEntry(other, applyStock: false);
+        db.SaveEntry(unlinked, applyStock: false);
+
+        Assert.Equal(3, db.FindCalibrations("6.5 Creedmoor", null, null).Count);          // any
+        Assert.Single(db.FindCalibrations("6.5 Creedmoor", 1, null));                      // that powder
+        Assert.Single(db.FindCalibrations("6.5 Creedmoor", 1, 2));                         // that powder and bullet
+        Assert.Equal(2, db.FindCalibrations("6.5 Creedmoor", null, 2).Count);              // that bullet, any powder
+    }
+
+    [Fact]
+    public void TheIsentropicExponentIsStoredWithTheBaItWasCalibratedWith()
+    {
+        var db = NewDb();
+        var e = Entry("6.5 Creedmoor", 0.48784);
+        e.A0 = 1.3631; e.K = 1.2201123;
+        db.SaveEntry(e, applyStock: false);
+
+        var back = db.Journal().Single();
+        Assert.Equal(1.2201123, back.K!.Value, 7);
+        Assert.Equal(1.3631, back.A0!.Value, 4);
+        Assert.Equal(1.2201123, db.FindCalibrations("6.5 Creedmoor", null, null).Single().K!.Value, 7);
+    }
 }

@@ -1,5 +1,6 @@
 using System.Globalization;
 using GrtReloadingToolkit.Athlon;
+using GrtReloadingToolkit.Log;
 using GrtPluginKit.Analysis;
 using GrtPluginKit.Grt;
 using GrtPluginKit.Ipc;
@@ -307,6 +308,8 @@ internal sealed class AthlonForm : Form
                 int rm = doc.RemoveByTitlePrefix(ImportBuilder.MeasurementTitlePrefix);
                 if (rm > 0) AppendLog($"replaced {rm} earlier \"Athlon …\" Measurement(s)");
             }
+            int flagged = StaleNotes.FlagBarrelCalibration(doc, DateTime.Now);
+            if (flagged > 0) AppendLog("an earlier Barrel Calibration note described the PREVIOUS measurements: renamed it \"" + StaleNotes.OldBarrelCalibrationTitle + "\" and marked it as outdated (nothing deleted)");
             doc.AddMeasurement(title, charges);
 
             string outPath;
@@ -318,7 +321,8 @@ internal sealed class AthlonForm : Form
             {
                 await _grt.LoadFileAsync(outPath);
                 AppendLog("asked GRT to open it");
-                _status.Text = string.Format(Lang.T("Imported {0} charge(s) into GRT."), charges.Count);
+                _status.Text = string.Format(Lang.T("Imported {0} charge(s) into GRT."), charges.Count)
+                    + (flagged > 0 ? " " + Lang.T("The old Barrel Calibration note is now marked OLD - redo the calibration.") : "");
             }
             else
             {

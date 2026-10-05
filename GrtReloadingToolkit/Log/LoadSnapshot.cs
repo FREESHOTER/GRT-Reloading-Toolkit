@@ -22,6 +22,7 @@ public sealed class LoadSnapshot
     public string Path { get; init; } = "";
     public double? Ba { get; init; }
     public double? A0 { get; init; }
+    public double? K { get; init; }
 
     /// <summary>Set only by <see cref="AllFromGrtload"/> — "{charge} ({measurement title}) — N shots,
     /// mean m/s", the same "{charge}gr ({measurement.Title})" label every other GRT-reading form
@@ -42,15 +43,17 @@ public sealed class LoadSnapshot
         GrtloadPath = Path,
         Ba = Ba,
         A0 = A0,
+        K = K,
     };
 
     public static LoadSnapshot FromGrtload(string path)
     {
         var doc = GrtLoadDoc.Load(path);
 
-        // most-recent measurement's last charge, if any, gives charge + velocity stats
-        GrtCharge? charge = doc.Measurements().SelectMany(m => m.Charges).LastOrDefault(c => c.Shots.Count > 0);
-        double? chg = charge?.ChargeGrains ?? doc.PropellantChargeGr;
+        // The velocity belongs to the chronographed charge that matches the recipe charge. The old
+        // "last charge in the file" put a ladder's top step's charge and velocity on the recipe.
+        GrtCharge? charge = doc.ChargeMatchingRecipe();
+        double? chg = doc.PropellantChargeGr ?? charge?.ChargeGrains;
         StringStats? st = charge is { Shots.Count: > 0 }
             ? StringStats.From(charge.Shots.Select(s => s.VelocityMps).Where(v => v > 0).ToList())
             : null;
@@ -58,7 +61,7 @@ public sealed class LoadSnapshot
         return new LoadSnapshot
         {
             Path = path,
-            LoadName = System.IO.Path.GetFileNameWithoutExtension(path),
+            LoadName = LoadIdentity.Display(System.IO.Path.GetFileNameWithoutExtension(path)),
             Caliber = doc.CaliberName,
             Firearm = doc.GunName,
             PowderName = doc.PropellantName,
@@ -72,6 +75,7 @@ public sealed class LoadSnapshot
             Shots = st?.N ?? 0,
             Ba = doc.PropellantBa is > 0 ? doc.PropellantBa : null,
             A0 = doc.InputNumber("propellant", "a0") is { } a0 && a0 > 0 ? a0 : null,
+            K = doc.InputNumber("propellant", "k") is { } kk && kk > 0 ? kk : null,
         };
     }
 
@@ -90,9 +94,12 @@ public sealed class LoadSnapshot
     public static IReadOnlyList<LoadSnapshot> AllFromGrtload(string path)
     {
         var doc = GrtLoadDoc.Load(path);
-        string loadName = System.IO.Path.GetFileNameWithoutExtension(path);
+        // Toolkit write-back suffix stripped: the same load logged from two different siblings must not
+        // end up with two different names (the rankings group by it when components are unlinked).
+        string loadName = LoadIdentity.Display(System.IO.Path.GetFileNameWithoutExtension(path));
         double? ba = doc.PropellantBa is > 0 ? doc.PropellantBa : null;
         double? a0 = doc.InputNumber("propellant", "a0") is { } a0v && a0v > 0 ? a0v : null;
+        double? kExp = doc.InputNumber("propellant", "k") is { } kv && kv > 0 ? kv : null;
 
         LoadSnapshot Base(double? chargeGr, string? label, StringStats? st) => new()
         {
@@ -111,6 +118,7 @@ public sealed class LoadSnapshot
             Shots = st?.N ?? 0,
             Ba = ba,
             A0 = a0,
+            K = kExp,
             ChargeLabel = label,
         };
 

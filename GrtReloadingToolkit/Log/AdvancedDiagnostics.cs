@@ -74,7 +74,13 @@ public static class AdvancedDiagnostics
     // ── Cold Bore ────────────────────────────────────────────────────────
 
     public sealed record ColdBoreResult(int NCold, int NWarm, double MeanColdMps, double MeanWarmMps,
-        double DeltaMps, double SdWarmMps, double ZScore, bool ColdBoreIsOutlier, bool ColdBoreFaster);
+        double DeltaMps, double SdWarmMps, double ZScore, bool ColdBoreIsOutlier, bool ColdBoreFaster,
+        bool Inconclusive = false);
+
+    /// <summary>Fewest warm shots at which the warm SD is trusted as the yardstick. With 2-4 warm
+    /// shots that SD is itself a guess, and a z-score built on it flagged a "notable" cold-bore
+    /// effect on strings of 4-6 shots where the first shot is simply the fastest of a short string.</summary>
+    public const int MinWarmShotsForVerdict = 5;
 
     /// <summary>Compares the cold-bore shot(s) against the rest of the string. Z-score =
     /// |mean_cold-mean_warm| / SD_warm is an informal "how unusual is this" heuristic, NOT a rigorous
@@ -98,7 +104,9 @@ public static class AdvancedDiagnostics
         double z = sdWarm > 0 ? Math.Abs(delta) / sdWarm : 0.0;
 
         return new ColdBoreResult(cold.Count, warm.Count, Math.Round(meanCold, 1), Math.Round(meanWarm, 1),
-            Math.Round(delta, 1), Math.Round(sdWarm, 2), Math.Round(z, 2), z > zThreshold, delta > 0);
+            Math.Round(delta, 1), Math.Round(sdWarm, 2), Math.Round(z, 2),
+            warm.Count >= MinWarmShotsForVerdict && z > zThreshold, delta > 0,
+            Inconclusive: warm.Count < MinWarmShotsForVerdict);
     }
 
     // ── Primer Sensitivity ───────────────────────────────────────────────

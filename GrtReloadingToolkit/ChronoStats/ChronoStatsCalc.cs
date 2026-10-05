@@ -34,9 +34,14 @@ public sealed class ChronoSummary
     public double CiLoMps => Mean - CiMarginMps;
     public double CiHiMps => Mean + CiMarginMps;
 
-    /// <summary>Shots the mean/SD were computed from (Chauvenet-flagged points excluded).</summary>
+    /// <summary>Chauvenet's verdict on every shot of the string as shot (informational unless
+    /// <see cref="OutliersExcluded"/>).</summary>
     public IReadOnlyList<ChronoOutlier> Outliers { get; init; } = Array.Empty<ChronoOutlier>();
     public bool HasOutliers => Outliers.Any(o => o.Flagged);
+
+    /// <summary>True when the flagged shots were REMOVED before computing mean/SD/ES/CI (the user asked
+    /// for it). False: every shot counts and the flags are only a warning.</summary>
+    public bool OutliersExcluded { get; init; }
 }
 
 public sealed record TwoSampleResult(
@@ -68,12 +73,15 @@ public static class ChronoStatsCalc
         return list;
     }
 
-    /// <summary>Mean, spread, a confidence interval on the true mean, and any Chauvenet outliers
-    /// (excluded from the mean/SD/CI, same as a careful hand analysis would do).</summary>
-    public static ChronoSummary Analyze(IReadOnlyList<double> values, double confidence = 0.95)
+    /// <summary>Mean, spread, a confidence interval on the true mean, and Chauvenet's verdict on each
+    /// shot. The flags are only EXCLUDED from mean/SD/ES/CI when <paramref name="excludeOutliers"/> is
+    /// set: Chauvenet assumes a normal sample and on the 3-10 shots of a real string it flags the
+    /// string's own first shot (the fast one) over and over, so dropping shots silently by default
+    /// turned an SD of 5.5 into 0.2 without anyone asking. The default is every shot, like the chrono.</summary>
+    public static ChronoSummary Analyze(IReadOnlyList<double> values, double confidence = 0.95, bool excludeOutliers = false)
     {
         var outliers = ChauvenetOutliers(values);
-        var kept = outliers.Count > 0
+        var kept = excludeOutliers && outliers.Count > 0
             ? values.Where((_, i) => !outliers[i].Flagged).ToList()
             : values.ToList();
         if (kept.Count == 0) kept = values.ToList();   // never end up with nothing to report
@@ -102,6 +110,7 @@ public static class ChronoStatsCalc
             CiLevel = confidence,
             CiMarginMps = margin,
             Outliers = outliers,
+            OutliersExcluded = excludeOutliers && outliers.Any(o => o.Flagged),
         };
     }
 
@@ -176,7 +185,7 @@ public static class ChronoStatsCalc
         sb.AppendLine(FormattableString.Invariant(
             $"string's own spread) to pin the mean to +/-{gu.VelocityValue(targetMarginMps):0.0} {gu.VelocityUnitName}."));
         sb.AppendLine();
-        sb.AppendLine($"mean/SD/ES/CI in {gu.VelocityUnitName}");
+        sb.AppendLine($"mean/SD/ES/CI in {gu.VelocityUnitName}; SD = population SD (/n), the one the chronograph shows");
         // The level is the caller's, not always 95 -- a hardcoded "95%" here contradicted the
         // sentence above at 90 or 99. Width 2 covers every level the form offers (90/95/99) and
         // keeps this hand-aligned header lined up with the row format below.
@@ -193,7 +202,8 @@ public static class ChronoStatsCalc
                 $"{shortLabel,-14}{(flagged.Count > 0 ? "*" : " ")} {s.N,3} {gu.VelocityValue(s.Mean),7:0.0} {gu.VelocityValue(s.Sd),5:0.0} {gu.VelocityValue(s.Es),5:0.0}  | {gu.VelocityValue(s.CiLoMps),7:0.0} to {gu.VelocityValue(s.CiHiMps),-7:0.0} |   {needTxt,4}"));
             foreach (var o in flagged)
                 footnotes.Add(FormattableString.Invariant(
-                    $"  * {shortLabel}: shot #{o.Index + 1} = {gu.VelocityValue(o.ValueMps):0.0} {gu.VelocityUnitName} excluded (Chauvenet) — not counted above"));
+                    $"  * {shortLabel}: shot #{o.Index + 1} = {gu.VelocityValue(o.ValueMps):0.0} {gu.VelocityUnitName} flagged (Chauvenet) — ")
+                    + (s.OutliersExcluded ? "EXCLUDED, not counted above" : "kept, counted above"));
         }
         if (footnotes.Count > 0) { sb.AppendLine(); foreach (var f in footnotes) sb.AppendLine(f); }
         return sb.ToString();

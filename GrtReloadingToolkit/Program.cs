@@ -94,6 +94,12 @@ internal sealed class ToolkitContext : ApplicationContext
             grt.MenuOrToolbarActivated += id => _ui.Post(_ => Open(FromId(id)), null);
 
         if (!launchedIntoTool) Open(Tool.Launcher);
+
+        GrtPluginKit.Grt.GrtLoadDoc.SnapshotHasMeasurementsMissingFromNewerFile += (sibling, count) => _ui.Post(_ =>
+            MessageBox.Show(
+                string.Format(Ui.Lang.T("Your own file is newer than the toolkit snapshot '{0}', so the toolkit now builds on your file. The snapshot holds {1} chronograph measurement(s) that your file does not have; they stay in that snapshot file (re-import them, or open the snapshot in GRT and Save As, if you still need them)."),
+                    System.IO.Path.GetFileName(sibling), count),
+                Ui.Lang.T("Reloading Toolkit"), MessageBoxButtons.OK, MessageBoxIcon.Information), null);
     }
 
     public static Tool FromId(string id) =>

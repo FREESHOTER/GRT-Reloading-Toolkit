@@ -28,13 +28,13 @@ public class ChronoStatsCalcTests
     }
 
     [Fact]
-    public void Analyze_ExcludesFlaggedOutliersFromTheMean()
+    public void Analyze_ExcludesFlaggedOutliersFromTheMean_WhenAskedTo()
     {
         double[] withFlyer = { 828, 831, 826, 830, 829, 1450 };
         var withoutFlyer = ChronoStatsCalc.Analyze(Clean);
-        var withFlyerResult = ChronoStatsCalc.Analyze(withFlyer);
+        var withFlyerResult = ChronoStatsCalc.Analyze(withFlyer, excludeOutliers: true);
 
-        Assert.Equal(5, withFlyerResult.N);   // the 1450 was dropped
+        Assert.Equal(5, withFlyerResult.N);   // the 1450 was dropped, because the caller asked
         Assert.Equal(withoutFlyer.Mean, withFlyerResult.Mean, 6);
     }
 

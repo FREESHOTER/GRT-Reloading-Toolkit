@@ -56,7 +56,7 @@ public static class SessionTrend
     /// session — a charge tested once has no trend and is excluded.</summary>
     public static List<ChargeTrend> AnalyzeChargeTrends(IEnumerable<JournalEntry> journal)
     {
-        var groups = journal.GroupBy(e => (Caliber: e.Caliber.ToUpperInvariant(), e.PowderId, e.BulletId, Charge: Math.Round(e.ChargeGr, 2)));
+        var groups = journal.GroupBy(e => (Caliber: e.Caliber.ToUpperInvariant(), e.PowderId, e.BulletId, Identity: LoadIdentity.Of(e), Charge: Math.Round(e.ChargeGr, 2)));
 
         var results = new List<ChargeTrend>();
         foreach (var g in groups)

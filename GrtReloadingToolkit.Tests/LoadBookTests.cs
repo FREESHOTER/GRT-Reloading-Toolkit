@@ -75,6 +75,7 @@ public sealed class LoadBookTests : IDisposable
         string newer = Path.Combine(_dir, "recipe_toolkit_20260102_120000.grtload");
         File.WriteAllText(older, File.ReadAllText(pristine));
         File.WriteAllText(newer, File.ReadAllText(pristine));
+        File.SetLastWriteTimeUtc(pristine, DateTime.UtcNow.AddDays(-3));   // the user's own file is the oldest
         File.SetLastWriteTimeUtc(older, DateTime.UtcNow.AddDays(-2));
         File.SetLastWriteTimeUtc(newer, DateTime.UtcNow.AddDays(-1));
 

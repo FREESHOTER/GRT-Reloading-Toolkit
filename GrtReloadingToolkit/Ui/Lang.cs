@@ -239,6 +239,8 @@ internal static class Lang
         ["No load open in GRT — choose where to save the imported strings"] =
             "Nessun load aperto in GRT — scegli dove salvare le stringhe importate",
         ["Imported {0} charge(s) into GRT."] = "Importate {0} carica/che in GRT.",
+        ["The old Barrel Calibration note is now marked OLD - redo the calibration."] =
+            "La vecchia nota Barrel Calibration è ora marcata OLD - rifai la calibrazione.",
         ["Wrote"] = "Scritto",
         ["(not connected to GRT)."] = "(non connesso a GRT).",
         ["Saved:"] = "Salvato:",
@@ -272,11 +274,11 @@ internal static class Lang
             "⚠ Ba diverso dall'ultima calibrazione: questo file usa Ba={0}, l'ultima calibrazione registrata nel Diario per {1} in {2} era Ba={3} (differenza {4}%).",
         ["Write calibration note"] = "Scrivi nota di calibrazione",
         ["Write Ba-corrected .grtload"] = "Scrivi .grtload corretto in Ba",
-        ["Write Ba+a0-corrected .grtload"] = "Scrivi .grtload corretto in Ba+a0",
+        ["Write Ba+k-corrected .grtload"] = "Scrivi .grtload corretto in Ba+k",
         ["Load measured from GRT load"] = "Carica misurati dal load GRT",
         ["Capture ALL sim MV (sweeps GRT)"] = "Cattura TUTTE le MV sim (spazza GRT)",
         ["Capture current charge only"] = "Cattura solo carica attuale",
-        ["Capture shape-fit sweep (a0)"] = "Cattura sweep shape-fit (a0)",
+        ["Capture GRT-style sweep (Ba + k)"] = "Cattura sweep stile GRT (Ba + k)",
         ["Remove row"] = "Rimuovi riga",
         ["Meas MV"] = "MV misurata",
         ["Sim MV"] = "MV simulata",
@@ -287,17 +289,17 @@ internal static class Lang
         ["Capture all"] = "Cattura tutto",
         ["swept {0} charges — close the extra GRT tabs when done."] = "spazzate {0} cariche — chiudi i tab GRT extra quando hai finito.",
         ["Capture the baseline sim MV first ('Capture ALL sim MV')."] = "Cattura prima la MV sim di baseline ('Cattura TUTTE le MV sim').",
-        ["No 'a0' input found in this load."] = "Nessun input 'a0' trovato in questo load.",
-        ["This will briefly open {0} more tabs in GRT (a0 nudged by {1:0%} at each already-captured charge), then reopen your load.\n\nContinue?"] =
-            "Questo aprirà brevemente altri {0} tab in GRT (a0 spostato di {1:0%} a ogni carica già catturata), poi riaprirà il tuo load.\n\nContinuare?",
-        ["Capture shape-fit sweep"] = "Cattura sweep shape-fit",
-        ["swept {0} charges at a0+{1:0%} — close the extra GRT tabs when done."] =
-            "spazzate {0} cariche con a0+{1:0%} — chiudi i tab GRT extra quando hai finito.",
+        ["No 'k' input found in this load."] = "Nessun input 'k' trovato in questo load.",
+        ["This will briefly open {0} more tabs in GRT (Ba and k nudged together by {1:0.0%} at each already-captured charge), then reopen your load.\n\nContinue?"] =
+            "Questo aprirà brevemente altri {0} tab in GRT (Ba e k spostati insieme di {1:0.0%} a ogni carica già catturata), poi riaprirà il tuo load.\n\nContinuare?",
+        ["Capture GRT-style sweep"] = "Cattura sweep stile GRT",
+        ["swept {0} charges at Ba and k +{1:0.0%} — close the extra GRT tabs when done."] =
+            "spazzate {0} cariche con Ba e k +{1:0.0%} — chiudi i tab GRT extra quando hai finito.",
         ["{0} point(s), mean offset {1:+0.0;-0.0} {2} ({3:+0.0;-0.0} %)"] = "{0} punto/i, scarto medio {1:+0.0;-0.0} {2} ({3:+0.0;-0.0} %)",
         ["capture at least one charge"] = "cattura almeno una carica",
         ["Ba-corrected load written and opened in GRT."] = "Load corretto in Ba scritto e aperto in GRT.",
         ["Calibration note written."] = "Nota di calibrazione scritta.",
-        ["Ba+a0-corrected load written and opened in GRT."] = "Load corretto in Ba+a0 scritto e aperto in GRT.",
+        ["Ba+k-corrected load written and opened in GRT."] = "Load corretto in Ba+k scritto e aperto in GRT.",
         ["Calibration"] = "Calibrazione",
 
         // LabelForm
@@ -382,6 +384,41 @@ internal static class Lang
         ["Journal"] = "Diario",
         ["New"] = "Nuovo",
         ["Log from GRT"] = "Registra da GRT",
+        ["Some shot groups have no charge in their name. Assign the load's chronographed charges to them in ascending order (first group = lowest charge)?"] =
+            "Alcuni gruppi di colpi non hanno la carica nel nome. Assegno loro le cariche cronografate del load in ordine crescente (primo gruppo = carica più bassa)?",
+        ["Choose No if you did not shoot them in ascending order: rename the groups in GRT instead (e.g. \"40.2 gr\")."] =
+            "Scegli No se non li hai sparati in ordine crescente: rinomina invece i gruppi in GRT (es. \"40.2 gr\").",
+        ["{0} shot group(s) were left out: their name has no charge, so they cannot be placed on the ladder. Rename them in GRT (e.g. \"40.2 gr\") and load again."] =
+            "{0} gruppo/i di colpi esclusi: il nome non contiene la carica, quindi non si possono collocare sulla scaletta. Rinominali in GRT (es. \"40.2 gr\") e ricarica.",
+        ["Exclude shots flagged by Chauvenet from the statistics"] = "Escludi dalle statistiche i colpi segnalati da Chauvenet",
+        ["{0} flagged, excluded"] = "{0} segnalati, esclusi",
+        ["'{0}' is not a number. Type it like 12.5 or 12,5."] = "'{0}' non è un numero. Scrivilo come 12.5 oppure 12,5.",
+        ["This leaves '{0}' below zero ({1} {2}). Apply anyway?"] = "Questo porta '{0}' sotto zero ({1} {2}). Applico lo stesso?",
+        ["inconclusive: only {0} warm shot(s), at least {1} are needed to judge a cold-bore effect."] = "non conclusivo: solo {0} colpo/i a canna calda, ne servono almeno {1} per giudicare un effetto canna fredda.",
+        ["Inconclusive — the chronograph noise on the last two charges is too large for the charge step to read a pressure trend; use wider charge steps or more shots per charge"] =
+            "Non conclusivo — il rumore del cronografo sulle ultime due cariche è troppo grande rispetto al passo di carica per leggere un trend di pressione; usa passi di carica più larghi o più colpi per carica",
+        // Group Analysis problem list (templates from Log/GroupAnalysis.cs; numbers filled in afterwards)
+        ["Shot #{0} is a statistical outlier (Mahalanobis distance² {1:F2})."] = "Il colpo n.{0} è un valore anomalo statistico (distanza di Mahalanobis² {1:F2}).",
+        ["Sample size (n={0}) is below the {1} shots this tool wants for a confident read at this distance."] = "Campione troppo piccolo (n={0}): a questa distanza servono almeno {1} colpi per una lettura affidabile.",
+        ["Spread is {0}-dominant ({1:F2} MOA horizontal vs {2:F2} MOA vertical, ratio {3:F1}×) — worth investigating, not a diagnosed cause on this data alone."] = "La dispersione è dominata dall'asse {0} ({1:F2} MOA orizzontale contro {2:F2} MOA verticale, rapporto {3:F1}×) — da approfondire, non è una causa diagnosticata da questi soli dati.",
+        ["Group centre is {0:F2} MOA off point-of-aim — possible zero drift, or a called flier pulling the centroid."] = "Il centro del gruppo è {0:F2} MOA fuori dal punto di mira — possibile deriva dello zero, o un colpo fuori gruppo che sposta il centro.",
+        ["Group centre is {0:F2} MOA off point-of-aim — on a ladder the centre moves with the charge by design, so judge it against the other steps (possible zero drift, or a called flier pulling the centroid)."] = "Il centro del gruppo è {0:F2} MOA fuori dal punto di mira — in una scaletta il centro si sposta con la carica per costruzione: valutalo rispetto agli altri passi (possibile deriva dello zero, o un colpo fuori gruppo).",
+        ["This tool's impact-mean centre differs from the source app's reported centre by {0:F2} MOA — check the calibration points."] = "Il centro calcolato da questo tool differisce di {0:F2} MOA da quello dell'app sorgente — controlla i punti di calibrazione.",
+        ["Velocity correlates with distance from the group centre (r={0:F2}) — faster shots tend to land further from the centre; worth investigating, not a diagnosed cause on this data alone."] = "La velocità è correlata alla distanza dal centro del gruppo (r={0:F2}) — i colpi più veloci tendono a cadere più lontano dal centro; da approfondire, non è una causa diagnosticata.",
+        ["Velocity correlates with distance from the group centre (r={0:F2}) — faster shots tend to land closer to the centre; worth investigating, not a diagnosed cause on this data alone."] = "La velocità è correlata alla distanza dal centro del gruppo (r={0:F2}) — i colpi più veloci tendono a cadere più vicino al centro; da approfondire, non è una causa diagnosticata.",
+        ["This raw dispersion includes uncorrected wind effects at long range — read the score cautiously until a future version adds wind correction."] = "Questa dispersione grezza include effetti del vento non corretti a lunga distanza — leggi il punteggio con cautela finché una versione futura non aggiungerà la correzione del vento.",
+        ["Your own file is newer than the toolkit snapshot '{0}', so the toolkit now builds on your file. The snapshot holds {1} chronograph measurement(s) that your file does not have; they stay in that snapshot file (re-import them, or open the snapshot in GRT and Save As, if you still need them)."] =
+            "Il tuo file è più recente dello snapshot del toolkit '{0}', quindi il toolkit ora lavora sul tuo file. Lo snapshot contiene {1} misurazione/i del cronografo che il tuo file non ha; restano in quel file snapshot (reimportale, oppure apri lo snapshot in GRT e fai Salva con nome, se ti servono ancora).",
+        ["Reloading Toolkit"] = "Reloading Toolkit",
+        ["-- not linked to the Inventory --"] = "-- non collegato all'Inventario --",
+        ["Verify correction in GRT"] = "Verifica la correzione in GRT",
+        ["Verify correction"] = "Verifica la correzione",
+        ["There is no Ba + k correction to verify."] = "Non c'è nessuna correzione Ba + k da verificare.",
+        ["This will briefly open {0} more tabs in GRT, simulating each charge with the proposed Ba and k, then reopen your load.\n\nContinue?"] =
+            "Questo aprirà brevemente altri {0} tab in GRT, simulando ogni carica con i Ba e k proposti, poi riaprirà il tuo load.\n\nContinuare?",
+        ["Correction verified by GRT -- the Ba+k file can be written."] = "Correzione verificata da GRT -- si può scrivere il file Ba+k.",
+        ["Correction NOT confirmed by GRT -- use the Ba-only correction. Close the extra GRT tabs when done."] = "Correzione NON confermata da GRT -- usa la correzione solo Ba. Chiudi i tab GRT in più quando hai finito.",
+        ["k (calibrated)"] = "k (calibrato)",
         ["Which charge?"] = "Quale carica?",
         ["This load has more than one chronographed charge. Which one do you want to log?"] =
             "Questo load ha più di una carica cronografata. Quale vuoi registrare?",
@@ -425,6 +462,7 @@ internal static class Lang
         ["-- any --"] = "-- qualsiasi --",
         ["No calibrated entries match this caliber/powder/bullet combo yet."] =
             "Nessuna voce calibrata corrisponde ancora a questa combinazione calibro/polvere/proiettile.",
+        ["{0} matching calibration(s), best first (entries without that measurement are last)."] = "{0} calibrazione/i corrispondente/i, la migliore per prima (quelle senza quella misura sono in fondo).",
         ["{0} matching calibration(s), best first."] = "{0} calibrazione/i corrispondente/i, la migliore per prima.",
         ["Plot vs temperature"] = "Grafico vs temperatura",
         ["No entries with both temperature and this value logged yet."] =

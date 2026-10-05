@@ -40,7 +40,9 @@ internal sealed class TempCoeffForm : Form
         MinimumSize = new Size(660, 420);
         Build();
         NudFix.ApplyTo(this);
-        UiState.Bind(this, "tempcoeff", ("ba", _ba));
+        // Ba is NOT remembered between sessions: a value left over from another load looked like this
+        // load's Ba until "Load Ba" was pressed, and the fit silently used it.
+        UiState.Bind(this, "tempcoeff");
         if (_grt != null) _grt.Log += _logHandler;
         _status.Text = _grt is { Connected: true } ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port) : Lang.T("stand-alone (no GRT)");
     }

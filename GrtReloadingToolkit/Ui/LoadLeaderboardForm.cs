@@ -176,7 +176,7 @@ internal sealed class LoadLeaderboardForm : Form
             double chargeGr = Math.Round(doc.PropellantChargeGr ?? 0, 2);
 
             var ranked = ComputeRanked(caliber);
-            int idx = ranked.FindIndex(r => r.PowderId == powderId && r.BulletId == bulletId && Math.Abs(r.ChargeGr - chargeGr) < 0.005);
+            int idx = ranked.FindIndex(r => r.PowderId == powderId && r.BulletId == bulletId && r.Identity == LoadIdentity.Of(powderId, bulletId, Path.GetFileNameWithoutExtension(top.file)) && Math.Abs(r.ChargeGr - chargeGr) < 0.005);
             if (idx < 0)
             {
                 MessageBox.Show(this,

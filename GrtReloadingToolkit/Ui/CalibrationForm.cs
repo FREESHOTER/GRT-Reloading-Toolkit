@@ -10,8 +10,8 @@ namespace GrtReloadingToolkit.Ui;
 /// <summary>
 /// Barrel calibration: compare GRT's simulated muzzle velocity to what the barrel actually
 /// does, over one or more charges, and suggest a Ba tweak / offset. When the offset varies with
-/// charge (a burn-shape mismatch, not just a scale one), a second sweep at a nudged "a0" lets
-/// <see cref="CalResult.FitBaAndA0"/> fit both Ba and a0 at once -- see that method's own doc.
+/// charge (a burn-shape mismatch, not just a scale one), a second sweep at a nudged "k" lets
+/// <see cref="CalResult.FitJoint"/> fit the GRT-style joint Ba/k correction -- see that method's own doc.
 ///
 /// Also flags when the load's own Ba looks stale against the Journal's own calibration history for
 /// the same caliber+powder (see <see cref="BaStaleness"/>) -- a proactive nudge shown the moment a
@@ -20,7 +20,7 @@ namespace GrtReloadingToolkit.Ui;
 /// </summary>
 internal sealed class CalibrationForm : Form
 {
-    private const string NoteTitle = "Barrel Calibration";
+    private const string NoteTitle = StaleNotes.BarrelCalibrationTitle;
 
     private readonly GrtClient? _grt;
     private readonly Db _db;
@@ -34,18 +34,21 @@ internal sealed class CalibrationForm : Form
     };
     private readonly Button _writeNote = new() { Text = Lang.T("Write calibration note"), AutoSize = true, Enabled = false };
     private readonly Button _writeBa = new() { Text = Lang.T("Write Ba-corrected .grtload"), AutoSize = true, Enabled = false };
-    private readonly Button _writeBaA0 = new() { Text = Lang.T("Write Ba+a0-corrected .grtload"), AutoSize = true, Enabled = false };
+    private readonly Button _writeBaK = new() { Text = Lang.T("Write Ba+k-corrected .grtload"), AutoSize = true, Enabled = false };
 
-    // a0 (prog/deg burn-shape coefficient) fit -- the two-parameter extension of the Ba-only fit
-    // above, for when the offset varies with charge (see CalResult.FitBaAndA0's own doc for why a0,
-    // not GRT's "k", is the right second knob).
-    private const double A0PerturbFrac = 0.05;
+    // k (isentropic exponent) fit -- the two-parameter extension of the Ba-only fit
+    // above, for when the offset varies with charge (see CalResult.FitJoint's own doc: Ba and k are the
+    // two coefficients GRT's own OBT tool moves).
+    private const double KPerturbFrac = 0.002;   // Ba and k nudged together by +0.2 %
     private readonly CalResult _result = new();
     private readonly Action<string> _logHandler;
     private double? _baOld;
-    private double? _a0Old;
-    private double _a0Delta;
-    private CalResult.ShapeFit? _shapeFit;
+    private double? _kOld;
+    private double _kDelta;
+    private CalResult.JointFit? _jointFit;
+    private CalResult.JointVerification? _verification;
+    private (double Ba, double K)? _verifiedFor;     // the exact proposal the verification sweep was run for
+    private readonly Button _verifyJoint = new() { Text = Lang.T("Verify correction in GRT"), AutoSize = true, Margin = new Padding(10, 2, 0, 0), Enabled = false };
     private string _powder = "powder";
     private string? _basePath;
     private bool _suppressGrid;
@@ -93,9 +96,11 @@ internal sealed class CalibrationForm : Form
         var capBtn = new Button { Text = Lang.T("Capture current charge only"), AutoSize = true, Margin = new Padding(6, 2, 0, 0) };
         capBtn.Click += async (_, _) => await CaptureCurrentAsync();
         top.Controls.Add(capBtn);
-        var capShapeBtn = new Button { Text = Lang.T("Capture shape-fit sweep (a0)"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
-        capShapeBtn.Click += async (_, _) => await CaptureAllPertA0Async();
+        var capShapeBtn = new Button { Text = Lang.T("Capture GRT-style sweep (Ba + k)"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
+        capShapeBtn.Click += async (_, _) => await CaptureAllPertKAsync();
         top.Controls.Add(capShapeBtn);
+        _verifyJoint.Click += async (_, _) => await VerifyJointAsync();
+        top.Controls.Add(_verifyJoint);
         var delBtn = new Button { Text = Lang.T("Remove row"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         delBtn.Click += (_, _) => RemoveRow();
         top.Controls.Add(delBtn);
@@ -134,8 +139,8 @@ internal sealed class CalibrationForm : Form
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _writeNote.Click += async (_, _) => await WriteAsync(false);
         _writeBa.Click += async (_, _) => await WriteAsync(true);
-        _writeBaA0.Click += async (_, _) => await WriteShapeAsync();
-        bottom.Controls.Add(_writeBaA0);
+        _writeBaK.Click += async (_, _) => await WriteShapeAsync();
+        bottom.Controls.Add(_writeBaK);
         bottom.Controls.Add(_writeBa);
         bottom.Controls.Add(_writeNote);
 
@@ -168,7 +173,7 @@ internal sealed class CalibrationForm : Form
         string pristine = GrtLoadDoc.PristineBasePath(top.file);
         var pdoc = GrtLoadDoc.Load(File.Exists(pristine) ? pristine : top.file);
         _baOld = pdoc.PropellantBa is > 0 ? pdoc.PropellantBa : null;
-        _a0Old = pdoc.InputNumber("propellant", "a0") is { } a0 && a0 > 0 ? a0 : null;
+        _kOld = pdoc.InputNumber("propellant", "k") is { } kv && kv > 0 ? kv : null;
         _powder = string.IsNullOrWhiteSpace(pdoc.PropellantName) ? "powder" : pdoc.PropellantName;
         UpdateStaleWarning(pdoc.CaliberName, pdoc.PropellantName);
         // Measurements / everything else from the accumulator sibling if it exists (that's where
@@ -318,17 +323,17 @@ internal sealed class CalibrationForm : Form
     }
 
     /// <summary>
-    /// Second sweep for the Ba+a0 shape fit: same one-charge-per-tab mechanism as
-    /// <see cref="CaptureAllAsync"/>, but with the propellant's "a0" nudged by
-    /// <see cref="A0PerturbFrac"/> (5%) on top of each charge, at the SAME charges already captured
-    /// at baseline -- <see cref="CalResult.FitBaAndA0"/> needs both series for the same points to
-    /// estimate d(MV)/d(a0) numerically.
+    /// Second sweep for the Ba+k shape fit: same one-charge-per-tab mechanism as
+    /// <see cref="CaptureAllAsync"/>, but with the propellant's "k" nudged by
+    /// <see cref="KPerturbFrac"/> (0.5%) on top of each charge, at the SAME charges already captured
+    /// at baseline -- <see cref="CalResult.FitJoint"/> needs both series for the same points to
+    /// estimate d(MV)/d(k) numerically.
     /// </summary>
-    private async Task CaptureAllPertA0Async()
+    private async Task CaptureAllPertKAsync()
     {
         var measured = _result.Points.Where(p => p.Valid).Select(p => p.ChargeGr).OrderBy(x => x).ToList();
         if (measured.Count == 0) { MessageBox.Show(this, Lang.T("Capture the baseline sim MV first ('Capture ALL sim MV').")); return; }
-        if (_a0Old is not { } a0Old || a0Old <= 0) { MessageBox.Show(this, Lang.T("No 'a0' input found in this load.")); return; }
+        if (_kOld is not { } kOld || kOld <= 0 || _baOld is not { } baOldSweep || baOldSweep <= 0) { MessageBox.Show(this, Lang.T("No 'k' input found in this load.")); return; }
         if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
 
         try
@@ -339,12 +344,12 @@ internal sealed class CalibrationForm : Form
             if (!File.Exists(basePath)) basePath = top.file;
 
             if (MessageBox.Show(this,
-                    string.Format(Lang.T("This will briefly open {0} more tabs in GRT (a0 nudged by {1:0%} at each already-captured charge), then reopen your load.\n\nContinue?"), measured.Count, A0PerturbFrac),
-                    Lang.T("Capture shape-fit sweep"), MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                    string.Format(Lang.T("This will briefly open {0} more tabs in GRT (Ba and k nudged together by {1:0.0%} at each already-captured charge), then reopen your load.\n\nContinue?"), measured.Count, KPerturbFrac),
+                    Lang.T("Capture GRT-style sweep"), MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
                 return;
 
-            _a0Delta = a0Old * A0PerturbFrac;
-            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_a0");
+            _kDelta = KPerturbFrac;
+            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_k");
             Directory.CreateDirectory(tmpDir);
             const double grToG = 0.06479891;
 
@@ -354,8 +359,9 @@ internal sealed class CalibrationForm : Form
                 var doc = GrtLoadDoc.Load(basePath);
                 doc.SetInput("propellant", "mc", (chg * grToG).ToString("0.############", CultureInfo.InvariantCulture), "g");
                 doc.SetInput("propellant", "laddercnt", "0");     // ladder off — single charge
-                doc.SetInput("propellant", "a0", (a0Old + _a0Delta).ToString("0.############", CultureInfo.InvariantCulture));
-                string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "calsweep_a0_{0}_{1:000}.grtload", i++, chg * 100));
+                doc.SetInput("propellant", "k", (kOld * (1 + _kDelta)).ToString("0.############", CultureInfo.InvariantCulture));
+                doc.SetInput("propellant", "Ba", (baOldSweep * (1 + _kDelta)).ToString("0.############", CultureInfo.InvariantCulture));
+                string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "calsweep_k_{0}_{1:000}.grtload", i++, chg * 100));
                 doc.Save(tmp);
 
                 await _grt.LoadFileAsync(tmp);
@@ -364,20 +370,85 @@ internal sealed class CalibrationForm : Form
                 var res = await _grt.GetTabResultsAsync(t2.handle);
                 if (res.MuzzleVelocityMps is { } sim && sim > 0)
                 {
-                    SetSimPertA0(chg, sim);
-                    // Invariant, like the Ba/a0 values written a few lines down and like every
+                    SetSimPertK(chg, sim);
+                    // Invariant, like the Ba/k values written a few lines down and like every
                     // other number this plugin shows. The charge and MV carry decimal separators,
-                    // so bare interpolation renders them per the OS locale; a0+{:0%} has neither a
+                    // so bare interpolation renders them per the OS locale; k+{:0.0%} has neither a
                     // decimal nor a group separator and reads the same either way.
-                    AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ a0+{A0PerturbFrac:0%} -> sim {sim:0.0} m/s"));
+                    AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ Ba,k +{KPerturbFrac:0.0%} -> sim {sim:0.0} m/s"));
                 }
-                else AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ a0+{A0PerturbFrac:0%} -> no sim MV (skipped)"));
+                else AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ Ba,k +{KPerturbFrac:0.0%} -> no sim MV (skipped)"));
                 Recompute();
             }
 
             await _grt.LoadFileAsync(basePath);                    // back to the user's load
             try { Directory.Delete(tmpDir, true); } catch { }
-            _status.Text = string.Format(Lang.T("swept {0} charges at a0+{1:0%} — close the extra GRT tabs when done."), measured.Count, A0PerturbFrac);
+            _status.Text = string.Format(Lang.T("swept {0} charges at Ba and k +{1:0.0%} — close the extra GRT tabs when done."), measured.Count, KPerturbFrac);
+        }
+        catch (Exception ex) { Err(ex); }
+    }
+
+    /// <summary>
+    /// The check that decides whether a Ba + k proposal may be written: simulate every captured charge in GRT
+    /// with the PROPOSED Ba and k and compare with the measured velocities (see
+    /// <see cref="CalResult.VerifyJoint"/>). The straight-line fit can propose numbers that look fine to its own
+    /// arithmetic and are wrong for the real model; GRT is the only thing that can say what the model does.
+    /// </summary>
+    private async Task VerifyJointAsync()
+    {
+        if (_jointFit is not { Ok: true } fit) { MessageBox.Show(this, Lang.T("There is no Ba + k correction to verify.")); return; }
+        if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
+        var charges = _result.Points.Where(p => p.Valid).Select(p => p.ChargeGr).OrderBy(x => x).ToList();
+        try
+        {
+            var top = await _grt.GetTabOnTopAsync();
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
+            string basePath = GrtLoadDoc.PristineBasePath(top.file);
+            if (!File.Exists(basePath)) basePath = top.file;
+
+            if (MessageBox.Show(this,
+                    string.Format(Lang.T("This will briefly open {0} more tabs in GRT, simulating each charge with the proposed Ba and k, then reopen your load.\n\nContinue?"), charges.Count),
+                    Lang.T("Verify correction"), MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                return;
+
+            foreach (var pt in _result.Points) pt.SimMpsVerify = 0;
+            _verifiedFor = (fit.NewBa, fit.NewK);
+
+            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_verify");
+            Directory.CreateDirectory(tmpDir);
+            const double grToG = 0.06479891;
+
+            int i = 0;
+            foreach (double chg in charges)
+            {
+                var doc = GrtLoadDoc.Load(basePath);
+                doc.SetInput("propellant", "mc", (chg * grToG).ToString("0.############", CultureInfo.InvariantCulture), "g");
+                doc.SetInput("propellant", "laddercnt", "0");
+                doc.SetInput("propellant", "Ba", fit.NewBa.ToString("0.###############", CultureInfo.InvariantCulture));
+                doc.SetInput("propellant", "k", fit.NewK.ToString("0.###############", CultureInfo.InvariantCulture));
+                string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "calverify_{0}_{1:000}.grtload", i++, chg * 100));
+                doc.Save(tmp);
+
+                await _grt.LoadFileAsync(tmp);
+                await Task.Delay(1400);
+                var t2 = await _grt.GetTabOnTopAsync();
+                var res = await _grt.GetTabResultsAsync(t2.handle);
+                var pt = _result.Points.FirstOrDefault(p => Math.Abs(p.ChargeGr - chg) < 0.03);
+                if (pt is not null && res.MuzzleVelocityMps is { } sim && sim > 0)
+                {
+                    pt.SimMpsVerify = sim;
+                    AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ proposed Ba/k -> sim {sim:0.0} m/s"));
+                }
+                else AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ proposed Ba/k -> no sim MV (verification incomplete)"));
+                Recompute();
+            }
+
+            await _grt.LoadFileAsync(basePath);
+            try { Directory.Delete(tmpDir, true); } catch { }
+            Recompute();
+            _status.Text = _verification is { Accepted: true }
+                ? Lang.T("Correction verified by GRT -- the Ba+k file can be written.")
+                : Lang.T("Correction NOT confirmed by GRT -- use the Ba-only correction. Close the extra GRT tabs when done.");
         }
         catch (Exception ex) { Err(ex); }
     }
@@ -389,11 +460,11 @@ internal sealed class CalibrationForm : Form
         pt.SimMps = simMps;
     }
 
-    private void SetSimPertA0(double chargeGr, double simMps)
+    private void SetSimPertK(double chargeGr, double simMps)
     {
         var pt = _result.Points.FirstOrDefault(p => Math.Abs(p.ChargeGr - chargeGr) < 0.03);
         if (pt is null) return;                              // shape-fit sweep only nudges charges already captured at baseline
-        pt.SimMpsPertA0 = simMps;
+        pt.SimMpsPertK = simMps;
     }
 
     private void RemoveRow()
@@ -442,18 +513,37 @@ internal sealed class CalibrationForm : Form
         string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
         string report = _result.BuildReport(headline, _baOld, _powder);
 
-        _shapeFit = null;
-        if (_result.NPert >= 2 && _baOld is { } ba0 && _a0Old is { } a00 && _a0Delta > 0)
+        _jointFit = null;
+        if (_result.NPert >= 1 && _baOld is { } ba0 && _kOld is { } k00 && _kDelta > 0)
         {
-            _shapeFit = _result.FitBaAndA0(ba0, a00, _a0Delta);
-            if (_shapeFit is { } fit) report += _result.BuildShapeReport(fit, ba0, a00, _powder);
+            _jointFit = _result.FitJoint(ba0, k00, _kDelta);
+            // A verification belongs to one exact proposal: any change to the data that moves the proposal
+            // (or a different proposal altogether) throws it away, so a stale "ACCEPTED" can never unlock
+            // the write button for numbers GRT never simulated.
+            _verification = null;
+            if (_jointFit is { Ok: true } vf)
+            {
+                if (_verifiedFor is { } v && Math.Abs(v.Ba - vf.NewBa) < 1e-12 && Math.Abs(v.K - vf.NewK) < 1e-12)
+                    _verification = _result.VerifyJoint();
+                else foreach (var pt in _result.Points) pt.SimMpsVerify = 0;
+            }
+            if (_jointFit is { } fit) report += _result.BuildJointReport(fit, ba0, k00, _powder, _verification);
+        }
+        else if (_result.N >= 2)
+        {
+            // Say why the Ba + k button is dead instead of leaving it greyed with no explanation.
+            string why = _kOld is null || _baOld is null ? "the load has no Ba / k to correct"
+                : _result.NPert < 1 ? "capture the GRT-style sweep first: it needs a second simulated MV per charge, with Ba and k nudged together"
+                : "the sweep has no usable nudge";
+            report += "\r\nGRT-style correction (Ba and k together): not available yet -- " + why + ".\r\n";
         }
         _summary.Text = report.Replace("\n", "\r\n");
 
         bool ok = _result.N >= 1 && _grt is { Connected: true } && _basePath != null;
         _writeNote.Enabled = ok;
         _writeBa.Enabled = ok && _baOld is > 0;
-        _writeBaA0.Enabled = ok && _shapeFit is { Ok: true };
+        _writeBaK.Enabled = ok && _jointFit is { Ok: true } && _verification is { Accepted: true };
+        _verifyJoint.Enabled = _jointFit is { Ok: true } && _grt is { Connected: true };
         _status.Text = _result.N >= 1
             ? string.Format(CultureInfo.InvariantCulture, Lang.T("{0} point(s), mean offset {1:+0.0;-0.0} {2} ({3:+0.0;-0.0} %)"), _result.N, GrtUnits.Current.VelocityValue(_result.MeanDeltaMps), GrtUnits.Current.VelocityUnitName, _result.MeanDeltaPct)
             : Lang.T("capture at least one charge");
@@ -492,22 +582,22 @@ internal sealed class CalibrationForm : Form
     {
         try
         {
-            if (_basePath is null || _grt is not { Connected: true } || _shapeFit is not { Ok: true } fit || _baOld is not { } ba || _a0Old is not { } a0) return;
+            if (_basePath is null || _grt is not { Connected: true } || _jointFit is not { Ok: true } fit || _baOld is not { } ba || _kOld is not { } k) return;
             var doc = GrtLoadDoc.OpenForToolkitEdit(_basePath);
             doc.RemoveByTitlePrefix(NoteTitle);
             string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
-            doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder) + _result.BuildShapeReport(fit, ba, a0, _powder));
+            doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder) + _result.BuildJointReport(fit, ba, k, _powder));
 
-            string suffix = "cal_ba_a0";
+            string suffix = "cal_ba_k";
             bool wroteBa = doc.SetInput("propellant", "Ba", fit.NewBa.ToString("0.###############", CultureInfo.InvariantCulture));
-            bool wroteA0 = doc.SetInput("propellant", "a0", fit.NewA0.ToString("0.###############", CultureInfo.InvariantCulture));
-            if (wroteBa && wroteA0) AppendLog(FormattableString.Invariant($"set Ba {ba:0.######} -> {fit.NewBa:0.######}, a0 {a0:0.####} -> {fit.NewA0:0.####}"));
-            else { AppendLog("note written, but Ba/a0 inputs missing in the load"); suffix = "cal"; }
+            bool wroteK = doc.SetInput("propellant", "k", fit.NewK.ToString("0.###############", CultureInfo.InvariantCulture));
+            if (wroteBa && wroteK) AppendLog(FormattableString.Invariant($"set Ba {ba:0.######} -> {fit.NewBa:0.######}, k {k:0.#######} -> {fit.NewK:0.#######}"));
+            else { AppendLog("note written, but Ba/k inputs missing in the load"); suffix = "cal"; }
 
             string outPath = doc.SaveSibling(suffix);
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
-            _status.Text = Lang.T("Ba+a0-corrected load written and opened in GRT.");
+            _status.Text = Lang.T("Ba+k-corrected load written and opened in GRT.");
         }
         catch (Exception ex) { Err(ex); }
     }

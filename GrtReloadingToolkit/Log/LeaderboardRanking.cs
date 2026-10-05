@@ -15,7 +15,8 @@ namespace GrtReloadingToolkit.Log;
 public static class LeaderboardRanking
 {
     public sealed record Row(string Caliber, long? PowderId, string Powder, long? BulletId, string Bullet,
-        double ChargeGr, int Sessions, int Rounds, double? Sd, double? Es, double? Group, LoadScoring.Breakdown Score);
+        double ChargeGr, int Sessions, int Rounds, double? Sd, double? Es, double? Group, LoadScoring.Breakdown Score,
+        string Identity = "");
 
     /// <summary>
     /// Every caliber+powder+bullet+charge group in <paramref name="journal"/>, scored and ordered
@@ -34,7 +35,7 @@ public static class LeaderboardRanking
         // the first entry that used it, the same way Charge is rounded in the key.
         var groups = journal
             .Where(e => caliberFilter is null || string.Equals(e.Caliber, caliberFilter, StringComparison.OrdinalIgnoreCase))
-            .GroupBy(e => (Caliber: e.Caliber.ToUpperInvariant(), e.PowderId, e.BulletId, Charge: Math.Round(e.ChargeGr, 2)));
+            .GroupBy(e => (Caliber: e.Caliber.ToUpperInvariant(), e.PowderId, e.BulletId, Identity: LoadIdentity.Of(e), Charge: Math.Round(e.ChargeGr, 2)));
 
         var rows = new List<Row>();
         foreach (var g in groups)
@@ -48,10 +49,11 @@ public static class LeaderboardRanking
             var score = LoadScoring.LeaderboardScore(avgSd, avgEs, avgGroup, totalRounds, sdAcrossSessions);
 
             rows.Add(new Row(entries[0].Caliber, g.Key.PowderId,
-                g.Key.PowderId is { } pid && componentNames.TryGetValue(pid, out var pn) ? pn : noneLabel,
+                g.Key.PowderId is { } pid && componentNames.TryGetValue(pid, out var pn) ? pn
+                    : g.Key.Identity.Length > 0 ? $"{noneLabel} [{LoadIdentity.Display(entries[0].LoadName)}]" : noneLabel,
                 g.Key.BulletId,
                 g.Key.BulletId is { } bid && componentNames.TryGetValue(bid, out var bn) ? bn : noneLabel,
-                g.Key.Charge, entries.Count, totalRounds, avgSd, avgEs, avgGroup, score));
+                g.Key.Charge, entries.Count, totalRounds, avgSd, avgEs, avgGroup, score, g.Key.Identity));
         }
 
         return rows.Where(r => r.Score.Total.HasValue).OrderByDescending(r => r.Score.Total)

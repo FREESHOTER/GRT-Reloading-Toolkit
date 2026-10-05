@@ -116,7 +116,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manual · v0.2.18</span>
+  <span class="k">Manual · v0.2.19</span>
 </div></div>
 
 <div class="shell">
@@ -189,6 +189,7 @@
           <strong>chart</strong> in the gallery, sometimes a changed <strong>input</strong>
           (<code>Ba</code>, <code>a0</code>, <code>casevol</code>, <code>gdepth</code>,
           <code>tcc</code>/<code>tch</code>).</li>
+        <li><strong>Which file the tools read:</strong> the most recently written of <em>your own file</em> and the newest snapshot. A snapshot normally wins (it holds the notes and measurements the toolkit added), but if you save your own file in GRT afterwards &mdash; a new charge, a new <code>Ba</code> &mdash; that save is newer, and it is what every tool reads and what the next snapshot starts from.</li>
         <li>Saves a <strong>timestamped snapshot</strong> next to your file and tells GRT to open it.</li>
       </ol>
       <pre>MyLoad.grtload                          <span class="c">← your original, never touched</span>
@@ -362,10 +363,14 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         toolkit; the confidence interval and the two tests use sample SD (÷n−1) internally, since
         that&#39;s what those formulas are built on &mdash; for n this small the difference matters.</p>
       <p><strong>Outliers</strong> are flagged by Chauvenet&#39;s criterion (classic
-        normal-distribution formulation): a shot is rejected if the number of measurements you&#39;d
-        expect to see that far from the mean, over the whole string, is under ½. Flagged shots are
-        excluded from the string&#39;s mean/SD/CI, same as a careful hand analysis would do &mdash;
-        they&#39;re still listed, not silently dropped.</p>
+        normal-distribution formulation): a shot is flagged if the number of measurements you&#39;d
+        expect to see that far from the mean, over the whole string, is under ½. A flag is a
+        <em>warning</em>, not a verdict: on the 3&ndash;10 shots of a real string the criterion often
+        flags the string&#39;s own fast first shot, so by default <strong>every shot counts</strong> in
+        the mean/SD/ES/CI, exactly like the chronograph&#39;s own summary, and flagged shots are listed
+        with a mark in the grid and in the note. Tick <strong>Exclude shots flagged by Chauvenet from
+        the statistics</strong> to leave them out of the statistics and the comparison; the note then
+        says which shots were excluded.</p>
       <div class="formula">
         <span class="c">// means, any two strings</span><br>
         Welch t  =  (mean<sub>A</sub> − mean<sub>B</sub>) / √(sd<sub>A</sub>²/n<sub>A</sub> + sd<sub>B</sub>²/n<sub>B</sub>)<br><br>
@@ -474,31 +479,34 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         factory default for a powder can&#39;t be read via the plugin API &mdash; so the banner stays
         silent (not &ldquo;fine&rdquo;) when you&#39;ve never calibrated that powder before.</div>
 
-      <h3>Shape fit (Ba + a0), for when the offset varies with charge</h3>
-      <p>A single <code>Ba</code> can only correct a <em>scale</em> error (the whole curve too
-        fast/slow by the same %) &mdash; if the offset itself changes with charge, the propellant&#39;s
-        burn <em>shape</em> is off, and <code>Ba</code> alone can&#39;t fix that no matter how you
-        tune it.</p>
-      <ol class="plain">
-        <li>Capture the baseline sim MV first (steps above), with <strong>3+ charges</strong>.</li>
-        <li><strong>Capture shape-fit sweep (a0)</strong> &mdash; re-simulates the same charges with
-          the propellant&#39;s <code>a0</code> (its &ldquo;prog/deg&rdquo; burn-shape coefficient)
-          nudged by +5%, so the tool can see how sensitive each charge&#39;s MV is to <code>a0</code>
-          versus to <code>Ba</code>.</li>
-        <li>The report gains a &ldquo;Shape fit (Ba + a0)&rdquo; section with a suggested
-          <code>Ba</code> <strong>and</strong> <code>a0</code> fitted together across every charge.
-          <strong>Write Ba+a0-corrected .grtload</strong> writes both.</li>
+      <h3>GRT-style correction (Ba and k together)</h3>
+      <p>The Ba-only correction puts the whole error on <code>Ba</code>. GRT&#39;s own OBT tool does something
+        different: when it calibrates the simulation to a measured velocity it scales <code>Ba</code> and
+        <code>k</code> (the isentropic exponent) by the <strong>same factor</strong>. We checked it live on a
+        40.2&nbsp;gr N550 load: matching 836.0&nbsp;m/s instead of the simulated 830.1 moved both by
+        +0.1797&nbsp;%, matching 825.0 moved both by &minus;0.1552&nbsp;%. Because <code>k</code> changes the
+        velocity far more than <code>Ba</code> does (about 33&nbsp;m/s per 1&nbsp;% of both together, against
+        about 4&nbsp;m/s per 1&nbsp;% of Ba alone), the two corrections give the same velocity but different
+        pressure curves, BLT and OBT nodes. The GRT-style correction does what GRT does, so the nodes agree
+        with GRT&#39;s OBT tool.</p>
+      <ol>
+        <li>Capture the baseline sim MV first (steps above).</li>
+        <li><strong>Capture GRT-style sweep (Ba + k)</strong> &mdash; re-simulates the same charges with
+          <code>Ba</code> and <code>k</code> both nudged by +0.2%.</li>
+        <li>The report gains a &ldquo;GRT-style correction (Ba and k together)&rdquo; section: one common
+          factor (least squares over every charge) and the suggested <code>Ba</code> and <code>k</code>.</li>
+        <li><strong>Verify correction in GRT</strong> simulates every charge with the proposed values. It is
+          accepted only if the mean offset falls to a quarter or less of the original (or inside 0.3&nbsp;m/s)
+          and the charge-to-charge scatter does not get worse; otherwise the report says REFUSED.</li>
+        <li><strong>Write Ba+k-corrected .grtload</strong> writes both, and is enabled only after GRT has
+          confirmed the correction.</li>
       </ol>
-      <p>Why <code>a0</code> and not GRT&#39;s <code>k</code> (which the OBT tool&#39;s own docs
-        mention alongside <code>Ba</code>): <code>k</code> is the combustion gases&#39; ratio of
-        specific heats &mdash; a thermochemical property, not a shape-fitting knob. Bending it to
-        force a velocity match would leave <code>Pmax</code> and burn-time predictions (which
-        OBT/BLT directly depend on) wrong in ways this velocity-only fit can&#39;t see.
-        <code>a0</code> is what GRT&#39;s own <code>formalism.txt</code> describes as the coefficient
-        meant to be adjusted to match a measured burn curve.</p>
-      <p>This needs the charges spread out (not clustered close together) &mdash; with too little
-        spread, <code>Ba</code> and <code>a0</code> affect the sim too similarly to separate reliably,
-        and the tool will say so instead of guessing.</p>
+      <p>The Ba-only button stays for a quick scale correction. The Journal stores the <code>k</code> next to
+        the <code>Ba</code> a calibration landed on. The tool refuses an absurd correction (more than 5&nbsp;%,
+        or a <code>k</code> outside 1.05&ndash;1.50). An independent Ba + k (or Ba + a0) fit is no longer
+        offered: <code>Ba</code> and <code>k</code> both mostly scale the velocity, and <code>a0</code> hardly
+        affects it (a +30&nbsp;% change moved the velocities by only 1.7&nbsp;%), so velocity alone cannot
+        separate them.</p>
     </section>
 
     <section id="temp">
@@ -596,7 +604,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <strong>QR code</strong> of the full recipe.</p>
       <ul>
         <li><strong>Load from GRT</strong> &mdash; fill the card from the open load (caliber, firearm,
-          bullet + weight, powder, charge, COAL, seating depth, and MV/SD from the last measurement).</li>
+          bullet + weight, powder, charge, COAL, seating depth, and MV/SD from the chronographed charge that matches the recipe charge &mdash; none if the recipe charge was never chronographed).</li>
         <li><strong>Powder / Primer / Brass / Bullet lot</strong> drop-downs &mdash; pick a component lot
           from the Inventory (§14) to compute <strong>cost per round</strong> and stamp the lot on the card.</li>
         <li><strong>Barrel</strong> drop-down &mdash; pick a barrel from the Inventory (§14) and the card
@@ -669,7 +677,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           a group at GRT&#39;s own auto-generated name (&ldquo;Gruppo 1&rdquo;, &ldquo;Group 2&rdquo;…)
           and it reads as no charge at all, never as that number &mdash; a shot-group tab carries no
           charge value of its own the way a Measurement does, so a bare, keyword-less integer is
-          indistinguishable from GRT&#39;s own numbering and is deliberately never guessed at.</li>
+          indistinguishable from GRT&#39;s own numbering and is deliberately never guessed at. If groups still carry GRT&#39;s own names, <em>Groups from GRT load</em> offers to give them the load&#39;s chronographed charges in ascending order (first group = lowest charge), shows you the list, and applies it only if you say yes; answer No and those groups are left out &mdash; they are never numbered as grains.</li>
         <li><strong>Save the load</strong> so the shot-group tabs are written into the
           <code>.grtload</code>.</li>
         <li>In the Ladder / Seating analyzer set <strong>ref dist</strong> (mm / cm / inch) and
@@ -679,6 +687,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       </ol>
       <p>Each hit (stored as an image fraction) is converted to MOA using the two reference points and
         the image aspect ratio (1&nbsp;MOA = 29.0888&nbsp;mm at 100&nbsp;m).</p>
+      <p><strong>Restock</strong> accepts <code>12.5</code> or <code>12,5</code>, says so when the text is not a number (it used to ignore it silently), and asks before taking a lot below zero.</p>
     </section>
 
     <section id="journal">
@@ -695,9 +704,9 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           <code>.grtload</code>: no such tag anywhere), so they&#39;re always typed in by hand, never
           read from the load. The Velocity Model (§20) needs this field filled in on at least a
           handful of entries to have anything to fit.</li>
-        <li><strong>Ba</strong> and <strong>a0</strong> &mdash; the values Barrel Calibration&#39;s fit
+        <li><strong>Ba</strong>, <strong>a0</strong> and <strong>k</strong> &mdash; the values Barrel Calibration&#39;s fit
           landed on for this session. <strong>Log from GRT</strong> reads these straight from the open
-          load if you ran <em>Write Ba-corrected</em> or <em>Write Ba+a0-corrected .grtload</em> there
+          load if you ran <em>Write Ba-corrected</em> or <em>Write Ba+k-corrected .grtload</em> there
           first and it&#39;s the load now open; otherwise type them in.</li>
         <li><strong>Fill Ba from loads</strong> is for a journal written before <code>Ba</code>/<code>a0</code>
           were recorded: for every entry that has no <code>Ba</code> but still names a
@@ -714,6 +723,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         last), <strong>Edit</strong>, <strong>Delete</strong>, <strong>Fill Ba from loads</strong>.
         Editing or deleting an entry reconciles the inventory. Tick <em>deduct components from
         inventory on save</em> to draw stock down.</p>
+      <p>The load name is taken without the toolkit&#39;s <code>_toolkit_&hellip;</code> timestamp, so the same load logged from two different snapshots is one load, not two.</p>
     </section>
 
     <section id="findba">
@@ -728,6 +738,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         built from journal entries that carry a <code>Ba</code>, so an entry logged before that field
         existed puts nothing in it: fill in its <strong>Ba (calibrated)</strong>, or run <strong>Fill
         Ba from loads</strong> (both in the Journal, §15), and its caliber appears.</p>
+      <p>Entries without the chosen measurement (for example no group size when ranking by group) are listed <strong>last</strong>, never hidden.</p>
     </section>
 
     <section id="leaderboard">
@@ -770,6 +781,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         tool in the Toolkit uses, so your original file is never touched. If the open load
         hasn&#39;t been logged in the Journal yet, the tool says so instead of writing anything. See
         <strong>Toolkit &mdash; Load leaderboard report</strong> below for the matching report page.</p>
+      <p>A journal entry whose powder or bullet is not linked to an Inventory component is kept apart per load (by load name) &mdash; it is no longer merged with every other unlinked load into one &ldquo;none&rdquo; row.</p>
     </section>
 
     <section id="workflow">
@@ -817,6 +829,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         no other tool has: how this file&#39;s own <code>Ba</code> compares to the average of every
         other time this powder was calibrated &mdash; the closest thing to a possibly-stale
         <code>Ba</code> flag this plugin can give without access to GRT&#39;s own factory number.</p>
+      <p>Entries with no linked powder are grouped per load (by load name), never into one fictional &ldquo;none&rdquo; powder that averages unrelated loads.</p>
     </section>
 
     <section id="velocitymodel">
@@ -863,6 +876,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <p><strong>Write diagnostics note to GRT load</strong> writes every tab&#39;s result into one
         note; a tab with nothing to flag prints &ldquo;No concerning trend&rdquo; rather than leaving
         its section blank.</p>
+      <p>Verdicts need enough data: <strong>Cold Bore</strong> says &ldquo;inconclusive&rdquo; with fewer than 5 warm shots, and <strong>Pressure Trend</strong> says &ldquo;inconclusive&rdquo; when the chronograph noise on the last two charges is large enough to change the verdict at the charge step used.</p>
     </section>
 
     <section id="sdrootcause">
@@ -978,6 +992,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <p><strong>Write group-analysis note to GRT load</strong> writes the score, confidence, metrics
         and every triggered problem into one note, with the target-plane chart (impacts, centroid,
         point of aim, outliers highlighted) attached as a picture.</p>
+      <p>The horizontal/vertical spread ratio is only judged from 5 shots up (with 4 it is mostly luck), and on a ladder step the &ldquo;off point-of-aim&rdquo; finding says that the centre moves with the charge by design.</p>
     </section>
 
     <section id="targetprint">
@@ -1041,7 +1056,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>Chronograph statistics report</td><td>the chrono-statistics note</td></tr>
         <tr><td>Ladder / OCW report</td><td>the OCW note + chart</td></tr>
         <tr><td>Seating-depth report</td><td>the seating note + chart</td></tr>
-        <tr><td>Barrel calibration report</td><td>the calibration note (Ba, or Ba+a0 shape fit) + temp-coefficient note</td></tr>
+        <tr><td>Barrel calibration report</td><td>the calibration note (Ba, or Ba+k GRT-style correction) + temp-coefficient note</td></tr>
         <tr><td>Powder temp-coefficients report</td><td>the temp-coefficient note on its own</td></tr>
         <tr><td>Case volume report</td><td>the case-volume note</td></tr>
         <tr><td>Seating depth (geometry) report</td><td>the seating-depth-from-comparator note</td></tr>
@@ -1118,6 +1133,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.18 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.19 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

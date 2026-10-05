@@ -134,7 +134,7 @@ internal sealed class AdvancedDiagnosticsForm : Form
                     string label = ch.ChargeGrains is { } g
                         ? FormattableString.Invariant($"{g:0.0##} gr ({meas.Title})")
                         : $"{ch.Name} ({meas.Title})";
-                    _rows.Add(new StringRow { Label = label, Name = ch.Name, ChargeGrains = ch.ChargeGrains, Velocities = vs });
+                    _rows.Add(new StringRow { Label = RowLabels.Unique(_rows.Select(r => r.Label), label), Name = ch.Name, ChargeGrains = ch.ChargeGrains, Velocities = vs });
                 }
 
             _loadStatus.Text = string.Format(Lang.T("{0} string(s) loaded."), _rows.Count);
@@ -253,7 +253,14 @@ internal sealed class AdvancedDiagnosticsForm : Form
         {
             var charges = candidates.Select(r => r.ChargeGrains!.Value).ToList();
             var means = candidates.Select(r => r.Velocities.Average()).ToList();
-            _lastPressure = PressureTrend.AnalyzePressureTrend(charges, means);
+            var ses = candidates.Select(r =>
+            {
+                int n = r.Velocities.Count;
+                if (n < 2) return double.PositiveInfinity;   // one shot: the mean's error is unknown, treat as unreadable
+                double m = r.Velocities.Average();
+                return Math.Sqrt(r.Velocities.Sum(v => (v - m) * (v - m)) / (n - 1)) / Math.Sqrt(n);
+            }).ToList();
+            _lastPressure = PressureTrend.AnalyzePressureTrend(charges, means, ses);
 
             _pressureGrid.Rows.Clear();
             for (int i = 0; i < _lastPressure.ChargesGr.Count; i++)
@@ -352,7 +359,9 @@ internal sealed class AdvancedDiagnosticsForm : Form
                 _u.VelocityValue(r.MeanWarmMps).ToString("0.0", CultureInfo.InvariantCulture),
                 _u.VelocitySd(r.SdWarmMps),
                 _u.VelocityValue(r.DeltaMps).ToString("+0.0;-0.0", CultureInfo.InvariantCulture), r.ZScore,
-                r.ColdBoreIsOutlier
+                r.Inconclusive
+                    ? string.Format(Lang.T("inconclusive: only {0} warm shot(s), at least {1} are needed to judge a cold-bore effect."), r.NWarm, AdvancedDiagnostics.MinWarmShotsForVerdict)
+                : r.ColdBoreIsOutlier
                     ? (r.ColdBoreFaster ? Lang.T("the cold-bore shot(s) print notably FASTER than the rest.") : Lang.T("the cold-bore shot(s) print notably SLOWER than the rest."))
                     : Lang.T("no notable cold-bore effect."));
         }

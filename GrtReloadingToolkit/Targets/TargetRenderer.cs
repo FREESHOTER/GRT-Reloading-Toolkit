@@ -164,7 +164,12 @@ public static class TargetRenderer
         if (!string.IsNullOrWhiteSpace(spec.Bullet)) infoParts.Add("Palla: " + spec.Bullet);
         if (spec.DistanceM is { } d) infoParts.Add(FormattableString.Invariant($"Distanza: {d:0.#} m"));
         infoParts.Add("Data: " + DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        g.DrawString(string.Join(" | ", infoParts), infoFont, greyBrush, X(MarginXMm), Y(infoLineYMm));
+        // Wrapped inside the room left of the logo: a long "Arma | Polvere | Palla" line used to run
+        // on under the logo and off the page. Its measured height is what the header ends at below.
+        string infoText = string.Join(" | ", infoParts);
+        float infoAvailPx = Math.Max(10 * u, titleAreaRightPx - X(MarginXMm));
+        SizeF infoSz = g.MeasureString(infoText, infoFont, (int)infoAvailPx);
+        g.DrawString(infoText, infoFont, greyBrush, new RectangleF(X(MarginXMm), Y(infoLineYMm), infoAvailPx, infoSz.Height));
 
         // ── ZERO OTTICA + instructions, both centred on the page ────────
         // refYMm used to be a fixed offset from the top, independent of how tall the header (title +
@@ -174,7 +179,7 @@ public static class TargetRenderer
         // showed. Anchoring it to the header's own measured bottom, like infoLineYMm already does for
         // the title, keeps it clear of the header at any page width.
         double zeroLabelHMm = zeroOtticaFont.GetHeight(g) / u;
-        double headerBottomMm = infoLineYMm + infoFont.GetHeight(g) / u;
+        double headerBottomMm = infoLineYMm + infoSz.Height / u;
         double refYMm = Math.Max(MarginTopMm + (isOcw ? 18 : 20), headerBottomMm + 4 + 7 + zeroLabelHMm);
         float refX = X(pageWMm / 2);
         using (var bluePen = new Pen(Color.FromArgb(0x00, 0x66, 0xcc), 0.5f * u))
@@ -199,8 +204,10 @@ public static class TargetRenderer
         double instrYMm = refYMm + (isOcw ? 8 : 9);
         foreach (string line in instrLines)
         {
-            SizeF sz = g.MeasureString(line, infoFont, (int)(pageWMm * u));
-            g.DrawString(line, infoFont, greyBrush, new RectangleF(X(0), Y(instrYMm), bounds.Width, sz.Height), new StringFormat { Alignment = StringAlignment.Center });
+            // Inside the page margins, like the title and the info line -- not edge to edge.
+            float instrWpx = X(pageWMm - MarginXMm) - X(MarginXMm);
+            SizeF sz = g.MeasureString(line, infoFont, (int)instrWpx);
+            g.DrawString(line, infoFont, greyBrush, new RectangleF(X(MarginXMm), Y(instrYMm), instrWpx, sz.Height), new StringFormat { Alignment = StringAlignment.Center });
             instrYMm += sz.Height / u + 0.8;
         }
 
