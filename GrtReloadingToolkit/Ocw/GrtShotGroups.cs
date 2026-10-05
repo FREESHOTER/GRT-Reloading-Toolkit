@@ -35,26 +35,15 @@ public static class GrtShotGroups
     public static double ShootToM(double v, ShootUnit u) => u == ShootUnit.Yards ? v * GrtUnits.MetresPerYard : v;
 
     /// <summary>
-    /// The units GRT wrote the two unlabelled shot-group numbers in — its <c>refdistance</c> and
-    /// its <c>range</c>. Unlike a &lt;input&gt;, neither carries a unit attribute in the file, so
-    /// the only way to read them back correctly is to ask the GRT that wrote them: a target
-    /// measured in inches and shot at yards otherwise comes back as millimetres at metres, which
-    /// is a silently wrong scale rather than a visibly wrong one. Metric when there is no install
-    /// to ask, which is what this assumed before it asked.
+    /// The units of the two unlabelled shot-group numbers in a .grtload — <c>refDistance</c> and
+    /// <c>shootDistance</c>. GRT stores them in SI whatever units it displays: its own demo load
+    /// (OBT_Demo_Start-OBT, written with a 3 inch reference line shot at 100 yards) holds
+    /// 76.2 and 91.44, and a 10 inch line at 1000 yards reads back as 254 and 914.4. Taking them
+    /// from the install's display units, as this used to, scaled every imported group of an
+    /// imperial GRT by 25.4 or 1.094. Always millimetres at metres; only the command line
+    /// (<c>--groups</c>) still takes a unit word, for a file that came from somewhere else.
     /// </summary>
-    public static (RefUnit Ref, ShootUnit Shoot) GrtDefaults() => GrtDefaults(GrtConfig.Current);
-
-    /// <inheritdoc cref="GrtDefaults()"/>
-    /// <param name="cfg">The install that wrote the tab, or null for no install at all.</param>
-    public static (RefUnit Ref, ShootUnit Shoot) GrtDefaults(GrtConfig? cfg)
-    {
-        RefUnit r =
-            cfg == null ? RefUnit.Mm :
-            cfg.IsInch("refdistance") ? RefUnit.Inch :
-            cfg.UnitFor("refdistance")?.StartsWith("cm", StringComparison.OrdinalIgnoreCase) == true ? RefUnit.Cm :
-            RefUnit.Mm;
-        return (r, GrtUnits.From(cfg).DistanceInYards ? ShootUnit.Yards : ShootUnit.Meters);
-    }
+    public static (RefUnit Ref, ShootUnit Shoot) GrtDefaults() => (RefUnit.Mm, ShootUnit.Meters);
 
     public sealed record Options(RefUnit Ref = RefUnit.Mm, ShootUnit Shoot = ShootUnit.Meters, bool ExcludeFlyers = false);
 

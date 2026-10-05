@@ -29,8 +29,6 @@ internal abstract class LadderAnalyzerForm : Form
     private readonly Button _writeBtn = new() { Text = Lang.T("Write note to GRT load"), AutoSize = true, Enabled = false };
 
     // GRT shot-group source
-    private readonly ComboBox _refUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 55, Items = { "mm", "cm", "in" } };
-    private readonly ComboBox _shootUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 45, Items = { "m", "yd" } };
     private readonly CheckBox _noFlyers = new() { Text = Lang.T("drop flyers"), AutoSize = true };
 
     private string? _folderPath;
@@ -66,7 +64,7 @@ internal abstract class LadderAnalyzerForm : Form
         // defaults above differ between them, so one shared key would hand each the other's.
         UiState.Bind(this, "ladder." + Mode,
             ("wPoi", _wPoi), ("wPrim", _wPrim), ("window", _win),
-            ("refUnit", _refUnit), ("shootUnit", _shootUnit), ("noFlyers", _noFlyers));
+            ("noFlyers", _noFlyers));
         if (_grt != null) { _logHandler = AppendLog; _grt.Log += _logHandler; }
         UpdateStatus();
 
@@ -83,7 +81,9 @@ internal abstract class LadderAnalyzerForm : Form
 
     private void Build()
     {
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 66, Padding = new Padding(6, 6, 6, 0), WrapContents = true };
+        // Sized by its content: at the default window width the folder box pushes Re-analyze onto a second row and
+        // "Groups from GRT load" onto a third, which a fixed 66 px panel clipped out of sight.
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(6, 6, 6, 4), WrapContents = true };
         var pick = new Button { Text = Lang.T("Pick ladder folder…"), AutoSize = true };
         pick.Click += async (_, _) => await PickFolderAsync();
         top.Controls.Add(pick);
@@ -102,19 +102,9 @@ internal abstract class LadderAnalyzerForm : Form
         var grpBtn = new Button { Text = Lang.T("Groups from GRT load"), AutoSize = true, Margin = new Padding(0, 6, 0, 0) };
         top.SetFlowBreak(re, true);   // start a new row
         grpBtn.Click += async (_, _) => await LoadGrtGroupsAsync();
-        // Open on the units GRT is showing — someone measuring a target in inches at yards should
-        // not have to re-pick both every session. Build() runs before UiState.Bind, so this is only
-        // the default: once they choose for themselves, their choice is what comes back.
         var gu = GrtUnits.Current;
-        var (defRef, defShoot) = GrtShotGroups.GrtDefaults();
-        _refUnit.SelectedIndex = defRef switch { RefUnit.Cm => 1, RefUnit.Inch => 2, _ => 0 };
-        _shootUnit.SelectedIndex = defShoot == ShootUnit.Yards ? 1 : 0;
-        foreach (var c in new Control[] { _refUnit, _shootUnit, _noFlyers }) c.Margin = new Padding(6, 8, 0, 0);
+        _noFlyers.Margin = new Padding(6, 8, 0, 0);
         top.Controls.Add(grpBtn);
-        top.Controls.Add(new Label { Text = Lang.T("ref dist"), AutoSize = true, Padding = new Padding(8, 8, 0, 0) });
-        top.Controls.Add(_refUnit);
-        top.Controls.Add(new Label { Text = Lang.T("shoot dist"), AutoSize = true, Padding = new Padding(6, 8, 0, 0) });
-        top.Controls.Add(_shootUnit);
         top.Controls.Add(_noFlyers);
 
         _grid.Dock = DockStyle.Fill;
@@ -206,10 +196,8 @@ internal abstract class LadderAnalyzerForm : Form
                 MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Groups from GRT")); return;
             }
             var doc = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
-            var opt = new GrtShotGroups.Options(
-                _refUnit.SelectedIndex switch { 1 => RefUnit.Cm, 2 => RefUnit.Inch, _ => RefUnit.Mm },
-                _shootUnit.SelectedIndex == 1 ? ShootUnit.Yards : ShootUnit.Meters,
-                _noFlyers.Checked);
+            // GRT stores the reference and shooting distances in mm and m whatever it displays.
+            var opt = new GrtShotGroups.Options(RefUnit.Mm, ShootUnit.Meters, _noFlyers.Checked);
             var (groups, log) = GrtShotGroups.FromDoc(doc, opt);
             foreach (var l in log) AppendLog(l);
             if (groups.Count == 0) { MessageBox.Show(this, Lang.T("No usable shot groups in that load."), Lang.T("Groups from GRT")); return; }

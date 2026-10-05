@@ -116,7 +116,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuel · v0.2.19</span>
+  <span class="k">Manuel · v0.2.20</span>
 </div></div>
 
 <div class="shell">
@@ -433,7 +433,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         <tr><td>Pick ladder folder…</td><td>Dossier avec chronographe <code>*.xlsx</code> + OnTarget <code>Carica *.csv</code>, une paire par charge.</td></tr>
         <tr><td>w POI · w MV · window</td><td>Poids d&#39;analyse et largeur du nœud (3–5 pas).</td></tr>
         <tr><td>Re-analyze</td><td>Recalcule avec les poids actuels.</td></tr>
-        <tr><td>Groups from GRT load</td><td>Lit les groupements depuis les onglets Shot-group de GRT au lieu du <code>.csv</code>, avec les cases d&#39;unité distance de référence / distance de tir et une option <em>drop flyers</em>.</td></tr>
+        <tr><td>Groups from GRT load</td><td>Lit les groupements depuis les onglets Shot-group de GRT au lieu du <code>.csv</code>, avec une option <em>drop flyers</em>.</td></tr>
         <tr><td>Write note to GRT load</td><td>Écrit la note &laquo;&nbsp;OCW Analysis&nbsp;&raquo; <strong>et le graphique</strong> dans le load.</td></tr>
       </tbody></table>
       <p><strong>Grille&nbsp;:</strong> charge · n · MV · SD · ES · distance · POI-Y (MOA) · rayon
@@ -550,6 +550,12 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         indépendant Ba + k (ou Ba + a0) n&#39;est plus proposé&nbsp;: <code>Ba</code> et <code>k</code> mettent
         tous deux surtout la vitesse à l&#39;échelle et <code>a0</code> l&#39;influence à peine (+30&nbsp;% ne
         l&#39;a déplacée que de 1,7&nbsp;%), donc la vitesse seule ne peut pas les séparer.</p>
+      <p><strong>Le facteur de Sebert.</strong> C&#39;est la part de la charge de poudre qui voyage dans le canon avec la balle : GRT l&#39;ajoute à la masse de la balle à accélérer. Il appartient au calibre, pas à la poudre (la valeur par défaut de GRT est 0,5, plage admise de 0,1 à 1,0 ; certains l&#39;abaissent un peu pour les étuis larges), et aucun étalonnage, ni dans GRT ni dans ce toolkit, ne le modifie.</p>
+      <p><strong>Pourquoi le chronographe ne le voit pas.</strong> Un facteur plus élevé signifie plus de masse à pousser, donc le modèle sort quelques m/s trop lent. En augmentant <code>Ba</code> et <code>k</code> d&#39;une fraction de pour cent, la vitesse revient. Elle paraît alors juste quel que soit le facteur et ne peut pas, seule, distinguer un Sebert de 0,50 d&#39;un Sebert de 0,60.</p>
+      <p><strong>Ce qui change vraiment.</strong> Pour obtenir la même vitesse avec plus de masse à pousser, la poudre doit brûler plus vite : la pression maximale monte de quelques pour cent et la balle sort plus tôt, donc le temps de présence dans le canon (BLT) raccourcit. Un facteur plus bas fait l&#39;inverse. GRT compare les nœuds OBT justement à ce BLT, la charge d&#39;un nœud se déplace donc avec le facteur : un facteur plus haut place le nœud à une charge plus basse, un facteur plus bas à une charge plus haute.</p>
+      <p><strong>De combien.</strong> Sur les charges contrôlées, un facteur faux de 0,1 a déplacé le nœud d&#39;environ 0,2 gr et un facteur faux de 0,05 d&#39;environ 0,1 gr, pour plusieurs grains entre deux nœuds voisins. C&#39;est l&#39;ordre des 0,1 à 0,2 gr que GRT annonce pour un nœud : cela ne déplace pas tout, mais c&#39;est la plus grande contribution individuelle parmi les données du modèle essayées, avec le volume de l&#39;étui tiré. Seule une pression maximale mesurée, pas une vitesse, pourrait fixer le facteur.</p>
+      <p><strong>Le bouton.</strong> <strong>Check Sebert sensitivity (GRT)</strong> simule la charge (à la charge médiane de l&#39;échelle) avec le facteur 0,1 plus haut et 0,1 plus bas, en réajustant chaque fois <code>Ba</code> et <code>k</code> à la même vitesse, et ajoute un bloc au rapport : comment varient Pmax et le BLT et de combien de grains de charge le nœud se déplace. Il ne fait que lire : rien n&#39;est écrit et le facteur de Sebert n&#39;est jamais modifié.</p>
+      <p><strong>Que faire.</strong> Mesurer soigneusement le volume de l&#39;étui tiré, considérer la charge que GRT donne pour un nœud OBT comme exacte à environ 0,2 gr près et la confirmer avec une échelle fine (pas de 0,1 gr) autour de cette charge.</p>
     </section>
 
     <section id="temp">
@@ -745,10 +751,9 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
           propre à GRT et n&#39;est délibérément jamais deviné. Si les groupes portent encore les noms de GRT, <em>Groups from GRT load</em> propose de leur attribuer les charges chronographiées du load par ordre croissant (premier groupe = charge la plus basse), affiche la liste et ne l&#39;applique que si vous acceptez&nbsp;; en répondant Non, ces groupes sont écartés &mdash; ils ne sont jamais numérotés comme des grains.</li>
         <li><strong>Enregistrez le load</strong> pour que les onglets shot-group soient écrits dans
           le <code>.grtload</code>.</li>
-        <li>Dans l&#39;analyseur Ladder / Seating, réglez <strong>ref dist</strong> (mm / cm / pouce)
-          et <strong>shoot dist</strong> (m / yd) &mdash; GRT ne stocke pas l&#39;unité utilisée par
-          le champ de distance de référence &mdash; cochez éventuellement <strong>drop
-          flyers</strong>, puis cliquez sur <strong>Groups from GRT load</strong>.</li>
+        <li>Dans l&#39;analyseur Ladder / Seating, cochez éventuellement <strong>drop flyers</strong>,
+          puis cliquez sur <strong>Groups from GRT load</strong>. Aucune unité à régler : GRT stocke la distance
+          de référence et la distance de tir en mm et m quelle que soit l&#39;unité affichée, et l&#39;outil les lit ainsi.</li>
       </ol>
       <p>Chaque impact (stocké comme une fraction d&#39;image) est converti en MOA à l&#39;aide des
         deux points de référence et du rapport d&#39;aspect de l&#39;image (1&nbsp;MOA =
@@ -1254,6 +1259,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.19 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.20 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

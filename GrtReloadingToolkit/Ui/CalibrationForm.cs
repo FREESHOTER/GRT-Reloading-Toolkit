@@ -48,6 +48,8 @@ internal sealed class CalibrationForm : Form
     private CalResult.JointFit? _jointFit;
     private CalResult.JointVerification? _verification;
     private (double Ba, double K)? _verifiedFor;     // the exact proposal the verification sweep was run for
+    private readonly Button _checkSebert = new() { Text = Lang.T("Check Sebert sensitivity (GRT)"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
+    private SebertSensitivity? _sebert;
     private readonly Button _verifyJoint = new() { Text = Lang.T("Verify correction in GRT"), AutoSize = true, Margin = new Padding(10, 2, 0, 0), Enabled = false };
     private string _powder = "powder";
     private string? _basePath;
@@ -86,7 +88,7 @@ internal sealed class CalibrationForm : Form
 
     private void Build()
     {
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 76, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(6, 6, 0, 4), WrapContents = true };
         var loadBtn = new Button { Text = Lang.T("Load measured from GRT load"), AutoSize = true };
         loadBtn.Click += async (_, _) => await LoadMeasuredAsync();
         top.Controls.Add(loadBtn);
@@ -101,6 +103,8 @@ internal sealed class CalibrationForm : Form
         top.Controls.Add(capShapeBtn);
         _verifyJoint.Click += async (_, _) => await VerifyJointAsync();
         top.Controls.Add(_verifyJoint);
+        _checkSebert.Click += async (_, _) => await CheckSebertAsync();
+        top.Controls.Add(_checkSebert);
         var delBtn = new Button { Text = Lang.T("Remove row"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         delBtn.Click += (_, _) => RemoveRow();
         top.Controls.Add(delBtn);
@@ -288,7 +292,7 @@ internal sealed class CalibrationForm : Form
                     Lang.T("Capture all"), MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
                 return;
 
-            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep");
+            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(tmpDir);
             const double grToG = 0.06479891;
 
@@ -349,7 +353,7 @@ internal sealed class CalibrationForm : Form
                 return;
 
             _kDelta = KPerturbFrac;
-            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_k");
+            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_k_" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(tmpDir);
             const double grToG = 0.06479891;
 
@@ -414,7 +418,7 @@ internal sealed class CalibrationForm : Form
             foreach (var pt in _result.Points) pt.SimMpsVerify = 0;
             _verifiedFor = (fit.NewBa, fit.NewK);
 
-            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_verify");
+            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_calsweep_verify_" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(tmpDir);
             const double grToG = 0.06479891;
 
@@ -449,6 +453,76 @@ internal sealed class CalibrationForm : Form
             _status.Text = _verification is { Accepted: true }
                 ? Lang.T("Correction verified by GRT -- the Ba+k file can be written.")
                 : Lang.T("Correction NOT confirmed by GRT -- use the Ba-only correction. Close the extra GRT tabs when done.");
+        }
+        catch (Exception ex) { Err(ex); }
+    }
+
+    private string SebertText() => _sebert?.BuildReport() ?? "";
+
+    /// <summary>
+    /// Measures how far the OBT node would move if the load's Sebert factor were off by 0.1 either way with the velocity
+    /// still matching (see <see cref="SebertSensitivity"/>). Reads only: no file of the user's is changed, and the
+    /// Sebert factor is never written. The sweep files get a name of their own on every run because GRT answers a
+    /// file it already has open with the old tab's results instead of simulating again.
+    /// </summary>
+    private async Task CheckSebertAsync()
+    {
+        if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
+        try
+        {
+            var top = await _grt.GetTabOnTopAsync();
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
+            string basePath = GrtLoadDoc.PristineBasePath(top.file);
+            if (!File.Exists(basePath)) basePath = top.file;
+            var pdoc = GrtLoadDoc.Load(basePath);
+            double? ba = pdoc.PropellantBa is > 0 ? pdoc.PropellantBa : null;
+            double? k = pdoc.InputNumber("propellant", "k") is { } kv && kv > 0 ? kv : null;
+            double? s0 = pdoc.PropellantSebert is > 0 ? pdoc.PropellantSebert : null;
+            if (ba is not { } baOld || k is not { } kOld || s0 is not { } sebert)
+            { MessageBox.Show(this, Lang.T("This load has no Sebert factor, Ba or k to work from.")); return; }
+
+            // The charge to simulate at: the middle of the measured ladder if there is one, else the file's own charge.
+            var measured = _result.Points.Where(p => p.MeasMps > 0).Select(p => p.ChargeGr).OrderBy(x => x).ToList();
+            double? charge = measured.Count > 0 ? measured[measured.Count / 2] : pdoc.PropellantChargeGr;
+            if (charge is not { } chargeGr || chargeGr <= 0) { MessageBox.Show(this, Lang.T("Could not read the current charge (mc) from the load.")); return; }
+
+            if (MessageBox.Show(this,
+                    string.Format(Lang.T("This will briefly open {0} tabs in GRT, simulating the load at the Sebert factor +/-{1:0.0} (Ba and k re-matched to the same velocity), then reopen your load.\n\nContinue?"), 12, SebertSensitivity.Step),
+                    Lang.T("Sebert sensitivity"), MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                return;
+
+            string tmpDir = Path.Combine(Path.GetTempPath(), "grt_sebert_" + Guid.NewGuid().ToString("N")[..8]);
+            Directory.CreateDirectory(tmpDir);
+            const double grToG = 0.06479891;
+            int n = 0;
+            async Task<SebertSim?> Simulate(double s, double f, double chg)
+            {
+                var doc = GrtLoadDoc.Load(basePath);
+                doc.SetInput("caliber", "sebert", s.ToString("0.########", CultureInfo.InvariantCulture));
+                doc.SetInput("propellant", "Ba", (baOld * f).ToString("0.###############", CultureInfo.InvariantCulture));
+                doc.SetInput("propellant", "k", (kOld * f).ToString("0.###############", CultureInfo.InvariantCulture));
+                doc.SetInput("propellant", "mc", (chg * grToG).ToString("0.############", CultureInfo.InvariantCulture), "g");
+                doc.SetInput("propellant", "laddercnt", "0");     // ladder off -- single charge
+                string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "sebert_{0:000}.grtload", n++));
+                doc.Save(tmp);
+                await _grt.LoadFileAsync(tmp);
+                await Task.Delay(2000);                            // let GRT compute
+                var t2 = await _grt.GetTabOnTopAsync();
+                var res = await _grt.GetTabResultsAsync(t2.handle);
+                if (res.MuzzleVelocityMps is not { } mv || mv <= 0 || res.MaxPressure is not { } pm
+                    || res.BulletLeadTime10PmaxMs is not { } blt || blt <= 0) return null;
+                AppendLog(FormattableString.Invariant($"Sebert {s:0.00}, Ba,k x{f:0.0000}, {chg:0.00} gr -> {mv:0.0} m/s, BLT {blt:0.0000} ms"));
+                return new SebertSim(mv, pm, blt, res.MaxPressureUnit);
+            }
+
+            _sebert = await SebertSensitivity.RunAsync(Simulate, sebert, chargeGr);
+
+            await _grt.LoadFileAsync(basePath);                    // back to the user's load
+            try { Directory.Delete(tmpDir, true); } catch { }
+            Recompute();
+            _status.Text = _sebert is null
+                ? Lang.T("Sebert sensitivity could not be measured: GRT did not return a usable simulation (a stale tab, or a charge it cannot compute).")
+                : Lang.T("Sebert sensitivity measured -- see the report below.");
         }
         catch (Exception ex) { Err(ex); }
     }
@@ -537,6 +611,7 @@ internal sealed class CalibrationForm : Form
                 : "the sweep has no usable nudge";
             report += "\r\nGRT-style correction (Ba and k together): not available yet -- " + why + ".\r\n";
         }
+        report += SebertText();
         _summary.Text = report.Replace("\n", "\r\n");
 
         bool ok = _result.N >= 1 && _grt is { Connected: true } && _basePath != null;
@@ -557,7 +632,7 @@ internal sealed class CalibrationForm : Form
             var doc = GrtLoadDoc.OpenForToolkitEdit(_basePath);
             doc.RemoveByTitlePrefix(NoteTitle);
             string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
-            doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder));
+            doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder) + SebertText());
 
             string suffix = "cal";
             if (withBa && _baOld is { } ba && ba > 0)
@@ -586,7 +661,7 @@ internal sealed class CalibrationForm : Form
             var doc = GrtLoadDoc.OpenForToolkitEdit(_basePath);
             doc.RemoveByTitlePrefix(NoteTitle);
             string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
-            doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder) + _result.BuildJointReport(fit, ba, k, _powder));
+            doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder) + _result.BuildJointReport(fit, ba, k, _powder) + SebertText());
 
             string suffix = "cal_ba_k";
             bool wroteBa = doc.SetInput("propellant", "Ba", fit.NewBa.ToString("0.###############", CultureInfo.InvariantCulture));

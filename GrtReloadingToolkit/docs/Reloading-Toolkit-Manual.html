@@ -116,7 +116,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manual · v0.2.19</span>
+  <span class="k">Manual · v0.2.20</span>
 </div></div>
 
 <div class="shell">
@@ -402,7 +402,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>Pick ladder folder…</td><td>Folder with chrono <code>*.xlsx</code> + OnTarget <code>Carica *.csv</code>, one pair per charge.</td></tr>
         <tr><td>w POI · w MV · window</td><td>Analysis weights and the node width (3–5 steps).</td></tr>
         <tr><td>Re-analyze</td><td>Recompute with the current weights.</td></tr>
-        <tr><td>Groups from GRT load</td><td>Read groups from GRT&#39;s Shot-group tabs instead of <code>.csv</code>, with the ref-distance / shoot-distance unit boxes and a <em>drop flyers</em> toggle.</td></tr>
+        <tr><td>Groups from GRT load</td><td>Read groups from GRT&#39;s Shot-group tabs instead of <code>.csv</code>, with a <em>drop flyers</em> toggle.</td></tr>
         <tr><td>Write note to GRT load</td><td>Write the &ldquo;OCW Analysis&rdquo; note <strong>and the chart</strong> into the load.</td></tr>
       </tbody></table>
       <p><strong>Grid:</strong> charge · n · MV · SD · ES · distance · POI-Y (MOA) · group mean-radius
@@ -507,6 +507,12 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         offered: <code>Ba</code> and <code>k</code> both mostly scale the velocity, and <code>a0</code> hardly
         affects it (a +30&nbsp;% change moved the velocities by only 1.7&nbsp;%), so velocity alone cannot
         separate them.</p>
+      <p><strong>The Sebert factor.</strong> It is the share of the powder charge that travels down the barrel with the bullet: GRT adds that share to the bullet mass it has to accelerate. It belongs to the caliber, not to the powder (GRT&#39;s default is 0.5, allowed range 0.1 to 1.0; some users lower it a little for fat cases), and no calibration in GRT or in this toolkit changes it.</p>
+      <p><strong>Why the chronograph cannot see it.</strong> A higher factor means more mass to push, so the model comes out a few m/s slow. Raising <code>Ba</code> and <code>k</code> by a fraction of a percent brings the velocity back. The velocity then looks right whatever the factor is, so velocity alone cannot tell a Sebert of 0.50 from one of 0.60.</p>
+      <p><strong>What does change.</strong> To reach the same velocity with more mass to push, the powder has to burn faster: the peak pressure rises by a few percent and the bullet leaves sooner, so the bullet lead time (BLT) gets shorter. A lower factor does the opposite. GRT matches OBT nodes against that BLT, so the charge of a node moves with the factor: a higher factor puts the node at a lower charge, a lower factor at a higher one.</p>
+      <p><strong>How much.</strong> In the loads checked, a factor wrong by 0.1 moved the node by about 0.2 gr and one wrong by 0.05 by about 0.1 gr, against several grains between neighbouring nodes. That is the order of the 0.1 to 0.2 gr GRT quotes for a node, so it does not move everything, but it is the largest single contribution among the model inputs that were tried, together with the fired case volume. Only a measured peak pressure, not a velocity, could pin the factor down.</p>
+      <p><strong>The button.</strong> <strong>Check Sebert sensitivity (GRT)</strong> simulates the load (at the middle charge of the ladder) with the factor 0.1 higher and 0.1 lower, each time re-matching <code>Ba</code> and <code>k</code> to the same velocity, and adds a block to the report: how Pmax and the BLT change and how many grains of charge that moves the node. It only reads: nothing is written and the Sebert factor is never changed.</p>
+      <p><strong>What to do with it.</strong> Measure the fired case volume carefully, treat the charge GRT gives for an OBT node as good to about 0.2 gr, and confirm it with a fine ladder (0.1 gr steps) around that charge.</p>
     </section>
 
     <section id="temp">
@@ -680,10 +686,9 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
           indistinguishable from GRT&#39;s own numbering and is deliberately never guessed at. If groups still carry GRT&#39;s own names, <em>Groups from GRT load</em> offers to give them the load&#39;s chronographed charges in ascending order (first group = lowest charge), shows you the list, and applies it only if you say yes; answer No and those groups are left out &mdash; they are never numbered as grains.</li>
         <li><strong>Save the load</strong> so the shot-group tabs are written into the
           <code>.grtload</code>.</li>
-        <li>In the Ladder / Seating analyzer set <strong>ref dist</strong> (mm / cm / inch) and
-          <strong>shoot dist</strong> (m / yd) &mdash; GRT doesn&#39;t store which unit the
-          reference-distance field used &mdash; optionally tick <strong>drop flyers</strong>, then click
-          <strong>Groups from GRT load</strong>.</li>
+        <li>In the Ladder / Seating analyzer optionally tick <strong>drop flyers</strong>, then click
+          <strong>Groups from GRT load</strong>. No unit setting is needed: GRT stores the reference and
+          shooting distances in mm and m whatever it displays, and the tool reads them that way.</li>
       </ol>
       <p>Each hit (stored as an image fraction) is converted to MOA using the two reference points and
         the image aspect ratio (1&nbsp;MOA = 29.0888&nbsp;mm at 100&nbsp;m).</p>
@@ -1133,6 +1138,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.19 · community plugin for Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.20 · community plugin for Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

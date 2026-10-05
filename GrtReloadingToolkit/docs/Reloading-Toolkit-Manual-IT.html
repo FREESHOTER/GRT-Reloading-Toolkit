@@ -113,7 +113,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2.19</span>
+  <span class="k">Manuale · v0.2.20</span>
 </div></div>
 
 <div class="shell">
@@ -407,7 +407,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Pick ladder folder…</td><td>Cartella con <code>*.xlsx</code> del cronografo + <code>Carica *.csv</code> di OnTarget, una coppia per carica.</td></tr>
         <tr><td>w POI · w MV · window</td><td>Pesi dell&#39;analisi e larghezza del nodo (3–5 gradini).</td></tr>
         <tr><td>Re-analyze</td><td>Ricalcola con i pesi attuali.</td></tr>
-        <tr><td>Groups from GRT load</td><td>Legge i gruppi dai tab &laquo;gruppo di colpi&raquo; di GRT invece che dai <code>.csv</code>, con i due menù unità (distanza di riferimento / distanza di tiro) e l&#39;opzione <em>drop flyers</em>.</td></tr>
+        <tr><td>Groups from GRT load</td><td>Legge i gruppi dai tab &laquo;gruppo di colpi&raquo; di GRT invece che dai <code>.csv</code>, con l&#39;opzione <em>drop flyers</em>.</td></tr>
         <tr><td>Write note to GRT load</td><td>Scrive la nota &laquo;OCW Analysis&raquo; <strong>e il grafico</strong> nel load.</td></tr>
       </tbody></table>
       <p><strong>Griglia:</strong> carica · n · MV · SD · ES · distanza · POI-Y (MOA) · raggio medio
@@ -515,6 +515,12 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         Ba + a0) non è più offerto: <code>Ba</code> e <code>k</code> scalano entrambi soprattutto la velocità
         e <code>a0</code> la influenza appena (un +30&nbsp;% l&#39;ha spostata di solo l&#39;1,7&nbsp;%),
         quindi la sola velocità non può separarli.</p>
+      <p><strong>Il fattore di Sebert.</strong> È la quota della carica di polvere che viaggia in canna insieme al proiettile: GRT la somma alla massa del proiettile da accelerare. Appartiene al calibro, non alla polvere (il valore predefinito di GRT è 0,5, con campo ammesso da 0,1 a 1,0; qualcuno lo abbassa un po&#39; per i bossoli grassi), e nessuna calibrazione, né in GRT né in questo toolkit, lo cambia.</p>
+      <p><strong>Perché il cronografo non lo vede.</strong> Un fattore più alto significa più massa da spingere, quindi il modello risulta lento di qualche m/s. Alzando <code>Ba</code> e <code>k</code> di una frazione di punto percentuale la velocità torna. La velocità sembra allora giusta qualunque sia il fattore, e da sola non distingue un Sebert di 0,50 da uno di 0,60.</p>
+      <p><strong>Cosa cambia davvero.</strong> Per ottenere la stessa velocità con più massa da spingere la polvere deve bruciare più in fretta: la pressione massima sale di qualche punto percentuale e il proiettile esce prima, quindi il tempo di permanenza in canna (BLT) si accorcia. Un fattore più basso fa il contrario. GRT confronta i nodi OBT proprio con questo BLT, quindi la carica del nodo si sposta con il fattore: un fattore più alto porta il nodo a una carica più bassa, uno più basso a una più alta.</p>
+      <p><strong>Di quanto.</strong> Nei carichi controllati, un fattore sbagliato di 0,1 ha spostato il nodo di circa 0,2 gr e uno sbagliato di 0,05 di circa 0,1 gr, contro diversi grani tra un nodo e il successivo. È l&#39;ordine dei 0,1–0,2 gr che GRT dichiara per un nodo: non sposta tutto, ma è il contributo singolo più grande tra i dati del modello provati, insieme al volume del bossolo sparato. Solo una pressione massima misurata, non una velocità, potrebbe fissare il fattore.</p>
+      <p><strong>Il pulsante.</strong> <strong>Check Sebert sensitivity (GRT)</strong> simula il carico (alla carica centrale della scala) con il fattore più alto di 0,1 e più basso di 0,1, ogni volta riadattando <code>Ba</code> e <code>k</code> alla stessa velocità, e aggiunge un blocco al rapporto: come cambiano Pmax e BLT e di quanti grani di carica si sposta il nodo. Legge soltanto: non scrive nulla e il fattore di Sebert non viene mai modificato.</p>
+      <p><strong>Cosa farne.</strong> Misura con cura il volume del bossolo sparato, considera la carica che GRT indica per un nodo OBT valida entro circa 0,2 gr e controllala con una scala fitta (passi da 0,1 gr) attorno a quella carica.</p>
     </section>
 
     <section id="temp">
@@ -698,10 +704,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           è indistinguibile dalla numerazione automatica di GRT e non viene mai indovinato di
           proposito. Se i gruppi hanno ancora i nomi di GRT, <em>Groups from GRT load</em> propone di assegnare loro le cariche cronografate del load in ordine crescente (primo gruppo = carica più bassa), ti mostra l&#39;elenco e lo applica solo se confermi; rispondendo No quei gruppi vengono esclusi &mdash; non vengono mai numerati come grani.</li>
         <li><strong>Salva il load</strong> così i tab gruppo finiscono nel <code>.grtload</code>.</li>
-        <li>Nell&#39;analizzatore Ladder / Seating imposta <strong>ref dist</strong> (mm / cm /
-          pollici) e <strong>shoot dist</strong> (m / yd) — GRT non memorizza quale unità usava il
-          campo distanza di riferimento — eventualmente spunta <strong>drop flyers</strong>, poi
-          clicca <strong>Groups from GRT load</strong>.</li>
+        <li>Nell&#39;analizzatore Ladder / Seating spunta eventualmente <strong>drop flyers</strong>, poi
+          clicca <strong>Groups from GRT load</strong>. Non serve impostare le unità: GRT memorizza
+          distanza di riferimento e distanza di tiro in mm e m qualunque unità mostri, e lo strumento le legge così.</li>
       </ol>
       <p>Ogni foro (memorizzato come frazione dell&#39;immagine) viene convertito in MOA usando i due
         punti di riferimento e le proporzioni dell&#39;immagine (1&nbsp;MOA = 29,0888&nbsp;mm a
@@ -1181,6 +1186,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.19 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.20 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

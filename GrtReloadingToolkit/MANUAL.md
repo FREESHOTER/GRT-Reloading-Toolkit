@@ -262,7 +262,7 @@ folder always wins over the load's own numbers for that charge.
 | **Pick ladder folder…** | Folder with chrono `*.xlsx` + OnTarget `Carica *.csv`, one pair per charge. |
 | **w POI**, **w MV**, **window** | Analysis weights and the node width (3–5 steps). |
 | **Re-analyze** | Recompute with the current weights. |
-| **Groups from GRT load** | Read the group data from GRT's Shot-group tabs instead of `.csv` (with the two unit boxes + *drop flyers*, see §14). |
+| **Groups from GRT load** | Read the group data from GRT's Shot-group tabs instead of `.csv` (with a *drop flyers* option, see §14). |
 | **Write note to GRT load** | Write the "OCW Analysis" note **and the chart** into the load. |
 
 **Grid:** charge · n · MV · SD · ES · distance · POI-Y (MOA) · group mean-radius (MOA) · vertical
@@ -360,6 +360,18 @@ calibration landed on. The tool refuses an absurd correction (more than 5 %, or 
 An independent Ba + k (or Ba + a0) fit is no longer offered: `Ba` and `k` both mostly scale the velocity,
 and `a0` hardly affects it (a +30 % change moved the velocities by only 1.7 %), so velocity alone cannot
 separate them.
+
+**The Sebert factor.** It is the share of the powder charge that travels down the barrel with the bullet: GRT adds that share to the bullet mass it has to accelerate. It belongs to the caliber, not to the powder (GRT's default is 0.5, allowed range 0.1 to 1.0; some users lower it a little for fat cases), and no calibration in GRT or in this toolkit changes it.
+
+**Why the chronograph cannot see it.** A higher factor means more mass to push, so the model comes out a few m/s slow. Raising `Ba` and `k` by a fraction of a percent brings the velocity back. The velocity then looks right whatever the factor is, so velocity alone cannot tell a Sebert of 0.50 from one of 0.60.
+
+**What does change.** To reach the same velocity with more mass to push, the powder has to burn faster: the peak pressure rises by a few percent and the bullet leaves sooner, so the bullet lead time (BLT) gets shorter. A lower factor does the opposite. GRT matches OBT nodes against that BLT, so the charge of a node moves with the factor: a higher factor puts the node at a lower charge, a lower factor at a higher one.
+
+**How much.** In the loads checked, a factor wrong by 0.1 moved the node by about 0.2 gr and one wrong by 0.05 by about 0.1 gr, against several grains between neighbouring nodes. That is the order of the 0.1 to 0.2 gr GRT quotes for a node, so it does not move everything, but it is the largest single contribution among the model inputs that were tried, together with the fired case volume. Only a measured peak pressure, not a velocity, could pin the factor down.
+
+**The button.** **Check Sebert sensitivity (GRT)** simulates the load (at the middle charge of the ladder) with the factor 0.1 higher and 0.1 lower, each time re-matching `Ba` and `k` to the same velocity, and adds a block to the report: how Pmax and the BLT change and how many grains of charge that moves the node. It only reads: nothing is written and the Sebert factor is never changed.
+
+**What to do with it.** Measure the fired case volume carefully, treat the charge GRT gives for an OBT node as good to about 0.2 gr, and confirm it with a fine ladder (0.1 gr steps) around that charge.
 
 ---
 
@@ -527,9 +539,9 @@ and `(+) Shot` markers, mark one point as *Point of Aim*, flag flyers):
    applies it only if you say yes; answer No and those groups are left out — they are never
    numbered as grains.
 2. **Save the load** so the shot-group tabs are written into the `.grtload`.
-3. In the Ladder / Seating analyzer set **ref dist** (mm / cm / inch) and **shoot dist** (m / yd) —
-   GRT does not store which unit the reference-distance field used, so tell the tool — optionally
-   tick **drop flyers**, then click **Groups from GRT load**.
+3. In the Ladder / Seating analyzer optionally tick **drop flyers**, then click **Groups from GRT
+   load**. Units need no setting: GRT stores the reference and shooting distances in mm and m
+   whatever it displays, and the tool reads them that way.
 
 The tool converts each hit (stored as an image fraction) to MOA using the two reference points and
 the image aspect ratio (1 MOA = 29.0888 mm at 100 m).

@@ -35,6 +35,7 @@
     <Compile Include="..\GrtReloadingToolkit\Athlon\AthlonParser.cs" Link="Athlon\AthlonParser.cs" />
     <!-- The calibration maths: the Ba + a0 fit and its report. -->
     <Compile Include="..\GrtReloadingToolkit\Cal\Calibration.cs" Link="Cal\Calibration.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cal\SebertSensitivity.cs" Link="Cal\SebertSensitivity.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ocw\LadderAnalyzer.cs" Link="Ocw\LadderAnalyzer.cs" />
     <!-- Same story for the log store: SQLite and arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\Log\LogModels.cs" Link="Log\LogModels.cs" />

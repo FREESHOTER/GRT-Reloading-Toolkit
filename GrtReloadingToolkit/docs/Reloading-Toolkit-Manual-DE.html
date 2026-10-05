@@ -113,7 +113,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Handbuch · v0.2.19</span>
+  <span class="k">Handbuch · v0.2.20</span>
 </div></div>
 
 <div class="shell">
@@ -428,8 +428,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         <tr><td>w POI · w MV · window</td><td>Analysegewichte und die Knotenbreite (3–5 Stufen).</td></tr>
         <tr><td>Re-analyze</td><td>Mit den aktuellen Gewichten neu berechnen.</td></tr>
         <tr><td>Groups from GRT load</td><td>Gruppen aus GRTs Shot-group-Tabs statt aus <code>.csv</code>
-          lesen, mit den Einheitenfeldern für Referenz-/Schussdistanz und einem Schalter <em>drop
-          flyers</em>.</td></tr>
+          lesen, mit einem Schalter <em>drop flyers</em>.</td></tr>
         <tr><td>Write note to GRT load</td><td>Schreibt die Notiz &ldquo;OCW Analysis&rdquo;
           <strong>und das Diagramm</strong> in die Ladung.</td></tr>
       </tbody></table>
@@ -546,6 +545,12 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         unabhängiger Ba+k- (oder Ba+a0-)Fit wird nicht mehr angeboten: <code>Ba</code> und <code>k</code>
         skalieren beide vor allem die Geschwindigkeit, und <code>a0</code> beeinflusst sie kaum (+30&nbsp;%
         verschoben sie nur um 1,7&nbsp;%); die Geschwindigkeit allein kann sie daher nicht trennen.</p>
+      <p><strong>Der Sebert-Faktor.</strong> Er ist der Anteil der Pulverladung, der mit dem Geschoss durch den Lauf wandert: GRT addiert diesen Anteil zur zu beschleunigenden Geschossmasse. Er gehört zum Kaliber, nicht zum Pulver (GRTs Standard ist 0,5, zulässig 0,1 bis 1,0; manche senken ihn bei dicken Hülsen etwas), und keine Kalibrierung in GRT oder in diesem Toolkit ändert ihn.</p>
+      <p><strong>Warum der Chronograph ihn nicht sieht.</strong> Ein höherer Faktor bedeutet mehr zu schiebende Masse, das Modell ist dann einige m/s zu langsam. Wird <code>Ba</code> und <code>k</code> um einen Bruchteil eines Prozents erhöht, stimmt die Geschwindigkeit wieder. Sie sieht dann bei jedem Faktor richtig aus und kann ein Sebert von 0,50 allein nicht von 0,60 unterscheiden.</p>
+      <p><strong>Was sich wirklich ändert.</strong> Um dieselbe Geschwindigkeit mit mehr zu schiebender Masse zu erreichen, muss das Pulver schneller abbrennen: Der Spitzendruck steigt um einige Prozent und das Geschoss verlässt den Lauf früher, die Verweilzeit im Lauf (BLT) wird kürzer. Ein niedrigerer Faktor bewirkt das Gegenteil. GRT vergleicht die OBT-Knoten mit genau dieser BLT, daher wandert die Ladung eines Knotens mit dem Faktor: ein höherer Faktor legt den Knoten auf eine niedrigere Ladung, ein niedrigerer auf eine höhere.</p>
+      <p><strong>Wie viel.</strong> Bei den geprüften Ladungen verschob ein um 0,1 falscher Faktor den Knoten um etwa 0,2 gr, einer um 0,05 um etwa 0,1 gr, bei mehreren Grain Abstand zwischen benachbarten Knoten. Das liegt in der Größenordnung der 0,1 bis 0,2 gr, die GRT für einen Knoten angibt: Es verschiebt nicht alles, ist aber unter den geprüften Modelleingaben der größte Einzelbeitrag, zusammen mit dem Volumen der abgeschossenen Hülse. Nur ein gemessener Spitzendruck, keine Geschwindigkeit, könnte den Faktor festlegen.</p>
+      <p><strong>Die Schaltfläche.</strong> <strong>Check Sebert sensitivity (GRT)</strong> simuliert die Ladung (bei der mittleren Ladung der Leiter) mit einem um 0,1 höheren und einem um 0,1 niedrigeren Faktor, gleicht jedes Mal <code>Ba</code> und <code>k</code> auf dieselbe Geschwindigkeit an und fügt dem Bericht einen Block hinzu: wie sich Pmax und BLT ändern und um wie viele Grain Ladung sich der Knoten verschiebt. Sie liest nur: Es wird nichts geschrieben, und der Sebert-Faktor wird nie geändert.</p>
+      <p><strong>Was damit tun.</strong> Das Volumen der abgeschossenen Hülse sorgfältig messen, die von GRT für einen OBT-Knoten genannte Ladung als auf etwa 0,2 gr genau betrachten und sie mit einer feinen Leiter (Schritte von 0,1 gr) um diese Ladung bestätigen.</p>
     </section>
 
     <section id="temp">
@@ -735,10 +740,9 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
           nicht zu unterscheiden und wird absichtlich nie erraten. Tragen die Gruppen noch GRTs eigene Namen, bietet <em>Groups from GRT load</em> an, ihnen die chronographierten Ladungen des Loads in aufsteigender Reihenfolge zuzuweisen (erste Gruppe = niedrigste Ladung), zeigt die Liste und wendet sie nur nach Ihrer Bestätigung an; bei Nein werden diese Gruppen weggelassen &mdash; sie werden nie als Grain-Werte durchnummeriert.</li>
         <li><strong>Die Ladung speichern</strong>, damit die Shot-group-Tabs in die
           <code>.grtload</code> geschrieben werden.</li>
-        <li>Im Ladder-/Sitztiefen-Analysator <strong>ref dist</strong> (mm / cm / Inch) und
-          <strong>shoot dist</strong> (m / yd) festlegen &mdash; GRT speichert nicht, welche Einheit das
-          Referenzdistanz-Feld verwendet hat &mdash; optional <strong>drop flyers</strong> ankreuzen,
-          dann auf <strong>Groups from GRT load</strong> klicken.</li>
+        <li>Im Ladder-/Sitztiefen-Analysator optional <strong>drop flyers</strong> ankreuzen, dann auf
+          <strong>Groups from GRT load</strong> klicken. Eine Einheit muss nicht eingestellt werden: GRT speichert
+          Referenz- und Schussdistanz immer in mm und m, egal was angezeigt wird, und das Tool liest sie so.</li>
       </ol>
       <p>Jeder Treffer (als Bildanteil gespeichert) wird über die beiden Referenzpunkte und das
         Bildseitenverhältnis in MOA umgerechnet (1&nbsp;MOA = 29,0888&nbsp;mm auf 100&nbsp;m).</p>
@@ -1237,6 +1241,6 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.19 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.20 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

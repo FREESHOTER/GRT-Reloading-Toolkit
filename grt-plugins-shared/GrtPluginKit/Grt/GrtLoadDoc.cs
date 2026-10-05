@@ -495,7 +495,11 @@ public sealed class GrtLoadDoc
         string? sibling = NewestToolkitSibling(activeTabFile);
         string pristine = PristineBasePath(activeTabFile);
         bool havePristine = File.Exists(pristine);
-        if (sibling is null) return havePristine ? pristine : activeTabFile;
+        // No toolkit snapshot: the family has nothing to arbitrate, and the active tab is what the user
+        // is looking at. It may well be a file ANOTHER plugin generated (a "_shotmarker_<stamp>" import,
+        // GRT's own "_calibration_<stamp>") whose stem strips back to an original that lacks everything
+        // that file holds -- returning the stripped original would silently read the wrong file.
+        if (sibling is null) return activeTabFile;
         if (!havePristine) return sibling;
         return File.GetLastWriteTimeUtc(pristine) > File.GetLastWriteTimeUtc(sibling) ? pristine : sibling;
     }

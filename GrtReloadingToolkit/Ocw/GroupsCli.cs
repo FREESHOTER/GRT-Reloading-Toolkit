@@ -11,8 +11,8 @@ internal static class GroupsCli
     {
         var ci = CultureInfo.InvariantCulture;
         string path = args[1];
-        // GRT's own units are the starting point, because that is what the tab was measured in;
-        // naming one on the command line still wins, which is how a file from someone else is read.
+        // GRT stores mm and m whatever it displays; naming a unit on the command line is how a
+        // file from someone else (a caliper reading in inches) is read.
         var (defRef, defShoot) = GrtShotGroups.GrtDefaults();
         var refU = args.Any(a => a == "mm") ? RefUnit.Mm
             : args.Any(a => a == "cm") ? RefUnit.Cm
@@ -23,7 +23,7 @@ internal static class GroupsCli
             : defShoot;
         bool dropFlyers = args.Any(a => a == "--drop-flyers");
 
-        // Read in GRT's units above, and printed back in them here.
+        // Printed back in the units GRT shows.
         var gu = GrtUnits.Current;
         var doc = GrtLoadDoc.Load(path);
         var (groups, log) = GrtShotGroups.FromDoc(doc, new GrtShotGroups.Options(refU, shootU, dropFlyers));

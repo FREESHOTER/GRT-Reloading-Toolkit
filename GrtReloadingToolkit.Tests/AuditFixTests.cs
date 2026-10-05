@@ -78,6 +78,20 @@ public sealed class AuditFixTests : IDisposable
     }
 
     [Fact]
+    public void AFileAnotherPluginGeneratedIsReadAsItIsNotReplacedByItsOriginal()
+    {
+        // ShotMarker Import writes "<load>_shotmarker_<stamp>.grtload" with the imported shot groups; its stem
+        // strips back to the original, which has none of them. With no toolkit snapshot, read the open file.
+        string original = WriteLadderLoad("session", 40.2);
+        string imported = Path.Combine(_dir, "session_shotmarker_20261005_1030.grtload");
+        File.Copy(original, imported);
+
+        Assert.Equal(imported, GrtLoadDoc.FreshestFamilyFile(imported), ignoreCase: true);
+        Assert.Equal(imported, GrtLoadDoc.EffectiveReadPath(imported), ignoreCase: true);
+        Assert.Equal(imported, GrtLoadDoc.OpenForToolkitEdit(imported).SourcePath, ignoreCase: true);
+    }
+
+    [Fact]
     public void WithNoSiblingTheActiveFileIsUsed()
     {
         string p = WriteLadderLoad("alone", 40.0);
