@@ -1,0 +1,521 @@
+using System.Formats.Tar;
+using System.Globalization;
+using System.IO.Compression;
+using System.Text.Json;
+
+namespace ShotMarker.Core.Sm;
+
+/// <summary>
+/// Reads a ShotMarker `.tar` export: an <c>archive.txt</c> JSON index plus one
+/// zlib-compressed <c>string-&lt;id&gt;.z</c> per string. Both formats come from
+/// .NET itself — System.Formats.Tar and ZLibStream — so no third-party code is involved.
+///
+/// The current ShotMarker firmware sets <c>"encoded": true</c> on every string and stores
+/// each shot as a compact encoded string in the top-level <c>shots</c> array (ported from
+/// the ShotMarker bundle's <c>decode_shot</c>/<c>decode64</c>). Older exports may still carry
+/// plain shot objects under <c>groups[].shots[]</c> with <c>encoded</c> absent or false; that
+/// path is kept as a fallback but is not exercised by the committed fixture.
+/// </summary>
+public static class SmTarReader
+{
+    // Feet per metre — the constant the ShotMarker bundle calls FPS; used to turn the
+    // device's internal feet-per-second velocity encoding into m/s.
+    private const double FeetPerMetre = 3.28084;
+
+    public static IReadOnlyList<SmString> Read(Stream tar, IList<string> log)
+    {
+        var entries = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        try
+        {
+            using var reader = new TarReader(tar, leaveOpen: true);
+            while (reader.GetNextEntry() is { } entry)
+            {
+                if (entry.DataStream is null) continue;
+                using var ms = new MemoryStream();
+                entry.DataStream.CopyTo(ms);
+                entries[Path.GetFileName(entry.Name)] = ms.ToArray();
+            }
+        }
+        catch (Exception ex)
+        {
+            // A truncated archive still yields every entry read before the cut.
+            log.Add($"archive ended early ({ex.GetType().Name}); read {entries.Count} entries");
+        }
+
+        Dictionary<string, JsonElement>? index = ReadArchiveIndex(entries, log);
+
+        var result = new List<SmString>();
+        foreach ((string name, byte[] data) in entries.OrderBy(e => e.Key, StringComparer.Ordinal))
+        {
+            if (!name.StartsWith("string-", StringComparison.Ordinal) ||
+                !name.EndsWith(".z", StringComparison.Ordinal))
+                continue;
+
+            string id = Path.GetFileNameWithoutExtension(name);
+            if (id.StartsWith("string-", StringComparison.Ordinal)) id = id["string-".Length..];
+
+            try
+            {
+                using var src = new MemoryStream(data);
+                using var zs = new ZLibStream(src, CompressionMode.Decompress);
+                using var json = new MemoryStream();
+                zs.CopyTo(json);
+                json.Position = 0;
+
+                string? scoreText = index != null && index.TryGetValue(id, out JsonElement idxEntry)
+                    ? Str(idxEntry, "group_text")
+                    : null;
+
+                SmString? s = ReadString(id, json, scoreText, log);
+                if (s != null) result.Add(s);
+            }
+            catch (Exception ex)
+            {
+                log.Add($"{name}: unreadable ({ex.Message}) — skipped");
+            }
+        }
+        return result;
+    }
+
+    /// <summary>archive.txt is an id-keyed JSON object (name/ts/count/group_text/face_id/...).
+    /// Only <c>group_text</c> — the composite score string, e.g. "191-1X" — is not carried by
+    /// the per-string JSON, so that is all we take from it. A missing or unreadable index is
+    /// not fatal: every other field comes from the string's own JSON.</summary>
+    private static Dictionary<string, JsonElement>? ReadArchiveIndex(
+        Dictionary<string, byte[]> entries, IList<string> log)
+    {
+        if (!entries.TryGetValue("archive.txt", out byte[]? bytes)) return null;
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(bytes);
+            var index = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+            foreach (JsonProperty p in doc.RootElement.EnumerateObject())
+                index[p.Name] = p.Value.Clone();
+            return index;
+        }
+        catch (Exception ex)
+        {
+            log.Add($"archive.txt: unreadable ({ex.Message})");
+            return null;
+        }
+    }
+
+    private static SmString? ReadString(string id, Stream json, string? scoreText, IList<string> log)
+    {
+        using JsonDocument doc = JsonDocument.Parse(json);
+        JsonElement root = doc.RootElement;
+
+        bool encoded = root.TryGetProperty("encoded", out JsonElement encEl)
+                       && encEl.ValueKind == JsonValueKind.True;
+
+        List<SmShot> shots = encoded
+            ? ReadEncodedShots(root, log, id)
+            : ReadPlainShots(root);
+
+        // shots_invalid is NOT a list of indices into `shots` — it is a parallel array of
+        // rejected/deleted shots, each either an encoded string (decoded exactly like
+        // `shots`, via the same decode_shot) or already a decoded object, per the bundle's
+        // decode_shot_frame: `"string"==typeof e[t] && (e[t]=decode_shot(e[t]))` applied to
+        // both `shots` and `shots_invalid`. They are appended after the valid shots and
+        // always marked IsInvalid — simpler and just as usable downstream as interleaving
+        // by timestamp, since IsInvalid/IsFlyer is how callers are expected to filter them
+        // out rather than relying on position.
+        AppendInvalidShots(root, shots, log, id);
+
+        if (shots.Count == 0) { log.Add($"{id}: no shots — skipped"); return null; }
+
+        SmGroupStats? stats = ReadStats(root);
+
+        return new SmString(
+            id,
+            Str(root, "name") ?? id,
+            Timestamp(root),
+            Str(root, "face_id") ?? "",
+            Num(root, "dist") ?? 0,
+            Str(root, "dist_unit") ?? "m",
+            Num(root, "width") ?? 0,
+            Num(root, "height") ?? 0,
+            Num(root, "bullet"),
+            scoreText,
+            shots,
+            stats);
+    }
+
+    // ---- encoded path (the fixture's format) -----------------------------------------
+
+    private static List<SmShot> ReadEncodedShots(
+        JsonElement root, IList<string> log, string stringId)
+    {
+        var shots = new List<SmShot>();
+        if (!root.TryGetProperty("shots", out JsonElement arr) || arr.ValueKind != JsonValueKind.Array)
+            return shots;
+
+        (Dictionary<int, string> sighterScores, Dictionary<int, string> recordScores) =
+            ParseScoreString(root);
+
+        // Null when the source does not say (no group, or a group with no usable `shots`
+        // array) — every shot then gets InSelectedGroup = null, never a guessed true/false.
+        HashSet<long>? memberTs = ReadGroupMemberTs(root, log, stringId);
+
+        int sighterOrdinal = 0;
+        int recordOrdinal = 0;
+        int rawIndex = -1;
+        foreach (JsonElement el in arr.EnumerateArray())
+        {
+            rawIndex++;
+            if (el.ValueKind != JsonValueKind.String) continue;
+            string encoded = el.GetString() ?? "";
+
+            try
+            {
+                DecodedShot d = DecodeShot(encoded);
+
+                string? score;
+                if (d.Sighter)
+                {
+                    sighterOrdinal++;
+                    score = d.ScoreOverride ??
+                            (sighterScores.TryGetValue(sighterOrdinal, out string? sv) ? sv : null);
+                }
+                else
+                {
+                    recordOrdinal++;
+                    score = d.ScoreOverride ??
+                            (recordScores.TryGetValue(recordOrdinal, out string? rv) ? rv : null);
+                }
+
+                bool invalid = d.Fake || d.ErrorCode is not (null or 0);
+
+                // A shot that errored on the device (d.ErrorCode != 0) or is a "fake" entry
+                // never had coordinates decoded — NaN rather than (0,0) so a caller that
+                // forgets to check IsInvalid/IsFlyer gets an obviously wrong answer, not a
+                // silently-plausible one. A *warning* is not an error: that shot has real
+                // coordinates and stays a counting record shot, exactly as on the device.
+                shots.Add(new SmShot(
+                    shots.Count + 1,
+                    d.XMm ?? double.NaN, d.YMm ?? double.NaN,
+                    d.VelocityMps, score, d.TempC,
+                    d.Sighter, invalid, memberTs?.Contains(d.Ts), d.ExcludedOnDevice));
+
+                if (d.WarningCode is { } w)
+                    log.Add($"{stringId}: shot {shots.Count} carries device warning {w} — " +
+                            "imported and counted, as ShotMarker does");
+            }
+            catch (Exception ex)
+            {
+                log.Add($"{stringId}: shot {rawIndex} unreadable ({ex.Message}) — skipped");
+            }
+        }
+        return shots;
+    }
+
+    /// <summary>Decodes <c>shots_invalid</c> — rejected/deleted shots, structurally a second
+    /// shot array rather than an index list — and appends them to <paramref name="shots"/>,
+    /// continuing its <see cref="SmShot.Number"/> sequence. Each entry is either an encoded
+    /// string (same format and decoder as <c>shots</c>) or, per the bundle's own
+    /// <c>typeof e[t] == "string"</c> guard, already a decoded plain object; either shape is
+    /// handled. A malformed entry is logged and skipped, never thrown.</summary>
+    private static void AppendInvalidShots(
+        JsonElement root, List<SmShot> shots, IList<string> log, string stringId)
+    {
+        if (!root.TryGetProperty("shots_invalid", out JsonElement arr) || arr.ValueKind != JsonValueKind.Array)
+            return;
+
+        int i = -1;
+        foreach (JsonElement el in arr.EnumerateArray())
+        {
+            i++;
+            try
+            {
+                switch (el.ValueKind)
+                {
+                    case JsonValueKind.String:
+                        DecodedShot d = DecodeShot(el.GetString() ?? "");
+                        shots.Add(new SmShot(
+                            shots.Count + 1,
+                            d.XMm ?? double.NaN, d.YMm ?? double.NaN,
+                            d.VelocityMps, d.ScoreOverride, d.TempC,
+                            d.Sighter, true, null));
+                        break;
+                    case JsonValueKind.Object:
+                        shots.Add(new SmShot(
+                            shots.Count + 1,
+                            Num(el, "x") ?? double.NaN, Num(el, "y") ?? double.NaN,
+                            Num(el, "v"), Str(el, "score"), Num(el, "temp"),
+                            Str(el, "display_text")?.Contains("sighter", StringComparison.OrdinalIgnoreCase)
+                                == true,
+                            true, null));
+                        break;
+                    default:
+                        log.Add($"{stringId}: shots_invalid[{i}] has unexpected shape ({el.ValueKind}) — skipped");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Add($"{stringId}: shots_invalid[{i}] unreadable ({ex.Message}) — skipped");
+            }
+        }
+    }
+
+    private readonly record struct DecodedShot(
+        long Ts, bool Sighter, bool Fake, bool ExcludedOnDevice, double? TempC,
+        double? XMm, double? YMm, double? VelocityMps,
+        int? ErrorCode, int? WarningCode, string? ScoreOverride);
+
+    /// <summary>Ported from the ShotMarker bundle's <c>decode_shot</c>. Reads a cursor forward
+    /// through the encoded string; a shot whose error byte (<c>d</c>) names an *error* has no
+    /// x/y/v at all — those fields stay null — while a *warning* on the same byte leaves the
+    /// measurement intact. <c>Ts</c> is the join key against a group's member
+    /// <c>shots[].ts</c> (task 9b) — every return path carries it.</summary>
+    private static DecodedShot DecodeShot(string s)
+    {
+        var c = new Cursor(s);
+
+        long ts = 16777216 * Decode64(c.Take(3)) + Decode64(c.Take(4));
+
+        // The vendor reads four flags from this byte — 1 simulated, 2 hide, 4 sighter, 8 off.
+        // Its statistics functions (calc_group_size, calc_string_velocity, calc_string_sd,
+        // calc_group_stats, calc_valid_shot_count) all exclude hide, sighter, fake, delay and
+        // off; `simulated` appears in none of them. Bit 1 is therefore read and deliberately
+        // NOT excluded — the binding requirement is that GRT measure the shots ShotMarker
+        // measured, and dropping a simulated shot would make GRT's group smaller than the
+        // device's for the same string. Keeping only `sighter` had the opposite fault: a
+        // hidden cross-fire or an off-target shot came in as an ordinary scoring hit whenever
+        // the export had no selected group to contradict it.
+        long f1 = c.Byte();
+        bool hidden = (f1 & 2) != 0;
+        bool sighter = (f1 & 4) != 0;
+        bool offTarget = (f1 & 8) != 0;
+        bool excluded = hidden || offTarget;
+
+        long f2 = c.Byte();
+        bool fake = (f2 & 8) != 0;
+        bool hasScoreOverride = (f2 & 16) != 0;
+
+        string? scoreOverride = null;
+        if (hasScoreOverride)
+        {
+            string raw = c.Take(1);
+            long ov = Decode64(raw);
+            scoreOverride = ov is >= 0 and <= 10 ? ov.ToString(CultureInfo.InvariantCulture) : raw;
+        }
+
+        if (fake)
+            return new DecodedShot(ts, sighter, true, excluded, null, null, null, null, null, null, scoreOverride);
+
+        double temp = c.Byte() - 20;
+        long a = Decode64(c.Take(2));
+        for (int l = 0; l < 8; l++)
+        {
+            int len = ((a >> (10 - l)) & 1) != 0 ? 3 : 2;
+            _ = Decode64(c.Take(len)); // sensor timing — bookkeeping only, not needed further
+        }
+
+        // The vendor splits this byte in two. Codes 1..31 are errors ("no valid solution",
+        // "off target left", "unrealistic high velocity", …) and suppress the measurement
+        // entirely — its guard is `!r.error && (r.x = …, r.y = …, r.v = …)`, so the encoded
+        // string simply carries no coordinates to read. Codes 32 and above are *warnings*
+        // (quality, angle, velocity, "measured off target …") on a shot that still carries
+        // full x/y/v and that ShotMarker plots, scores and counts like any other.
+        //
+        // Treating the whole class as fatal dropped every warned shot out of the picture, the
+        // group box and the velocity average. If the warned shot was the widest hit, the
+        // imported group read *smaller* than the one actually fired — the silent-wrong-answer
+        // failure this reader exists to prevent.
+        long d = c.Byte();
+        if (d is > 0 and < 32)
+            return new DecodedShot(ts, sighter, false, excluded, temp, null, null, null, (int)d, null, scoreOverride);
+
+        double x = Polar(Decode64(c.Take(2)), 4000, 1.6, 2047);
+        double y = Polar(Decode64(c.Take(2)), 4000, 1.6, 2047);
+        double v = (Decode64(c.Take(2)) + 1000) / FeetPerMetre;
+        return new DecodedShot(ts, sighter, false, excluded, temp, x, y, v, 0,
+                               d >= 32 ? (int)d : null, scoreOverride);
+    }
+
+    private static double Polar(long e, double t, double o, double i) =>
+        Math.Pow(Math.Abs(e - i) / i, o) * t * Math.Sign(e - i);
+
+    /// <summary>Little-endian base-64 with a +35 character offset.</summary>
+    private static long Decode64(string s)
+    {
+        long o = 0;
+        for (int k = s.Length - 1; k >= 0; k--) o = (o << 6) + (s[k] - 35);
+        return o;
+    }
+
+    private sealed class Cursor
+    {
+        private readonly string _s;
+        private int _i;
+        public Cursor(string s) => _s = s;
+
+        public string Take(int n)
+        {
+            if (_i + n > _s.Length)
+                throw new FormatException($"expected {n} more characters at offset {_i} of {_s.Length}");
+            string r = _s.Substring(_i, n);
+            _i += n;
+            return r;
+        }
+
+        public long Byte()
+        {
+            if (_i >= _s.Length)
+                throw new FormatException($"expected 1 more character at offset {_i} of {_s.Length}");
+            long v = _s[_i] - 35;
+            _i++;
+            return v;
+        }
+    }
+
+    /// <summary><c>score_string</c> looks like "S1:7,S2:8,...,1:9,2:10,...,20:9," — S&lt;n&gt;
+    /// entries are sighter n, bare &lt;n&gt; entries are record shot n, both 1-based and in
+    /// shot order. Values may be non-numeric (e.g. "X").</summary>
+    private static (Dictionary<int, string> sighters, Dictionary<int, string> records) ParseScoreString(
+        JsonElement root)
+    {
+        var sighters = new Dictionary<int, string>();
+        var records = new Dictionary<int, string>();
+        string? raw = Str(root, "score_string");
+        if (string.IsNullOrEmpty(raw)) return (sighters, records);
+
+        foreach (string token in raw.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            int colon = token.IndexOf(':');
+            if (colon <= 0 || colon == token.Length - 1) continue;
+            string key = token[..colon];
+            string val = token[(colon + 1)..];
+
+            if (key[0] is 'S' or 's')
+            {
+                if (int.TryParse(key.AsSpan(1), NumberStyles.Integer, CultureInfo.InvariantCulture, out int sn))
+                    sighters[sn] = val;
+            }
+            else if (int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out int rn))
+            {
+                records[rn] = val;
+            }
+        }
+        return (sighters, records);
+    }
+
+    // ---- unencoded fallback path (kept per the brief, not exercised by the fixture) --
+
+    private static List<SmShot> ReadPlainShots(JsonElement root)
+    {
+        var shots = new List<SmShot>();
+        foreach (JsonElement g in Groups(root))
+        {
+            if (!g.TryGetProperty("shots", out JsonElement gs) || gs.ValueKind != JsonValueKind.Array)
+                continue;
+            foreach (JsonElement sh in gs.EnumerateArray())
+            {
+                bool hidden = sh.TryGetProperty("display", out JsonElement d)
+                              && d.ValueKind == JsonValueKind.False;
+                string? tag = Str(sh, "display_text");
+                bool sighter = hidden
+                               || tag?.Contains("sighter", StringComparison.OrdinalIgnoreCase) == true;
+                shots.Add(new SmShot(
+                    shots.Count + 1,
+                    Num(sh, "x") ?? 0, Num(sh, "y") ?? 0,
+                    Num(sh, "v"), Str(sh, "score"), Num(sh, "temp"),
+                    sighter, false, true));
+            }
+        }
+        return shots;
+    }
+
+    // ---- shared helpers ----------------------------------------------------------------
+
+    /// <summary><c>groups</c> is an id-keyed JSON object in every fixture observed, but is
+    /// read defensively as either an object or an array so an older export shaped as an
+    /// array still works.</summary>
+    private static IEnumerable<JsonElement> Groups(JsonElement root)
+    {
+        if (!root.TryGetProperty("groups", out JsonElement groups))
+            return Enumerable.Empty<JsonElement>();
+        return groups.ValueKind switch
+        {
+            JsonValueKind.Object => groups.EnumerateObject().Select(p => p.Value),
+            JsonValueKind.Array => groups.EnumerateArray(),
+            _ => Enumerable.Empty<JsonElement>(),
+        };
+    }
+
+    /// <summary>Group statistics are ShotMarker's own precomputed numbers, read straight off
+    /// the <c>groups</c> JSON — never derived from <see cref="SmShot"/> values in this reader.
+    /// So the <c>double.NaN</c> sentinel used for an errored/fake shot's coordinates (see
+    /// <see cref="ReadEncodedShots"/> and <see cref="AppendInvalidShots"/>) cannot reach here;
+    /// there is no local min/max/average/bounds computation over <c>shots</c> anywhere in this
+    /// file for it to poison.</summary>
+    private static SmGroupStats? ReadStats(JsonElement root) => Groups(root).Select(ReadStatsFrom).FirstOrDefault();
+
+    private static SmGroupStats ReadStatsFrom(JsonElement g) => new(
+        Num(g, "mr"), Num(g, "size"), Num(g, "ctc"),
+        Num(g, "v_avg"), Num(g, "v_sd"), Num(g, "v_es"));
+
+    /// <summary>The <c>ts</c> of every decoded member object in the same group
+    /// <see cref="ReadStats"/> reads its numbers from (task 9b) — the join key back onto the
+    /// root <c>shots</c> array's own decoded <see cref="DecodedShot.Ts"/>. Reuses
+    /// <see cref="Groups"/> rather than a second way of finding the group. Returns null —
+    /// "the source does not say" — both when there is no group at all (nothing to compare
+    /// against, same as <see cref="ReadStats"/> returning null silently) and, logging once,
+    /// when a group exists but carries no usable <c>shots</c> array. Never guesses in
+    /// between: a member whose <c>ts</c> is missing or non-numeric is simply not added, which
+    /// only shrinks the set a real shot could match, never grows it.</summary>
+    private static HashSet<long>? ReadGroupMemberTs(JsonElement root, IList<string> log, string stringId)
+    {
+        JsonElement? group = Groups(root).Select(g => (JsonElement?)g).FirstOrDefault();
+        if (group is not { } g) return null;
+
+        if (!g.TryGetProperty("shots", out JsonElement arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            log.Add($"{stringId}: group has no member shot list — group membership unavailable");
+            return null;
+        }
+
+        var members = new HashSet<long>();
+        foreach (JsonElement el in arr.EnumerateArray())
+        {
+            if (el.ValueKind == JsonValueKind.Object &&
+                el.TryGetProperty("ts", out JsonElement tsEl) &&
+                tsEl.ValueKind == JsonValueKind.Number &&
+                tsEl.TryGetInt64(out long ts))
+                members.Add(ts);
+        }
+
+        // An array that is present but yields no usable member is "the source does not say"
+        // just as much as a missing one. Returning the empty set instead would make
+        // `memberTs.Contains(ts)` false for every shot, so every shot becomes a flyer: an
+        // all-flyer tab with an empty group box, no velocity measurement and a banner reading
+        // "0 of 20 record shots".
+        if (members.Count == 0)
+        {
+            log.Add($"{stringId}: group lists no usable member shots — group membership unavailable");
+            return null;
+        }
+        return members;
+    }
+
+    private static DateTimeOffset Timestamp(JsonElement root) =>
+        Num(root, "ts") is { } ms
+            ? DateTimeOffset.FromUnixTimeMilliseconds((long)ms)
+            : DateTimeOffset.MinValue;
+
+    private static string? Str(JsonElement e, string name) =>
+        e.TryGetProperty(name, out JsonElement v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+
+    private static double? Num(JsonElement e, string name)
+    {
+        if (!e.TryGetProperty(name, out JsonElement v)) return null;
+        return v.ValueKind switch
+        {
+            JsonValueKind.Number => v.GetDouble(),
+            JsonValueKind.String when double.TryParse(v.GetString(), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double d) => d,
+            _ => null,
+        };
+    }
+}

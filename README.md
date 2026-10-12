@@ -2,7 +2,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/FREESHOTER/GRT-Reloading-Toolkit?label=latest%20release&color=brightgreen)](https://github.com/FREESHOTER/GRT-Reloading-Toolkit/releases/latest)
 
-A community plugin for [Gordon's Reloading Tool](https://grtools.de) that bundles nineteen small
+A community plugin for [Gordon's Reloading Tool](https://grtools.de) that bundles twenty-three small
 reloading tools into one window and writes their results back into your load — as notes, charts,
 and corrected inputs (`Ba`, `a0`, `casevol`, `gdepth`, `tcc`/`tch`) — plus a set of installable GRT
 report templates.
@@ -11,7 +11,7 @@ report templates.
 — grab `ReloadingToolkit.zip` (or the smaller `-lite.zip`, see [Install](#install-users) below) from
 the Assets list on that page.
 
-> **Status: v0.2.20.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
+> **Status: v0.2.21.** Tested against my own loads (6.5 Creedmoor / VV N550). Not every path with
 > every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
@@ -21,6 +21,7 @@ the Assets list on that page.
 |---|---|
 | **Guided New Load** | A checklist for one new load, front to back — opens the real tool for each step (never reimplements one). Two paths: single load (brass prep → card → calibration) or ladder test (brass prep → chrono import → Ladder/OCW → calibration → card, printed last for whichever charge the ladder pointed at). |
 | **Chronograph Import** | Athlon Rangecraft and Garmin Xero C1 Pro / ShotView exports (`.xlsx` / `.csv`), one file or a whole folder → a GRT Imported Measurement. Auto-detects fps vs m/s. |
+| **ShotMarker Import** | A ShotMarker session export (`.tar` or `shotslog.csv`) → real GRT shot-group tabs: the target drawn, every hit plotted on it, all the velocities in one measurement, ShotMarker's own stats in a note. Scale is exact by construction and written in SI, so a group measured off a tab reads the same on a metric and an imperial install. Picks your firing point on a frame shared by several shooters. |
 | **Chronograph Statistics** | Confidence interval on the true mean, shots needed for a target margin, Chauvenet-flagged outliers, Welch t-test / F-test comparing any two strings. |
 | **Ladder / OCW Analyzer** | Velocity flat-spot (Satterlee) + vertical-POI node (OCW / Audette) + a weighted best node → an *OCW Analysis* note and chart. Groups from OnTarget CSV or GRT's own shot-group tabs. |
 | **Seating-Depth Analyzer** | Group-size plateau + vertical-POI node for a seating / jump test. |
@@ -38,6 +39,9 @@ the Assets list on that page.
 | **Velocity Model** | An empirical `MV ≈ a + b·charge + c·temperature` fit from your own logged sessions, independent of GRT's physics model — plus a predictor and an inverse solver (target MV → needed charge). |
 | **Advanced Diagnostics** | Six diagnostics needing no calibrated `Ba`: Fouling Tracker, Cold Bore, Primer Sensitivity, Neck Tension Correlation, Pressure Trend, Session Trend. |
 | **SD Root-Cause** | For one shot string: a leave-one-out ranking of which shot(s) are dragging the SD down, classified (single/partial-outlier vs. systematic) by Chauvenet's criterion rather than an invented cutoff — plus cold-bore, progressive-drift, and (with a per-shot barrel temperature you log by hand) real temperature↔velocity and temperature↔group-dispersion correlation using GRT's own shot-group data. |
+| **Group Analysis** | For one shot group: extreme spread, mean radius, CEP50 and H/V spread, with score and confidence reported separately (a tight 3-shot group and a tight 15-shot group are not the same claim) against a distance band. Mahalanobis outlier detection, a problem list that always names the number behind it, group pooling, and velocity↔dispersion correlation. |
+| **Print Ladder/OCW Target** | Printable ladder / OCW targets, scaled for the distance you're shooting. |
+| **Load Book Export** | The whole journal as one printable load book. |
 | **Install GRT report templates** | Writes fifteen DokuWiki report pages into `GRT\doku\<lang>\report\`. |
 
 Full details: **[MANUAL.md](GrtReloadingToolkit/MANUAL.md)**, or as HTML
@@ -56,8 +60,8 @@ button opens a launcher with every tool.
 
 | Build | Size | Requires |
 |---|---|---|
-| `ReloadingToolkit` (self-contained) | ~64 MB | nothing |
-| `ReloadingToolkit-lite` (framework-dependent) | ~1.5 MB | [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (Windows x64) |
+| `ReloadingToolkit` (self-contained) | ~69 MB | nothing |
+| `ReloadingToolkit-lite` (framework-dependent) | ~6 MB | [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (Windows x64) |
 
 ### How it writes back
 

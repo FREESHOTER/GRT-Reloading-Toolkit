@@ -12,6 +12,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <!-- SkiaSharp ships no native libSkiaSharp for Linux in the base package, and the CI `tests`
+         job runs on ubuntu-latest. Without this the ShotMarker golden-image tests throw
+         DllNotFoundException there while passing on a Mac — i.e. the renderer would be
+         effectively untested on the only machine that gates a merge. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.8" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
@@ -20,6 +25,10 @@
   <ItemGroup>
     <!-- XlsxReader is plain net8.0, so a normal reference works. -->
     <ProjectReference Include="..\grt-plugins-shared\GrtPluginKit\GrtPluginKit.csproj" />
+    <!-- Same for ShotMarkerCore: the readers, the target renderer and the GRT writer are all
+         plain net8.0 (SkiaSharp, not GDI+), so the whole import path is testable off Windows
+         and runs in the one test project CI actually executes. -->
+    <ProjectReference Include="..\ShotMarkerCore\ShotMarkerCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

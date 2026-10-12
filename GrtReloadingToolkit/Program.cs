@@ -66,7 +66,7 @@ internal static class Program
     }
 }
 
-internal enum Tool { Launcher, Athlon, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports }
+internal enum Tool { Launcher, Athlon, ShotMarker, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -104,6 +104,7 @@ internal sealed class ToolkitContext : ApplicationContext
 
     public static Tool FromId(string id) =>
         id.EndsWith(".athlon", StringComparison.Ordinal) ? Tool.Athlon :
+        id.EndsWith(".shotmarker", StringComparison.Ordinal) ? Tool.ShotMarker :
         id.EndsWith(".chronostats", StringComparison.Ordinal) ? Tool.ChronoStats :
         id.EndsWith(".ocw", StringComparison.Ordinal) ? Tool.Ocw :
         id.EndsWith(".seating", StringComparison.Ordinal) ? Tool.Seating :
@@ -144,6 +145,7 @@ internal sealed class ToolkitContext : ApplicationContext
         Form f = AppIcon.Apply<Form>(t switch
         {
             Tool.Athlon => new AthlonForm(_grt),
+            Tool.ShotMarker => new ShotMarkerForm(_grt),
             Tool.ChronoStats => new ChronoStatsForm(_grt),
             Tool.Ocw => new OcwForm(_grt),
             Tool.Seating => new SeatingForm(_grt),

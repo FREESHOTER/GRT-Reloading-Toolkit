@@ -1,11 +1,11 @@
 # GRT Reloading Toolkit — Manual
 
-A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles nineteen reloading tools plus a
+A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles twenty-three reloading tools plus a
 set of printable GRT report templates into one window.
 
 - **Author:** community
 - **Plugin id:** `com.grt.plugin.reloadingtoolkit`
-- **Build:** self-contained Windows single-file exe (~64 MB) — **no .NET install needed**.
+- **Build:** self-contained Windows single-file exe (~69 MB) — **no .NET install needed**.
 
 ---
 
@@ -16,7 +16,7 @@ set of printable GRT report templates into one window.
 3. A single toolbar button **"Reloading Toolkit"** (wrench + screwdriver icon) and a matching entry
    in the **Plugin** menu appear. Click either — a small **launcher** window opens with one button
    per tool.
-4. Optional: in the launcher, click **"Install GRT report templates"** once (see §26).
+4. Optional: in the launcher, click **"Install GRT report templates"** once (see §27).
 
 The toolkit is *on-demand*: GRT starts it on the first click and it exits when you close its last
 window. All tool windows are served by one background process, so opening a second tool while one is
@@ -46,6 +46,10 @@ Key points:
 - **Every tool accumulates into the same snapshot family.** Run the Ladder analyzer, then Barrel
   Calibration, then Brass prep — the newest snapshot contains all three results. Only the **3 most
   recent** snapshots are kept; older ones are deleted automatically.
+- **One exception: the ShotMarker import (§26) keeps its own family**, named
+  `MyLoad_shotmarker_<date>.grtload`. It writes whole target pictures, so pruning it alongside
+  everything else would let a session's tabs be deleted by the next calibration run — and the other
+  way round. Its three newest are kept separately from the toolkit's three.
 - **Each write makes a new filename** (timestamped to the second). This is deliberate: GRT's
   *Load_File* will not reload a path it already has open, so a fixed name would show stale content
   after the second write.
@@ -276,7 +280,7 @@ spread (MOA). The recommended node is shaded green.
 - **Recommended node:** a weighted blend of MV flatness + POI stability + group size + SD.
 
 The report and chart are written as `~~result.Note("OCW Analysis")~~` and
-`~~result.picture.ocw_chart.png~~` — see §26.
+`~~result.picture.ocw_chart.png~~` — see §27.
 
 > Always confirm a node with a fresh group before committing. SD here is population SD (n).
 
@@ -917,7 +921,65 @@ lookup in this toolkit lives with.
 
 ---
 
-## 26. GRT report templates
+## 26. ShotMarker Import  🎯📄
+
+Turns a **ShotMarker** session export into GRT shot-group tabs — the target picture, every hit
+plotted on it, the velocities, and ShotMarker's own statistics — in one pass. It is the target
+half of what Chronograph Import (§5) does for velocity alone: a ShotMarker records both, so this
+writes both.
+
+**Supported:** the `.tar` session export the tablet writes, and the `shotslog` `.csv`.
+
+**Buttons**
+
+| Control | Effect |
+|---|---|
+| **Open export…** | Pick a `.tar` or `.csv`. Every string in it is listed. |
+| **I shot from:** | Which firing point was yours, on a frame shared by several shooters (see below). |
+| **Import selected** | Write the ticked strings into the load and open the snapshot. |
+
+**Grid columns:** Use · String · When · Distance · Face · Shots · Score · Mean v · SD · ES ·
+Charge (gr, editable).
+
+Pick a row and the panel below shows that string drawn on its target face, with a per-shot list
+you can untick. Sighters are drawn in red and never imported — a GRT shot group has nowhere to put
+them. A shot is also left out when it has no recorded position, when it was excluded on the
+tablet, or when it is outside the group selected on the device; the **Excluded** column names the
+reason in each case rather than silently dropping it.
+
+**What gets written**, per import, into a `_shotmarker_` sibling of the open load (its own family,
+so the toolkit's own snapshots and this one never prune each other away):
+
+- **one shot-group tab per string** — the rendered target as the picture, the hits as points on it;
+- **one velocity measurement** holding every string's charge, which is the shape the
+  Ladder/OCW Analyzer (§7) and GRT's own analyses want;
+- **one note** with ShotMarker's reported group size, SD and the shots that were dropped.
+
+Tabs are deliberately *not* three per string: GRT's tab bar does not scroll, so a five-string
+session written that way puts its last tabs past the right-hand edge of the window where they
+cannot be reached at all.
+
+**Scale.** GRT recovers real-world size from two reference points a stated distance apart. The
+importer draws the target itself and places those points on its own projection, so their
+separation in millimetres is exact by construction rather than recomputed from board size and
+pixel count. That separation and the shooting distance are both written in **SI** — millimetres
+and metres — because that is what GRT stores whatever units it displays; a group measured off one
+of these tabs reads the same on a metric and an imperial install.
+
+**Shared frames.** Several shooters often share one target frame, and the export then contains
+everyone's shots. When the tablet recorded which firing point was selected, that one is used and
+the window says so; when it does not, the importer assumes one, says which, and leaves the
+**I shot from:** picker there to correct it. It never guesses silently.
+
+**Unknown target faces** are plotted on a plain frame of the recorded size, without scoring rings,
+and the log says so — the hit positions are still exact, only the rings are missing.
+
+One unreadable string never costs you the rest of the session: reading, drawing and writing are
+each best-effort per string, and whatever failed is named in the log.
+
+---
+
+## 27. GRT report templates
 
 **Install GRT report templates** (launcher / Plugin menu) writes sixteen DokuWiki report pages into
 `GRT\doku\<language>\report\` and links them in the report index. Run it once per GRT install
@@ -954,7 +1016,7 @@ not on your original file. Empty sections just mean you haven't run that tool ye
 
 ---
 
-## 27. Debug command line
+## 28. Debug command line
 
 All on the exe (`plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe`):
 
@@ -982,7 +1044,7 @@ fills a wide results panel, a near-square value a tall one.
 
 ---
 
-## 28. Limitations & FAQ
+## 29. Limitations & FAQ
 
 **Why a pile of `_toolkit_…` files?** GRT's plugin API can't edit the open load and can't reload an
 already-open tab — so each write is a fresh timestamped snapshot. Each snapshot is complete; keep

@@ -1,0 +1,64 @@
+using GrtPluginKit.Grt;
+using ShotMarker.Core.Faces;
+using ShotMarker.Core.Grt;
+using ShotMarker.Core.Render;
+using ShotMarker.Core.Sm;
+
+namespace ShotMarker.Core.Import;
+
+/// <summary>
+/// Reads an export, renders the selected strings and writes them into a sibling load.
+/// Best-effort per string: one unreadable string never costs the shooter the rest of
+/// their session.
+/// </summary>
+public static class ImportJob
+{
+    public static IReadOnlyList<SmString> Plan(string exportPath, IList<string> log) =>
+        SmExportReader.Read(exportPath, log);
+
+    /// <summary>Writes the sibling and returns its path. The open load is never modified —
+    /// the GRT plugin interface does not allow editing it in place.</summary>
+    public static string Run(string loadPath,
+                             IEnumerable<(SmString String, double? ChargeGrains)> selected,
+                             IList<string> log)
+    {
+        GrtLoadDoc doc = File.Exists(loadPath)
+            ? GrtLoadDoc.Load(loadPath)
+            : GrtLoadDoc.CreateMinimal(Path.GetFileNameWithoutExtension(loadPath), loadPath);
+
+        // Rendered first, written second, because the writing is one operation over the whole
+        // selection: the strings share a velocity measurement and a note, and that is what
+        // keeps a five-string session's tabs inside a tab bar GRT will not scroll.
+        var items = new List<ImportItem>();
+        foreach (var (s, charge) in selected)
+        {
+            try
+            {
+                TargetFace face = ResolveFace(s, log);
+                items.Add(new ImportItem(s, TargetRenderer.Render(s, face, RenderOptions.ForGrt), charge));
+            }
+            catch (Exception ex)
+            {
+                log.Add($"'{s.Name}': not rendered ({ex.Message})");
+            }
+        }
+
+        GrtShotGroupWriter.AddAll(doc, items, log);
+        return GrtShotGroupWriter.Save(doc);
+    }
+
+    /// <summary>The face this string will be drawn on, library entry or generated fallback.
+    /// Public because the import window previews the string before writing it, and a preview
+    /// drawn on a different face from the import is worse than no preview at all — it is a
+    /// picture of a target the shooter is not going to get.</summary>
+    public static TargetFace ResolveFace(SmString s, IList<string> log) =>
+        TargetFaceLibrary.Find(s.FaceId) ?? Fallback(s, log);
+
+    private static TargetFace Fallback(SmString s, IList<string> log)
+    {
+        log.Add($"'{s.Name}': unknown target face '{s.FaceId}' — plotting without scoring rings");
+        double w = s.FrameWidthMm > 0 ? s.FrameWidthMm : 1000;
+        double h = s.FrameHeightMm > 0 ? s.FrameHeightMm : 1000;
+        return TargetFaceLibrary.Generic(w, h);
+    }
+}

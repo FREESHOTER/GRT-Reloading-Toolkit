@@ -62,6 +62,7 @@ internal sealed class LauncherForm : Form
         B(Lang.T("📓  Load journal"), Tool.Journal);
         B(Lang.T("🔎  Find best Ba"), Tool.FindBa);
         B(Lang.T("🎯  Chronograph import (Athlon / Garmin)"), Tool.Athlon);
+        B(Lang.T("🎯📄  ShotMarker import (target + velocities)"), Tool.ShotMarker);
         B(Lang.T("📐  Chronograph statistics"), Tool.ChronoStats);
         B(Lang.T("📈  Ladder / OCW analyzer"), Tool.Ocw);
         B(Lang.T("📏  Seating-depth analyzer"), Tool.Seating);

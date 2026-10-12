@@ -113,7 +113,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Handbuch · v0.2.20</span>
+  <span class="k">Handbuch · v0.2.21</span>
 </div></div>
 
 <div class="shell">
@@ -145,6 +145,7 @@
       <li><a href="#groupanalysis">Gruppenanalyse</a></li>
       <li><a href="#targetprint">Ladder/OCW-Zielscheibe drucken</a></li>
       <li><a href="#loadbook">Ladungsbuch exportieren</a></li>
+      <li><a href="#shotmarker">ShotMarker-Import</a></li>
       <li><a href="#reports">GRT-Berichtsvorlagen</a></li>
       <li><a href="#cli">Kommandozeile</a></li>
       <li><a href="#faq">Einschränkungen &amp; FAQ</a></li>
@@ -171,7 +172,7 @@
           erscheinen. Auf eines von beiden klicken &mdash; ein kleines <strong>Launcher</strong>-Fenster
           öffnet sich mit einer Schaltfläche pro Werkzeug.</li>
         <li>Optional: im Launcher einmal auf <strong>&ldquo;Install GRT report templates&rdquo;</strong>
-          klicken (siehe&nbsp;§26).</li>
+          klicken (siehe&nbsp;§27).</li>
       </ol>
       <p>Das Toolkit arbeitet <em>on-demand</em>: GRT startet es beim ersten Klick, und es beendet sich,
         sobald das letzte Fenster geschlossen wird. Alle Werkzeugfenster werden von einem einzigen
@@ -201,6 +202,11 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
           Ladder-Analysator laufen lassen, dann die Laufkalibrierung, dann die Hülsenaufbereitung
           &mdash; der neueste Snapshot enthält alle drei Ergebnisse. Nur die
           <strong>drei neuesten</strong> Snapshots werden behalten; ältere werden automatisch gelöscht.</li>
+        <li><strong>Eine Ausnahme: der ShotMarker-Import (§26) hat seine eigene Familie</strong>,
+          benannt <code>MeineLadung_shotmarker_&lt;Datum&gt;.grtload</code>. Er schreibt ganze
+          Scheibenbilder, und würde man ihn mit allem anderen zusammen aufräumen, könnte die nächste
+          Laufkalibrierung die Tabs einer Sitzung löschen &mdash; und umgekehrt. Seine drei neuesten
+          werden getrennt von den drei des Toolkits behalten.</li>
         <li><strong>Jeder Schreibvorgang erzeugt einen neuen Dateinamen</strong> (sekundengenau
           zeitgestempelt). GRTs <em>Load_File</em> lädt einen bereits geöffneten Pfad nicht neu &mdash;
           ein fester Name würde nach dem zweiten Schreibvorgang veralteten Inhalt zeigen.</li>
@@ -1146,8 +1152,60 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         Toolkit lebt.</p>
     </section>
 
+    <section id="shotmarker">
+      <h2><span class="no">26</span>ShotMarker-Import</h2>
+      <p>Macht aus einem <strong>ShotMarker</strong>-Sitzungsexport GRT-Schussgruppen-Tabs &mdash; das
+        Scheibenbild, jeder darauf eingetragene Treffer, die Geschwindigkeiten und ShotMarkers eigene
+        Statistik &mdash; in einem Durchgang. Es ist die Scheiben-Hälfte dessen, was der
+        Chronograph-Import (§5) für die Geschwindigkeit allein tut: ein ShotMarker erfasst beides, also
+        wird hier beides geschrieben.</p>
+      <p><strong>Unterstützt:</strong> der <code>.tar</code>-Sitzungsexport des Tablets und die
+        <code>shotslog</code>-<code>.csv</code>.</p>
+      <table><thead><tr><th>Bedienelement</th><th>Wirkung</th></tr></thead><tbody>
+        <tr><td>Export öffnen…</td><td>Eine <code>.tar</code> oder <code>.csv</code> wählen. Jede darin enthaltene Serie wird aufgelistet.</td></tr>
+        <tr><td>Ich schoss von:</td><td>Welcher Schießstand deiner war, wenn mehrere Schützen einen Rahmen teilen.</td></tr>
+        <tr><td>Auswahl importieren</td><td>Schreibt die angehakten Serien in die Ladung und öffnet den Snapshot.</td></tr>
+      </tbody></table>
+      <p><strong>Tabelle:</strong> Nutzen · Serie · Wann · Distanz · Scheibe · Schüsse · Ringe · v&nbsp;mittel ·
+        SD · ES · Ladung (gr, editierbar).</p>
+      <p>Eine Zeile anklicken, und das Feld darunter zeigt diese Serie auf ihrer Scheibe gezeichnet, mit
+        einer Schussliste, aus der du einzelne abwählen kannst. Probeschüsse werden rot gezeichnet und nie
+        importiert &mdash; eine GRT-Schussgruppe hat keinen Platz für sie. Ein Schuss fällt auch heraus,
+        wenn keine Position aufgezeichnet wurde, wenn er auf dem Tablet ausgeschlossen war oder wenn er
+        außerhalb der auf dem Gerät gewählten Gruppe liegt; die Spalte <strong>Ausgeschlossen</strong>
+        nennt den Grund, statt ihn stillschweigend zu verwerfen.</p>
+      <p><strong>Was geschrieben wird</strong>, je Import, in eine <code>_shotmarker_</code>-Geschwisterdatei
+        neben der offenen Ladung (eigene Familie, damit die Snapshots des Toolkits und diese sich nicht
+        gegenseitig wegräumen):</p>
+      <ul>
+        <li><strong>ein Schussgruppen-Tab pro Serie</strong> &mdash; die gezeichnete Scheibe als Bild, die Treffer als Punkte darauf;</li>
+        <li><strong>eine Geschwindigkeitsmessung</strong> mit der Ladung jeder Serie &mdash; genau die Form, die der Ladder-&nbsp;/&nbsp;OCW-Analyzer (§7) und GRTs eigene Analysen brauchen;</li>
+        <li><strong>eine Notiz</strong> mit der von ShotMarker gemeldeten Streukreisgröße, der SD und den verworfenen Schüssen.</li>
+      </ul>
+      <p>Es sind bewusst <em>nicht</em> drei Tabs pro Serie: GRTs Tab-Leiste scrollt nicht, eine so
+        geschriebene Sitzung mit fünf Serien schiebt ihre letzten Tabs über den rechten Fensterrand hinaus,
+        wo sie gar nicht mehr erreichbar sind.</p>
+      <p><strong>Maßstab.</strong> GRT gewinnt die echte Größe aus zwei Referenzpunkten mit angegebenem
+        Abstand zurück. Der Importer zeichnet die Scheibe selbst und setzt diese Punkte auf seine eigene
+        Projektion, ihr Abstand in Millimetern ist also durch Konstruktion exakt und nicht aus Rahmenmaß
+        und Pixelzahl nachgerechnet. Dieser Abstand und die Schussdistanz werden beide in
+        <strong>SI</strong> geschrieben &mdash; Millimeter und Meter &mdash;, denn genau das speichert GRT,
+        welche Einheiten es auch anzeigt; eine an einem dieser Tabs gemessene Gruppe liest sich auf einer
+        metrischen und einer imperialen Installation gleich.</p>
+      <p><strong>Geteilte Rahmen.</strong> Oft teilen mehrere Schützen einen Scheibenrahmen, und der Export
+        enthält dann die Schüsse aller. Hat das Tablet festgehalten, welcher Schießstand gewählt war, wird
+        dieser genommen und das Fenster sagt es; wenn nicht, nimmt der Importer einen an, sagt welchen, und
+        lässt die Auswahl <strong>Ich schoss von:</strong> zum Korrigieren stehen. Er rät nie
+        stillschweigend.</p>
+      <p><strong>Unbekannte Scheiben</strong> werden auf einem einfachen Rahmen in der aufgezeichneten
+        Größe eingetragen, ohne Ringe, und das Protokoll sagt das &mdash; die Trefferlagen sind weiterhin
+        exakt, nur die Ringe fehlen.</p>
+      <p>Eine unlesbare Serie kostet dich nie den Rest der Sitzung: Lesen, Zeichnen und Schreiben
+        geschehen je Serie nach bestem Vermögen, und was misslang, steht im Protokoll.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">26</span>GRT-Berichtsvorlagen</h2>
+      <h2><span class="no">27</span>GRT-Berichtsvorlagen</h2>
       <p><strong>Install GRT report templates</strong> (Launcher / Plugin-Menü) schreibt sechzehn
         DokuWiki-Berichtsseiten nach <code>GRT\doku\&lt;Sprache&gt;\report\</code> und verlinkt sie im
         Berichtsindex. Einmal pro GRT-Installation ausführen (und jedem, mit dem das Plugin geteilt
@@ -1186,7 +1244,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
     </section>
 
     <section id="cli">
-      <h2><span class="no">27</span>Kommandozeile</h2>
+      <h2><span class="no">28</span>Kommandozeile</h2>
       <p>Debug-Einstiegspunkte auf der exe
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">Inventar-/Journal-Selbsttest (schreibt
@@ -1214,7 +1272,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
     </section>
 
     <section id="faq">
-      <h2><span class="no">28</span>Einschränkungen &amp; FAQ</h2>
+      <h2><span class="no">29</span>Einschränkungen &amp; FAQ</h2>
       <h3>Warum ein Haufen <code>_toolkit_…</code>-Dateien?</h3>
       <p>GRTs Plugin-API kann die offene Ladung nicht bearbeiten und kann einen bereits offenen Tab nicht
         neu laden &mdash; jeder Schreibvorgang ist also ein frischer zeitgestempelter Snapshot. Jeder
@@ -1241,6 +1299,6 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.20 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.21 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

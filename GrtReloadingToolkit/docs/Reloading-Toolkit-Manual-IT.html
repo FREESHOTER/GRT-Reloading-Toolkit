@@ -113,7 +113,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.2.20</span>
+  <span class="k">Manuale · v0.2.21</span>
 </div></div>
 
 <div class="shell">
@@ -145,6 +145,7 @@
       <li><a href="#groupanalysis">Analisi Gruppo</a></li>
       <li><a href="#targetprint">Stampa Bersaglio Ladder/OCW</a></li>
       <li><a href="#loadbook">Esporta Libro Carichi</a></li>
+      <li><a href="#shotmarker">Importa ShotMarker</a></li>
       <li><a href="#reports">Template report GRT</a></li>
       <li><a href="#cli">Riga di comando</a></li>
       <li><a href="#faq">Limiti e FAQ</a></li>
@@ -170,7 +171,7 @@
           (icona chiave + cacciavite) e una voce nel menu <strong>Plugin</strong>. Clicca uno dei due
           — si apre una piccola finestra <strong>launcher</strong> con un pulsante per ogni strumento.</li>
         <li>Facoltativo: nel launcher, clicca una volta
-          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§26).</li>
+          <strong>&laquo;Install GRT report templates&raquo;</strong> (vedi&nbsp;§27).</li>
       </ol>
       <p>Il toolkit è <em>on-demand</em>: GRT lo avvia al primo click ed esce quando chiudi la sua
         ultima finestra. Un solo processo serve tutte le finestre, quindi aprire un secondo strumento
@@ -198,6 +199,11 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
           l&#39;analizzatore ladder, poi la calibrazione canna, poi la preparazione bossoli — lo
           snapshot più recente contiene tutti e tre i risultati. Vengono tenuti solo i <strong>3
           più recenti</strong>; i più vecchi vengono cancellati.</li>
+        <li><strong>Un&#39;eccezione: l&#39;importazione ShotMarker (§26) ha una famiglia
+          propria</strong>, chiamata <code>MioCarico_shotmarker_&lt;data&gt;.grtload</code>. Scrive
+          immagini di bersagli interi, quindi potarla insieme a tutto il resto lascerebbe che le
+          schede di una sessione vengano cancellate dalla successiva calibrazione — e viceversa. I
+          suoi 3 più recenti sono tenuti separatamente dai 3 del toolkit.</li>
         <li><strong>Ogni scrittura crea un nome nuovo</strong> (con i secondi). Il comando
           <em>Load_File</em> di GRT non ricarica un percorso che ha già aperto, quindi un nome fisso
           mostrerebbe contenuto vecchio alla seconda scrittura.</li>
@@ -1095,8 +1101,60 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         ogni altra ricerca basata sul percorso file in questo toolkit.</p>
     </section>
 
+    <section id="shotmarker">
+      <h2><span class="no">26</span>Importa ShotMarker</h2>
+      <p>Trasforma l&#39;esportazione di una sessione <strong>ShotMarker</strong> in schede gruppo di colpi
+        GRT &mdash; l&#39;immagine del bersaglio, ogni impatto tracciato su di essa, le velocità e le
+        statistiche di ShotMarker &mdash; in un&#39;unica passata. È la metà &laquo;bersaglio&raquo; di ciò
+        che Importa cronografo (§5) fa per la sola velocità: uno ShotMarker registra entrambe, quindi qui
+        si scrivono entrambe.</p>
+      <p><strong>Supportati:</strong> l&#39;esportazione di sessione <code>.tar</code> scritta dal tablet e
+        il <code>.csv</code> <code>shotslog</code>.</p>
+      <table><thead><tr><th>Comando</th><th>Effetto</th></tr></thead><tbody>
+        <tr><td>Apri esportazione…</td><td>Scegli un <code>.tar</code> o un <code>.csv</code>. Vengono elencate tutte le serie contenute.</td></tr>
+        <tr><td>Ho sparato da:</td><td>Quale piazzola era la tua, su un telaio condiviso da più tiratori.</td></tr>
+        <tr><td>Importa selezionati</td><td>Scrive le serie spuntate nel carico e apre lo snapshot.</td></tr>
+      </tbody></table>
+      <p><strong>Griglia:</strong> Usa · Serie · Quando · Distanza · Sagoma · Colpi · Punteggio · v media ·
+        SD · ES · Carica (gr, modificabile).</p>
+      <p>Selezionando una riga, il pannello sotto mostra quella serie disegnata sulla sua sagoma, con un
+        elenco colpo per colpo da cui togliere la spunta. I colpi di prova sono disegnati in rosso e non
+        vengono mai importati &mdash; un gruppo di colpi GRT non ha dove metterli. Un colpo viene escluso
+        anche quando non ha posizione registrata, quando è stato escluso sul tablet o quando è fuori dal
+        gruppo selezionato sul dispositivo; la colonna <strong>Esclusi</strong> ne indica il motivo invece
+        di scartarlo in silenzio.</p>
+      <p><strong>Cosa viene scritto</strong>, per ogni importazione, in un file gemello
+        <code>_shotmarker_</code> accanto al carico aperto (famiglia propria, così gli snapshot del toolkit
+        e questi non si cancellano a vicenda):</p>
+      <ul>
+        <li><strong>una scheda gruppo di colpi per serie</strong> &mdash; il bersaglio disegnato come immagine, gli impatti come punti su di essa;</li>
+        <li><strong>una misurazione di velocità</strong> che contiene la carica di ogni serie: è la forma che vogliono l&#39;analizzatore Ladder&nbsp;/&nbsp;OCW (§7) e le analisi di GRT;</li>
+        <li><strong>una nota</strong> con la dimensione del gruppo dichiarata da ShotMarker, la SD e i colpi scartati.</li>
+      </ul>
+      <p>Le schede non sono volutamente tre per serie: la barra delle schede di GRT non scorre, quindi una
+        sessione di cinque serie scritta così finirebbe con le ultime schede oltre il bordo destro della
+        finestra, dove non si raggiungono più.</p>
+      <p><strong>Scala.</strong> GRT ricava la dimensione reale da due punti di riferimento a una distanza
+        dichiarata. L&#39;importatore disegna il bersaglio da sé e colloca quei punti sulla propria
+        proiezione, quindi la loro distanza in millimetri è esatta per costruzione invece di essere
+        ricalcolata da dimensione del telaio e numero di pixel. Quella distanza e la distanza di tiro
+        vengono scritte entrambe in <strong>SI</strong> &mdash; millimetri e metri &mdash; perché è ciò che
+        GRT memorizza qualunque unità mostri; un gruppo misurato su una di queste schede si legge uguale su
+        un&#39;installazione metrica e su una imperiale.</p>
+      <p><strong>Telai condivisi.</strong> Spesso più tiratori condividono lo stesso telaio e
+        l&#39;esportazione contiene allora i colpi di tutti. Se il tablet ha registrato quale piazzola era
+        selezionata, viene usata quella e la finestra lo dice; se non l&#39;ha fatto, l&#39;importatore ne
+        assume una, dice quale e lascia lì il selettore <strong>Ho sparato da:</strong> per correggerla.
+        Non indovina mai in silenzio.</p>
+      <p><strong>Le sagome non riconosciute</strong> vengono tracciate su un telaio semplice della
+        dimensione registrata, senza anelli di punteggio, e il log lo segnala &mdash; le posizioni degli
+        impatti restano esatte, mancano solo gli anelli.</p>
+      <p>Una serie illeggibile non ti costa mai il resto della sessione: lettura, disegno e scrittura
+        procedono al meglio serie per serie, e ciò che non è riuscito è indicato nel log.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">26</span>Template report GRT</h2>
+      <h2><span class="no">27</span>Template report GRT</h2>
       <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive sedici
         pagine di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
         dei report. Va lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
@@ -1132,7 +1190,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="cli">
-      <h2><span class="no">27</span>Riga di comando</h2>
+      <h2><span class="no">28</span>Riga di comando</h2>
       <p>Punti di ingresso di debug sull&#39;exe
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>):</p>
       <pre>--dbtest [db]                                    <span class="c">autotest inventario / diario (scrive dati fittizi in
@@ -1159,7 +1217,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
     </section>
 
     <section id="faq">
-      <h2><span class="no">28</span>Limiti e FAQ</h2>
+      <h2><span class="no">29</span>Limiti e FAQ</h2>
       <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
       <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
         aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;
@@ -1186,6 +1244,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.20 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.21 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

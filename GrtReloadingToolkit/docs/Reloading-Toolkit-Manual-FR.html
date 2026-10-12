@@ -116,7 +116,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuel · v0.2.20</span>
+  <span class="k">Manuel · v0.2.21</span>
 </div></div>
 
 <div class="shell">
@@ -148,6 +148,7 @@
       <li><a href="#groupanalysis">Analyse de groupement</a></li>
       <li><a href="#targetprint">Imprimer une cible Ladder/OCW</a></li>
       <li><a href="#loadbook">Export du carnet de charges</a></li>
+      <li><a href="#shotmarker">Import ShotMarker</a></li>
       <li><a href="#reports">Modèles de rapport GRT</a></li>
       <li><a href="#cli">Ligne de commande</a></li>
       <li><a href="#faq">Limites &amp; FAQ</a></li>
@@ -174,7 +175,7 @@
           apparaissent. Cliquez sur l&#39;un ou l&#39;autre &mdash; une petite fenêtre
           <strong>launcher</strong> s&#39;ouvre avec un bouton par outil.</li>
         <li>Facultatif&nbsp;: dans le launcher, cliquez une fois sur
-          <strong>&laquo;&nbsp;Install GRT report templates&nbsp;&raquo;</strong> (voir&nbsp;§26).</li>
+          <strong>&laquo;&nbsp;Install GRT report templates&nbsp;&raquo;</strong> (voir&nbsp;§27).</li>
       </ol>
       <p>Le toolkit est <em>à la demande</em>&nbsp;: GRT le démarre au premier clic et il se ferme
         quand vous fermez sa dernière fenêtre. Toutes les fenêtres d&#39;outils sont servies par un
@@ -205,6 +206,11 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
           étuis &mdash; le dernier instantané contient les trois résultats. Seuls les
           <strong>trois plus récents</strong> sont conservés&nbsp;; les plus anciens sont
           supprimés.</li>
+        <li><strong>Une exception&nbsp;: l&#39;import ShotMarker (§26) garde sa propre
+          famille</strong>, nommée <code>MaCharge_shotmarker_&lt;date&gt;.grtload</code>. Il écrit
+          des images de cibles entières&nbsp;; l&#39;élaguer avec tout le reste laisserait la
+          prochaine calibration supprimer les onglets d&#39;une séance &mdash; et inversement. Ses
+          trois plus récents sont conservés séparément des trois du toolkit.</li>
         <li><strong>Chaque écriture crée un nouveau nom de fichier</strong> (horodaté à la seconde).
           La fonction <em>Load_File</em> de GRT ne recharge pas un chemin déjà ouvert, donc un nom
           fixe afficherait un contenu obsolète après la deuxième écriture.</li>
@@ -1163,8 +1169,60 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         que toute autre recherche basée sur le chemin de fichier dans ce toolkit.</p>
     </section>
 
+    <section id="shotmarker">
+      <h2><span class="no">26</span>Import ShotMarker</h2>
+      <p>Transforme l&#39;export d&#39;une séance <strong>ShotMarker</strong> en onglets groupe de tirs GRT
+        &mdash; l&#39;image de la cible, chaque impact tracé dessus, les vitesses et les statistiques
+        propres à ShotMarker &mdash; en une seule passe. C&#39;est la moitié &laquo;&nbsp;cible&nbsp;&raquo;
+        de ce que l&#39;import chronographe (§5) fait pour la vitesse seule&nbsp;: un ShotMarker enregistre
+        les deux, donc ici on écrit les deux.</p>
+      <p><strong>Pris en charge&nbsp;:</strong> l&#39;export de séance <code>.tar</code> écrit par la
+        tablette et le <code>.csv</code> <code>shotslog</code>.</p>
+      <table><thead><tr><th>Commande</th><th>Effet</th></tr></thead><tbody>
+        <tr><td>Ouvrir l&#39;export…</td><td>Choisir un <code>.tar</code> ou un <code>.csv</code>. Toutes les séries qu&#39;il contient sont listées.</td></tr>
+        <tr><td>J&#39;ai tiré depuis&nbsp;:</td><td>Quel pas de tir était le vôtre, sur un cadre partagé par plusieurs tireurs.</td></tr>
+        <tr><td>Importer la sélection</td><td>Écrit les séries cochées dans la charge et ouvre l&#39;instantané.</td></tr>
+      </tbody></table>
+      <p><strong>Tableau&nbsp;:</strong> Utiliser · Série · Quand · Distance · Visuel · Tirs · Score ·
+        v moyenne · SD · ES · Charge (gr, modifiable).</p>
+      <p>Sélectionnez une ligne et le panneau du dessous montre cette série dessinée sur son visuel, avec
+        une liste tir par tir à décocher. Les tirs d&#39;essai sont dessinés en rouge et ne sont jamais
+        importés &mdash; un groupe de tirs GRT n&#39;a pas où les mettre. Un tir est aussi écarté quand il
+        n&#39;a pas de position enregistrée, quand il a été exclu sur la tablette ou quand il est hors du
+        groupe sélectionné sur l&#39;appareil&nbsp;; la colonne <strong>Exclus</strong> en indique la
+        raison au lieu de l&#39;écarter en silence.</p>
+      <p><strong>Ce qui est écrit</strong>, à chaque import, dans un fichier frère
+        <code>_shotmarker_</code> à côté de la charge ouverte (sa propre famille, pour que les instantanés
+        du toolkit et ceux-ci ne s&#39;effacent pas mutuellement)&nbsp;:</p>
+      <ul>
+        <li><strong>un onglet groupe de tirs par série</strong> &mdash; la cible dessinée comme image, les impacts comme points dessus&nbsp;;</li>
+        <li><strong>une mesure de vitesse</strong> contenant la charge de chaque série&nbsp;: c&#39;est la forme attendue par l&#39;analyseur Ladder&nbsp;/&nbsp;OCW (§7) et par les analyses propres à GRT&nbsp;;</li>
+        <li><strong>une note</strong> avec la taille de groupe annoncée par ShotMarker, la SD et les tirs écartés.</li>
+      </ul>
+      <p>Les onglets ne sont volontairement <em>pas</em> trois par série&nbsp;: la barre d&#39;onglets de
+        GRT ne défile pas, donc une séance de cinq séries écrite ainsi place ses derniers onglets au-delà
+        du bord droit de la fenêtre, où ils deviennent tout simplement inaccessibles.</p>
+      <p><strong>Échelle.</strong> GRT retrouve la taille réelle à partir de deux points de référence
+        séparés d&#39;une distance déclarée. L&#39;importateur dessine la cible lui-même et place ces points
+        sur sa propre projection&nbsp;: leur écart en millimètres est donc exact par construction, et non
+        recalculé depuis la taille du cadre et le nombre de pixels. Cet écart et la distance de tir sont
+        tous deux écrits en <strong>SI</strong> &mdash; millimètres et mètres &mdash;, car c&#39;est ce que
+        GRT stocke quelles que soient les unités affichées&nbsp;; un groupe mesuré sur un de ces onglets se
+        lit pareil sur une installation métrique et sur une impériale.</p>
+      <p><strong>Cadres partagés.</strong> Plusieurs tireurs partagent souvent un même cadre, et l&#39;export
+        contient alors les tirs de tout le monde. Si la tablette a enregistré quel pas de tir était
+        sélectionné, c&#39;est celui-là qui est pris et la fenêtre le dit&nbsp;; sinon, l&#39;importateur en
+        suppose un, dit lequel, et laisse le sélecteur <strong>J&#39;ai tiré depuis&nbsp;:</strong> pour le
+        corriger. Il ne devine jamais en silence.</p>
+      <p><strong>Les visuels inconnus</strong> sont tracés sur un cadre simple à la taille enregistrée,
+        sans zones de score, et le journal le signale &mdash; les positions d&#39;impact restent exactes,
+        seules les zones manquent.</p>
+      <p>Une série illisible ne vous coûte jamais le reste de la séance&nbsp;: lecture, dessin et écriture
+        se font au mieux série par série, et ce qui a échoué est nommé dans le journal.</p>
+    </section>
+
     <section id="reports">
-      <h2><span class="no">26</span>Modèles de rapport GRT</h2>
+      <h2><span class="no">27</span>Modèles de rapport GRT</h2>
       <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) écrit seize pages
         de rapport DokuWiki dans <code>GRT\doku\&lt;langue&gt;\report\</code> et les relie dans l&#39;index
         des rapports. Lancez-le une fois par installation GRT (et demandez à quiconque partage le
@@ -1203,7 +1261,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
     </section>
 
     <section id="cli">
-      <h2><span class="no">27</span>Ligne de commande</h2>
+      <h2><span class="no">28</span>Ligne de commande</h2>
       <p>Points d&#39;entrée de débogage sur l&#39;exécutable
         (<code>plugins\ReloadingToolkit\GRT_Reloading_Toolkit.exe</code>)&nbsp;:</p>
       <pre>--dbtest [db]                                    <span class="c">auto-test inventaire / journal (écrit des données fictives
@@ -1231,7 +1289,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
     </section>
 
     <section id="faq">
-      <h2><span class="no">28</span>Limites &amp; FAQ</h2>
+      <h2><span class="no">29</span>Limites &amp; FAQ</h2>
       <h3>Pourquoi une pile de fichiers <code>_toolkit_…</code>&nbsp;?</h3>
       <p>L&#39;API plugin de GRT ne peut pas modifier le load ouvert ni recharger un onglet déjà
         ouvert &mdash; donc chaque écriture est un nouvel instantané horodaté. Chaque instantané est
@@ -1259,6 +1317,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.2.20 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.2.21 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>
