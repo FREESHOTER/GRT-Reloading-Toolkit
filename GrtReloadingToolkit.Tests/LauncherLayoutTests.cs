@@ -51,6 +51,35 @@ public class LauncherLayoutTests
     }
 
     [Fact]
+    public void TheButtonColumnIsMeasuredRatherThanHardcoded()
+    {
+        // A fixed button width clips whichever caption is longest, and which one that is depends on
+        // the UI language and the display scaling: measured at Segoe UI 9pt the longest English
+        // caption needs 235px, its Italian translation 277, against the 252 this used to carry.
+        // TextRenderer is the measurement; Button.GetPreferredSize is not, because it floors at the
+        // explicit Width already set and would just hand back the number under replacement.
+        string src = Source();
+        Assert.Contains("TextRenderer.MeasureText", src);
+        Assert.DoesNotMatch(new Regex(@"new Button\s*{[^}]*\bWidth\s*=\s*\d"), src);
+        Assert.DoesNotMatch(new Regex(@"new Panel\s*{[^}]*\bWidth\s*=\s*\d"), src);
+    }
+
+    [Fact]
+    public void TheWindowOpensShorterThanTheWholeList()
+    {
+        // The whole list wants about 1065px of client height. Opening at that height is what the
+        // user sees as a ribbon down a tall screen, and it is only bearable at all because of the
+        // clamp above -- which on a 4K monitor never bites. So the opening height is capped well
+        // under the list, and the scroll host carries the rest.
+        string src = Source();
+        var cap = Regex.Match(src, @"MaxOpeningClientHeight\s*=\s*(\d+)");
+        Assert.True(cap.Success, "LauncherForm no longer caps the height it opens at");
+        int px = int.Parse(cap.Groups[1].Value);
+        Assert.InRange(px, 240, 900);
+        Assert.Matches(new Regex(@"int height = Math\.Min\(.*MaxOpeningClientHeight"), src);
+    }
+
+    [Fact]
     public void TheWindowIsSizedInOnLoadWhereTheChromeIsReal()
     {
         // In the constructor there is no window handle yet, so Height - ClientSize.Height is an

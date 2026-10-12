@@ -13,6 +13,27 @@ internal sealed class LauncherForm : Form
     /// <summary>Holds the tool list, so OnLoad can read the height it wants.</summary>
     private readonly FlowLayoutPanel _flow;
 
+    /// <summary>Clear space either side of a button's caption, so the text never runs up against
+    /// the border.</summary>
+    private const int CaptionAir = 32;
+
+    /// <summary>A floor under the measured column, so the window is not a narrow ribbon on an
+    /// install where every caption happens to be short.</summary>
+    private const int MinColumnWidth = 280;
+
+    /// <summary>How tall the window opens at most: sixteen rows of the 40px button pitch. The whole
+    /// list wants about 1065px, which on a tall monitor opens as a ribbon down the screen -- this is
+    /// enough for the pre-range group and most of the post-range one, and the rest is a wheel-scroll
+    /// away. Only the opening size; the grip and <see cref="MinimumSize"/> still govern by hand.</summary>
+    private const int MaxOpeningClientHeight = 640;
+
+    /// <summary>What the caption actually needs, by the same measurement the renderer will make.
+    /// <c>Button.GetPreferredSize</c> cannot answer this -- it floors at whatever explicit
+    /// <c>Width</c> the button already carries, so it reports back the number being replaced.</summary>
+    private static int CaptionWidth(Button b) =>
+        TextRenderer.MeasureText(b.Text, b.Font, new Size(int.MaxValue, int.MaxValue),
+                                 TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
+
     public LauncherForm(Action<Tool> open)
     {
         Text = AppVersion.Title("Reloading Toolkit");
@@ -45,11 +66,11 @@ internal sealed class LauncherForm : Form
         });
         void B(string text, Tool t)
         {
-            var b = new Button { Text = text, UseMnemonic = false, Width = 252, Height = 34, Margin = new Padding(0, 0, 0, 6), TextAlign = ContentAlignment.MiddleLeft };
+            var b = new Button { Text = text, UseMnemonic = false, Height = 34, Margin = new Padding(0, 0, 0, 6), TextAlign = ContentAlignment.MiddleLeft };
             b.Click += (_, _) => open(t);
             flow.Controls.Add(b);
         }
-        void Divider() => flow.Controls.Add(new Panel { Width = 252, Height = 1, BackColor = SystemColors.ControlDark, Margin = new Padding(0, 8, 0, 10) });
+        void Divider() => flow.Controls.Add(new Panel { Height = 1, BackColor = SystemColors.ControlDark, Margin = new Padding(0, 8, 0, 10) });
 
         // Above both sections, not inside either: it starts before the range (brass, card) and can
         // only finish after (calibration needs a real measured velocity) -- see WizardForm's own doc
@@ -88,6 +109,15 @@ internal sealed class LauncherForm : Form
         B(Lang.T("📚  Load book export"), Tool.LoadBook);
         B(Lang.T("📄  Install GRT report templates"), Tool.Reports);
 
+        // One column width for all of them, measured rather than hardcoded. These are left-aligned
+        // captions, and the Italian overlay runs to 277px where the English reads 235, so the fixed
+        // 252 this used to carry clipped "Preparazione bossoli (volume / seating / colletto)" on an
+        // Italian machine. Measuring is also what keeps it right under display scaling, where the
+        // font grows and a hardcoded number does not.
+        int column = Math.Max(MinColumnWidth, flow.Controls.OfType<Button>().Max(CaptionWidth) + CaptionAir);
+        foreach (Control c in flow.Controls)
+            if (c is Button or Panel) c.Width = column;
+
         // The flow keeps auto-sizing, so its PreferredSize is the height the whole list wants; this
         // host is what makes the overflow reachable once OnLoad clamps the window to the desktop.
         _flow = flow;
@@ -113,7 +143,7 @@ internal sealed class LauncherForm : Form
         int chrome = Height - ClientSize.Height;
         int roomFor = Math.Max(240, Screen.FromControl(this).WorkingArea.Height - chrome);
         var wanted = _flow.PreferredSize;
-        int height = Math.Min(wanted.Height, roomFor);
+        int height = Math.Min(Math.Min(wanted.Height, roomFor), MaxOpeningClientHeight);
         // Only widen for the scrollbar when there will actually be one, or it eats into the 252px
         // buttons and raises a horizontal bar underneath them.
         int width = wanted.Width + (height < wanted.Height ? SystemInformation.VerticalScrollBarWidth : 0);
@@ -121,7 +151,9 @@ internal sealed class LauncherForm : Form
 
         // Width floor only: narrower clips the buttons, shorter just scrolls. Reading the preferred
         // size rather than hardcoding one is also what keeps this right under display scaling,
-        // where the fonts (and so the section labels) grow but the button heights do not.
+        // where the fonts (and so the section labels) grow but the button heights do not. Note the
+        // window now opens shorter than the list on purpose, so the scrollbar is there from the
+        // start and the width already accounts for it.
         MinimumSize = new Size(Width, 240);
     }
 }
