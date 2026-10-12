@@ -11,10 +11,12 @@ namespace ShotMarker.Core.Tests;
 
 public class TargetFaceTests
 {
+    /// <summary>Every face the tables publish loads, and the id dictionary is built once
+    /// without a duplicate (<c>Load()</c> throws on one). Bump this with the tables.</summary>
     [Fact]
-    public void LoadsEveryFaceFromTheBundle()
+    public void LoadsEveryFaceFromTheTables()
     {
-        Assert.Equal(208, TargetFaceLibrary.Count);
+        Assert.Equal(127, TargetFaceLibrary.Count);
     }
 
     [Fact]
@@ -43,12 +45,16 @@ public class TargetFaceTests
     [Fact]
     public void FacesWithOffsetRingsAndPolygonsSurvive()
     {
-        // IBS 100yd BR has 14 rings placed off-centre; it is the face an expression-blind
-        // extractor loses, so it stands guard over the extraction method.
+        // IBS 100yd BR is the one face in the tables whose rings are not all concentric: IBS
+        // Rule V.A.1 puts "an additional 10 and 9 ring ... in the third and forth quadrants",
+        // so five record rings and two offset pairs make nine. It also carries the published
+        // border rectangle and the two squares that draw the aiming square, and the renderer
+        // reads XMm/YMm and Polys nowhere else, so this face stands guard over both.
         var ibs = TargetFaceLibrary.Find("IBS100BR");
         Assert.NotNull(ibs);
-        Assert.Equal(14, ibs!.Rings.Count);
-        Assert.Contains(ibs.Rings, r => r.XMm != 0 || r.YMm != 0);
+        Assert.Equal(9, ibs!.Rings.Count);
+        Assert.Equal(4, ibs.Rings.Count(r => r.XMm != 0 || r.YMm != 0));
+        Assert.Equal(3, ibs.Polys.Count);
     }
 
     [Fact]
