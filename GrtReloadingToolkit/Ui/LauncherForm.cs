@@ -10,10 +10,17 @@ namespace GrtReloadingToolkit.Ui;
 /// </summary>
 internal sealed class LauncherForm : Form
 {
+    /// <summary>Holds the tool list, so OnLoad can read the height it wants.</summary>
+    private readonly FlowLayoutPanel _flow;
+
     public LauncherForm(Action<Tool> open)
     {
         Text = AppVersion.Title("Reloading Toolkit");
-        FormBorderStyle = FormBorderStyle.FixedToolWindow;
+        // Sizable, not Fixed: the list outgrew the screen. Windows caps a window at the desktop
+        // working area, so the last seven buttons -- Velocity model down to the report templates --
+        // were laid out past the bottom edge and simply never painted, with no grip to drag and no
+        // wheel to scroll. Reported from a 3840x2160 screen showing 17 of the 24.
+        FormBorderStyle = FormBorderStyle.SizableToolWindow;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
         TopMost = false;
@@ -81,8 +88,40 @@ internal sealed class LauncherForm : Form
         B(Lang.T("📚  Load book export"), Tool.LoadBook);
         B(Lang.T("📄  Install GRT report templates"), Tool.Reports);
 
-        Controls.Add(flow);
-        AutoSize = true;
-        AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        // The flow keeps auto-sizing, so its PreferredSize is the height the whole list wants; this
+        // host is what makes the overflow reachable once OnLoad clamps the window to the desktop.
+        _flow = flow;
+        Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, Controls = { flow } });
+    }
+
+    /// <summary>
+    /// Sizes the window to the tool list, clamped to the desktop. Deliberately not in the
+    /// constructor: there, <c>Height - ClientSize.Height</c> is an AdjustWindowRectEx estimate made
+    /// without a window handle, and it came out 20px short of the real chrome -- enough to leave
+    /// the window taller than the desktop all over again. By OnLoad the handle exists and the
+    /// figure is the true one.
+    /// </summary>
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+
+        // Clamp BEFORE assigning, never after. Windows caps the window at the working area but
+        // ClientSize still reports back whatever it was handed, so asking for more than fits leaves
+        // the Dock=Fill panel sized to the full content: it sees no overflow, shows no scrollbar,
+        // and the surplus is clipped at the window edge where layout cannot see it. That is the
+        // original bug, and a scroll host alone does not fix it.
+        int chrome = Height - ClientSize.Height;
+        int roomFor = Math.Max(240, Screen.FromControl(this).WorkingArea.Height - chrome);
+        var wanted = _flow.PreferredSize;
+        int height = Math.Min(wanted.Height, roomFor);
+        // Only widen for the scrollbar when there will actually be one, or it eats into the 252px
+        // buttons and raises a horizontal bar underneath them.
+        int width = wanted.Width + (height < wanted.Height ? SystemInformation.VerticalScrollBarWidth : 0);
+        ClientSize = new Size(width, height);
+
+        // Width floor only: narrower clips the buttons, shorter just scrolls. Reading the preferred
+        // size rather than hardcoding one is also what keeps this right under display scaling,
+        // where the fonts (and so the section labels) grow but the button heights do not.
+        MinimumSize = new Size(Width, 240);
     }
 }
