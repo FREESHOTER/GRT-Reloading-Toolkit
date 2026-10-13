@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit
 
-Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, twenty-two tools.
+Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, twenty-four tools.
 GRT shows a **single toolbar / menu entry** ("Reloading Toolkit") that opens a launcher window;
 every tool is a button there. One background process serves all of them.
 

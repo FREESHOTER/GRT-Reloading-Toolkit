@@ -210,7 +210,12 @@ internal abstract class LadderAnalyzerForm : Form
             var opt = new GrtShotGroups.Options(RefUnit.Mm, ShootUnit.Meters, _noFlyers.Checked);
             var (groups, log) = GrtShotGroups.FromDoc(doc, opt);
             foreach (var l in log) AppendLog(l);
-            if (groups.Count == 0) { MessageBox.Show(this, Lang.T("No usable shot groups in that load."), Lang.T("Groups from GRT")); return; }
+            if (groups.Count == 0)
+            {
+                // say what is missing, not only that nothing was found: the velocities alone do not make a ladder analysis
+                MessageBox.Show(this, Lang.T("No usable shot groups in that load.") + Environment.NewLine + Environment.NewLine + Lang.T(ToolPathMap.Hint("ChronoStats")!), Lang.T("Groups from GRT"));
+                return;
+            }
 
             // so the MV flat-spot appears without also pointing at a chrono folder
             await RefreshLoadVelocitiesAsync();

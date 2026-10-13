@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit — Manual
 
-A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles twenty-three reloading tools plus a
+A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles twenty-four reloading tools plus a
 set of printable GRT report templates into one window.
 
 - **Author:** community
@@ -1076,7 +1076,7 @@ in OnTarget instead. Use the `.csv` path, or build the groups in GRT first (§14
 **Temp-coefficient tool won't enable "Write".** It needs one charge at several temperatures, not a
 ladder.
 
-**One toolbar icon, not twenty-two.** By design — it opens the launcher; every tool is a button there.
+**One toolbar icon, not twenty-four.** By design — it opens the launcher; every tool is a button there.
 Manifest changes need a GRT restart to show.
 
 **Numbers:** every field accepts `.` or `,` as the decimal separator regardless of your Windows
