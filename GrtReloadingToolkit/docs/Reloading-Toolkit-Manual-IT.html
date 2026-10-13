@@ -111,7 +111,9 @@
   @media screen and (min-width: 901px) { .path-figure { width: min(1060px, calc(100vw - 330px)); } }
   @media print {
     .path-figure { page: path; break-before: page; break-after: page; width: 258mm; margin-left: 0; overflow: visible; }
-    .path-figure svg { min-width: 0; width: 100% !important; }
+    /* one landscape page, legend included: a fixed height with the width following the drawing's own proportions
+       (at the full 258 mm width the drawing was taller than the page, which left a blank page in front and the legend on the next one) */
+    .path-figure svg { min-width: 0; width: auto !important; max-width: 100%; height: 180mm !important; display: block; }
   }
 </style>
 
