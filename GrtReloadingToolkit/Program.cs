@@ -166,7 +166,7 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.Diagnostics => new AdvancedDiagnosticsForm(_grt, _db),
             Tool.SdRootCause => new SdRootCauseForm(_grt, _db),
             Tool.GroupAnalysis => new GroupAnalysisForm(_grt),
-            Tool.TargetPrint => new TargetForm(),
+            Tool.TargetPrint => new TargetForm(_grt),
             Tool.Wizard => new WizardForm(Open),
             Tool.VelocityModel => new VelocityModelForm(_grt, _db),
             Tool.LoadBook => new LoadBookForm(_db),

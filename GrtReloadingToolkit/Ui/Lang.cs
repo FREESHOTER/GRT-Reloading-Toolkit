@@ -423,6 +423,7 @@ internal static class Lang
         ["Load journal"] = "Diario di carico",
         ["Ladder rank #{0} of {1}, score {2} ({3})."] = "Posizione nella scala #{0} su {1}, punteggio {2} ({3}).",
         ["Choose this depth"] = "Scegli questa profondità",
+        ["Chosen charge {0} is on the target."] = "La carica scelta {0} è sul bersaglio.",
         ["Seating test rank #{0} of {1}, score {2} ({3})."] = "Posizione nella prova di seduta #{0} su {1}, punteggio {2} ({3}).",
         ["Seating depth: {0}"] = "Profondità di seduta: {0}",
         ["Next: shoot a group at distance with this depth and import it."] = "Prossimo passo: spara un gruppo a distanza con questa profondità e importalo.",

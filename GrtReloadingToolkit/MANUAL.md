@@ -891,6 +891,8 @@ Charge weights are optional (typed in, comma-separated, printed under each point
 you to fill in by hand after the range decides the actual step. **Pages per sheet** (0 = all) splits
 a long ladder across several A3 sheets, each repeating the header and instructions.
 
+With GRT open on a load, the window fills in the powder and the bullet from it and, once a charge has been chosen in the ladder analyzer (§7), writes that charge next to the powder. The same target serves the seating-depth test: shoot the depths instead of the charges and write each depth under its point by hand.
+
 **Print at 100% ("actual size"), never "fit to page"** — the printed 100 mm bar at the bottom is
 there to verify the printer didn't silently rescale anything before you shoot at it. Needs A3
 paper: an OCW grid plus the header and instructions need more vertical room than A4 has without the

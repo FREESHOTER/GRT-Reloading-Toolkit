@@ -1,5 +1,7 @@
 using System.Drawing.Printing;
 using System.Globalization;
+using GrtPluginKit.Grt;
+using GrtPluginKit.Ipc;
 using GrtReloadingToolkit.Targets;
 
 namespace GrtReloadingToolkit.Ui;
@@ -28,20 +30,48 @@ internal sealed class TargetForm : Form
 
     private NextStepBar? _next;
 
-    public TargetForm()
+    private readonly GrtClient? _grt;
+
+    public TargetForm(GrtClient? grt = null)
     {
+        _grt = grt;
         Text = AppVersion.Title(Lang.T("Print Ladder/OCW Target"));
         Width = 980; Height = 700;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(800, 520);
         Build();
-        _next = NextStepBar.Attach(this, "TargetPrint", null);
+        _next = NextStepBar.Attach(this, "TargetPrint", _grt);
+        Shown += async (_, _) => await PrefillFromLoadAsync();
         NudFix.ApplyTo(this);
         Render();
     }
 
-    private void Build()
+    /// <summary>
+    /// What the open load already says goes into the form: its powder and bullet, and, once a charge has been chosen on the
+    /// ladder, that charge beside the powder, so the target for the seating-depth test carries it without being typed again.
+    /// Only empty boxes are filled, and nothing is read when GRT is not there.
+    /// </summary>
+    private async Task PrefillFromLoadAsync()
     {
+        if (_grt is not { Connected: true }) return;
+        try
+        {
+            var top = await _grt.GetTabOnTopAsync();
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) return;
+            var doc = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
+            string? charge = ChosenChargeReader.ChargeFrom(doc.FindNoteText(ChosenChargeNote.Title));
+            if (_powder.Text.Length == 0)
+            {
+                string powder = doc.PropellantName;
+                _powder.Text = charge is null ? powder : $"{powder} · {charge}";
+            }
+            if (_bullet.Text.Length == 0) _bullet.Text = doc.ProjectileName;
+            if (charge is not null) _status.Text = string.Format(Lang.T("Chosen charge {0} is on the target."), charge);
+        }
+        catch (Exception) { /* a target form that cannot read the load is the plain one */ }
+    }
+
+    private void Build()    {
         var right = new TableLayoutPanel { Dock = DockStyle.Right, Width = 300, ColumnCount = 1, Padding = new Padding(8), AutoScroll = true };
         void Add(Control c) { right.Controls.Add(c); right.RowCount++; right.RowStyles.Add(new RowStyle(SizeType.AutoSize)); }
 
