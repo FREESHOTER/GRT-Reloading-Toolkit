@@ -322,6 +322,13 @@ public sealed class GrtLoadDoc
             .LastOrDefault();
     }
 
+    /// <summary>The decoded title of every appendix note, in document order: what has already been written into this load,
+    /// for a tool that has to tell how far along the load is.</summary>
+    public IReadOnlyList<string> NoteTitles()
+        => _appendix.ChildNodes.OfType<XmlElement>()
+            .Where(e => e.Name == "note")
+            .Select(e => Uri.UnescapeDataString(e.GetAttribute("title")))
+            .ToList();
     /// <summary>The decoded text of every appendix note whose (decoded) title starts with <paramref name="titlePrefix"/>,
     /// in document order: for a tool that has to know what an earlier run of itself already wrote.</summary>
     public IReadOnlyList<string> NoteTexts(string titlePrefix)

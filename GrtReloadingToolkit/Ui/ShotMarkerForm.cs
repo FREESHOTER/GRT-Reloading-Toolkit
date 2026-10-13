@@ -75,7 +75,7 @@ internal sealed class ShotMarkerForm : Form
 
         Controls.Add(_split);
         Controls.Add(top);
-        if (_next != null) Controls.Add(_next);
+        if (_next != null) { Controls.Add(_next); _ = _next.TrackLoadAsync(_grt); }
 
         _browse.Click += (_, _) => Browse();
         _import.Click += async (_, _) => await ImportAsync();

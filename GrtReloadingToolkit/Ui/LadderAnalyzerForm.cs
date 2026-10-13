@@ -158,7 +158,7 @@ internal abstract class LadderAnalyzerForm : Form
         Controls.Add(_status);
         Controls.Add(top);
         _next = NextStepBar.For(Mode == LadderMode.Charge ? "Ocw" : "Seating");
-        if (_next != null) Controls.Add(_next);
+        if (_next != null) { Controls.Add(_next); _ = _next.TrackLoadAsync(_grt); }
     }
 
     private async Task PickFolderAsync()
@@ -370,6 +370,7 @@ internal abstract class LadderAnalyzerForm : Form
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
             _next?.SetHint(string.Format(Lang.T("Chosen charge: {0}. Use it for the seating-depth test."), charge));
+            if (_next != null) await _next.TrackLoadAsync(_grt);
             _status.Text = Lang.T("Chosen charge written to the load and opened in GRT.");
         }
         catch (Exception ex)

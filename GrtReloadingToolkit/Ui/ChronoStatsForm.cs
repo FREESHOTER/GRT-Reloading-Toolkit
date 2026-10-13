@@ -142,7 +142,7 @@ internal sealed class ChronoStatsForm : Form
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(top);
-        if (_next != null) Controls.Add(_next);
+        if (_next != null) { Controls.Add(_next); _ = _next.TrackLoadAsync(_grt); }
     }
 
     /// <summary>GRT names every imported Measurement "Misurazione", so two strings routinely carry the

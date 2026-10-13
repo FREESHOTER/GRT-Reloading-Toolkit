@@ -157,7 +157,7 @@ internal sealed class CalibrationForm : Form
         Controls.Add(_status);
         Controls.Add(_staleWarning);
         Controls.Add(top);
-        if (_next != null) Controls.Add(_next);
+        if (_next != null) { Controls.Add(_next); _ = _next.TrackLoadAsync(_grt); }
     }
 
     private async Task<GrtLoadDoc?> OpenBaseAsync()

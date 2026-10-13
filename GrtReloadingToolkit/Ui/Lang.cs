@@ -212,6 +212,12 @@ internal static class Lang
             "  ID colletto finale = diametro proiettile - interferenza\n",
 
         // AthlonForm
+        ["Brass prep (case vol / seating / neck)"] = "Preparazione bossoli (volume / seating / colletto)",
+        ["Load card / label"] = "Cartellino / etichetta carico",
+        ["Print ladder/OCW target"] = "Stampa bersaglio ladder/OCW",
+        ["Seating-depth analyzer"] = "Analizzatore profondità di seduta",
+        ["Group analysis"] = "Analisi gruppo",
+        ["Distance workflow"] = "Workflow distanze",
         ["Chronograph import (Athlon / Garmin)"] = "Importa cronografo (Athlon / Garmin)",
         ["Add chrono files…"] = "Aggiungi file cronografo…",
         ["Add folder…"] = "Aggiungi cartella…",
