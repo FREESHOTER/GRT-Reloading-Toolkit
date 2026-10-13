@@ -6,7 +6,11 @@ namespace GrtReloadingToolkit.Log;
 public enum DiagnosisConfidence { Low, Medium, High }
 
 /// <summary>One string of the open load: the shots of one charge, with what is known about how it was shot.</summary>
-public sealed record DiagnosisString(string Name, double? ChargeGr, IReadOnlyList<double> VelocitiesMps, double? TempC, double? GroupMoa);
+/// <param name="ColdShots">For each shot, whether it was fired from a cold bore (<c>COLD=1</c> in its note, see <see cref="DataTokens"/>); null when none is marked.</param>
+public sealed record DiagnosisString(string Name, double? ChargeGr, IReadOnlyList<double> VelocitiesMps, double? TempC, double? GroupMoa, IReadOnlyList<bool>? ColdShots = null);
+
+/// <summary>A shot group as the observation on wind and support needs it. <paramref name="WindMps"/> comes from <c>WIND=…</c> in the tab title or the group name.</summary>
+public sealed record DiagnosisGroup(string Name, double DistanceM, double HorizontalMoa, double VerticalMoa, int Shots, double? WindMps, double? WindDegrees);
 
 /// <summary>The node the ladder analysis suggests, in the same unit as the chosen charge.</summary>
 public sealed record DiagnosisNode(double Low, double High);
@@ -20,7 +24,8 @@ public sealed record DiagnosisInput(
     double? ChosenCharge,
     bool NodeSearched,
     DiagnosisNode? Node,
-    Func<double, string> Vel);
+    Func<double, string> Vel,
+    IReadOnlyList<DiagnosisGroup>? Groups = null);
 
 /// <summary>A finding: what may be going on, on what numbers, how sure, and the test that would confirm it.
 /// Templates are English translation keys with {0}, {1}... for the numbers, filled in by the window.</summary>
@@ -29,7 +34,11 @@ public sealed record DiagnosisFinding(string Rule, string Template, object[] Arg
 /// <summary>A rule that could not be applied, and why, so the shooter knows what measurement is missing rather than assuming all is well.</summary>
 public sealed record DiagnosisGap(string Rule, string Template, object[] Args);
 
-public sealed record DiagnosisResult(IReadOnlyList<DiagnosisFinding> Findings, IReadOnlyList<DiagnosisGap> Gaps);
+/// <summary>A number the toolkit can read off the data but whose cause it does not decide: the rule behind it is not validated yet, so it is shown as an
+/// observation, and the community is asked whether the reading fits their cases. Same templates as a finding.</summary>
+public sealed record DiagnosisObservation(string Rule, string Template, object[] Args);
+
+public sealed record DiagnosisResult(IReadOnlyList<DiagnosisFinding> Findings, IReadOnlyList<DiagnosisGap> Gaps, IReadOnlyList<DiagnosisObservation> Observations);
 
 /// <summary>
 /// Guided diagnosis (step 17 of the recommended path): from the strings and groups of the open load, the hypotheses the data support.
@@ -48,6 +57,15 @@ public static class Diagnosis
     /// <summary>Strings at least this far apart in temperature (degrees C) are compared for temperature sensitivity.</summary>
     public const double MinTemperatureGapC = 5.0;
 
+    /// <summary>Shots from which a drift along a string is read.</summary>
+    public const int MinShotsForDrift = 10;
+
+    /// <summary>A group is read for wind and support from this distance on, with at least <see cref="MinShots"/> shots.</summary>
+    public const double MinDistanceForWindM = 300.0;
+
+    /// <summary>A horizontal-to-vertical spread ratio beyond this (or below its inverse) is worth a mention even without a wind reading.</summary>
+    public const double SkewRatio = 1.5;
+
     /// <summary>A velocity score below this is "weak" (below Good in <see cref="LoadScoring.ScoreLabel"/>).</summary>
     public const double WeakScore = 6.0;
 
@@ -55,13 +73,17 @@ public static class Diagnosis
     {
         var findings = new List<DiagnosisFinding>();
         var gaps = new List<DiagnosisGap>();
+        var observations = new List<DiagnosisObservation>();
         RuleSpreadVersusGroup(input, findings, gaps);
         RuleSingleShot(input, findings, gaps);
         RuleTemperature(input, findings, gaps);
         RuleChosenChargeOffNode(input, findings, gaps);
+        ObserveDrift(input, observations, gaps);
+        ObserveColdBore(input, observations, gaps);
+        ObserveWindAndSupport(input, observations, gaps);
         // strongest first; within a confidence, the order the rules ran in
         var ordered = findings.Select((f, i) => (f, i)).OrderByDescending(x => x.f.Confidence).ThenBy(x => x.i).Select(x => x.f).ToList();
-        return new DiagnosisResult(ordered, gaps);
+        return new DiagnosisResult(ordered, gaps, observations);
     }
 
     private static string F(double v, string fmt = "0.0") => v.ToString(fmt, CultureInfo.InvariantCulture);
@@ -179,5 +201,80 @@ public static class Diagnosis
             new object[] { F(c, "0.0#"), F(lo, "0.0#"), F(hi, "0.0#") },
             gap > width + tol ? DiagnosisConfidence.Medium : DiagnosisConfidence.Low,
             "Shoot a confirmation group at the middle of the node and compare it with the chosen charge.", 2));
+    }
+
+    // ---- observations: rules whose reading is not validated yet. The number is real; the cause is not decided.
+
+    // R3 -- a drift along a long string
+    private static void ObserveDrift(DiagnosisInput input, List<DiagnosisObservation> obs, List<DiagnosisGap> gaps)
+    {
+        var long_ = input.Strings.Where(s => s.VelocitiesMps.Count >= MinShotsForDrift).ToList();
+        if (long_.Count == 0)
+        {
+            gaps.Add(new DiagnosisGap("R3", "R3 (drift along a string): not evaluated, no string has {0} shots or more.", new object[] { MinShotsForDrift }));
+            return;
+        }
+        foreach (var s in long_)
+        {
+            var r = AdvancedDiagnostics.FoulingTrend(s.VelocitiesMps);
+            if (!(r.FoulingSuspected || r.VelocityDeclining)) continue;
+            obs.Add(new DiagnosisObservation("R3",
+                "{0}: along its {1} shots the velocity moves by {2} per shot and the rolling SD by {3} per step. This is the pattern of a drift; the cause is not named.",
+                new object[] { s.Name, r.NShots, input.Vel(r.VelocityTrendSlope), input.Vel(r.SdTrendSlope) }));
+        }
+    }
+
+    // R4 -- a cold-bore shot against the warm ones
+    private static void ObserveColdBore(DiagnosisInput input, List<DiagnosisObservation> obs, List<DiagnosisGap> gaps)
+    {
+        var marked = input.Strings.Where(s => s.ColdShots is not null && s.ColdShots.Count == s.VelocitiesMps.Count && s.ColdShots.Any(c => c)).ToList();
+        if (marked.Count == 0)
+        {
+            gaps.Add(new DiagnosisGap("R4", "R4 (cold-bore shot): not evaluated, no shot is marked. Write COLD=1 in the note of the first shot of a string.", Array.Empty<object>()));
+            return;
+        }
+        foreach (var s in marked)
+        {
+            AdvancedDiagnostics.ColdBoreResult r;
+            try { r = AdvancedDiagnostics.ColdBoreAnalysis(s.VelocitiesMps, s.ColdShots!); }
+            catch (AdvancedDiagnostics.AdvancedDiagnosticsError) { continue; }
+            if (r.Inconclusive)
+            {
+                gaps.Add(new DiagnosisGap("R4", "R4 (cold-bore shot): {0} is not evaluated, it has fewer than {1} warm shots.", new object[] { s.Name, AdvancedDiagnostics.MinWarmShotsForVerdict }));
+                continue;
+            }
+            if (!r.ColdBoreIsOutlier) continue;
+            obs.Add(new DiagnosisObservation("R4",
+                r.ColdBoreFaster
+                    ? "{0}: the cold-bore shot is {1} faster than the {2} warm shots (z = {3}). It is worth a look; the cause is not named."
+                    : "{0}: the cold-bore shot is {1} slower than the {2} warm shots (z = {3}). It is worth a look; the cause is not named.",
+                new object[] { s.Name, input.Vel(Math.Abs(r.DeltaMps)), r.NWarm, F(r.ZScore) }));
+        }
+    }
+
+    // R5 -- horizontal against vertical spread at distance, with the wind when it was written down
+    private static void ObserveWindAndSupport(DiagnosisInput input, List<DiagnosisObservation> obs, List<DiagnosisGap> gaps)
+    {
+        var far = (input.Groups ?? Array.Empty<DiagnosisGroup>()).Where(g => g.DistanceM >= MinDistanceForWindM && g.Shots >= MinShots && g.VerticalMoa > 0).ToList();
+        if (far.Count == 0)
+        {
+            gaps.Add(new DiagnosisGap("R5", "R5 (wind or support): not evaluated, no group of {0} shots or more at {1} m or beyond.", new object[] { MinShots, F(MinDistanceForWindM, "0") }));
+            return;
+        }
+        foreach (var g in far)
+        {
+            double ratio = g.HorizontalMoa / g.VerticalMoa;
+            bool skewed = ratio >= SkewRatio || ratio <= 1 / SkewRatio;
+            if (g.WindMps is { } w)
+                obs.Add(new DiagnosisObservation("R5",
+                    "{0} at {1} m: the group is {2} MOA wide and {3} MOA high (ratio {4}); wind written down: {5} m/s. Wind or support are possible readings; the toolkit does not decide.",
+                    new object[] { g.Name, F(g.DistanceM, "0"), F(g.HorizontalMoa), F(g.VerticalMoa), F(ratio), F(w) }));
+            else if (skewed)
+                obs.Add(new DiagnosisObservation("R5",
+                    "{0} at {1} m: the group is {2} MOA wide and {3} MOA high (ratio {4}) and no wind was written down. Wind or support are possible readings; the toolkit does not decide.",
+                    new object[] { g.Name, F(g.DistanceM, "0"), F(g.HorizontalMoa), F(g.VerticalMoa), F(ratio) }));
+        }
+        if (far.All(g => g.WindMps is null))
+            gaps.Add(new DiagnosisGap("R5", "R5 (wind or support): no wind is written down. Put WIND=3.2m/s (and @90 for its direction) in the title of the shot-group tab or in the name of the group.", Array.Empty<object>()));
     }
 }

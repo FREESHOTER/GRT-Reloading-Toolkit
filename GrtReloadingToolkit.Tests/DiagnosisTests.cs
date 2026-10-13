@@ -135,4 +135,64 @@ public sealed class DiagnosisTests
         Assert.NotEmpty(r.Findings);
         Assert.All(r.Findings, f => { Assert.False(string.IsNullOrWhiteSpace(f.ProofTemplate)); Assert.InRange(f.ReturnToPhase, 2, 3); });
     }
+
+    // ---- observations (rules not validated yet)
+    private static DiagnosisResult RunWith(IEnumerable<DiagnosisString> strings, IEnumerable<DiagnosisGroup>? groups = null)
+        => Diagnosis.Run(new DiagnosisInput(strings.ToList(), null, false, null, V, groups?.ToList()));
+
+    [Fact]
+    public void R4_AColdShotApartFromTheWarmOnesIsAnObservationNotAFinding()
+    {
+        var v = new double[] { 812, 800, 801, 799, 800, 802, 800, 801 };
+        var cold = new[] { true, false, false, false, false, false, false, false };
+        var r = RunWith(new[] { new DiagnosisString("s", 40.0, v, null, null, cold) });
+        Assert.Single(r.Observations, o => o.Rule == "R4");
+        Assert.DoesNotContain(r.Findings, f => f.Rule == "R4");
+    }
+
+    [Fact]
+    public void R4_WithNoMarkedShotItSaysHowToWriteIt()
+        => Assert.Contains(RunWith(new[] { S("s", Tight) }).Gaps, g => g.Rule == "R4" && g.Template.Contains("COLD=1"));
+
+    [Fact]
+    public void R4_TooFewWarmShotsIsAGap()
+    {
+        var r = RunWith(new[] { new DiagnosisString("s", null, new double[] { 812, 800, 801, 799 }, null, null, new[] { true, false, false, false }) });
+        Assert.Contains(r.Gaps, g => g.Rule == "R4" && g.Template.Contains("fewer than"));
+    }
+
+    [Fact]
+    public void R3_AFallingStringIsAnObservationAndAShortOneIsAGap()
+    {
+        var drift = Enumerable.Range(0, 12).Select(i => 820.0 - i * 1.5).ToArray();   // the detector reads a velocity that falls along the string (fouling)
+        Assert.Single(RunWith(new[] { S("long", drift) }).Observations, o => o.Rule == "R3");
+        Assert.Contains(RunWith(new[] { S("short", Tight.Take(8).ToArray()) }).Gaps, g => g.Rule == "R3");
+    }
+
+    [Fact]
+    public void R5_AWindWrittenDownMakesTheGroupAnObservationEvenWhenNotSkewed()
+    {
+        var g = new DiagnosisGroup("600 m tab#40.2 gr", 600, 1.2, 1.1, 5, 3.0, 90);
+        var o = Assert.Single(RunWith(Array.Empty<DiagnosisString>(), new[] { g }).Observations, x => x.Rule == "R5");
+        Assert.Contains("wind written down", o.Template);
+    }
+
+    [Fact]
+    public void R5_ASkewedGroupWithoutWindIsReportedAndTheMissingWindAsked()
+    {
+        var g = new DiagnosisGroup("600 m tab#40.2 gr", 600, 3.0, 1.0, 6, null, null);
+        var r = RunWith(Array.Empty<DiagnosisString>(), new[] { g });
+        Assert.Single(r.Observations, x => x.Rule == "R5");
+        Assert.Contains(r.Gaps, x => x.Rule == "R5" && x.Template.Contains("WIND="));
+    }
+
+    [Fact]
+    public void R5_ANearGroupOrAShortOneIsNotRead()
+    {
+        var near = new DiagnosisGroup("100 m", 100, 3.0, 1.0, 6, null, null);
+        var few = new DiagnosisGroup("600 m", 600, 3.0, 1.0, 3, null, null);
+        var r = RunWith(Array.Empty<DiagnosisString>(), new[] { near, few });
+        Assert.Empty(r.Observations);
+        Assert.Contains(r.Gaps, x => x.Rule == "R5" && x.Template.Contains("no group"));
+    }
 }

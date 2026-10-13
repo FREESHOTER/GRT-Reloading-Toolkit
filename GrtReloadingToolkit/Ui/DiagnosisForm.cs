@@ -24,6 +24,7 @@ internal sealed class DiagnosisForm : Form
     private readonly Label _status = new() { Dock = DockStyle.Bottom, Height = 20, ForeColor = SystemColors.GrayText, Padding = new Padding(8, 2, 0, 0) };
     private readonly Button _read = new() { AutoSize = true };
     private readonly Button _write = new() { AutoSize = true, Enabled = false };
+    private readonly Button _copy = new() { AutoSize = true, Enabled = false };
     private string _noteText = "";
 
     public DiagnosisForm(GrtClient? grt)
@@ -50,8 +51,11 @@ internal sealed class DiagnosisForm : Form
         _read.Click += async (_, _) => await RunAsync();
         _write.Text = Lang.T("Write note to GRT load");
         _write.Click += async (_, _) => await WriteNoteAsync();
+        _copy.Text = Lang.T("Prepare report for GitHub");
+        _copy.Click += (_, _) => CopyReport();
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         bottom.Controls.Add(_write);
+        bottom.Controls.Add(_copy);
         bottom.Controls.Add(_read);
 
         Controls.Add(_report);
@@ -84,6 +88,7 @@ internal sealed class DiagnosisForm : Form
     private async Task RunAsync()
     {
         _write.Enabled = false;
+        _copy.Enabled = false;
         if (_grt is not { Connected: true })
         {
             _report.Text = Lang.T("Not connected to GRT. Open the toolkit from GRT with a saved load to read its strings and groups.");
@@ -105,7 +110,8 @@ internal sealed class DiagnosisForm : Form
             _noteText = BuildReport(result, input, Path.GetFileNameWithoutExtension(top.file));
             _report.Text = _noteText.Replace("\n", Environment.NewLine);
             _write.Enabled = true;
-            _status.Text = string.Format(CultureInfo.InvariantCulture, Lang.T("{0} hypothesis(es), {1} rule(s) not evaluated."), result.Findings.Count, result.Gaps.Count);
+            _copy.Enabled = true;
+            _status.Text = string.Format(CultureInfo.InvariantCulture, Lang.T("{0} hypothesis(es), {1} observation(s), {2} rule(s) not evaluated."), result.Findings.Count, result.Observations.Count, result.Gaps.Count);
         }
         catch (Exception ex)
         {
@@ -124,13 +130,15 @@ internal sealed class DiagnosisForm : Form
         foreach (var meas in doc.Measurements())
             foreach (var ch in meas.Charges)
             {
-                var v = ch.Shots.Select(s => s.VelocityMps).Where(x => x > 50).ToList();
-                if (v.Count == 0) continue;
+                var shots = ch.Shots.Where(s => s.VelocityMps > 50).ToList();
+                if (shots.Count == 0) continue;
+                var v = shots.Select(s => s.VelocityMps).ToList();
+                var cold = shots.Select(s => DataTokens.IsCold(s.Note)).ToList();
                 double? charge = ch.ChargeGrains;
                 double? moa = charge is { } c
                     ? groups.FirstOrDefault(g => g.ChargeGrains is { } gc && Math.Abs(gc - c) < 0.005)?.GroupEsMoa
                     : null;
-                strings.Add(new DiagnosisString(ch.Name, charge, v, ToolSuggestions.TemperatureC(ch.Note), moa));
+                strings.Add(new DiagnosisString(ch.Name, charge, v, ToolSuggestions.TemperatureC(ch.Note), moa, cold.Any(c => c) ? cold : null));
                 if (LadderLoader.MeasurementStep(LadderMode.Charge, ch.ChargeGrains, ch.Name, ch.Note) is { } step)
                     ladderVelocities.Add(new LadderVelocity(step, v));
             }
@@ -159,7 +167,13 @@ internal sealed class DiagnosisForm : Form
         }
         catch (Exception) { /* no node: the rule says so */ }
 
-        return new DiagnosisInput(strings, chosen, searched, node, mps => u.VelocitySd(mps) + " " + u.VelocityUnitName);
+        var far = groups.Select(g =>
+        {
+            var wind = DataTokens.WindOf(g.SourceFile);   // "GRT:<tab title>#<group name>": the token may sit in either
+            return new DiagnosisGroup(g.SourceFile.Replace("GRT:", ""), g.DistanceM, g.HorizontalSpreadMoa, g.VerticalSpreadMoa, g.Impacts.Count, wind?.Mps, wind?.Degrees);
+        }).ToList();
+
+        return new DiagnosisInput(strings, chosen, searched, node, mps => u.VelocitySd(mps) + " " + u.VelocityUnitName, far);
     }
 
     /// <summary>The report, as plain text: the banner line, the hypotheses, the rules not evaluated, what the community can bring, and where to go next.</summary>
@@ -189,6 +203,13 @@ internal sealed class DiagnosisForm : Form
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture, Lang.T("If the check at distance is not good, the strongest hypothesis sends you back to phase {0}."), phase));
         }
 
+        if (result.Observations.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine(Lang.T("OBSERVATIONS (rules not validated yet: the number is real, its reading is not decided)"));
+            foreach (var o in result.Observations) sb.AppendLine(" - " + T(o.Template, o.Args));
+        }
+
         if (result.Gaps.Count > 0)
         {
             sb.AppendLine();
@@ -197,11 +218,26 @@ internal sealed class DiagnosisForm : Form
         }
 
         sb.AppendLine();
+        sb.AppendLine(Lang.T("HOW TO WRITE DOWN WHAT THE RULES NEED (in text GRT already lets you write)"));
+        sb.AppendLine(" - " + Lang.T("COLD=1 in the note of the cold-bore shot (the shot's note in a measurement)."));
+        sb.AppendLine(" - " + Lang.T("WIND=3.2m/s (or km/h, mph, ft/s) and, if you can, @90 for its direction in degrees from your twelve o'clock, in the title of the shot-group tab or in the name of the group."));
+        sb.AppendLine();
         sb.AppendLine(Lang.T("DATA THAT THE COMMUNITY CAN BRING TO MAKE THE RULES STRONGER"));
         foreach (var d in DataWanted) sb.AppendLine(" - " + Lang.T(d));
         sb.AppendLine();
         sb.AppendLine(Lang.T("Report cases and bring data at: ") + IssuesUrl);
         return sb.ToString();
+    }
+
+    /// <summary>A report that can be pasted into a GitHub issue: the version, the numbers and the rules not evaluated.</summary>
+    private void CopyReport()
+    {
+        if (string.IsNullOrEmpty(_noteText)) return;
+        string text = $"GRT Reloading Toolkit v{AppVersion.Short} - guided diagnosis report" + Environment.NewLine
+            + "Please attach the .grtload file of this load if you can, and say whether the hypotheses fit what you know." + Environment.NewLine + Environment.NewLine
+            + _noteText.Replace("\n", Environment.NewLine);
+        try { Clipboard.SetText(text); _status.Text = Lang.T("Report copied: paste it into a new issue on GitHub."); }
+        catch (Exception ex) { _status.Text = ex.Message; }
     }
 
     private async Task WriteNoteAsync()

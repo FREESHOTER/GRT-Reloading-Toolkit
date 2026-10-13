@@ -72,6 +72,7 @@
     <Compile Include="..\GrtReloadingToolkit\Log\PowderCompare.cs" Link="Log\PowderCompare.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\AdvancedDiagnostics.cs" Link="Log\AdvancedDiagnostics.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadAlerts.cs" Link="Log\LoadAlerts.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\DataTokens.cs" Link="Log\DataTokens.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Diagnosis.cs" Link="Log\Diagnosis.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\SdRootCause.cs" Link="Log\SdRootCause.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\SessionTrend.cs" Link="Log\SessionTrend.cs" />
