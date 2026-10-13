@@ -389,6 +389,59 @@ public class GrtShotGroupWriterTests
         Assert.StartsWith(title, doc.Measurements().Single().Title);
     }
 
+    /// <summary>
+    /// Found on the first live repeat of an import: the same export imported into a load that already held it added every tab
+    /// again (M1, M2, M3 and then M1-1, M2-1, M3-1, two velocity tabs), and the ladder analyzer then counted each group twice.
+    /// </summary>
+    [Fact]
+    public void ImportingTheSameExportTwiceAddsNothingTheSecondTime()
+    {
+        var log = new List<string>();
+        List<SmString> strings = SmExportReader.Read(
+            Fixtures.Path("shotmarker/SM_export_Sep_21.tar"), log).ToList();
+        var doc = NewDoc();
+        GrtShotGroupWriter.AddAll(doc, strings.Select(s => Item(s)), new List<string>());
+        int tabs = doc.ShotGroups().Count(), measurements = doc.Measurements().Count(), notes = NoteCount(doc);
+
+        var again = new List<string>();
+        GrtShotGroupWriter.AddAll(doc, strings.Select(s => Item(s)), again);
+
+        Assert.Equal(tabs, doc.ShotGroups().Count());
+        Assert.Equal(measurements, doc.Measurements().Count());
+        Assert.Equal(notes, NoteCount(doc));
+        Assert.Equal(strings.Count, again.Count(l => l.Contains("already in this load")));
+    }
+
+    [Fact]
+    public void OnlyTheStringsNotYetInTheLoadAreAdded()
+    {
+        SmString first = FirstString();
+        SmString other = first with { Name = "another string", Timestamp = first.Timestamp.AddHours(1) };
+        var doc = NewDoc();
+        GrtShotGroupWriter.AddAll(doc, new[] { Item(first) }, new List<string>());
+
+        GrtShotGroupWriter.AddAll(doc, new[] { Item(first), Item(other) }, new List<string>());
+
+        Assert.Equal(new[] { $"ShotMarker — {first.Name}", "ShotMarker — another string" },
+            doc.ShotGroups().Select(g => g.Title).OrderBy(t => t.Length).ToArray());
+    }
+
+    /// <summary>ShotMarker names repeat from one day to the next, so the name alone must not make a new day's string look
+    /// like an old one.</summary>
+    [Fact]
+    public void ASameNamedStringFromAnotherDayIsStillImported()
+    {
+        SmString first = FirstString();
+        SmString nextWeek = first with { Timestamp = first.Timestamp.AddDays(7) };
+        var doc = NewDoc();
+        GrtShotGroupWriter.AddAll(doc, new[] { Item(first) }, new List<string>());
+
+        var log = new List<string>();
+        GrtShotGroupWriter.AddAll(doc, new[] { Item(nextWeek) }, log);
+
+        Assert.Equal(2, doc.ShotGroups().Count());
+        Assert.DoesNotContain(log, l => l.Contains("already in this load"));
+    }
     /// <summary>A string the writer chokes on must not cost the shooter the others — the same
     /// best-effort promise ImportJob makes for reading and rendering.</summary>
     [Fact]

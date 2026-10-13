@@ -322,6 +322,16 @@ public sealed class GrtLoadDoc
             .LastOrDefault();
     }
 
+    /// <summary>The decoded text of every appendix note whose (decoded) title starts with <paramref name="titlePrefix"/>,
+    /// in document order: for a tool that has to know what an earlier run of itself already wrote.</summary>
+    public IReadOnlyList<string> NoteTexts(string titlePrefix)
+    {
+        string enc = Enc(titlePrefix);
+        return _appendix.ChildNodes.OfType<XmlElement>()
+            .Where(e => e.Name == "note" && e.GetAttribute("title").StartsWith(enc, StringComparison.OrdinalIgnoreCase))
+            .Select(e => Uri.UnescapeDataString(e.GetAttribute("text")))
+            .ToList();
+    }
     public void AddNote(string title, string text, bool showInReport = true)
     {
         int idx = NextIndex();

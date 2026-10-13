@@ -88,6 +88,10 @@ public static class GrtShotGroupWriter
         var notes = new List<string>();
         var titles = new List<string>();
 
+        // What an earlier import already put here. The same export imported twice used to add every tab again
+        // (M1, M2, M3 and then M1-1, M2-1, M3-1), and the ladder analyzer then counted every group twice.
+        string earlier = string.Join("\n", doc.NoteTexts("ShotMarker")).Replace("\r\n", "\n");
+
         foreach (ImportItem item in items)
         {
             SmString s = item.String;
@@ -96,6 +100,11 @@ public static class GrtShotGroupWriter
             try
             {
                 if (s.Shots.Count == 0) { log.Add($"'{s.Name}': no shots — not imported"); continue; }
+                if (AlreadyImported(earlier, s))
+                {
+                    log.Add($"'{s.Name}': already in this load (shot {s.Timestamp:yyyy-MM-dd HH:mm}) — left as it is");
+                    continue;
+                }
 
                 string title = $"ShotMarker — {s.Name}";
                 if (AddTab(doc, item, title, log) is not { } dropped) continue;
@@ -120,6 +129,13 @@ public static class GrtShotGroupWriter
                         string.Join("\n\n" + new string('-', 60) + "\n\n", notes));
     }
 
+    /// <summary>
+    /// Whether a note an earlier import wrote already describes this string: same name and same shot time, the first two
+    /// lines of <c>NoteText</c>. The name alone would not do, since ShotMarker names repeat from one day to the next
+    /// ("M1 R2 TT11") and a new day's string must not be taken for the old one.
+    /// </summary>
+    internal static bool AlreadyImported(string earlierNotes, SmString s) =>
+        earlierNotes.Contains($"String:     {s.Name}\nShot:       {s.Timestamp:yyyy-MM-dd HH:mm}\n", StringComparison.Ordinal);
     /// <summary>Writes the shot-group tab and returns the numbers of the shots it could not
     /// plot, or null when the string could not be written at all.</summary>
     private static IReadOnlyList<int>? AddTab(GrtLoadDoc doc, ImportItem item, string title,
