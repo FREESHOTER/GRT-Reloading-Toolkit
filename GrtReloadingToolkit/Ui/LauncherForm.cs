@@ -155,5 +155,10 @@ internal sealed class LauncherForm : Form
         // window now opens shorter than the list on purpose, so the scrollbar is there from the
         // start and the width already accounts for it.
         MinimumSize = new Size(Width, 240);
+
+        // The window was centred at its small default size, so after growing its bottom edge can sit below the working
+        // area (under the taskbar). Lift it back inside; see LauncherPlacement.
+        var work = Screen.FromControl(this).WorkingArea;
+        Top = LauncherPlacement.Top(work.Top, work.Bottom, Top, Height);
     }
 }
