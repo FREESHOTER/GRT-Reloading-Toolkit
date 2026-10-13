@@ -14,6 +14,7 @@ namespace GrtReloadingToolkit.Ui;
 /// </summary>
 internal sealed class ChronoStatsForm : Form
 {
+    private readonly NextStepBar? _next = NextStepBar.For("ChronoStats");
     private const string NoteTitle = "Chrono Statistics";
 
     private sealed class Row
@@ -70,7 +71,7 @@ internal sealed class ChronoStatsForm : Form
 
     private void Build()
     {
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 70, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
 
         var addFiles = new Button { Text = Lang.T("Add chrono files…"), AutoSize = true };
         addFiles.Click += (_, _) => AddFiles();
@@ -141,6 +142,7 @@ internal sealed class ChronoStatsForm : Form
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(top);
+        if (_next != null) Controls.Add(_next);
     }
 
     /// <summary>GRT names every imported Measurement "Misurazione", so two strings routinely carry the
@@ -302,6 +304,7 @@ internal sealed class ChronoStatsForm : Form
             string outPath = doc.SaveSibling("chronostats");
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
+            _next?.MarkDone();
             _status.Text = Lang.T("Chrono Statistics note written and opened in GRT.");
         }
         catch (Exception ex) { Err(ex); }

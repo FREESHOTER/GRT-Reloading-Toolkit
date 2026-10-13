@@ -45,6 +45,11 @@
     <!-- The calibration maths: the Ba + a0 fit and its report. -->
     <Compile Include="..\GrtReloadingToolkit\Cal\Calibration.cs" Link="Cal\Calibration.cs" />
     <Compile Include="..\GrtReloadingToolkit\Cal\SebertSensitivity.cs" Link="Cal\SebertSensitivity.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ui\ToolIconPainter.cs" Link="Ui\ToolIconPainter.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ui\LauncherCaption.cs" Link="Ui\LauncherCaption.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ui\ToolPathMap.cs" Link="Ui\ToolPathMap.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ui\ToolNames.cs" Link="Ui\ToolNames.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ocw\LadderScore.cs" Link="Ocw\LadderScore.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ocw\LadderAnalyzer.cs" Link="Ocw\LadderAnalyzer.cs" />
     <!-- Same story for the log store: SQLite and arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\Log\LogModels.cs" Link="Log\LogModels.cs" />

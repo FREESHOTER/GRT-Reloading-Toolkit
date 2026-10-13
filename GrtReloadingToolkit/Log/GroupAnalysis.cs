@@ -296,10 +296,11 @@ public static class GroupAnalysis
     /// of the user's own measured ladder, not a physics model, so cross-checking against it never
     /// asserts anything beyond "does this match a pattern you already found in your own data". A
     /// second, physics-model-based connection (GRT Model OBT's barrel-vibration curve) was considered
-    /// and deliberately NOT wired in here: that model simulates LONGITUDINAL barrel vibration while
-    /// GRT's own native OBT concept assumes TRANSVERSE vibration (see this project's own notes on that
-    /// discrepancy) — presenting it as a reliable cross-check risked explaining a real group pattern
-    /// with a model that may not even be simulating the right physical phenomenon for that barrel.
+    /// and deliberately NOT wired in here: that model simulates TRANSVERSE barrel vibration (barrel
+    /// whip) while GRT's own native OBT concept is about LONGITUDINAL oscillation of the muzzle diameter
+    /// (GRT's doku, obtconcept.txt: "NOT barrel whip/harmonic") — presenting it as a reliable cross-check
+    /// risked explaining a real group pattern with a model that is simulating a different physical
+    /// phenomenon from the one GRT's nodes describe.
     /// </summary>
     public static NodeCrossCheck? CheckAgainstNode(double? chargeGrains, (double Low, double High)? node)
     {

@@ -10,6 +10,7 @@ namespace GrtReloadingToolkit.Ui;
 
 internal sealed class AthlonForm : Form
 {
+    private readonly NextStepBar? _next = NextStepBar.For("Athlon");
     private readonly GrtClient? _grt;
     private readonly List<AthlonString> _strings = new();
 
@@ -146,6 +147,7 @@ internal sealed class AthlonForm : Form
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(top);
+        if (_next != null) Controls.Add(_next);
     }
 
     private void AddFiles()
@@ -321,11 +323,13 @@ internal sealed class AthlonForm : Form
             {
                 await _grt.LoadFileAsync(outPath);
                 AppendLog("asked GRT to open it");
+                _next?.MarkDone();
                 _status.Text = string.Format(Lang.T("Imported {0} charge(s) into GRT."), charges.Count)
                     + (flagged > 0 ? " " + Lang.T("The old Barrel Calibration note is now marked OLD - redo the calibration.") : "");
             }
             else
             {
+                _next?.MarkDone();
                 _status.Text = Lang.T("Wrote") + " " + Path.GetFileName(outPath) + " " + Lang.T("(not connected to GRT).");
                 MessageBox.Show(this, Lang.T("Saved:") + "\n" + outPath, Lang.T("Done"), MessageBoxButtons.OK, MessageBoxIcon.Information);
             }

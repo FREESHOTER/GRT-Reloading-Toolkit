@@ -22,6 +22,12 @@ The toolkit is *on-demand*: GRT starts it on the first click and it exits when y
 window. All tool windows are served by one background process, so opening a second tool while one is
 already open just brings up that tool.
 
+### The recommended path
+
+The toolkit's tools follow one path, from the empty bench to a final load that you then keep following over time: prepare, find the charge with a ladder, find the seating depth with that charge, check at distance, then log the load and watch it. The diagram shows the order of the steps. The Ladder / OCW analyzer reads two kinds of data together, the velocities and where the shots hit, so before step 6 load the hit coordinates too (an OnTarget export, a ShotMarker session, or GRT's own Shot-group tabs). Boxes marked "coming soon" are planned and not in the program yet; every other step uses a tool you can open today from the launcher. Seating depth comes after the charge because it is tested with the charge you chose; the check at distance comes last because only a group at distance tells whether the load is really good.
+
+![Recommended path from the empty bench to the final load, in five phases](docs/recommended-path-en.png)
+
 ---
 
 ## 2. How the toolkit writes back to GRT — read this first
@@ -214,10 +220,7 @@ open load, one row per charge.
 
 **Grid:** string · n · mean · SD · ES · CI ± on the mean · shots needed for the target margin ·
 outliers. Mean, SD, ES and the CI are shown in GRT's own velocity unit (m/s or ft/s — each column
-header says which), and the "Chrono Statistics" note follows the same unit. SD here is the same
-population SD (÷n) shown everywhere else in the toolkit; the
-confidence interval and the two tests use sample SD (÷n−1) internally, since that's what those
-formulas are built on — for n this small the difference matters.
+header says which), and the "Chrono Statistics" note follows the same unit. SD is the sample SD (÷n−1) everywhere in the toolkit: the same figure GRT shows in the sd row of a measurement tab. A chronograph often reports the population SD (÷n), which is a little smaller, most noticeably on 3–5 shot strings; the confidence interval and the two tests use the sample SD too.
 
 **Outliers** are flagged by Chauvenet's criterion (classic normal-distribution formulation): a shot
 is flagged if the number of measurements you'd expect to see that far from the mean, over the whole
@@ -282,7 +285,7 @@ spread (MOA). The recommended node is shaded green.
 The report and chart are written as `~~result.Note("OCW Analysis")~~` and
 `~~result.picture.ocw_chart.png~~` — see §27.
 
-> Always confirm a node with a fresh group before committing. SD here is population SD (n).
+> Always confirm a node with a fresh group before committing. SD here is the sample SD (÷n−1), as GRT shows it.
 
 ---
 
@@ -342,8 +345,7 @@ than guessing. Silence here means "nothing to compare yet", not "confirmed fine"
 
 The Ba-only correction puts the whole error on `Ba`. GRT's own OBT tool does something different: when it
 calibrates the simulation to a measured velocity it scales `Ba` and `k` (the isentropic exponent) by the
-**same factor**. We checked it live on a 40.2 gr N550 load: matching 836.0 m/s instead of the simulated
-830.1 moved both by +0.1797 %, matching 825.0 moved both by −0.1552 %. Because `k` changes the velocity far
+**same factor**. We checked it live: asked to match a measured velocity a few m/s away from the simulated one, it moved both by the same relative amount, a few tenths of a percent, in the direction of the correction. Because `k` changes the velocity far
 more than `Ba` does (about 33 m/s per 1 % of both together, against about 4 m/s per 1 % of Ba alone), the two
 corrections give the same velocity but different pressure curves, BLT and OBT nodes. The GRT-style
 correction does what GRT does, so the nodes agree with GRT's OBT tool.
@@ -371,7 +373,7 @@ separate them.
 
 **What does change.** To reach the same velocity with more mass to push, the powder has to burn faster: the peak pressure rises by a few percent and the bullet leaves sooner, so the bullet lead time (BLT) gets shorter. A lower factor does the opposite. GRT matches OBT nodes against that BLT, so the charge of a node moves with the factor: a higher factor puts the node at a lower charge, a lower factor at a higher one.
 
-**How much.** In the loads checked, a factor wrong by 0.1 moved the node by about 0.2 gr and one wrong by 0.05 by about 0.1 gr, against several grains between neighbouring nodes. That is the order of the 0.1 to 0.2 gr GRT quotes for a node, so it does not move everything, but it is the largest single contribution among the model inputs that were tried, together with the fired case volume. Only a measured peak pressure, not a velocity, could pin the factor down.
+**How much.** On the one load this was measured on, a factor wrong by 0.1 moved the node by about 0.2 gr and one wrong by 0.05 by about 0.1 gr, against several grains between neighbouring nodes: an order of magnitude, not a rule. That is the order of the 0.1 to 0.2 gr GRT quotes for a node, so it does not move everything, but it is the largest single contribution among the model inputs that were tried, together with the fired case volume. Only a measured peak pressure, not a velocity, could pin the factor down.
 
 **The button.** **Check Sebert sensitivity (GRT)** simulates the load (at the middle charge of the ladder) with the factor 0.1 higher and 0.1 lower, each time re-matching `Ba` and `k` to the same velocity, and adds a block to the report: how Pmax and the BLT change and how many grains of charge that moves the node. It only reads: nothing is written and the Sebert factor is never changed.
 

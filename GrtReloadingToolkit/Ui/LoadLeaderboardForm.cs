@@ -29,6 +29,7 @@ internal sealed class LoadLeaderboardForm : Form
 
     private readonly GrtClient? _grt;
     private readonly Db _db;
+    private readonly NextStepBar? _next = NextStepBar.For("Leaderboard");
     private readonly ComboBox _caliber = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
     private readonly DataGridView _grid = new();
     private readonly Label _status = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
@@ -42,7 +43,7 @@ internal sealed class LoadLeaderboardForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(760, 380);
 
-        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 38, Padding = new Padding(6, 6, 0, 0) };
+        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(6, 6, 0, 4) };
         Control Group(string label, params Control[] ctls)
         {
             var g = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, Margin = new Padding(0, 4, 10, 0) };
@@ -61,6 +62,9 @@ internal sealed class LoadLeaderboardForm : Form
         writeBtn.Enabled = _grt is { Connected: true };
         writeBtn.Click += async (_, _) => await WriteToGrtAsync();
         bar.Controls.Add(writeBtn);
+        var chooseBtn = new Button { Text = Lang.T("Choose this charge"), AutoSize = true, Margin = new Padding(10, 8, 0, 0), Enabled = _grt is { Connected: true } };
+        chooseBtn.Click += async (_, _) => await ChooseChargeAsync();
+        bar.Controls.Add(chooseBtn);
 
         _grid.Dock = DockStyle.Fill;
         _grid.ReadOnly = true; _grid.AllowUserToAddRows = false; _grid.RowHeadersVisible = false;
@@ -78,6 +82,7 @@ internal sealed class LoadLeaderboardForm : Form
         Controls.Add(_grid);
         Controls.Add(_status);
         Controls.Add(bar);
+        if (_next != null) Controls.Add(_next);
         NudFix.ApplyTo(this);
 
         RefreshFilters();
@@ -220,6 +225,59 @@ internal sealed class LoadLeaderboardForm : Form
         catch (Exception ex)
         {
             MessageBox.Show(this, ex.Message, Lang.T("Write leaderboard note to GRT load"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
+    /// The choice that carries over to the next phase: the selected row becomes a "Chosen Charge" note in the open load
+    /// (same write-back as every other tool, the original untouched). Only a ranked row can be chosen -- picking a load that
+    /// has no SD, ES or group yet would send the seating-depth test off with a charge nothing supports.
+    /// </summary>
+    private async Task ChooseChargeAsync()
+    {
+        if (_grt is not { Connected: true }) return;
+        if (_grid.CurrentRow?.Tag is not LeaderboardRanking.Row row)
+        {
+            MessageBox.Show(this, Lang.T("Select a row first."), Lang.T("Choose this charge"));
+            return;
+        }
+        if (!row.Score.Total.HasValue)
+        {
+            MessageBox.Show(this, Lang.T("This load has no score yet (no SD, ES or group size logged), so it cannot be chosen."), Lang.T("Choose this charge"));
+            return;
+        }
+        try
+        {
+            var top = await _grt.GetTabOnTopAsync();
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
+            {
+                MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Choose this charge"));
+                return;
+            }
+
+            var u = GrtUnits.Current;
+            string charge = u.ChargeValue(row.ChargeGr).ToString(u.ChargeFormat, CultureInfo.InvariantCulture) + " " + u.ChargeUnitName;
+            string rank = _grid.CurrentRow.Cells["rank"].Value?.ToString() ?? "-";
+            string note = ChosenChargeNote.Build(DateTime.Now, charge,
+                $"{row.Caliber}  ·  {row.Powder}  ·  {row.Bullet}",
+                string.Format(Lang.T("Leaderboard rank #{0}, score {1} ({2})."), rank,
+                    row.Score.Total?.ToString("0.00", CultureInfo.InvariantCulture), Lang.T(LoadScoring.ScoreLabel(row.Score.Total))),
+                $"SD {(row.Sd is { } sd ? u.Velocity(sd) : "--")}   ES {(row.Es is { } es ? u.Velocity(es) : "--")}   "
+                + $"{Lang.T("Group MOA")} {row.Group?.ToString("0.00", CultureInfo.InvariantCulture) ?? "--"}   {row.Rounds} {Lang.T("Rounds")}",
+                Lang.T("Next: the seating-depth test is shot with this charge."));
+
+            var doc = GrtLoadDoc.OpenForToolkitEdit(top.file);
+            doc.RemoveByTitlePrefix(ChosenChargeNote.Title);
+            doc.AddNote(ChosenChargeNote.Title, note);
+            string outPath = doc.SaveSibling("chosen");
+            await _grt.LoadFileAsync(outPath);
+            _next?.SetHint(string.Format(Lang.T("Chosen charge: {0}. Use it for the seating-depth test."), charge));
+            _next?.MarkDone();
+            _status.Text = Lang.T("Chosen charge written to the load and opened in GRT.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, Lang.T("Choose this charge"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

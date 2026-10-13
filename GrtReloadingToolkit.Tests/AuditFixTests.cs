@@ -290,7 +290,7 @@ public sealed class AuditFixTests : IDisposable
 
         Assert.Contains("kept, counted above", kept);
         Assert.Contains("EXCLUDED", cut);
-        Assert.Contains("population SD", kept);
+        Assert.Contains("sample SD", kept);
     }
 
     // ── F15: unlinked loads must not merge ───────────────────────────────────────────────────────

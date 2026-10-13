@@ -51,7 +51,7 @@ internal sealed class LabelForm : Form
 
     private void Build()
     {
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
         var load = new Button { Text = Lang.T("Load from GRT"), AutoSize = true };
         load.Click += async (_, _) => await LoadAsync();
         top.Controls.Add(load);

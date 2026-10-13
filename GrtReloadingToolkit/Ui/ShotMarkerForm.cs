@@ -15,6 +15,7 @@ namespace GrtReloadingToolkit.Ui;
 /// </summary>
 internal sealed class ShotMarkerForm : Form
 {
+    private readonly NextStepBar? _next = NextStepBar.For("ShotMarker");
     private readonly GrtClient? _grt;
     private readonly DataGridView _grid = new() { Dock = DockStyle.Fill, AllowUserToAddRows = false };
     private readonly TextBox _log = new() { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
@@ -74,6 +75,7 @@ internal sealed class ShotMarkerForm : Form
 
         Controls.Add(_split);
         Controls.Add(top);
+        if (_next != null) Controls.Add(_next);
 
         _browse.Click += (_, _) => Browse();
         _import.Click += async (_, _) => await ImportAsync();
@@ -499,6 +501,7 @@ internal sealed class ShotMarkerForm : Form
             finally { foreach (string l in log) Note(l); }
 
             Note(Lang.T("Wrote") + " " + outPath);
+            _next?.MarkDone();
             GrtClient? grt = _grt;
             if (grt == null) return;
             try { await grt.LoadFileAsync(outPath); }

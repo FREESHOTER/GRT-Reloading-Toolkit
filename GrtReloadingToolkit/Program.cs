@@ -93,6 +93,9 @@ internal sealed class ToolkitContext : ApplicationContext
         if (grt != null)
             grt.MenuOrToolbarActivated += id => _ui.Post(_ => Open(FromId(id)), null);
 
+        // The "next step" bars at the foot of the tool windows open the following tool through this.
+        Ui.ToolNav.Open = name => { if (Enum.TryParse<Tool>(name, out var next)) _ui.Post(_ => Open(next), null); };
+
         if (!launchedIntoTool) Open(Tool.Launcher);
 
         GrtPluginKit.Grt.GrtLoadDoc.SnapshotHasMeasurementsMissingFromNewerFile += (sibling, count) => _ui.Post(_ =>

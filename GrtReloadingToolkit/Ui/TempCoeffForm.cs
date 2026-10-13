@@ -61,7 +61,7 @@ internal sealed class TempCoeffForm : Form
 
     private void Build()
     {
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
         var pick = new Button { Text = Lang.T("Add Athlon strings…"), AutoSize = true };
         pick.Click += (_, _) => AddFiles();
         top.Controls.Add(pick);

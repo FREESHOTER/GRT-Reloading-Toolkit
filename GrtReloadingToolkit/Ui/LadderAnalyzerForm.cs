@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrtReloadingToolkit.Log;
 using GrtReloadingToolkit.Ocw;
 using GrtPluginKit.Grt;
 using GrtPluginKit.Ipc;
@@ -27,6 +28,9 @@ internal abstract class LadderAnalyzerForm : Form
     private readonly NumericUpDown _wPrim = new() { DecimalPlaces = 1, Increment = 0.1M, Minimum = 0, Maximum = 5, Width = 55 };
     private readonly NumericUpDown _win = new() { Minimum = 3, Maximum = 5, Value = 3, Width = 45 };
     private readonly Button _writeBtn = new() { Text = Lang.T("Write note to GRT load"), AutoSize = true, Enabled = false };
+
+    private NextStepBar? _next;
+    private readonly Button _chooseBtn = new() { Text = Lang.T("Choose this charge"), AutoSize = true, Enabled = false };
 
     // GRT shot-group source
     private readonly CheckBox _noFlyers = new() { Text = Lang.T("drop flyers"), AutoSize = true };
@@ -118,6 +122,7 @@ internal abstract class LadderAnalyzerForm : Form
         foreach (var (n, h) in new[] { ("x", XHeader), ("vn", "n"), ("mv", "MV " + gu.VelocityUnitName), ("sd", "SD"), ("es", "ES"),
                      ("d", Lang.T("Dist") + " " + gu.DistanceUnitName), ("poi", "POI-Y MOA"), ("mr", Lang.T("Grp MR MOA")), ("vs", Lang.T("Vert MOA")) })
             _grid.Columns.Add(n, h);
+        if (Mode == LadderMode.Charge) _grid.Columns.Add("score", Lang.T("Score"));
 
         _chart.Dock = DockStyle.Fill;
 
@@ -137,6 +142,11 @@ internal abstract class LadderAnalyzerForm : Form
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _writeBtn.Click += async (_, _) => await WriteNoteAsync();
         bottom.Controls.Add(_writeBtn);
+        if (Mode == LadderMode.Charge)
+        {
+            _chooseBtn.Click += async (_, _) => await ChooseChargeAsync();
+            bottom.Controls.Add(_chooseBtn);
+        }
 
         _status.Dock = DockStyle.Bottom;
         _status.Height = 20;
@@ -147,6 +157,8 @@ internal abstract class LadderAnalyzerForm : Form
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(top);
+        _next = NextStepBar.For(Mode == LadderMode.Charge ? "Ocw" : "Seating");
+        if (_next != null) Controls.Add(_next);
     }
 
     private async Task PickFolderAsync()
@@ -267,7 +279,8 @@ internal abstract class LadderAnalyzerForm : Form
             _grid.Rows.Clear();
             var u = GrtUnits.Current;
             foreach (var x in _result.Rows)
-                _grid.Rows.Add(
+            {
+                int ri = _grid.Rows.Add(
                     Mode.XValue(x.X).ToString(Mode.XFormat(), CultureInfo.InvariantCulture),
                     x.HasVel ? x.VelN : 0,
                     x.HasVel ? u.VelocityValue(x.MeanMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
@@ -277,6 +290,9 @@ internal abstract class LadderAnalyzerForm : Form
                     x.HasTarget ? x.PoiYMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? x.MeanRadiusMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? x.VertSpreadMoa.ToString("0.00", CultureInfo.InvariantCulture) : "");
+                if (Mode == LadderMode.Charge)
+                    _grid.Rows[ri].Cells["score"].Value = LadderScore.Of(x).Total?.ToString("0.00", CultureInfo.InvariantCulture) ?? "";
+            }
 
             // Matched on the stored X, not on the cell text: the cell is rounded for display and
             // in grams a step and a node bound differ well inside the printed last digit.
@@ -288,6 +304,7 @@ internal abstract class LadderAnalyzerForm : Form
             _chart.SetData(_result);
             _summary.Text = LadderAnalyzer.BuildReport(_result, HeadlineFor(DateTime.Now)).Replace("\n", "\r\n");
             _writeBtn.Enabled = _result.BestNode != null && _grt is { Connected: true };
+            _chooseBtn.Enabled = Mode == LadderMode.Charge && _grt is { Connected: true } && _result.Rows.Any(r => LadderScore.Of(r).Total.HasValue);
             string xf = Mode.XFormat();
             _status.Text = _result.BestNode is { } n
                 ? string.Format(CultureInfo.InvariantCulture, Lang.T("Recommended node {0}–{1} {2}"),
@@ -303,6 +320,64 @@ internal abstract class LadderAnalyzerForm : Form
     }
 
     private string HeadlineFor(DateTime d) => $"{NoteTitle} {d:yyyy-MM-dd}";
+
+    /// <summary>
+    /// The choice that carries over to the next phase, made where the numbers are: the selected charge becomes a "Chosen Charge"
+    /// note in the open load. Only a step with a score can be chosen -- a charge nothing was measured at would send the
+    /// seating-depth test off with a number nothing supports.
+    /// </summary>
+    private async Task ChooseChargeAsync()
+    {
+        if (_grt is not { Connected: true } || _result is null) return;
+        int idx = _grid.CurrentRow?.Index ?? -1;
+        if (idx < 0 || idx >= _result.Rows.Count)
+        {
+            MessageBox.Show(this, Lang.T("Select a row first."), Lang.T("Choose this charge"));
+            return;
+        }
+        var step = _result.Rows[idx];
+        var score = LadderScore.Of(step);
+        if (!score.Total.HasValue)
+        {
+            MessageBox.Show(this, Lang.T("This load has no score yet (no SD, ES or group size logged), so it cannot be chosen."), Lang.T("Choose this charge"));
+            return;
+        }
+        try
+        {
+            var top = await _grt.GetTabOnTopAsync();
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
+            {
+                MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Choose this charge"));
+                return;
+            }
+            var read = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
+            var u = GrtUnits.Current;
+            string charge = Mode.XValue(step.X).ToString(Mode.XFormat(), CultureInfo.InvariantCulture) + " " + u.ChargeUnitName;
+            int rank = _result.Rows.Count(r => LadderScore.Of(r).Total is { } t && t > score.Total.Value) + 1;
+            int ranked = _result.Rows.Count(r => LadderScore.Of(r).Total.HasValue);
+            string note = ChosenChargeNote.Build(DateTime.Now, charge,
+                $"{read.CaliberName}  ·  {read.PropellantName}  ·  {read.ProjectileName}",
+                string.Format(Lang.T("Ladder rank #{0} of {1}, score {2} ({3})."), rank, ranked,
+                    score.Total.Value.ToString("0.00", CultureInfo.InvariantCulture), Lang.T(LoadScoring.ScoreLabel(score.Total))),
+                $"SD {(step.HasVel ? u.Velocity(step.SdMps) : "--")}   ES {(step.HasVel ? u.Velocity(step.EsMps) : "--")}   "
+                + $"{Lang.T("Group MOA")} {(step.HasTarget ? step.GroupEsMoa.ToString("0.00", CultureInfo.InvariantCulture) : "--")}   {Math.Max(step.VelN, step.Impacts)} {Lang.T("Rounds")}",
+                Lang.T("Next: the seating-depth test is shot with this charge."));
+
+            var doc = GrtLoadDoc.OpenForToolkitEdit(top.file);
+            doc.RemoveByTitlePrefix(ChosenChargeNote.Title);
+            doc.AddNote(ChosenChargeNote.Title, note);
+            string outPath = doc.SaveSibling("chosen");
+            AppendLog("wrote " + outPath);
+            await _grt.LoadFileAsync(outPath);
+            _next?.SetHint(string.Format(Lang.T("Chosen charge: {0}. Use it for the seating-depth test."), charge));
+            _status.Text = Lang.T("Chosen charge written to the load and opened in GRT.");
+        }
+        catch (Exception ex)
+        {
+            AppendLog("ERROR: " + ex.Message);
+            MessageBox.Show(this, ex.Message, Lang.T("Choose this charge"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
 
     private async Task WriteNoteAsync()
     {
@@ -336,6 +411,7 @@ internal abstract class LadderAnalyzerForm : Form
             if (removed > 0) AppendLog($"replaced {removed} earlier '{NoteTitle}' note(s)");
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
+            _next?.MarkDone();
             _status.Text = Lang.T("Note written — opened in GRT as a new tab.");
         }
         catch (Exception ex)

@@ -24,6 +24,7 @@ internal sealed class CalibrationForm : Form
 
     private readonly GrtClient? _grt;
     private readonly Db _db;
+    private readonly NextStepBar? _next = NextStepBar.For("Cal");
     private readonly DataGridView _grid = new();
     private readonly TextBox _summary = new();
     private readonly Label _status = new();
@@ -68,6 +69,7 @@ internal sealed class CalibrationForm : Form
         Width = 960; Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(640, 420);
+        PurgeStaleSweepFolders();
         Build();
         NudFix.ApplyTo(this);
         if (_grt != null) _grt.Log += _logHandler;
@@ -155,6 +157,7 @@ internal sealed class CalibrationForm : Form
         Controls.Add(_status);
         Controls.Add(_staleWarning);
         Controls.Add(top);
+        if (_next != null) Controls.Add(_next);
     }
 
     private async Task<GrtLoadDoc?> OpenBaseAsync()
@@ -457,6 +460,23 @@ internal sealed class CalibrationForm : Form
         catch (Exception ex) { Err(ex); }
     }
 
+    /// <summary>
+    /// Every sweep writes its temporary loads to a folder of its own and deletes it when it finishes, but an error in the
+    /// middle of a sweep skips that last step. Folders left by an earlier run are removed when this window opens; the
+    /// hour's grace keeps clear of a sweep still running in another window.
+    /// </summary>
+    private static void PurgeStaleSweepFolders()
+    {
+        try
+        {
+            foreach (string d in Directory.EnumerateDirectories(Path.GetTempPath())
+                         .Where(d => Path.GetFileName(d) is { } n && (n.StartsWith("grt_calsweep", StringComparison.Ordinal) || n.StartsWith("grt_sebert_", StringComparison.Ordinal))))
+                if (DateTime.UtcNow - Directory.GetLastWriteTimeUtc(d) > TimeSpan.FromHours(1))
+                    try { Directory.Delete(d, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+        catch (Exception) { /* a temp folder we cannot list is not worth a message */ }
+    }
+
     private string SebertText() => _sebert?.BuildReport() ?? "";
 
     /// <summary>
@@ -648,6 +668,7 @@ internal sealed class CalibrationForm : Form
             string outPath = doc.SaveSibling(suffix);
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
+            _next?.MarkDone();
             _status.Text = withBa ? Lang.T("Ba-corrected load written and opened in GRT.") : Lang.T("Calibration note written.");
         }
         catch (Exception ex) { Err(ex); }
@@ -672,6 +693,7 @@ internal sealed class CalibrationForm : Form
             string outPath = doc.SaveSibling(suffix);
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
+            _next?.MarkDone();
             _status.Text = Lang.T("Ba+k-corrected load written and opened in GRT.");
         }
         catch (Exception ex) { Err(ex); }

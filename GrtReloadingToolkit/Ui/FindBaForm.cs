@@ -41,7 +41,7 @@ internal sealed class FindBaForm : Form
         // added as separate top-level children -- caught by rendering the real tab (the "Rank by"
         // label stranded on the row above its own dropdown), not from reading the code. Grouping
         // each label+control pair into its own little FlowLayoutPanel makes the pair wrap together.
-        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 76, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
+        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(6, 6, 0, 0), WrapContents = true };
         Control Group(string label, params Control[] ctls)
         {
             var g = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, Margin = new Padding(0, 4, 10, 0) };

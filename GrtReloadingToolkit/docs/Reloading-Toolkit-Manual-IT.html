@@ -104,6 +104,15 @@
   footer{border-top:1px solid var(--line); background:var(--panel)}
   footer .shell{padding:24px; display:flex; grid-template-columns:none; gap:16px; flex-wrap:wrap;
     color:var(--ink-faint); font-size:.85rem; max-width:1160px}
+  /* the recommended-path diagram gets a landscape page of its own when the manual is printed or exported to PDF */
+  @page path { size: A4 landscape; margin: 10mm; }
+  .path-figure { margin: 14px 0; overflow-x: auto; }
+  .path-figure svg { min-width: 1000px; }
+  @media screen and (min-width: 901px) { .path-figure { width: min(1060px, calc(100vw - 330px)); } }
+  @media print {
+    .path-figure { page: path; break-before: page; break-after: page; width: 258mm; margin-left: 0; overflow: visible; }
+    .path-figure svg { min-width: 0; width: 100% !important; }
+  }
 </style>
 
 <div class="top"><div class="shell">
@@ -176,6 +185,175 @@
       <p>Il toolkit è <em>on-demand</em>: GRT lo avvia al primo click ed esce quando chiudi la sua
         ultima finestra. Un solo processo serve tutte le finestre, quindi aprire un secondo strumento
         mentre uno è già aperto lo porta semplicemente in primo piano.</p>
+    
+
+      <h3>Il percorso consigliato</h3>
+      <p>Gli strumenti del toolkit seguono un solo percorso, dal banco vuoto al carico finale che poi si continua a seguire nel tempo: si prepara, si trova la carica con una scala, si trova la profondità di seduta con quella carica, si verifica a distanza, poi si registra il carico e lo si tiene d&#39;occhio. Lo schema mostra l&#39;ordine dei passi. L&#39;analizzatore Ladder / OCW legge insieme due tipi di dati, le velocità e dove sono andati i colpi: prima del passo 6 carica anche le coordinate dei colpi (un export di OnTarget, una sessione ShotMarker o le schede Shot group di GRT). I riquadri con &laquo;in arrivo&raquo; sono previsti e non ancora nel programma; ogni altro passo usa uno strumento che puoi aprire oggi dal menu principale. La seduta viene dopo la carica perché si prova con la carica scelta; la verifica a distanza viene per ultima perché solo un gruppo a distanza dice se il carico è davvero buono.</p>
+      <div class="path-figure"><svg id="path-figure" role="img" aria-label="Percorso consigliato dal banco vuoto al carico finale, in cinque fasi" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block" viewBox="0 0 1700 1304"><defs><marker id="arr" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7a8794"/></marker><marker id="arr2" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" refX="12" refY="6.5" orient="auto"><path d="M0,0 L13,6.5 L0,13 z" fill="#1d2630"/></marker><marker id="arr3" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" refX="12" refY="6.5" orient="auto"><path d="M0,0 L13,6.5 L0,13 z" fill="#b33a3a"/></marker><marker id="arr4" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" refX="12" refY="6.5" orient="auto"><path d="M0,0 L13,6.5 L0,13 z" fill="#2f7d3b"/></marker><marker id="arr5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" refX="12" refY="6.5" orient="auto"><path d="M0,0 L13,6.5 L0,13 z" fill="#2b6cb0"/></marker></defs>
+<rect x="0" y="0" width="1700" height="1304" fill="#f6f7f9"/>
+<text x="850.0" y="48" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="bold" fill="#1d2630" text-anchor="middle">GRT Reloading Toolkit — il percorso consigliato</text>
+<text x="850.0" y="80" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="normal" fill="#44505c" text-anchor="middle">Segui i numeri da sinistra a destra. Le parti segnate &quot;in arrivo&quot; sono previste e non sono ancora nel programma.</text>
+<rect x="30.0" y="88" width="296" height="54" rx="10" fill="#2f6f9f"/>
+<text x="178.0" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">FASE 1</text>
+<text x="178.0" y="133" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="bold" fill="#ffffff" text-anchor="middle">Preparazione</text>
+<rect x="48.0" y="158" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="178.0" y="184" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">1  Preparazione bossoli</text>
+<text x="178.0" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">volume, seduta, colletto</text>
+<line x1="178.0" y1="220" x2="178.0" y2="242" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="48.0" y="244" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="178.0" y="270" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">2  Cartellino + bersaglio</text>
+<text x="178.0" y="292" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">per la scala di cariche</text>
+<rect x="354.0" y="88" width="296" height="54" rx="10" fill="#3c8d5a"/>
+<text x="502.0" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">FASE 2</text>
+<text x="502.0" y="133" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="bold" fill="#ffffff" text-anchor="middle">Scala di cariche</text>
+<rect x="372.0" y="158" width="260" height="48" rx="10" fill="#fff6e0" stroke="#c99a2e" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="502.0" y="188" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#6b4d05" text-anchor="middle">3  Poligono: spari la scala</text>
+<line x1="502.0" y1="206" x2="502.0" y2="228" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="372.0" y="230" width="260" height="76" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="502.0" y="256" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">4  Importa i dati</text>
+<text x="502.0" y="277" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="middle">velocità: Athlon · Garmin · ShotMarker</text>
+<text x="502.0" y="294" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="middle">colpi: OnTarget · ShotMarker · tab GRT</text>
+<line x1="502.0" y1="306" x2="502.0" y2="328" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="372.0" y="330" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="502.0" y="356" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">5  Statistiche cronografo</text>
+<text x="502.0" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">le serie sono buone?</text>
+<line x1="502.0" y1="392" x2="502.0" y2="414" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="372.0" y="416" width="260" height="76" rx="10" fill="#fff3a8" stroke="#b79a00" stroke-width="3"/>
+<text x="502.0" y="442" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">6  Analizzatore Ladder / OCW</text>
+<text x="502.0" y="463" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55481a" text-anchor="middle">velocità + colpi: dà un punteggio</text>
+<text x="502.0" y="482" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#6b5a00" text-anchor="middle">SCEGLI LA CARICA</text>
+<line x1="502.0" y1="492" x2="502.0" y2="514" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="372.0" y="516" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="502.0" y="542" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">7  Calibrazione canna</text>
+<text x="502.0" y="564" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">Ba e k alla carica scelta</text>
+<line x1="502.0" y1="578" x2="502.0" y2="600" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="372.0" y="602" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="502.0" y="628" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">8  Diario di carico</text>
+<text x="502.0" y="650" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">registra la carica scelta</text>
+<rect x="678.0" y="88" width="296" height="54" rx="10" fill="#b4741c"/>
+<text x="826.0" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">FASE 3</text>
+<text x="826.0" y="133" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="bold" fill="#ffffff" text-anchor="middle">Profondità di seduta</text>
+<rect x="696.0" y="158" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="826.0" y="184" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">9  Bersaglio per la seduta</text>
+<text x="826.0" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">la carica scelta è già inserita</text>
+<rect x="849.0" y="149" width="101" height="18" rx="9" fill="#ffffff" stroke="#8a6d00" stroke-dasharray="3 2"/>
+<text x="899.5" y="162" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="bold" fill="#6b5200" text-anchor="middle">in arrivo</text>
+<line x1="826.0" y1="220" x2="826.0" y2="242" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="696.0" y="244" width="260" height="48" rx="10" fill="#fff6e0" stroke="#c99a2e" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="826.0" y="274" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#6b4d05" text-anchor="middle">10  Poligono: spari le profondità</text>
+<line x1="826.0" y1="292" x2="826.0" y2="314" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="696.0" y="316" width="260" height="76" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="826.0" y="342" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">11  Importa dati</text>
+<text x="826.0" y="363" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="middle">velocità: cronografo · ShotMarker</text>
+<text x="826.0" y="380" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="middle">colpi: OnTarget · ShotMarker · tab GRT</text>
+<line x1="826.0" y1="392" x2="826.0" y2="414" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="696.0" y="416" width="260" height="62" rx="10" fill="#fff3a8" stroke="#b79a00" stroke-width="3"/>
+<text x="826.0" y="442" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">12  Analizzatore seduta</text>
+<text x="826.0" y="464" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#6b5a00" text-anchor="middle">SCEGLI LA PROFONDITÀ</text>
+<rect x="1002.0" y="88" width="296" height="54" rx="10" fill="#8a4fa3"/>
+<text x="1150.0" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">FASE 4</text>
+<text x="1150.0" y="133" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="bold" fill="#ffffff" text-anchor="middle">Verifica a distanza</text>
+<rect x="1020.0" y="158" width="260" height="62" rx="10" fill="#fff6e0" stroke="#c99a2e" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="1150.0" y="184" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#6b4d05" text-anchor="middle">13  Poligono: gruppo a distanza</text>
+<text x="1150.0" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#6b4d05" text-anchor="middle">per esempio 300 o 600 m</text>
+<line x1="1150.0" y1="220" x2="1150.0" y2="242" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1020.0" y="244" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="1150.0" y="270" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">14  Importa dati</text>
+<text x="1150.0" y="292" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">cronografo / ShotMarker / OnTarget</text>
+<line x1="1150.0" y1="306" x2="1150.0" y2="328" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1020.0" y="330" width="260" height="48" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="1150.0" y="361" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">15  Analisi gruppo</text>
+<line x1="1150.0" y1="378" x2="1150.0" y2="400" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1020.0" y="402" width="260" height="48" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="1150.0" y="433" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">16  Workflow distanze</text>
+<line x1="1150.0" y1="450" x2="1150.0" y2="472" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1020.0" y="474" width="260" height="92" rx="14" fill="#f1e3f7" stroke="#8a4fa3" stroke-width="3"/>
+<text x="1150.0" y="504" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="bold" fill="#4b1f63" text-anchor="middle">17  DIAGNOSI GUIDATA</text>
+<text x="1150.0" y="528" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#4b1f63" text-anchor="middle">causa probabile + prova da fare</text>
+<text x="1150.0" y="548" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="normal" fill="#4b1f63" text-anchor="middle">(polvere, bossoli, ogiva, seduta, canna…)</text>
+<rect x="1173.0" y="465" width="101" height="18" rx="9" fill="#ffffff" stroke="#8a6d00" stroke-dasharray="3 2"/>
+<text x="1223.5" y="478" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="bold" fill="#6b5200" text-anchor="middle">in arrivo</text>
+<rect x="1326.0" y="88" width="296" height="54" rx="10" fill="#a33a3a"/>
+<text x="1474.0" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">FASE 5</text>
+<text x="1474.0" y="133" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="bold" fill="#ffffff" text-anchor="middle">Carico finale, nel tempo</text>
+<rect x="1344.0" y="158" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="1474.0" y="184" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">18  Diario di carico</text>
+<text x="1474.0" y="206" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="normal" fill="#55616d" text-anchor="middle">a ogni uscita: carica, profondità, esito</text>
+<line x1="1474.0" y1="220" x2="1474.0" y2="242" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1344.0" y="244" width="260" height="48" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="1474.0" y="275" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">19  Cartellino finale</text>
+<line x1="1474.0" y1="292" x2="1474.0" y2="314" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1344.0" y="316" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="1474.0" y="342" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">20  Trend nel tempo</text>
+<text x="1474.0" y="364" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">velocità, SD e pressione per sessione</text>
+<line x1="1474.0" y1="378" x2="1474.0" y2="400" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1344.0" y="402" width="260" height="62" rx="10" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="1474.0" y="428" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="middle">21  Armi e bossoli</text>
+<text x="1474.0" y="450" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#55616d" text-anchor="middle">colpi della canna, vita dei bossoli</text>
+<line x1="1474.0" y1="464" x2="1474.0" y2="486" stroke="#7a8794" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="1344.0" y="488" width="260" height="62" rx="12" fill="#fde8e3" stroke="#c4472f" stroke-width="3"/>
+<text x="1474.0" y="514" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#7a1f10" text-anchor="middle">22  AVVISI: rivedere il carico</text>
+<text x="1474.0" y="536" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="normal" fill="#7a1f10" text-anchor="middle">lotto nuovo, deriva, canna usurata</text>
+<rect x="1497.0" y="479" width="101" height="18" rx="9" fill="#ffffff" stroke="#8a6d00" stroke-dasharray="3 2"/>
+<text x="1547.5" y="492" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="bold" fill="#6b5200" text-anchor="middle">in arrivo</text>
+<path d="M 308.0 275.0 L 340.0 275.0 L 340.0 115 L 351.0 115" fill="none" stroke="#1d2630" stroke-width="3" marker-end="url(#arr2)"/>
+<path d="M 632.0 633.0 L 664.0 633.0 L 664.0 115 L 675.0 115" fill="none" stroke="#1d2630" stroke-width="3" marker-end="url(#arr2)"/>
+<path d="M 956.0 447.0 L 988.0 447.0 L 988.0 115 L 999.0 115" fill="none" stroke="#1d2630" stroke-width="3" marker-end="url(#arr2)"/>
+<path d="M 1280.0 520.0 L 1312.0 520.0 L 1312.0 115 L 1323.0 115" fill="none" stroke="#2f7d3b" stroke-width="3" marker-end="url(#arr4)"/>
+<path d="M 1150.0 566 L 1150.0 726" fill="none" stroke="#b33a3a" stroke-width="3" stroke-dasharray="9 6"/>
+<path d="M 1150.0 726 L 826.0 726 L 826.0 484" fill="none" stroke="#b33a3a" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr3)"/>
+<path d="M 1150.0 726 L 502.0 726 L 502.0 670" fill="none" stroke="#b33a3a" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr3)"/>
+<text x="1305.0" y="324.5" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2f7d3b" text-anchor="middle" transform="rotate(-90 1305.0 324.5)">se la diagnosi è buona: si va alla FASE 5</text>
+<path d="M 1474.0 550 L 1474.0 770" fill="none" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6"/>
+<path d="M 1474.0 770 L 896.0 770 L 896.0 484" fill="none" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr5)"/>
+<path d="M 1474.0 770 L 572.0 770 L 572.0 670" fill="none" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr5)"/>
+<rect x="30" y="800" width="1640" height="86" rx="10" fill="#ffffff" stroke="#9aa6b2"/>
+<line x1="46" y1="824" x2="86" y2="824" stroke="#b33a3a" stroke-width="3" stroke-dasharray="9 6"/>
+<text x="98" y="829" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#1d2630" text-anchor="start">Dalla diagnosi (passo 17):  la carica è da rivedere → torna alla FASE 2  ·  la seduta o la regolazione sono da rivedere → torna alla FASE 3</text>
+<line x1="46" y1="858" x2="86" y2="858" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6"/>
+<text x="98" y="863" font-family="Segoe UI, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#1d2630" text-anchor="start">Dal controllo nel tempo (passo 22):  lotto di polvere o inneschi nuovo, deriva di velocità, canna usurata → FASE 2  ·  bossoli o seduta cambiati → FASE 3</text>
+<text x="30" y="922" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="bold" fill="#1d2630" text-anchor="start">Strumenti facoltativi suggeriti in ogni fase — compaiono nel &quot;Prossimo passo&quot; solo quando i dati lo giustificano (in arrivo)</text>
+<rect x="30.0" y="936" width="296" height="202" rx="10" fill="#f0f2f5" stroke="#b6bfc9" stroke-dasharray="6 4"/>
+<text x="44.0" y="962" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">nessuno</text>
+<rect x="354.0" y="936" width="296" height="202" rx="10" fill="#f0f2f5" stroke="#b6bfc9" stroke-dasharray="6 4"/>
+<text x="368.0" y="962" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Trova miglior Ba</text>
+<text x="368.0" y="980" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   al passo 7, per confrontare con le</text>
+<text x="368.0" y="998" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   calibrazioni passate</text>
+<text x="368.0" y="1016" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Classifica delle cariche</text>
+<text x="368.0" y="1034" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   per confrontare più carichi (legge il</text>
+<text x="368.0" y="1052" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   Diario)</text>
+<text x="368.0" y="1070" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Confronto polveri</text>
+<text x="368.0" y="1088" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   se hai provato più polveri</text>
+<text x="368.0" y="1106" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Modello velocità</text>
+<text x="368.0" y="1124" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   se serve una carica tra due provate</text>
+<rect x="678.0" y="936" width="296" height="202" rx="10" fill="#f0f2f5" stroke="#b6bfc9" stroke-dasharray="6 4"/>
+<text x="692.0" y="962" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Modello velocità</text>
+<text x="692.0" y="980" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   se la carica scelta cambia</text>
+<rect x="1002.0" y="936" width="296" height="202" rx="10" fill="#f0f2f5" stroke="#b6bfc9" stroke-dasharray="6 4"/>
+<text x="1016.0" y="962" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Confronto polveri</text>
+<text x="1016.0" y="980" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   se la diagnosi sospetta la polvere</text>
+<text x="1016.0" y="998" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Coefficienti temperatura</text>
+<text x="1016.0" y="1016" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   se la temperatura del tiro era diversa</text>
+<rect x="1326.0" y="936" width="296" height="202" rx="10" fill="#f0f2f5" stroke="#b6bfc9" stroke-dasharray="6 4"/>
+<text x="1340.0" y="962" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Coefficienti temperatura</text>
+<text x="1340.0" y="980" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   se spari in stagioni diverse</text>
+<text x="1340.0" y="998" font-family="Segoe UI, Arial, sans-serif" font-size="13.5" font-weight="bold" fill="#33404d" text-anchor="start">＋ Trova miglior Ba</text>
+<text x="1340.0" y="1016" font-family="Segoe UI, Arial, sans-serif" font-size="12.5" font-weight="normal" fill="#55616d" text-anchor="start">   dopo un lotto di polvere nuovo</text>
+<rect x="30" y="1164" width="1640" height="40" rx="10" fill="#e9eef3" stroke="#9aa6b2"/>
+<text x="46" y="1189" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="bold" fill="#1d2630" text-anchor="start">Sempre a portata di mano:</text>
+<text x="290" y="1189" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="normal" fill="#1d2630" text-anchor="start">Inventario  ·  Libro dei carichi  ·  Modelli di rapporto</text>
+<rect x="30" y="1230" width="34" height="22" rx="5" fill="#ffffff" stroke="#9aa6b2" stroke-width="1.6"/>
+<text x="74" y="1246" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">strumento del toolkit</text>
+<rect x="280" y="1230" width="34" height="22" rx="5" fill="#fff6e0" stroke="#c99a2e" stroke-width="2" stroke-dasharray="5 4"/>
+<text x="324" y="1246" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">al poligono</text>
+<rect x="470" y="1230" width="34" height="22" rx="5" fill="#fff3a8" stroke="#b79a00" stroke-width="3"/>
+<text x="514" y="1246" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">scelta che passa al passo dopo</text>
+<path d="M 850 1241 L 886 1241" stroke="#b33a3a" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr3)"/>
+<text x="898" y="1246" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">ritorno suggerito dalla diagnosi</text>
+<path d="M 1200 1241 L 1236 1241" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr5)"/>
+<text x="1248" y="1246" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">ritorno dal controllo nel tempo</text>
+<text x="46" y="1280" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">A fine di ogni strumento (in arrivo): &quot;Fatto: … Prossimo passo: … [Apri]&quot;</text>
+</svg></div>
     </section>
 
     <section id="writeback">
@@ -368,10 +546,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p><strong>Griglia:</strong> stringa · n · media · SD · ES · CI ± sulla media · colpi necessari
         per il margine target · outlier. Media, SD, ES e il CI sono mostrati nell&#39;unità di
         velocità di GRT (m/s o ft/s &mdash; ogni intestazione di colonna indica quale), e la nota
-        &laquo;Chrono Statistics&raquo; segue la stessa unità. La SD qui è la stessa SD di popolazione (÷n) mostrata
-        ovunque nel resto del toolkit; l&#39;intervallo di confidenza e i due test usano internamente
-        la SD campionaria (÷n−1), perché è su quella che sono costruite quelle formule — con n così
-        piccoli la differenza conta.</p>
+        &laquo;Chrono Statistics&raquo; segue la stessa unità. La SD è ovunque nel toolkit la SD campionaria (÷n−1): la stessa cifra che GRT mostra nella riga sd di una scheda di misurazione. Un cronografo spesso riporta la SD di popolazione (÷n), un po&#39; più piccola, soprattutto su serie di 3–5 colpi; anche l&#39;intervallo di confidenza e i due test usano la SD campionaria.</p>
       <p><strong>Gli outlier</strong> vengono segnalati con il criterio di Chauvenet (formulazione
         classica per distribuzione normale): un colpo viene segnalato se il numero di misurazioni che
         ti aspetteresti di vedere così lontane dalla media, su tutta la stringa, è sotto ½. Una
@@ -430,7 +605,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p>Scritto come <code>~~result.Note("OCW Analysis")~~</code> e
         <code>~~result.picture.ocw_chart.png~~</code>.</p>
       <div class="callout node"><b>Conferma</b> sempre un nodo con un gruppo fresco prima di
-        adottarlo. La SD qui è SD di popolazione (n).</div>
+        adottarlo. La SD qui è la SD campionaria (÷n−1), come la mostra GRT.</div>
     </section>
 
     <section id="seating">
@@ -496,9 +671,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <h3>Correzione stile GRT (Ba e k insieme)</h3>
       <p>La correzione solo Ba scarica tutto l&#39;errore su <code>Ba</code>. L&#39;OBT-Tool di GRT fa
         un&#39;altra cosa: quando tara la simulazione su una velocità misurata scala <code>Ba</code> e
-        <code>k</code> (l&#39;esponente isentropico) dello <strong>stesso fattore</strong>. L&#39;abbiamo
-        verificato dal vivo su un load N550 a 40,2&nbsp;gr: per far coincidere 836,0&nbsp;m/s invece degli 830,1
-        simulati ha spostato entrambi di +0,1797&nbsp;%, per 825,0 entrambi di &minus;0,1552&nbsp;%. Poiché
+        <code>k</code> (l&#39;esponente isentropico) dello <strong>stesso fattore</strong>. L&#39;abbiamo verificato dal vivo: per far coincidere una velocità misurata distante qualche m/s da quella simulata ha spostato entrambi della stessa quantità relativa, pochi decimi di punto percentuale, nel verso della correzione. Poiché
         <code>k</code> cambia la velocità molto più di <code>Ba</code> (circa 33&nbsp;m/s per ogni 1&nbsp;% di
         entrambi insieme, contro circa 4&nbsp;m/s per ogni 1&nbsp;% del solo Ba), le due correzioni danno la
         stessa velocità ma curve di pressione, BLT e nodi OBT diversi. La correzione stile GRT fa ciò che fa
@@ -524,7 +697,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p><strong>Il fattore di Sebert.</strong> È la quota della carica di polvere che viaggia in canna insieme al proiettile: GRT la somma alla massa del proiettile da accelerare. Appartiene al calibro, non alla polvere (il valore predefinito di GRT è 0,5, con campo ammesso da 0,1 a 1,0; qualcuno lo abbassa un po&#39; per i bossoli grassi), e nessuna calibrazione, né in GRT né in questo toolkit, lo cambia.</p>
       <p><strong>Perché il cronografo non lo vede.</strong> Un fattore più alto significa più massa da spingere, quindi il modello risulta lento di qualche m/s. Alzando <code>Ba</code> e <code>k</code> di una frazione di punto percentuale la velocità torna. La velocità sembra allora giusta qualunque sia il fattore, e da sola non distingue un Sebert di 0,50 da uno di 0,60.</p>
       <p><strong>Cosa cambia davvero.</strong> Per ottenere la stessa velocità con più massa da spingere la polvere deve bruciare più in fretta: la pressione massima sale di qualche punto percentuale e il proiettile esce prima, quindi il tempo di permanenza in canna (BLT) si accorcia. Un fattore più basso fa il contrario. GRT confronta i nodi OBT proprio con questo BLT, quindi la carica del nodo si sposta con il fattore: un fattore più alto porta il nodo a una carica più bassa, uno più basso a una più alta.</p>
-      <p><strong>Di quanto.</strong> Nei carichi controllati, un fattore sbagliato di 0,1 ha spostato il nodo di circa 0,2 gr e uno sbagliato di 0,05 di circa 0,1 gr, contro diversi grani tra un nodo e il successivo. È l&#39;ordine dei 0,1–0,2 gr che GRT dichiara per un nodo: non sposta tutto, ma è il contributo singolo più grande tra i dati del modello provati, insieme al volume del bossolo sparato. Solo una pressione massima misurata, non una velocità, potrebbe fissare il fattore.</p>
+      <p><strong>Di quanto.</strong> Sul solo carico su cui è stato misurato, un fattore sbagliato di 0,1 ha spostato il nodo di circa 0,2 gr e uno sbagliato di 0,05 di circa 0,1 gr, contro diversi grani tra un nodo e il successivo: un ordine di grandezza, non una regola. È l&#39;ordine dei 0,1–0,2 gr che GRT dichiara per un nodo: non sposta tutto, ma è il contributo singolo più grande tra i dati del modello provati, insieme al volume del bossolo sparato. Solo una pressione massima misurata, non una velocità, potrebbe fissare il fattore.</p>
       <p><strong>Il pulsante.</strong> <strong>Check Sebert sensitivity (GRT)</strong> simula il carico (alla carica centrale della scala) con il fattore più alto di 0,1 e più basso di 0,1, ogni volta riadattando <code>Ba</code> e <code>k</code> alla stessa velocità, e aggiunge un blocco al rapporto: come cambiano Pmax e BLT e di quanti grani di carica si sposta il nodo. Legge soltanto: non scrive nulla e il fattore di Sebert non viene mai modificato.</p>
       <p><strong>Cosa farne.</strong> Misura con cura il volume del bossolo sparato, considera la carica che GRT indica per un nodo OBT valida entro circa 0,2 gr e controllala con una scala fitta (passi da 0,1 gr) attorno a quella carica.</p>
     </section>

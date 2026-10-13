@@ -87,7 +87,6 @@ public static class ChronoStatsCalc
         if (kept.Count == 0) kept = values.ToList();   // never end up with nothing to report
 
         double mean = kept.Count > 0 ? kept.Average() : 0;
-        double sdPop = PopulationSd(kept, mean);
         double sdSample = SampleSdOf(kept, mean);
         double min = kept.Count > 0 ? kept.Min() : 0, max = kept.Count > 0 ? kept.Max() : 0;
 
@@ -102,7 +101,7 @@ public static class ChronoStatsCalc
         {
             Values = kept,
             Mean = mean,
-            Sd = sdPop,
+            Sd = sdSample,          // the figure GRT shows in its own sd row (÷(n-1))
             SampleSd = sdSample,
             Es = max - min,
             Min = min,
@@ -185,7 +184,7 @@ public static class ChronoStatsCalc
         sb.AppendLine(FormattableString.Invariant(
             $"string's own spread) to pin the mean to +/-{gu.VelocityValue(targetMarginMps):0.0} {gu.VelocityUnitName}."));
         sb.AppendLine();
-        sb.AppendLine($"mean/SD/ES/CI in {gu.VelocityUnitName}; SD = population SD (/n), the one the chronograph shows");
+        sb.AppendLine($"mean/SD/ES/CI in {gu.VelocityUnitName}; SD = sample SD (/(n-1)), the one GRT shows; a chronograph's own (/n) is a little smaller");
         // The level is the caller's, not always 95 -- a hardcoded "95%" here contradicted the
         // sentence above at 90 or 99. Width 2 covers every level the form offers (90/95/99) and
         // keeps this hand-aligned header lined up with the row format below.
