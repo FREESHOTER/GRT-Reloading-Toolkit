@@ -126,7 +126,7 @@ public static class LadderAnalyzer
         sb.AppendLine($"{xh,7}  n   MV      SD    ES   | dist  POI-Y   grpMR  vert");
         foreach (var x in r.Rows)
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "{0,7} {1,3} {2,7:0.0} {3,5:0.0} {4,5:0.0} | {5,4:0} {6,7:0.00} {7,6:0.00} {8,5:0.00}",
+                "{0,7} {1,3} {2,7:F1} {3,5:F1} {4,5:F1} | {5,4:0} {6,7:0.00} {7,6:0.00} {8,5:0.00}",
                 r.Mode.XValue(x.X).ToString(xf, CultureInfo.InvariantCulture), x.HasVel ? x.VelN : 0,
                 gu.VelocityValue(x.MeanMps), gu.VelocityValue(x.SdMps), gu.VelocityValue(x.EsMps),
                 x.HasTarget ? gu.DistanceValue(x.DistanceM) : 0, x.PoiYMoa, x.MeanRadiusMoa, x.VertSpreadMoa));

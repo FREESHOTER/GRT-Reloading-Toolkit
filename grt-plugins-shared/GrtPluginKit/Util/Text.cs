@@ -60,7 +60,13 @@ public static class Str
 
     /// <summary>Formats with invariant '.', trimmed to at most <paramref name="decimals"/> places.</summary>
     public static string Num(double v, int decimals = 1)
-        => v.ToString("0." + new string('#', decimals), CultureInfo.InvariantCulture);
+    {
+        // "F" rounds the exact binary value, as GRT's own printing does; the custom format "0.#" first cuts the value to 15
+        // significant digits and rounds that, so a mean that is 816.84999999999991 in the double came out 816.9 where GRT shows 816.8.
+        string s = v.ToString("F" + decimals, CultureInfo.InvariantCulture);
+        if (decimals > 0 && s.Contains('.')) s = s.TrimEnd('0').TrimEnd('.');
+        return s;
+    }
 
     /// <summary>
     /// How GRT shows a length: four decimals, trailing zeros kept, never rounded shorter. GRT

@@ -152,7 +152,7 @@ public sealed class GrtUnits
     /// between good ammunition and lucky ammunition.
     /// </summary>
     public string VelocitySd(double ms) =>
-        (VelocityInFps ? ms / MetresPerFoot : ms).ToString("0.0", Inv);
+        (VelocityInFps ? ms / MetresPerFoot : ms).ToString("F1", Inv);
 
     /// <summary>A stored velocity as a bare number, for an axis whose unit is written once on the axis.</summary>
     public double VelocityValue(double ms) => VelocityInFps ? ms / MetresPerFoot : ms;

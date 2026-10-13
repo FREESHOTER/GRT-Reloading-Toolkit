@@ -283,9 +283,9 @@ internal abstract class LadderAnalyzerForm : Form
                 int ri = _grid.Rows.Add(
                     Mode.XValue(x.X).ToString(Mode.XFormat(), CultureInfo.InvariantCulture),
                     x.HasVel ? x.VelN : 0,
-                    x.HasVel ? u.VelocityValue(x.MeanMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
-                    x.HasVel ? u.VelocityValue(x.SdMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
-                    x.HasVel ? u.VelocityValue(x.EsMps).ToString("0.0", CultureInfo.InvariantCulture) : "",
+                    x.HasVel ? u.VelocityValue(x.MeanMps).ToString("F1", CultureInfo.InvariantCulture) : "",
+                    x.HasVel ? u.VelocityValue(x.SdMps).ToString("F1", CultureInfo.InvariantCulture) : "",
+                    x.HasVel ? u.VelocityValue(x.EsMps).ToString("F1", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? u.DistanceValue(x.DistanceM).ToString("0", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? x.PoiYMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? x.MeanRadiusMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",

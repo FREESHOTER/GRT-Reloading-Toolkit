@@ -247,10 +247,10 @@ internal sealed class ChronoStatsForm : Form
             string needTxt = need switch { 0 => "–", -1 => ">1000", _ => need.ToString(CultureInfo.InvariantCulture) };
             int flagged = s.Outliers.Count(o => o.Flagged);
             _grid.Rows.Add(r.Label, s.N,
-                _u.VelocityValue(s.Mean).ToString("0.0", CultureInfo.InvariantCulture),
+                _u.VelocityValue(s.Mean).ToString("F1", CultureInfo.InvariantCulture),
                 _u.VelocitySd(s.Sd),
                 _u.VelocitySd(s.Es),
-                FormattableString.Invariant($"±{_u.VelocityValue(s.CiMarginMps):0.0}"),
+                FormattableString.Invariant($"±{_u.VelocityValue(s.CiMarginMps):F1}"),
                 needTxt,
                 flagged > 0 ? string.Format(s.OutliersExcluded ? Lang.T("{0} flagged, excluded") : Lang.T("{0} flagged"), flagged) : "–");
         }
