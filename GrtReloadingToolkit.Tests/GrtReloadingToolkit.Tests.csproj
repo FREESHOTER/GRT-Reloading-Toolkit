@@ -36,6 +36,7 @@
          That project is net8.0-windows and needs the Windows Desktop SDK, so referencing it
          would make these tests Windows-only. Linking the two files it actually needs keeps
          them runnable on any machine and on CI. -->
+    <Compile Include="..\GrtReloadingToolkit\Ui\LauncherPlacement.cs" Link="Ui\LauncherPlacement.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ocw\LadderStep.cs" Link="Ocw\LadderStep.cs" />
     <!-- The ladder loader decides which groups become ladder steps, and the Athlon model/parser it
          reads velocities with are plain parsing: no WinForms. -->
