@@ -95,17 +95,17 @@ internal sealed class CalibrationForm : Form
         loadBtn.Click += async (_, _) => await LoadMeasuredAsync();
         top.Controls.Add(loadBtn);
         var capAllBtn = new Button { Text = Lang.T("Capture ALL sim MV (sweeps GRT)"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
-        capAllBtn.Click += async (_, _) => await CaptureAllAsync();
+        capAllBtn.Click += async (_, _) => await Exclusive(CaptureAllAsync);
         top.Controls.Add(capAllBtn);
         var capBtn = new Button { Text = Lang.T("Capture current charge only"), AutoSize = true, Margin = new Padding(6, 2, 0, 0) };
-        capBtn.Click += async (_, _) => await CaptureCurrentAsync();
+        capBtn.Click += async (_, _) => await Exclusive(CaptureCurrentAsync);
         top.Controls.Add(capBtn);
         var capShapeBtn = new Button { Text = Lang.T("Capture GRT-style sweep (Ba + k)"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
-        capShapeBtn.Click += async (_, _) => await CaptureAllPertKAsync();
+        capShapeBtn.Click += async (_, _) => await Exclusive(CaptureAllPertKAsync);
         top.Controls.Add(capShapeBtn);
-        _verifyJoint.Click += async (_, _) => await VerifyJointAsync();
+        _verifyJoint.Click += async (_, _) => await Exclusive(VerifyJointAsync);
         top.Controls.Add(_verifyJoint);
-        _checkSebert.Click += async (_, _) => await CheckSebertAsync();
+        _checkSebert.Click += async (_, _) => await Exclusive(CheckSebertAsync);
         top.Controls.Add(_checkSebert);
         var delBtn = new Button { Text = Lang.T("Remove row"), AutoSize = true, Margin = new Padding(10, 2, 0, 0) };
         delBtn.Click += (_, _) => RemoveRow();
@@ -143,9 +143,9 @@ internal sealed class CalibrationForm : Form
         split.Panel2.Controls.Add(_summary);
 
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
-        _writeNote.Click += async (_, _) => await WriteAsync(false);
-        _writeBa.Click += async (_, _) => await WriteAsync(true);
-        _writeBaK.Click += async (_, _) => await WriteShapeAsync();
+        _writeNote.Click += async (_, _) => await Exclusive(() => WriteAsync(false));
+        _writeBa.Click += async (_, _) => await Exclusive(() => WriteAsync(true));
+        _writeBaK.Click += async (_, _) => await Exclusive(WriteShapeAsync);
         bottom.Controls.Add(_writeBaK);
         bottom.Controls.Add(_writeBa);
         bottom.Controls.Add(_writeNote);
@@ -218,6 +218,27 @@ internal sealed class CalibrationForm : Form
             _staleWarning.Visible = false;
             _staleWarning.Height = 0;
         }
+    }
+
+    private bool _busy;
+
+    /// <summary>
+    /// One operation that drives GRT at a time. Every capture, verification, Sebert check and write opens temporary loads in GRT
+    /// one after the other and reopens the shooter's load at the end; two of them at once leave the window and GRT out of step
+    /// (the captures write into the same table, a sweep's folder is deleted by the other, and the error that follows names a file that is
+    /// not there). The verification button turns on as soon as a correction can be computed, which is before the sweep that
+    /// computes it has finished, so a second click while the first is still running is easy to make: it is answered, not started.
+    /// </summary>
+    private async Task Exclusive(Func<Task> work)
+    {
+        if (_busy)
+        {
+            MessageBox.Show(this, Lang.T("Another operation on GRT is still running in this window. Wait until it finishes: the line under the table says when."), Lang.T("Busy"));
+            return;
+        }
+        _busy = true;
+        try { await work(); }
+        finally { _busy = false; }
     }
 
     private async Task LoadMeasuredAsync()

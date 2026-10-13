@@ -502,6 +502,8 @@ internal static class Lang
         ["{0} at {1} m: the group is {2} MOA wide and {3} MOA high (ratio {4}); wind written down: {5} m/s. Wind or support are possible readings; the toolkit does not decide."] = "{0} a {1} m: il gruppo è largo {2} MOA e alto {3} MOA (rapporto {4}); vento segnato: {5} m/s. Vento o appoggio sono letture possibili; il toolkit non decide.",
         ["{0} at {1} m: the group is {2} MOA wide and {3} MOA high (ratio {4}) and no wind was written down. Wind or support are possible readings; the toolkit does not decide."] = "{0} a {1} m: il gruppo è largo {2} MOA e alto {3} MOA (rapporto {4}) e nessun vento è stato segnato. Vento o appoggio sono letture possibili; il toolkit non decide.",
         ["R5 (wind or support): no wind is written down. Put WIND=3.2m/s (and @90 for its direction) in the title of the shot-group tab or in the name of the group."] = "R5 (vento o appoggio): nessun vento è segnato. Scrivi WIND=3.2m/s (e @90 per la direzione) nel titolo della scheda del gruppo di colpi o nel nome del gruppo.",
+        ["Another operation on GRT is still running in this window. Wait until it finishes: the line under the table says when."] = "Un'altra operazione su GRT è ancora in corso in questa finestra. Aspetta che finisca: la riga sotto la tabella lo dice.",
+        ["Busy"] = "Occupato",
         ["Choose this depth"] = "Scegli questa profondità",
         ["Powder temp coefficients"] = "Coefficienti temperatura polvere",
         ["Powder compare"] = "Confronto polveri",
