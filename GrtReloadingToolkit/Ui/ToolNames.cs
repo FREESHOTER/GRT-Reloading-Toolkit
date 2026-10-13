@@ -17,6 +17,9 @@ internal static class ToolNames
         "Journal" => "Load journal",
         "GroupAnalysis" => "Group analysis",
         "Workflow" => "Distance workflow",
+        "FindBa" => "Find best Ba",
+        "Temp" => "Powder temp coefficients",
+        "PowderCompare" => "Powder compare",
         _ => tool,
     };
 }

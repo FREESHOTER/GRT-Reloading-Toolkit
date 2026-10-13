@@ -94,6 +94,15 @@ internal sealed class ToolkitContext : ApplicationContext
             grt.MenuOrToolbarActivated += id => _ui.Post(_ => Open(FromId(id)), null);
 
         // The "next step" bars at the foot of the tool windows open the following tool through this.
+        Ui.NextStepBar.JournalFacts = caliber =>
+        {
+            try
+            {
+                var rows = _db.Journal().Where(e => string.Equals(e.Caliber, caliber, StringComparison.OrdinalIgnoreCase)).ToList();
+                return (rows.Where(e => e.PowderId is not null).Select(e => e.PowderId).Distinct().Count(), rows.Count(e => e.Ba is not null));
+            }
+            catch (Exception) { return (0, 0); }
+        };
         Ui.ToolNav.Open = name => { if (Enum.TryParse<Tool>(name, out var next)) _ui.Post(_ => Open(next), null); };
 
         if (!launchedIntoTool) Open(Tool.Launcher);
