@@ -119,6 +119,7 @@
   footer{border-top:1px solid var(--line); padding:34px 0 60px; color:var(--ink-faint); font-size:.88rem}
   footer .wrap{display:flex; flex-wrap:wrap; gap:8px 24px; align-items:center}
 
+.tool h3 .tag{font-size:11px;font-weight:600;color:#8a6d00;background:#fff4d6;border:1px solid #e0c874;border-radius:9px;padding:1px 7px;margin-left:6px;vertical-align:middle}
 </style>
 
 <header><div class="wrap mast">
@@ -134,7 +135,7 @@
 <div class="wrap">
   <div class="hero">
     <div class="eyebrow">Plugin for Gordon&#39;s Reloading Tool</div>
-    <h1>Twenty-three reloading tools, one GRT window.</h1>
+    <h1>Twenty-four reloading tools, one GRT window.</h1>
     <p class="lede">Import your chronograph, find the accuracy node, calibrate the barrel to your
       simulation, size necks, cost your rounds, and print the load card &mdash; then push every
       result back into GRT as a note, a chart, or a corrected input.</p>
@@ -196,7 +197,7 @@
 <section><div class="wrap">
   <div class="sec-head">
     <span class="n">01</span>
-    <div><h2>The twenty-three tools</h2>
+    <div><h2>The twenty-four tools</h2>
     <p>All reached from one launcher window. Each writes its result into the load.</p></div>
   </div>
   <div class="tools">
@@ -360,6 +361,13 @@
       <h3>Group Analysis</h3></div>
       <p>The 2D sibling of SD Root-Cause: for one shot group &mdash; from an OnTarget CSV, GRT&#39;s own Shot-group tabs, or typed in by hand &mdash; a dispersion score AND a separate confidence rating from sample size alone, robust outlier detection (Mahalanobis, not just a look at the target), and a plain list of specific problems found, each with its own evidence number.</p>
       <div class="out">score + confidence, never one number · → <b>group analysis</b> note + report page</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="2"/><path d="m15 15 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m7.5 10 2 2 3.5-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>Guided Diagnosis <span class="tag">experimental</span></h3></div>
+      <p>Reads the load open in GRT and says which causes its strings and groups support &mdash; a spread of velocity high for its class while the group is fine, one shot behind the spread, a charge that is sensitive to temperature, a chosen charge off the ladder&#39;s node &mdash; each with its numbers, a confidence level and the test that would confirm it, and with a list of the rules it could <em>not</em> apply for lack of data. It is experimental: the community is asked to try it, report where it is wrong and bring the data it lacks.</p>
+      <div class="out">hypotheses, never a verdict · → <b>guided diagnosis</b> note</div>
     </div>
 
   </div>

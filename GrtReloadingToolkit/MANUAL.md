@@ -30,6 +30,8 @@ The toolkit's tools follow one path, from the empty bench to a final load that y
 
 The launcher window lists the tools as this path: the five phases, each tool numbered with its step in the diagram (a tool that returns later, such as the import, is listed once, at its first step). The phase of the load open in GRT is marked "◀ this load", and a step whose result is already in that load carries a check mark. The optional tools and the always-at-hand ones follow in two blocks of their own.
 
+**Guided diagnosis (experimental)** is a tool of its own, outside the chain of steps (its entry in the launcher has no number). It reads the load open in GRT and says which causes its strings and groups support, each with its numbers, a confidence level and the test that would confirm it, and it lists the rules it could *not* apply for lack of data. The rules today: a velocity spread that is high for its class while the group is fine; one shot behind the spread; the temperature sensitivity of a charge shot at two temperatures; a chosen charge that lies off the node of the ladder. It is experimental: the rules were tried on little real data. The community is asked to try them and report where they are wrong, and to bring the data that are missing — long strings with the cold-bore shot marked, groups at distance with the wind measured, the ballistics at distance, bullet weights, reloads per case, strings of one charge at different temperatures. The more of it arrives, the more reliable the rules become. Report cases and bring data at https://github.com/FREESHOTER/GRT-Reloading-Toolkit/issues.
+
 ---
 
 ## 2. How the toolkit writes back to GRT — read this first

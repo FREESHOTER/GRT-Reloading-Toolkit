@@ -66,7 +66,7 @@ internal static class Program
     }
 }
 
-internal enum Tool { Launcher, Athlon, ShotMarker, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports }
+internal enum Tool { Launcher, Athlon, ShotMarker, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports, Diagnosis }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -176,6 +176,7 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.SdRootCause => new SdRootCauseForm(_grt, _db),
             Tool.GroupAnalysis => new GroupAnalysisForm(_grt),
             Tool.TargetPrint => new TargetForm(_grt),
+            Tool.Diagnosis => new DiagnosisForm(_grt),
             Tool.Wizard => new WizardForm(Open),
             Tool.VelocityModel => new VelocityModelForm(_grt, _db),
             Tool.LoadBook => new LoadBookForm(_db),

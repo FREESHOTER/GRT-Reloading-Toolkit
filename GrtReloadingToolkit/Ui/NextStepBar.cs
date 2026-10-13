@@ -103,7 +103,8 @@ internal sealed class NextStepBar : Panel
             SetSuggestions(ToolSuggestions.For(_current, new PathSignals(
                 notes.Any(t => t.StartsWith("Barrel Calibration", StringComparison.OrdinalIgnoreCase)),
                 ToolSuggestions.TemperatureSpreadC(measurements.SelectMany(m => m.Charges).Select(c => c.Note)),
-                facts.Item1, facts.Item2)));
+                facts.Item1, facts.Item2,
+                measurements.SelectMany(m => m.Charges).Count(c => c.Shots.Count(sh => sh.VelocityMps > 50) >= GrtReloadingToolkit.Log.Diagnosis.MinShots))));
         }
         catch (Exception) { /* the bar stays as it is */ }
     }

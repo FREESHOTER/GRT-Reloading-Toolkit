@@ -44,6 +44,7 @@ internal static class ToolIconPainter
         ["curve"] = new Prim[] { P("M3 4v16h18"), P("M5 7c4 8 8 10 15 10"), C(7.4f, 11.0f, 1.2f, CircleStyle.White), C(14.5f, 16.0f, 1.2f, CircleStyle.White) },
         ["pulse"] = new Prim[] { P("M3 12h4l2-6 4 12 2-6h6") },
         ["sdcause"] = new Prim[] { C(10.0f, 10.0f, 6.0f, CircleStyle.Ring), P("m15 15 6 6"), P("M7 12c1 0 1-4 3-4s2 4 3 4") },
+        ["diagnose"] = new Prim[] { C(10.0f, 10.0f, 6.0f, CircleStyle.Ring), P("m15 15 6 6"), P("m7.5 10 2 2 3.5-4") },
         ["group"] = new Prim[] { C(12.0f, 12.0f, 9.0f, CircleStyle.Ring), C(12.0f, 12.0f, 5.0f, CircleStyle.Ring), C(9.6f, 10.0f, 0.9f, CircleStyle.Solid), C(14.2f, 11.2f, 0.9f, CircleStyle.Solid), C(12.0f, 14.6f, 0.9f, CircleStyle.Solid) },
         ["box"] = new Prim[] { P("M3 8l9-5 9 5v8l-9 5-9-5z"), P("M3 8l9 5 9-5M12 13v8") },
         ["books"] = new Prim[] { P("M4 5h4v14H4zM10 5h4v14h-4z"), P("m16 6 4-1 3 13-4 1z") },

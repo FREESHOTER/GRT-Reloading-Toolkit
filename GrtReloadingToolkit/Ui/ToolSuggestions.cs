@@ -8,7 +8,8 @@ namespace GrtReloadingToolkit.Ui;
 /// <param name="TemperatureSpreadC">Spread (max - min, in degrees C) of the temperatures recorded on the strings of the load, or null when fewer than two were.</param>
 /// <param name="PowdersTriedForCaliber">Distinct powders the journal holds for this load's caliber.</param>
 /// <param name="CalibrationsLoggedForCaliber">Journal entries for this caliber that carry a calibrated Ba.</param>
-internal sealed record PathSignals(bool CalibrationInLoad, double? TemperatureSpreadC, int PowdersTriedForCaliber, int CalibrationsLoggedForCaliber)
+/// <param name="DiagnosableStrings">Strings of the load with enough shots for the guided diagnosis to read their spread.</param>
+internal sealed record PathSignals(bool CalibrationInLoad, double? TemperatureSpreadC, int PowdersTriedForCaliber, int CalibrationsLoggedForCaliber, int DiagnosableStrings = 0)
 {
     public static readonly PathSignals None = new(false, null, 0, 0);
 }
@@ -35,6 +36,8 @@ internal static class ToolSuggestions
             list.Add(new Suggestion("Temp", "The strings of this load were shot at different temperatures: fit the powder's temperature coefficients."));
         if (current is "Cal" or "Workflow" && s.PowdersTriedForCaliber >= 2)
             list.Add(new Suggestion("PowderCompare", "The journal holds more than one powder for this caliber: compare them."));
+        if (current is "Workflow" or "GroupAnalysis" && s.DiagnosableStrings >= 1)
+            list.Add(new Suggestion("Diagnosis", "If the check at distance is not good, the guided diagnosis (experimental) looks in the data of this load for the likely cause."));
         return list;
     }
 

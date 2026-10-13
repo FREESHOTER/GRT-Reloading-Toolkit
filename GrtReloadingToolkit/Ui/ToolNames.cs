@@ -17,6 +17,7 @@ internal static class ToolNames
         "Journal" => "Load journal",
         "GroupAnalysis" => "Group analysis",
         "Workflow" => "Distance workflow",
+        "Diagnosis" => "Guided diagnosis (experimental)",
         "FindBa" => "Find best Ba",
         "Temp" => "Powder temp coefficients",
         "PowderCompare" => "Powder compare",

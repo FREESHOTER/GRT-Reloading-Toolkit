@@ -96,7 +96,7 @@ internal sealed class LauncherForm : Form
             int px = LogicalToDeviceUnits(22);
             var normal = IconBitmap(icon, false, px);
             var hot = IconBitmap(icon, true, px);
-            string caption = (step is null ? "" : step + "  ") + LauncherCaption.From(text);
+            string caption = (string.IsNullOrEmpty(step) ? "" : step + "  ") + LauncherCaption.From(text);
             var b = new Button
             {
                 Text = caption, UseMnemonic = false, Height = 34, Margin = new Padding(0, 0, 0, 6),
@@ -144,6 +144,10 @@ internal sealed class LauncherForm : Form
 
         Section(Lang.T("PHASE 5 — FINAL LOAD, OVER TIME"), PathPhase.Tracking);
         B(Lang.T("📓  Load journal"), Tool.Journal, "journal", "8 / 18");
+
+        // Outside the chain of steps: it reads the load open in GRT, whatever phase it is in, and is experimental.
+        Section(Lang.T("GUIDED DIAGNOSIS (EXPERIMENTAL)"));
+        B(Lang.T("🩺  Guided diagnosis"), Tool.Diagnosis, "diagnose", "");
 
         Section(Lang.T("OPTIONAL TOOLS"));
         B(Lang.T("⚖️  Seating force estimate (QC)"), Tool.SeatingForce, "force");

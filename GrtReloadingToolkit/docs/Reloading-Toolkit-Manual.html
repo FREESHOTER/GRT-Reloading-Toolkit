@@ -271,8 +271,8 @@
 <text x="1150.0" y="504" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="bold" fill="#4b1f63" text-anchor="middle">17  GUIDED DIAGNOSIS</text>
 <text x="1150.0" y="528" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="normal" fill="#4b1f63" text-anchor="middle">likely cause + test to run</text>
 <text x="1150.0" y="548" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="normal" fill="#4b1f63" text-anchor="middle">(powder, brass, bullet, seating, barrel…)</text>
-<rect x="1155.0" y="465" width="119" height="18" rx="9" fill="#ffffff" stroke="#8a6d00" stroke-dasharray="3 2"/>
-<text x="1214.5" y="478" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="bold" fill="#6b5200" text-anchor="middle">coming soon</text>
+<rect x="1146.0" y="465" width="128" height="18" rx="9" fill="#ffffff" stroke="#8a6d00" stroke-dasharray="3 2"/>
+<text x="1210.0" y="478" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="bold" fill="#6b5200" text-anchor="middle">experimental</text>
 <rect x="1326.0" y="88" width="296" height="54" rx="10" fill="#a33a3a"/>
 <text x="1474.0" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">PHASE 5</text>
 <text x="1474.0" y="133" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="bold" fill="#ffffff" text-anchor="middle">Final load, over time</text>
@@ -357,6 +357,7 @@
 <text x="46" y="1298" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">At the end of each tool on the path: &quot;Done: … Next step: … [Open]&quot; (it follows the load open in GRT)</text>
 </svg></div>
 <p>The launcher window lists the tools as this path: the five phases, each tool numbered with its step in the diagram (a tool that returns later, such as the import, is listed once, at its first step). The phase of the load open in GRT is marked &ldquo;&#9664; this load&rdquo;, and a step whose result is already in that load carries a check mark. The optional tools and the always-at-hand ones follow in two blocks of their own.</p>
+<p><strong>Guided diagnosis (experimental)</strong> is a tool of its own, outside the chain of steps (its entry in the launcher has no number). It reads the load open in GRT and says which causes its strings and groups support, each with its numbers, a confidence level and the test that would confirm it, and it lists the rules it could <em>not</em> apply for lack of data. The rules today: a velocity spread that is high for its class while the group is fine; one shot behind the spread; the temperature sensitivity of a charge shot at two temperatures; a chosen charge that lies off the node of the ladder. It is experimental: the rules were tried on little real data. The community is asked to try them and report where they are wrong, and to bring the data that are missing &mdash; long strings with the cold-bore shot marked, groups at distance with the wind measured, the ballistics at distance, bullet weights, reloads per case, strings of one charge at different temperatures. The more of it arrives, the more reliable the rules become. Report cases and bring data at <a href="https://github.com/FREESHOTER/GRT-Reloading-Toolkit/issues">https://github.com/FREESHOTER/GRT-Reloading-Toolkit/issues</a>.</p>
     </section>
 
     <section id="writeback">

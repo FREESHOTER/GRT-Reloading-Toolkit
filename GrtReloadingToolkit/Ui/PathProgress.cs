@@ -32,6 +32,7 @@ internal static class PathProgress
             "Workflow" => Note("Distance Workflow"),
             "SdRootCause" => Note("SD Root-Cause"),
             "Diagnostics" => Note("Advanced Diagnostics"),
+            "Diagnosis" => Note("Guided Diagnosis"),
             _ => false,
         };
     }
