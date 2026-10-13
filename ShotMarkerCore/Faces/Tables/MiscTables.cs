@@ -31,7 +31,9 @@ namespace ShotMarker.Core.Faces.Tables;
 /// though it publishes no aiming mark, so the black is ours by the scaling.
 ///
 /// The dots and ring grids are our own faces and are published by nobody. They are a dot or an
-/// even inch grid on a plain card, which is all they have ever been.
+/// even inch grid on a plain card, which is all they have ever been. <see cref="HalfMoaGrid"/>
+/// is the same kind of face: the one ShotMarker ships as "Austria 600", which no Austrian body
+/// publishes and which is provably a half-MOA grid.
 /// </summary>
 internal static class MiscTables
 {
@@ -60,6 +62,7 @@ internal static class MiscTables
 
         foreach (TargetFace f in Dots()) yield return f;
         foreach (TargetFace f in Grids()) yield return f;
+        yield return HalfMoaGrid();
         yield return FigureDF();
     }
 
@@ -132,6 +135,49 @@ internal static class MiscTables
                 boardWidthMm: In(g.CardIn), boardHeightMm: In(g.CardIn),
                 boardLineMm: CardEdgeMm);
     }
+
+    /// <summary>
+    /// The face ShotMarker ships as "Austria 600": five rings at 87.3, 174.6, 261.9, 349.2 and
+    /// 436.5 mm, scored 10 down to 6.
+    ///
+    /// No Austrian body publishes it. The OeSB's own target sheet (zielsport.at,
+    /// Scheiben-GK.pdf) publishes the ISSF 25/50/100/300 m faces and nothing at 600 m, and the
+    /// DSB and BDS catalogues have no such target either. So by the standing rule it could only
+    /// be dropped — except that its geometry is not artwork to be traced: it is a stated rule.
+    /// Half a minute of angle at 600 m is 600000 x tan(0.5/60 deg) = 87.266 mm, which is 87.3 mm
+    /// at 0.1 mm, and every ring is an exact multiple of it. The face is therefore authored here
+    /// as ours, from the rule, and named for what it provably is rather than for a country that
+    /// does not publish it.
+    ///
+    /// <c>Id</c> and <c>ShortName</c> stay as the device writes them. They are not a claim about
+    /// Austria, they are the lookup key: <c>ImportJob</c> resolves a face by id and
+    /// <c>SmCsvReader</c> by display name, so changing either would quietly drop this face to
+    /// <c>Generic</c> for anyone who actually shoots it.
+    ///
+    /// The 800 mm card is the extent ShotMarker drew it on, kept because it is generous: the
+    /// outermost ring is 436.5 mm across, and a board sized to the rings alone would put a wide
+    /// shot off the picture. Nothing is published that bears on the frame either way.
+    /// </summary>
+    private static TargetFace HalfMoaGrid() =>
+        Concentric(
+            "AT_600", "600 m half-MOA grid", "Austria 600",
+            Enumerable.Range(1, 5)
+                      .Select(step => Z(HalfMoaAt600Mm * step, (11 - step).ToString()))
+                      .ToArray(),
+            // No aiming mark is published, so the innermost ring is the mark, exactly as it is
+            // on our own inch grids above.
+            aimingMarkMm: HalfMoaAt600Mm,
+            ringLineMm: null,
+            boardWidthMm: HalfMoaCardMm, boardHeightMm: HalfMoaCardMm,
+            boardLineMm: CardEdgeMm);
+
+    /// <summary>Half a minute of angle at 600 m, to 0.1 mm: 600000 x tan(0.5/60 deg) = 87.266.
+    /// Rounded once and then multiplied, which is how the five published-looking figures in the
+    /// file this table replaces were themselves produced.</summary>
+    private const double HalfMoaAt600Mm = 87.3;
+
+    /// <summary>The square card the half-MOA grid is drawn on.</summary>
+    private const double HalfMoaCardMm = 800;
 
     /// <summary>
     /// Target Rifle D / F: a figure target, and the one face here with no scoring rings at all
