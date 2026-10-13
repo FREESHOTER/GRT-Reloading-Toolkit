@@ -94,6 +94,11 @@ internal sealed class ToolkitContext : ApplicationContext
             grt.MenuOrToolbarActivated += id => _ui.Post(_ => Open(FromId(id)), null);
 
         // The "next step" bars at the foot of the tool windows open the following tool through this.
+        Ui.AlertPanel.CountForOpenLoad = (caliber, loadName) =>
+        {
+            try { return Log.LoadAlerts.ForLoad(Log.LoadAlerts.All(Ui.AlertPanel.ContextFor(_db)), caliber, loadName).Count; }
+            catch (Exception) { return 0; }
+        };
         Ui.NextStepBar.JournalFacts = caliber =>
         {
             try

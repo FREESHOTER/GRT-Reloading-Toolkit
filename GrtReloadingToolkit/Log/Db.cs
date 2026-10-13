@@ -78,6 +78,9 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         // additive column migration (older DBs)
         if (!ColumnExists("journal", "firearm_id"))
             Exec("ALTER TABLE journal ADD COLUMN firearm_id INTEGER");
+        // The barrel life limit the shooter sets for a firearm (alerts); additive, nullable.
+        if (!ColumnExists("firearms", "rounds_limit"))
+            Exec("ALTER TABLE firearms ADD COLUMN rounds_limit INTEGER");
         // Barrels arrived after the components table did, and they carry two numbers nothing else has.
         if (!ColumnExists("components", "twist_mm"))
             Exec("ALTER TABLE components ADD COLUMN twist_mm REAL");
@@ -383,6 +386,7 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         {
             Id = r.GetInt64(r.GetOrdinal("id")), Name = Str(r, "name"), Caliber = Str(r, "caliber"),
             Notes = Str(r, "notes"), RoundsBefore = (int)Lng(r, "rounds_before"), Retired = Lng(r, "retired") != 0,
+            RoundsLimit = r.IsDBNull(r.GetOrdinal("rounds_limit")) ? null : (int)r.GetInt64(r.GetOrdinal("rounds_limit")),
         });
         return list;
     }
@@ -391,14 +395,15 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
     {
         using var cmd = _cn.CreateCommand();
         cmd.CommandText = f.Id == 0
-            ? "INSERT INTO firearms(name,caliber,notes,rounds_before,retired) VALUES ($n,$c,$no,$rb,$rt); SELECT last_insert_rowid();"
-            : "UPDATE firearms SET name=$n,caliber=$c,notes=$no,rounds_before=$rb,retired=$rt WHERE id=$id; SELECT $id;";
+            ? "INSERT INTO firearms(name,caliber,notes,rounds_before,retired,rounds_limit) VALUES ($n,$c,$no,$rb,$rt,$rl); SELECT last_insert_rowid();"
+            : "UPDATE firearms SET name=$n,caliber=$c,notes=$no,rounds_before=$rb,retired=$rt,rounds_limit=$rl WHERE id=$id; SELECT $id;";
         if (f.Id != 0) cmd.Parameters.AddWithValue("$id", f.Id);
         cmd.Parameters.AddWithValue("$n", f.Name);
         cmd.Parameters.AddWithValue("$c", f.Caliber);
         cmd.Parameters.AddWithValue("$no", f.Notes);
         cmd.Parameters.AddWithValue("$rb", f.RoundsBefore);
         cmd.Parameters.AddWithValue("$rt", f.Retired ? 1 : 0);
+        cmd.Parameters.AddWithValue("$rl", (object?)f.RoundsLimit ?? DBNull.Value);
         return Convert.ToInt64(cmd.ExecuteScalar());
     }
 

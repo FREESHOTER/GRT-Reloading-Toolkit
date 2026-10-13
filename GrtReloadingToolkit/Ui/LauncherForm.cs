@@ -253,10 +253,12 @@ internal sealed class LauncherForm : Form
             var phase = PathState.From(notes, measurements.Count > 0).Phase;
             foreach (var (tool, (button, caption)) in _steps)
                 button.Text = caption + (PathProgress.IsDone(tool.ToString(), notes, measurements) ? DoneMark : "");
+            int alerts = AlertPanel.CountForOpenLoad?.Invoke(doc.CaliberName, Path.GetFileNameWithoutExtension(top.file)) ?? 0;
             foreach (var (ph, (label, text)) in _phases)
             {
                 bool here = ph == phase;
-                label.Text = here ? text + "   \u25C0 " + Lang.T("this load") : text;
+                label.Text = (here ? text + "   \u25C0 " + Lang.T("this load") : text)
+                             + (ph == PathPhase.Tracking && alerts > 0 ? "   \u26A0 " + string.Format(Lang.T("{0} alert(s): see the Journal"), alerts) : "");
                 label.ForeColor = here ? Color.FromArgb(0, 88, 176) : SystemColors.GrayText;
             }
         }

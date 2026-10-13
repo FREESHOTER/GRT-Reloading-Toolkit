@@ -325,21 +325,22 @@ internal sealed class LogForm : Form
 
     private void EditFirearm(Firearm f)
     {
-        using var d = new Form { Text = Lang.T(f.Id == 0 ? "Add firearm" : "Edit firearm"), ClientSize = new Size(320, 210), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false };
+        using var d = new Form { Text = Lang.T(f.Id == 0 ? "Add firearm" : "Edit firearm"), ClientSize = new Size(320, 240), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false };
         var name = new TextBox { Left = 110, Top = 12, Width = 190, Text = f.Name };
         var cal = new TextBox { Left = 110, Top = 42, Width = 190, Text = f.Caliber };
         var rb = new NumericUpDown { Left = 110, Top = 72, Width = 90, Maximum = 1_000_000, Value = f.RoundsBefore };
-        var notes = new TextBox { Left = 110, Top = 102, Width = 190, Height = 44, Multiline = true, Text = f.Notes };
+        var limit = new NumericUpDown { Left = 110, Top = 102, Width = 90, Maximum = 1_000_000, Value = f.RoundsLimit ?? 0 };
+        var notes = new TextBox { Left = 110, Top = 132, Width = 190, Height = 44, Multiline = true, Text = f.Notes };
         void L(string t, int y) => d.Controls.Add(new Label { Text = t, Left = 12, Top = y + 3, AutoSize = true });
-        L(Lang.T("Name"), 12); L(Lang.T("Caliber"), 42); L(Lang.T("Rounds before"), 72); L(Lang.T("Notes"), 102);
-        var ok = new Button { Text = Lang.T("Save"), DialogResult = DialogResult.OK, Left = 145, Top = 160, Width = 75 };
-        var ca = new Button { Text = Lang.T("Cancel"), DialogResult = DialogResult.Cancel, Left = 225, Top = 160, Width = 75 };
-        d.Controls.AddRange(new Control[] { name, cal, rb, notes, ok, ca });
+        L(Lang.T("Name"), 12); L(Lang.T("Caliber"), 42); L(Lang.T("Rounds before"), 72); L(Lang.T("Barrel limit (0 = none)"), 102); L(Lang.T("Notes"), 132);
+        var ok = new Button { Text = Lang.T("Save"), DialogResult = DialogResult.OK, Left = 145, Top = 190, Width = 75 };
+        var ca = new Button { Text = Lang.T("Cancel"), DialogResult = DialogResult.Cancel, Left = 225, Top = 190, Width = 75 };
+        d.Controls.AddRange(new Control[] { name, cal, rb, limit, notes, ok, ca });
         d.AcceptButton = ok; d.CancelButton = ca;
         NudFix.ApplyTo(d);
         if (d.ShowDialog(this) == DialogResult.OK && name.Text.Trim().Length > 0)
         {
-            f.Name = name.Text.Trim(); f.Caliber = cal.Text.Trim(); f.RoundsBefore = (int)rb.Value; f.Notes = notes.Text.Trim();
+            f.Name = name.Text.Trim(); f.Caliber = cal.Text.Trim(); f.RoundsBefore = (int)rb.Value; f.RoundsLimit = limit.Value > 0 ? (int)limit.Value : null; f.Notes = notes.Text.Trim();
             _db.UpsertFirearm(f);
             RefreshFirearms();
         }

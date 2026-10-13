@@ -18,6 +18,7 @@ internal sealed class JournalForm : Form
     private readonly Db _db;
     private readonly DataGridView _jrn = new();
     private readonly Label _status = new();
+    private readonly AlertPanel _alerts = new();
 
     public JournalForm(GrtClient? grt, Db db)
     {
@@ -54,6 +55,7 @@ internal sealed class JournalForm : Form
         _status.Text = $"DB: {_db.Path}   " + (_grt == null ? Lang.T("stand-alone") : _grt.Connected ? $"GRT :{_grt.Port}" : Lang.T("GRT lost"));
 
         Controls.Add(_jrn);
+        Controls.Add(_alerts);   // under the toolbar, above the grid: added before the bar so the bar takes the top edge
         Controls.Add(bar);
         Controls.Add(_status);
         _next = NextStepBar.Attach(this, "Journal", _grt);
@@ -69,6 +71,7 @@ internal sealed class JournalForm : Form
 
     private void RefreshJournal()
     {
+        try { _alerts.Show(LoadAlerts.All(AlertPanel.ContextFor(_db))); } catch (Exception) { _alerts.Visible = false; }
         _jrn.Rows.Clear();
         var gu = GrtUnits.Current;
         var comps = _db.Components(includeArchived: true).ToDictionary(c => c.Id);

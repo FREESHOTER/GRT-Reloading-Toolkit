@@ -162,6 +162,10 @@ public sealed class Firearm
     public string Notes { get; set; } = "";
     public int RoundsBefore { get; set; }
     public bool Retired { get; set; }
+
+    /// <summary>The rounds the shooter allows this barrel before it is to be looked at (an alert from the journal), or null for no limit.
+    /// Set by the shooter: it depends on the barrel and the cartridge, so the toolkit has no number of its own.</summary>
+    public int? RoundsLimit { get; set; }
 }
 
 /// <summary>
