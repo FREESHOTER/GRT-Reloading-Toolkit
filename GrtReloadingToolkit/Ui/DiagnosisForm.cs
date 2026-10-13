@@ -173,7 +173,9 @@ internal sealed class DiagnosisForm : Form
             return new DiagnosisGroup(g.SourceFile.Replace("GRT:", ""), g.DistanceM, g.HorizontalSpreadMoa, g.VerticalSpreadMoa, g.Impacts.Count, wind?.Mps, wind?.Degrees);
         }).ToList();
 
-        return new DiagnosisInput(strings, chosen, searched, node, mps => u.VelocitySd(mps) + " " + u.VelocityUnitName, far);
+        return new DiagnosisInput(strings, chosen, searched, node, mps => u.VelocitySd(mps) + " " + u.VelocityUnitName, far,
+            c => u.Temperature(c),
+            v => u.VelocityPerDegreeValue(v).ToString("0.00", CultureInfo.InvariantCulture) + " " + u.VelocityPerDegreeUnitName);
     }
 
     /// <summary>The report, as plain text: the banner line, the hypotheses, the rules not evaluated, what the community can bring, and where to go next.</summary>

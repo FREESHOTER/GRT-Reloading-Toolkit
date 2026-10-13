@@ -130,8 +130,8 @@ public sealed class LoadSnapshot
                 if (vs.Count == 0) continue;
                 var st = StringStats.From(vs);
                 string label = ch.ChargeGrains is { } g
-                    ? FormattableString.Invariant($"{g:0.0##} gr ({meas.Title}) — {st.N} shots, {st.Mean:0} m/s")
-                    : $"{ch.Name} ({meas.Title}) — {st.N} shots, {st.Mean:0} m/s";
+                    ? $"{GrtUnits.Current.Charge(g)} ({meas.Title}) — {st.N} shots, {GrtUnits.Current.Velocity(st.Mean)}"
+                    : $"{ch.Name} ({meas.Title}) — {st.N} shots, {GrtUnits.Current.Velocity(st.Mean)}";
                 candidates.Add(Base(ch.ChargeGrains ?? doc.PropellantChargeGr, label, st));
             }
 

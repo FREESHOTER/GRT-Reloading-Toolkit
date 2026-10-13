@@ -17,7 +17,8 @@ public sealed record DiagnosisNode(double Low, double High);
 
 /// <summary>
 /// Everything the guided diagnosis reads, taken from the open load by the window and kept free of WinForms so the rules can be tested.
-/// <paramref name="Vel"/> turns a velocity in m/s into text in the unit GRT shows (with the unit), so the findings quote what the shooter sees.
+/// <paramref name="Vel"/> turns a velocity in m/s into text in the unit GRT shows (with the unit), so the findings quote what the shooter sees;
+/// <paramref name="Temp"/> does the same for a temperature in °C and <paramref name="VelPerDegree"/> for a velocity change per °C (both default to metric).
 /// </summary>
 public sealed record DiagnosisInput(
     IReadOnlyList<DiagnosisString> Strings,
@@ -25,7 +26,9 @@ public sealed record DiagnosisInput(
     bool NodeSearched,
     DiagnosisNode? Node,
     Func<double, string> Vel,
-    IReadOnlyList<DiagnosisGroup>? Groups = null);
+    IReadOnlyList<DiagnosisGroup>? Groups = null,
+    Func<double, string>? Temp = null,
+    Func<double, string>? VelPerDegree = null);
 
 /// <summary>A finding: what may be going on, on what numbers, how sure, and the test that would confirm it.
 /// Templates are English translation keys with {0}, {1}... for the numbers, filled in by the window.</summary>
@@ -169,8 +172,8 @@ public static class Diagnosis
             if (Math.Abs(d) <= 2 * se) continue;     // within the noise of the two strings: nothing to say
             bool enough = hot.VelocitiesMps.Count >= MinShots && cold.VelocitiesMps.Count >= MinShots;
             findings.Add(new DiagnosisFinding("R6",
-                "Charge {0}: the strings at {1} C and {2} C differ by {3} ({4} m/s per degree C), more than their own spread explains: the powder may be sensitive to temperature.",
-                new object[] { F(g.Key, "0.0#"), F(cold.TempC.Value), F(hot.TempC.Value), input.Vel(Math.Abs(d)), F(d / gap, "0.00") },
+                "Charge {0}: the strings at {1} and {2} differ by {3} ({4}), more than their own spread explains: the powder may be sensitive to temperature.",
+                new object[] { F(g.Key, "0.0#"), (input.Temp ?? (c => F(c) + " C"))(cold.TempC.Value), (input.Temp ?? (c => F(c) + " C"))(hot.TempC.Value), input.Vel(Math.Abs(d)), (input.VelPerDegree ?? (v => F(v, "0.00") + " m/s per degree C"))(d / gap) },
                 enough ? DiagnosisConfidence.Medium : DiagnosisConfidence.Low,
                 "Powder temp coefficients tool; shoot the same charge hot and cold with at least 5 shots each.", 2));
         }

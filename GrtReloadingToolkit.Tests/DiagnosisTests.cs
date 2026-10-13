@@ -84,7 +84,23 @@ public sealed class DiagnosisTests
         var r = Run(new[] { S("cold", Around(800), 40.0, 5), S("hot", Around(806), 40.0, 25) });
         var f = Assert.Single(r.Findings, x => x.Rule == "R6");
         Assert.Equal(DiagnosisConfidence.Medium, f.Confidence);
-        Assert.Equal("0.30", f.Args[4]);                  // 6 m/s over 20 C
+        Assert.Equal("0.30 m/s per degree C", f.Args[4]);   // 6 m/s over 20 C
+        Assert.Equal("5.0 C", f.Args[1]);
+        Assert.Equal("25.0 C", f.Args[2]);
+    }
+
+    [Fact]
+    public void R6_QuotesTemperatureAndSlopeInTheUnitsTheShooterSees()
+    {
+        // what the window passes for a GRT set to ft/s and degrees F
+        var input = new DiagnosisInput(
+            new[] { S("cold", Around(800), 40.0, 5), S("hot", Around(806), 40.0, 25) }.ToList(), null, false, null, V, null,
+            c => (c * 9 / 5 + 32).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " °F",
+            v => (v / 0.3048 * 5 / 9).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " ft/s per °F");
+        var f = Assert.Single(Diagnosis.Run(input).Findings, x => x.Rule == "R6");
+        Assert.Equal("41.0 °F", f.Args[1]);
+        Assert.Equal("77.0 °F", f.Args[2]);
+        Assert.Equal("0.55 ft/s per °F", f.Args[4]);
     }
 
     [Fact]
