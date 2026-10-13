@@ -989,6 +989,11 @@ the window says so; when it does not, the importer assumes one, says which, and 
 **Unknown target faces** are plotted on a plain frame of the recorded size, without scoring rings,
 and the log says so — the hit positions are still exact, only the rings are missing.
 
+**Where the rings come from.** Every face the importer draws is built from the governing body's own
+published dimensions — ICFRA, the DCRA, the NRA, the NRA (UK), the SSAA, the IBS, the NRAA, the Swiss
+and Norwegian federations — with the rulebook cited beside it in the source. A target whose
+dimensions no body publishes is not invented: it falls back to the plain frame above.
+
 One unreadable string never costs you the rest of the session: reading, drawing and writing are
 each best-effort per string, and whatever failed is named in the log.
 

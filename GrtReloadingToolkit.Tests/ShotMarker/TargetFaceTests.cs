@@ -11,10 +11,34 @@ namespace ShotMarker.Core.Tests;
 
 public class TargetFaceTests
 {
+    /// <summary>Every face the tables publish loads, and the id dictionary is built once
+    /// without a duplicate (<c>Load()</c> throws on one). Bump this with the tables.</summary>
     [Fact]
-    public void LoadsEveryFaceFromTheBundle()
+    public void LoadsEveryFaceFromTheTables()
     {
-        Assert.Equal(208, TargetFaceLibrary.Count);
+        Assert.Equal(128, TargetFaceLibrary.Count);
+    }
+
+    /// <summary>The half-MOA grid is derived from its rule, and — because no Austrian body
+    /// publishes it — it is the one face whose display name deliberately differs from the one
+    /// the device writes. The device's string has to keep resolving it, or the face silently
+    /// becomes <c>Generic</c> for whoever shoots it.</summary>
+    [Fact]
+    public void TheHalfMoaGridIsHalfAMinuteAt600mAndStillAnswersToTheDeviceName()
+    {
+        var f = TargetFaceLibrary.Find("AT_600");
+        Assert.NotNull(f);
+
+        // 600000 mm x tan(0.5/60 deg) = 87.266, which is 87.3 at 0.1 mm.
+        const double halfMoa = 87.3;
+        Assert.Equal(5, f!.Rings.Count);
+        for (int step = 1; step <= 5; step++)
+        {
+            Assert.Equal(halfMoa * step, f.Rings[step - 1].DiamMm, 3);
+            Assert.Equal((11 - step).ToString(), f.Rings[step - 1].Score);
+        }
+
+        Assert.Same(f, TargetFaceLibrary.FindByName("Austria 600"));
     }
 
     [Fact]
@@ -43,12 +67,16 @@ public class TargetFaceTests
     [Fact]
     public void FacesWithOffsetRingsAndPolygonsSurvive()
     {
-        // IBS 100yd BR has 14 rings placed off-centre; it is the face an expression-blind
-        // extractor loses, so it stands guard over the extraction method.
+        // IBS 100yd BR is the one face in the tables whose rings are not all concentric: IBS
+        // Rule V.A.1 puts "an additional 10 and 9 ring ... in the third and forth quadrants",
+        // so five record rings and two offset pairs make nine. It also carries the published
+        // border rectangle and the two squares that draw the aiming square, and the renderer
+        // reads XMm/YMm and Polys nowhere else, so this face stands guard over both.
         var ibs = TargetFaceLibrary.Find("IBS100BR");
         Assert.NotNull(ibs);
-        Assert.Equal(14, ibs!.Rings.Count);
-        Assert.Contains(ibs.Rings, r => r.XMm != 0 || r.YMm != 0);
+        Assert.Equal(9, ibs!.Rings.Count);
+        Assert.Equal(4, ibs.Rings.Count(r => r.XMm != 0 || r.YMm != 0));
+        Assert.Equal(3, ibs.Polys.Count);
     }
 
     [Fact]
