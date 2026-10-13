@@ -111,7 +111,6 @@ internal sealed class LauncherForm : Form
             if (step is not null) _steps[t] = (b, caption);
             flow.Controls.Add(b);
         }
-        void Divider() => flow.Controls.Add(new Panel { Height = 1, BackColor = SystemColors.ControlDark, Margin = new Padding(0, 8, 0, 10) });
 
         // Above the phases, not inside any: it starts before the range (brass, card) and can only finish after
         // (calibration needs a real measured velocity) -- see WizardForm's own doc comment for why it doesn't get

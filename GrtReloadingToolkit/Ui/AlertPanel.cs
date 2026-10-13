@@ -38,14 +38,14 @@ internal sealed class AlertPanel : Panel
     }
 
     /// <summary>The alert in the interface's language, numbers filled in invariantly.</summary>
-    internal static string Text(LoadAlert a) => string.Format(CultureInfo.InvariantCulture, Lang.T(a.Template), a.Args);
+    internal static string Describe(LoadAlert a) => string.Format(CultureInfo.InvariantCulture, Lang.T(a.Template), a.Args);
 
     public void Show(IReadOnlyList<LoadAlert> alerts)
     {
         Visible = alerts.Count > 0;
         if (alerts.Count == 0) return;
         _title.Text = string.Format(CultureInfo.InvariantCulture, Lang.T("Loads to review ({0}) - experimental: the community is asked to try these alerts and report where they are wrong"), alerts.Count);
-        _body.Text = string.Join(Environment.NewLine, alerts.Select(a => "• " + Text(a) + "  [" + string.Format(CultureInfo.InvariantCulture, Lang.T("back to phase {0}"), a.ReturnToPhase) + "]"));
+        _body.Text = string.Join(Environment.NewLine, alerts.Select(a => "• " + Describe(a) + "  [" + string.Format(CultureInfo.InvariantCulture, Lang.T("back to phase {0}"), a.ReturnToPhase) + "]"));
         Fit();
     }
 

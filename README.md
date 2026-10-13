@@ -11,7 +11,7 @@ report templates.
 — grab `ReloadingToolkit.zip` (or the smaller `-lite.zip`, see [Install](#install-users) below) from
 the Assets list on that page.
 
-> **Status: v0.2.22.** Tested against my own loads. Not every path with
+> **Status: v0.3.0.** Tested against my own loads. Not every path with
 > every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
