@@ -26,7 +26,7 @@ internal sealed class LabelForm : Form
     private readonly ComboBox _powder = Combo(), _primer = Combo(), _brass = Combo(), _bullet = Combo(), _barrel = Combo();
     private readonly Label _status = new();
 
-    private static ComboBox Combo() => new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
+    private static ComboBox Combo() => new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
 
     public LabelForm(GrtClient? grt, Db db)
     {
@@ -64,7 +64,7 @@ internal sealed class LabelForm : Form
         _rCard.CheckedChanged += (_, _) => Render();
         _count.ValueChanged += (_, _) => Render();
 
-        var right = new TableLayoutPanel { Dock = DockStyle.Right, Width = 300, ColumnCount = 2, Padding = new Padding(6), AutoScroll = true };
+        var right = new TableLayoutPanel { Dock = DockStyle.Right, Width = 330, ColumnCount = 2, Padding = new Padding(6), AutoScroll = true };
         void Row(string l, Control c) { right.Controls.Add(new Label { Text = l, AutoSize = true, Anchor = AnchorStyles.Left, Padding = new Padding(0, 4, 6, 0) }); right.Controls.Add(c); }
         FillCombo(_powder, ComponentKind.Powder);
         FillCombo(_primer, ComponentKind.Primer);

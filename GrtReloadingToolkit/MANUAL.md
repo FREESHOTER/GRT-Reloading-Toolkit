@@ -223,7 +223,7 @@ open load, one row per charge.
 |---|---|
 | **confidence** | 90 / 95 / 99% — applies to every confidence interval and test below. |
 | **target ±** | Feeds the "shots for target" column: how many shots (of this string's spread) it would take to pin the mean down to ± that margin. Typed in whichever velocity unit GRT is configured for (the label says which). |
-| **Compare A vs B** | Welch's t-test on the means and an F-test on the spreads between any two strings. |
+| **Compare** | Welch's t-test on the means and an F-test on the spreads between any two strings. |
 | **Write note to GRT load** | Writes every string's stats — and the last comparison, if any — as a "Chrono Statistics" note. |
 
 **Grid:** string · n · mean · SD · ES · CI ± on the mean · shots needed for the target margin ·
@@ -896,7 +896,7 @@ OCW, 3–20 for Ladder) and both showing mm **and** inch scales:
 | **Ladder / Audette** | one aim disc per charge with a ±50 mm ruler centred on it, sized to read at ~200–300 m | 1–5, fired together |
 
 Charge weights are optional (typed in, comma-separated, printed under each point) or left blank for
-you to fill in by hand after the range decides the actual step. **Pages per sheet** (0 = all) splits
+you to fill in by hand after the range decides the actual step. **per page** (0 = all) splits
 a long ladder across several A3 sheets, each repeating the header and instructions.
 
 With GRT open on a load, the window fills in the powder and the bullet from it and, once a charge has been chosen in the ladder analyzer (§7), writes that charge next to the powder. The same target serves the seating-depth test: shoot the depths instead of the charges and write each depth under its point by hand.

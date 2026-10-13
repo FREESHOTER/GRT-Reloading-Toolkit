@@ -541,7 +541,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <table><thead><tr><th>Control</th><th>Effect</th></tr></thead><tbody>
         <tr><td>confidence</td><td>90 / 95 / 99% &mdash; applies to every confidence interval and test below.</td></tr>
         <tr><td>target ±</td><td>Feeds the &ldquo;shots for target&rdquo; column: how many shots (of this string&#39;s spread) it would take to pin the mean down to ± that margin. Typed in whichever velocity unit GRT is configured for (the label says which).</td></tr>
-        <tr><td>Compare A vs B</td><td>Welch&#39;s t-test on the means and an F-test on the spreads between any two strings.</td></tr>
+        <tr><td>Compare</td><td>Welch&#39;s t-test on the means and an F-test on the spreads between any two strings.</td></tr>
         <tr><td>Write note to GRT load</td><td>Writes every string&#39;s stats &mdash; and the last comparison, if any &mdash; as a &ldquo;Chrono Statistics&rdquo; note.</td></tr>
       </tbody></table>
       <p><strong>Grid:</strong> string · n · mean · SD · ES · CI ± on the mean · shots needed for the
@@ -1198,8 +1198,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>Ladder / Audette</td><td>one aim disc per charge with a &plusmn;50&nbsp;mm ruler centred on it, sized to read at ~200&ndash;300&nbsp;m</td><td>1&ndash;5, fired together</td></tr>
       </tbody></table>
       <p>Charge weights are optional (typed in, comma-separated, printed under each point) or left
-        blank for you to fill in by hand after the range decides the actual step. <strong>Pages per
-        sheet</strong> (0 = all) splits a long ladder across several A3 sheets, each repeating the
+        blank for you to fill in by hand after the range decides the actual step. <strong>per page</strong> (0 = all) splits a long ladder across several A3 sheets, each repeating the
         header and instructions.</p>
       <p>With GRT open on a load, the window fills in the powder and the bullet from it and, once a charge has been chosen in the ladder analyzer (§7), writes that charge next to the powder. The same target serves the seating-depth test: shoot the depths instead of the charges and write each depth under its point by hand.</p>
 <div class="callout"><strong>Print at 100% (&ldquo;actual size&rdquo;), never &ldquo;fit to

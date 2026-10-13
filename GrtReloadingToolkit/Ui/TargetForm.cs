@@ -15,8 +15,8 @@ namespace GrtReloadingToolkit.Ui;
 internal sealed class TargetForm : Form
 {
     private readonly PictureBox _preview = new() { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White };
-    private readonly RadioButton _rOcw = new() { Text = Lang.T("OCW (round-robin group per charge)"), Checked = true, AutoSize = true };
-    private readonly RadioButton _rLadder = new() { Text = Lang.T("Ladder / Audette (repeated shot per charge, ~200-300 m)"), AutoSize = true };
+    private readonly RadioButton _rOcw = new() { Text = Lang.T("OCW (round-robin group per charge)"), Checked = true, AutoSize = true, MaximumSize = new Size(270, 0) };
+    private readonly RadioButton _rLadder = new() { Text = Lang.T("Ladder / Audette (repeated shot per charge, ~200-300 m)"), AutoSize = false, Size = new Size(270, 40) };
     private readonly NumericUpDown _nCharges = new() { Minimum = 3, Maximum = 20, Value = 5, Width = 55 };
     private readonly NumericUpDown _perPage = new() { Minimum = 0, Maximum = 20, Value = 0, Width = 55 };
     private readonly NumericUpDown _shotsPerPoint = new() { Minimum = 1, Maximum = 5, Value = 3, Width = 55 };
@@ -80,7 +80,7 @@ internal sealed class TargetForm : Form
         Add(_rOcw);
         Add(_rLadder);
 
-        var countsPanel = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 10, 0, 0) };
+        var countsPanel = new FlowLayoutPanel { AutoSize = true, WrapContents = true, MaximumSize = new Size(280, 0), Margin = new Padding(0, 10, 0, 0) };
         countsPanel.Controls.Add(new Label { Text = Lang.T("Number of charges"), AutoSize = true, Margin = new Padding(0, 6, 4, 0) });
         _nCharges.ValueChanged += (_, _) => RenderFromStart();
         countsPanel.Controls.Add(_nCharges);
@@ -89,7 +89,7 @@ internal sealed class TargetForm : Form
         countsPanel.Controls.Add(_perPage);
         Add(countsPanel);
 
-        var shotsPanel = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 6, 0, 0) };
+        var shotsPanel = new FlowLayoutPanel { AutoSize = true, WrapContents = true, MaximumSize = new Size(280, 0), Margin = new Padding(0, 6, 0, 0) };
         shotsPanel.Controls.Add(new Label { Text = Lang.T("Shots per aim point (1-5)"), AutoSize = true, Margin = new Padding(0, 6, 4, 0) });
         _shotsPerPoint.ValueChanged += (_, _) => Render();
         shotsPanel.Controls.Add(_shotsPerPoint);
