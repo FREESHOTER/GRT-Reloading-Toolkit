@@ -127,7 +127,7 @@ internal sealed class GroupAnalysisForm : Form
         // silently clipped to "Colpi" (identical to the Hits column next to it, reading as a
         // duplicate) instead of wrapping, so headers wrap to two lines here rather than truncate.
         _groupGrid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-        _groupGrid.ColumnHeadersHeight = 34;
+        _groupGrid.ColumnHeadersHeight = 38;
         _groupGrid.Columns.Add("charge", Lang.T("Charge (gr)"));
         _groupGrid.Columns.Add("hits", Lang.T("Hits"));
         _groupGrid.Columns.Add("chrono", Lang.T("Chrono shots"));

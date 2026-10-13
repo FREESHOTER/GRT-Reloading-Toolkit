@@ -937,7 +937,7 @@ internal static class Lang
         ["combined ({0} groups)"] = "combinato ({0} gruppi)",
         ["Charge (gr)"] = "Carica (gr)",
         ["Hits"] = "Colpi",
-        ["Chrono shots"] = "Colpi cronografati",
+        ["Chrono shots"] = "Colpi crono",
         ["Source"] = "Fonte",
         ["manual entry"] = "inserimento manuale",
         ["paste supported"] = "incolla supportato",
