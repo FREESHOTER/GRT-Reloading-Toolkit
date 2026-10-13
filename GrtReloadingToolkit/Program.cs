@@ -203,6 +203,14 @@ internal sealed class ToolkitContext : ApplicationContext
             if (_open.Count == 0) ExitThread();
         };
         _open[t] = f;
+        // The launcher places itself; every other window is kept inside the screen it opens on (see WindowFit).
+        if (t != Tool.Launcher && f.WindowState == FormWindowState.Normal)
+            f.Shown += (_, _) =>
+            {
+                var wa = Screen.FromControl(f).WorkingArea;
+                var fit = WindowFit.Fit((f.Left, f.Top, f.Width, f.Height), (wa.Left, wa.Top, wa.Width, wa.Height));
+                if (fit != (f.Left, f.Top, f.Width, f.Height)) f.SetBounds(fit.X, fit.Y, fit.Width, fit.Height);
+            };
         f.Show();
         f.Activate();
     }
