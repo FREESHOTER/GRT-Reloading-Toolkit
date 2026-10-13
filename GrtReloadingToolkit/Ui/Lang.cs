@@ -26,6 +26,15 @@ internal static class Lang
     private static readonly Dictionary<string, string> Map = new()
     {
         // LauncherForm
+        ["PHASE 1 — PREPARATION"] = "FASE 1 — PREPARAZIONE",
+        ["PHASE 2 — CHARGE LADDER"] = "FASE 2 — SCALA DI CARICHE",
+        ["PHASE 3 — SEATING DEPTH"] = "FASE 3 — PROFONDITÀ DI SEDUTA",
+        ["PHASE 4 — CHECK AT DISTANCE"] = "FASE 4 — VERIFICA A DISTANZA",
+        ["PHASE 5 — FINAL LOAD, OVER TIME"] = "FASE 5 — CARICO FINALE, NEL TEMPO",
+        ["OPTIONAL TOOLS"] = "STRUMENTI FACOLTATIVI",
+        ["ALWAYS AT HAND"] = "SEMPRE A PORTATA DI MANO",
+        ["Steps 9-11 use the target and the imports above, with the chosen charge."] = "I passi 9-11 usano il bersaglio e le importazioni qui sopra, con la carica scelta.",
+        ["this load"] = "questo carico",
         ["BEFORE THE RANGE"] = "PRIMA DEL POLIGONO",
         ["AFTER THE RANGE"] = "DOPO IL POLIGONO",
         ["🔧  Brass prep (case vol / seating / neck)"] = "🔧  Preparazione bossoli (volume / seating / colletto)",

@@ -1,12 +1,13 @@
+using GrtPluginKit.Grt;
+using GrtPluginKit.Ipc;
+
 namespace GrtReloadingToolkit.Ui;
 
 /// <summary>
-/// The one entry point every toolbar/menu click opens (see Program.ToolkitContext). Grouped by
-/// when you'd actually reach for each tool — before a range trip (bench prep, nothing needs
-/// measured data yet) or after one (everything else, since every analysis in this Toolkit needs
-/// either a chronograph string or a logged session to work from — there's no tool here that's
-/// useful mid-string, so a third "at the range" group would sit empty) — rather than a flat
-/// alphabetic list.
+/// The one entry point every toolbar/menu click opens (see Program.ToolkitContext). Laid out as the recommended path, in its
+/// five phases ("The recommended path" in the manual): the tools on the path are numbered with the step of the schema, the phase
+/// of the load open in GRT is marked, and a step whose result is already in that load carries a check. What is not a step on the
+/// path (the optional tools, the inventory and the exports) follows in two blocks of its own, so nothing is out of reach.
 /// </summary>
 internal sealed class LauncherForm : Form
 {
@@ -34,8 +35,22 @@ internal sealed class LauncherForm : Form
         TextRenderer.MeasureText(b.Text, b.Font, new Size(int.MaxValue, int.MaxValue),
                                  TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
 
-    public LauncherForm(Action<Tool> open)
+    private readonly GrtClient? _grt;
+
+    /// <summary>The tool buttons that stand for a step of the path, with the caption they keep when the step is not done.</summary>
+    private readonly Dictionary<Tool, (Button Button, string Caption)> _steps = new();
+
+    /// <summary>The five phase headings, so the one the open load is in can be marked.</summary>
+    private readonly Dictionary<PathPhase, (Label Label, string Text)> _phases = new();
+
+    private bool _refreshing;
+
+    /// <summary>The mark that ends a step already done in the open load.</summary>
+    private const string DoneMark = "  \u2714";
+
+    public LauncherForm(Action<Tool> open, GrtClient? grt = null)
     {
+        _grt = grt;
         Text = AppVersion.Title("Reloading Toolkit");
         // Sizable, not Fixed: the list outgrew the screen. Windows caps a window at the desktop
         // working area, so the last seven buttons -- Velocity model down to the report templates --
@@ -55,25 +70,36 @@ internal sealed class LauncherForm : Form
             Padding = new Padding(12, 10, 12, 12),
         };
 
-        void Section(string title) => flow.Controls.Add(new Label
+        void Section(string title, PathPhase? phase = null)
         {
-            Text = title,
-            UseMnemonic = false,   // section titles are plain text, not accelerator captions
-            AutoSize = true,
-            Font = new Font(Font.FontFamily, 7.5f, FontStyle.Bold),
-            ForeColor = SystemColors.GrayText,
-            Margin = new Padding(2, flow.Controls.Count == 0 ? 0 : 12, 0, 4),
+            var label = new Label
+            {
+                Text = title,
+                UseMnemonic = false,   // section titles are plain text, not accelerator captions
+                AutoSize = true,
+                Font = new Font(Font.FontFamily, 7.5f, FontStyle.Bold),
+                ForeColor = SystemColors.GrayText,
+                Margin = new Padding(2, flow.Controls.Count == 0 ? 0 : 12, 0, 4),
+            };
+            if (phase is { } ph) _phases[ph] = (label, title);
+            flow.Controls.Add(label);
+        }
+        void Note(string text) => flow.Controls.Add(new Label
+        {
+            Text = text, UseMnemonic = false, AutoSize = true, MaximumSize = new Size(300, 0),
+            ForeColor = SystemColors.GrayText, Margin = new Padding(2, 0, 0, 6),
         });
-        void B(string text, Tool t, string icon)
+        void B(string text, Tool t, string icon, string? step = null)
         {
             // GRT-coloured line icon in place of the emoji that used to open the caption: the label keeps its
             // translation key (emoji included) and the emoji is dropped here, so no translation had to change.
             int px = LogicalToDeviceUnits(22);
             var normal = IconBitmap(icon, false, px);
             var hot = IconBitmap(icon, true, px);
+            string caption = (step is null ? "" : step + "  ") + LauncherCaption.From(text);
             var b = new Button
             {
-                Text = LauncherCaption.From(text), UseMnemonic = false, Height = 34, Margin = new Padding(0, 0, 0, 6),
+                Text = caption, UseMnemonic = false, Height = 34, Margin = new Padding(0, 0, 0, 6),
                 TextAlign = ContentAlignment.MiddleLeft, Image = normal, ImageAlign = ContentAlignment.MiddleLeft,
                 TextImageRelation = TextImageRelation.ImageBeforeText, Padding = new Padding(8, 0, 0, 0),
             };
@@ -82,43 +108,52 @@ internal sealed class LauncherForm : Form
             b.GotFocus += (_, _) => b.Image = hot;
             b.LostFocus += (_, _) => b.Image = normal;
             b.Click += (_, _) => open(t);
+            if (step is not null) _steps[t] = (b, caption);
             flow.Controls.Add(b);
         }
         void Divider() => flow.Controls.Add(new Panel { Height = 1, BackColor = SystemColors.ControlDark, Margin = new Padding(0, 8, 0, 10) });
 
-        // Above both sections, not inside either: it starts before the range (brass, card) and can
-        // only finish after (calibration needs a real measured velocity) -- see WizardForm's own doc
-        // comment for why it doesn't get filed under just one phase.
+        // Above the phases, not inside any: it starts before the range (brass, card) and can only finish after
+        // (calibration needs a real measured velocity) -- see WizardForm's own doc comment for why it doesn't get
+        // filed under just one phase.
         B(Lang.T("🪄  Guided new load (wizard)"), Tool.Wizard, "wizard");
 
-        Section(Lang.T("BEFORE THE RANGE"));
-        B(Lang.T("🔧  Brass prep (case vol / seating / neck)"), Tool.Brass, "brass");
-        B(Lang.T("⚖️  Seating force estimate (QC)"), Tool.SeatingForce, "force");
-        B(Lang.T("🏷  Load card / label"), Tool.Label, "label");
-        B(Lang.T("🎯🖨  Print ladder/OCW target"), Tool.TargetPrint, "target");
+        // The numbers are the steps of the schema in the manual. A tool that appears twice on the path (the import, the
+        // target, the journal) is listed once, at its first step; the schema says where it comes back.
+        Section(Lang.T("PHASE 1 — PREPARATION"), PathPhase.Preparation);
+        B(Lang.T("🔧  Brass prep (case vol / seating / neck)"), Tool.Brass, "brass", "1");
+        B(Lang.T("🏷  Load card / label"), Tool.Label, "label", "2");
+        B(Lang.T("🎯🖨  Print ladder/OCW target"), Tool.TargetPrint, "target", "2");
 
-        Section(Lang.T("AFTER THE RANGE"));
-        // Journal and Find best Ba lead this section on purpose: the journal is where every other
-        // analysis here gets its data from, and Find best Ba is the one that reads it back most
-        // directly -- both used to be tabs buried inside the Inventory window, easy to miss.
-        B(Lang.T("📓  Load journal"), Tool.Journal, "journal");
+        Section(Lang.T("PHASE 2 — CHARGE LADDER"), PathPhase.ChargeLadder);
+        B(Lang.T("🎯  Chronograph import (Athlon / Garmin)"), Tool.Athlon, "stopwatch", "4");
+        B(Lang.T("🎯📄  ShotMarker import (target + velocities)"), Tool.ShotMarker, "shotmarker", "4");
+        B(Lang.T("📐  Chronograph statistics"), Tool.ChronoStats, "stats", "5");
+        B(Lang.T("📈  Ladder / OCW analyzer"), Tool.Ocw, "ladder", "6");
+        B(Lang.T("🎚  Barrel calibration"), Tool.Cal, "sliders", "7");
+
+        Section(Lang.T("PHASE 3 — SEATING DEPTH"), PathPhase.SeatingDepth);
+        Note(Lang.T("Steps 9-11 use the target and the imports above, with the chosen charge."));
+        B(Lang.T("📏  Seating-depth analyzer"), Tool.Seating, "ruler", "12");
+
+        Section(Lang.T("PHASE 4 — CHECK AT DISTANCE"), PathPhase.DistanceCheck);
+        B(Lang.T("🎯📐  Group analysis"), Tool.GroupAnalysis, "group", "15");
+        B(Lang.T("🧭  Distance workflow"), Tool.Workflow, "compass", "16");
+        B(Lang.T("🌡🎯  SD root-cause"), Tool.SdRootCause, "sdcause", "17");
+        B(Lang.T("🔬  Advanced diagnostics"), Tool.Diagnostics, "pulse", "17");
+
+        Section(Lang.T("PHASE 5 — FINAL LOAD, OVER TIME"), PathPhase.Tracking);
+        B(Lang.T("📓  Load journal"), Tool.Journal, "journal", "8 / 18");
+
+        Section(Lang.T("OPTIONAL TOOLS"));
+        B(Lang.T("⚖️  Seating force estimate (QC)"), Tool.SeatingForce, "force");
         B(Lang.T("🔎  Find best Ba"), Tool.FindBa, "findba");
-        B(Lang.T("🎯  Chronograph import (Athlon / Garmin)"), Tool.Athlon, "stopwatch");
-        B(Lang.T("🎯📄  ShotMarker import (target + velocities)"), Tool.ShotMarker, "shotmarker");
-        B(Lang.T("📐  Chronograph statistics"), Tool.ChronoStats, "stats");
-        B(Lang.T("📈  Ladder / OCW analyzer"), Tool.Ocw, "ladder");
-        B(Lang.T("📏  Seating-depth analyzer"), Tool.Seating, "ruler");
-        B(Lang.T("🎚  Barrel calibration"), Tool.Cal, "sliders");
         B(Lang.T("🌡  Powder temp coefficients"), Tool.Temp, "thermo");
         B(Lang.T("🏆  Load leaderboard"), Tool.Leaderboard, "trophy");
-        B(Lang.T("🧭  Distance workflow"), Tool.Workflow, "compass");
         B(Lang.T("🧪  Powder compare"), Tool.PowderCompare, "flask");
         B(Lang.T("📉  Velocity model (charge + temperature)"), Tool.VelocityModel, "curve");
-        B(Lang.T("🔬  Advanced diagnostics"), Tool.Diagnostics, "pulse");
-        B(Lang.T("🌡🎯  SD root-cause"), Tool.SdRootCause, "sdcause");
-        B(Lang.T("🎯📐  Group analysis"), Tool.GroupAnalysis, "group");
 
-        Divider();
+        Section(Lang.T("ALWAYS AT HAND"));
         B(Lang.T("📒  Inventory"), Tool.Log, "box");
         B(Lang.T("📚  Load book export"), Tool.LoadBook, "books");
         B(Lang.T("📄  Install GRT report templates"), Tool.Reports, "doc");
@@ -130,9 +165,13 @@ internal sealed class LauncherForm : Form
         // font grows and a hardcoded number does not.
         // The icon sits to the left of the caption, so its width and the gap around it come on top of the text.
         int iconRoom = LogicalToDeviceUnits(22 + 8 + 8);
-        int column = Math.Max(MinColumnWidth, flow.Controls.OfType<Button>().Max(CaptionWidth) + CaptionAir + iconRoom);
+        int markRoom = TextRenderer.MeasureText(DoneMark, Font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
+        int column = Math.Max(MinColumnWidth, flow.Controls.OfType<Button>().Max(CaptionWidth) + CaptionAir + iconRoom + markRoom);
         foreach (Control c in flow.Controls)
+        {
             if (c is Button or Panel) c.Width = column;
+            else if (c is Label { Font.Bold: false } note) note.MaximumSize = new Size(column, 0);
+        }
 
         // The flow keeps auto-sizing, so its PreferredSize is the height the whole list wants; this
         // host is what makes the overflow reachable once OnLoad clamps the window to the desktop.
@@ -176,6 +215,49 @@ internal sealed class LauncherForm : Form
         // area (under the taskbar). Lift it back inside; see LauncherPlacement.
         var work = Screen.FromControl(this).WorkingArea;
         Top = LauncherPlacement.Top(work.Top, work.Bottom, Top, Height);
+    }
+
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        _ = RefreshAsync();
+    }
+
+    /// <summary>Back in front: the load on top in GRT may have changed since the launcher was last looked at.</summary>
+    protected override void OnActivated(EventArgs e)
+    {
+        base.OnActivated(e);
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// Reads the load that is on top in GRT, marks the phase it is in and puts a check on every step whose result it
+    /// already holds. Best effort and silent: without GRT or a saved load the list is simply the path, unmarked.
+    /// </summary>
+    private async Task RefreshAsync()
+    {
+        if (_refreshing || _grt is not { Connected: true }) return;
+        _refreshing = true;
+        try
+        {
+            var top = await _grt.GetTabOnTopAsync();
+            if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) return;
+            var doc = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
+            var notes = doc.NoteTitles();
+            var measurements = doc.Measurements().Select(m => m.Title).ToList();
+            if (IsDisposed) return;
+            var phase = PathState.From(notes, measurements.Count > 0).Phase;
+            foreach (var (tool, (button, caption)) in _steps)
+                button.Text = caption + (PathProgress.IsDone(tool.ToString(), notes, measurements) ? DoneMark : "");
+            foreach (var (ph, (label, text)) in _phases)
+            {
+                bool here = ph == phase;
+                label.Text = here ? text + "   \u25C0 " + Lang.T("this load") : text;
+                label.ForeColor = here ? Color.FromArgb(0, 88, 176) : SystemColors.GrayText;
+            }
+        }
+        catch (Exception) { /* the list stays as it is */ }
+        finally { _refreshing = false; }
     }
 
     private readonly List<Bitmap> _icons = new();

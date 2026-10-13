@@ -28,6 +28,8 @@ The toolkit's tools follow one path, from the empty bench to a final load that y
 
 ![Recommended path from the empty bench to the final load, in five phases](docs/recommended-path-en.png)
 
+The launcher window lists the tools as this path: the five phases, each tool numbered with its step in the diagram (a tool that returns later, such as the import, is listed once, at its first step). The phase of the load open in GRT is marked "◀ this load", and a step whose result is already in that load carries a check mark. The optional tools and the always-at-hand ones follow in two blocks of their own.
+
 ---
 
 ## 2. How the toolkit writes back to GRT — read this first
@@ -450,7 +452,7 @@ wall runout.
 
 ## 12. Seating Force Estimate (QC)  ⚖️
 
-A standalone tool (its own entry under "BEFORE THE RANGE", not a Brass Prep tab) — estimates expected
+A standalone tool (its own entry under "OPTIONAL TOOLS", not a Brass Prep tab) — estimates expected
 bullet-seating (press-fit) force for a QC press's own "max pressure" safety threshold, ported from
 the Pressa QC press project's own estimator. Every length field (bullet diameter, neck ID, seating
 depth, the baseline's typical interference/depth) has its **own** mm/in dropdown, so you can mix
@@ -608,7 +610,7 @@ listed **last**, never hidden.
 
 ## 17. Load Leaderboard  🏆
 
-A standalone tool in the launcher's "AFTER THE RANGE" section — ranks **every load
+A standalone tool in the launcher's "OPTIONAL TOOLS" section — ranks **every load
 you've ever logged** in the Journal, not one caliber/powder/bullet combo at a time like *Find best
 Ba*. Loads are grouped by caliber + powder + bullet + charge weight (the same recipe tested across
 several range days is still one load, not several) and given a composite **0-10 score**.
@@ -651,7 +653,7 @@ A journal entry whose powder or bullet is not linked to an Inventory component i
 
 ## 18. Distance Workflow  🧭
 
-A second standalone tool next to Load Leaderboard in "AFTER THE RANGE". At a glance it looks
+A second standalone tool next to Load Leaderboard in "OPTIONAL TOOLS". At a glance it looks
 like the same grid and the same 0-10 score again — it is the same scoring engine — but it answers a
 different question, and the two are easy to mix up at first sight:
 

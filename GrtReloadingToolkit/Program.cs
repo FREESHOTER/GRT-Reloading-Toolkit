@@ -170,7 +170,7 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.Wizard => new WizardForm(Open),
             Tool.VelocityModel => new VelocityModelForm(_grt, _db),
             Tool.LoadBook => new LoadBookForm(_db),
-            _ => new LauncherForm(Open),
+            _ => new LauncherForm(Open, _grt),
         });
         f.FormClosed += (_, _) =>
         {

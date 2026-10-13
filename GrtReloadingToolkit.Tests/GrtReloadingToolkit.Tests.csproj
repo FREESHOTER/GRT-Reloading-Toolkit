@@ -50,6 +50,7 @@
     <Compile Include="..\GrtReloadingToolkit\Ui\ToolIconPainter.cs" Link="Ui\ToolIconPainter.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\LauncherCaption.cs" Link="Ui\LauncherCaption.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\ChosenChargeReader.cs" Link="Ui\ChosenChargeReader.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ui\PathProgress.cs" Link="Ui\PathProgress.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\PathState.cs" Link="Ui\PathState.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\ToolPathMap.cs" Link="Ui\ToolPathMap.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\ToolNames.cs" Link="Ui\ToolNames.cs" />

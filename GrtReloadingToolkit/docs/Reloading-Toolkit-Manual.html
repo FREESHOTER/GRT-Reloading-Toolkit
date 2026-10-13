@@ -356,6 +356,7 @@
 <text x="1248" y="1264" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">return from the check over time</text>
 <text x="46" y="1298" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">At the end of each tool on the path: &quot;Done: … Next step: … [Open]&quot; (it follows the load open in GRT)</text>
 </svg></div>
+<p>The launcher window lists the tools as this path: the five phases, each tool numbered with its step in the diagram (a tool that returns later, such as the import, is listed once, at its first step). The phase of the load open in GRT is marked &ldquo;&#9664; this load&rdquo;, and a step whose result is already in that load carries a check mark. The optional tools and the always-at-hand ones follow in two blocks of their own.</p>
     </section>
 
     <section id="writeback">
@@ -761,7 +762,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 
     <section id="seatingforce">
       <h2><span class="no">12</span>Seating Force Estimate (QC)</h2>
-      <p>A standalone tool (its own entry under &ldquo;BEFORE THE RANGE&rdquo;, not a Brass Prep tab)
+      <p>A standalone tool (its own entry under &ldquo;OPTIONAL TOOLS&rdquo;, not a Brass Prep tab)
         &mdash; estimates expected bullet-seating (press-fit) force, for a QC press&#39;s own
         &ldquo;max pressure&rdquo; safety threshold, ported from the Pressa QC press project&#39;s own
         estimator. Every length field (bullet diameter, neck ID, seating depth, the baseline&#39;s
@@ -929,7 +930,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 
     <section id="leaderboard">
       <h2><span class="no">17</span>Load Leaderboard</h2>
-      <p>A standalone tool in the launcher&#39;s &ldquo;AFTER THE RANGE&rdquo; section &mdash;
+      <p>A standalone tool in the launcher&#39;s &ldquo;OPTIONAL TOOLS&rdquo; section &mdash;
         ranks <strong>every load you&#39;ve ever logged</strong> in the Journal, not one
         caliber/powder/bullet combo at a time like <em>Find best Ba</em>. Loads are grouped by
         caliber + powder + bullet + charge weight (the same recipe tested across several range days
@@ -972,7 +973,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
 
     <section id="workflow">
       <h2><span class="no">18</span>Distance Workflow</h2>
-      <p>A second standalone tool next to Load Leaderboard in &ldquo;AFTER THE RANGE&rdquo;. At
+      <p>A second standalone tool next to Load Leaderboard in &ldquo;OPTIONAL TOOLS&rdquo;. At
         a glance it looks like the same grid and the same 0-10 score again &mdash; it <em>is</em> the
         same scoring engine &mdash; but it answers a different question, and the two are easy to mix
         up at first sight:</p>
