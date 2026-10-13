@@ -42,6 +42,7 @@
          reads velocities with are plain parsing: no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\Ocw\LadderLoader.cs" Link="Ocw\LadderLoader.cs" />
     <Compile Include="..\GrtReloadingToolkit\Athlon\AthlonModels.cs" Link="Athlon\AthlonModels.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Athlon\ImportBuilder.cs" Link="Athlon\ImportBuilder.cs" />
     <Compile Include="..\GrtReloadingToolkit\Athlon\AthlonParser.cs" Link="Athlon\AthlonParser.cs" />
     <!-- The calibration maths: the Ba + a0 fit and its report. -->
     <Compile Include="..\GrtReloadingToolkit\Cal\Calibration.cs" Link="Cal\Calibration.cs" />

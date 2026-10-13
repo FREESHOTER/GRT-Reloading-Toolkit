@@ -149,7 +149,7 @@ public static class LadderAnalyzer
         }
         sb.AppendLine();
         sb.AppendLine("Method: MOA target coordinates from OnTarget" + (seat ? "." : ", velocities from Athlon Rangecraft."));
-        sb.AppendLine("SD is population (n). Confirm any node with a fresh confirmation group before committing.");
+        sb.AppendLine("SD is the sample SD (n-1), as GRT shows it. Confirm any node with a fresh confirmation group before committing.");
         return sb.ToString();
 
         // A node's bounds are the same quantity as the X column, so they take the same conversion.

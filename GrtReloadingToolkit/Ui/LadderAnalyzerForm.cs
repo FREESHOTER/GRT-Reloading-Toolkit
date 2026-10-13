@@ -359,7 +359,7 @@ internal abstract class LadderAnalyzerForm : Form
                 $"{read.CaliberName}  ·  {read.PropellantName}  ·  {read.ProjectileName}",
                 string.Format(Lang.T("Ladder rank #{0} of {1}, score {2} ({3})."), rank, ranked,
                     score.Total.Value.ToString("0.00", CultureInfo.InvariantCulture), Lang.T(LoadScoring.ScoreLabel(score.Total))),
-                $"SD {(step.HasVel ? u.Velocity(step.SdMps) : "--")}   ES {(step.HasVel ? u.Velocity(step.EsMps) : "--")}   "
+                $"SD {(step.HasVel ? u.VelocitySd(step.SdMps) + " " + u.VelocityUnitName : "--")}   ES {(step.HasVel ? u.VelocitySd(step.EsMps) + " " + u.VelocityUnitName : "--")}   "
                 + $"{Lang.T("Group MOA")} {(step.HasTarget ? step.GroupEsMoa.ToString("0.00", CultureInfo.InvariantCulture) : "--")}   {Math.Max(step.VelN, step.Impacts)} {Lang.T("Rounds")}",
                 Lang.T("Next: the seating-depth test is shot with this charge."));
 

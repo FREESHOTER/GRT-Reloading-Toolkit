@@ -187,8 +187,8 @@ internal sealed class PowderCompareForm : Form
             report.AppendLine();
             void Line(string label, double? sub, string detail) =>
                 report.AppendLine($"  {label,-14} {(sub?.ToString("0.0", CultureInfo.InvariantCulture) ?? "--"),5}  {detail}");
-            Line("SD", row.Score.Sd, row.Sd is { } sd ? u.Velocity(sd) : "--");
-            Line("ES", row.Score.Es, row.Es is { } es ? u.Velocity(es) : "--");
+            Line("SD", row.Score.Sd, row.Sd is { } sd ? u.VelocitySd(sd) + " " + u.VelocityUnitName : "--");
+            Line("ES", row.Score.Es, row.Es is { } es ? u.VelocitySd(es) + " " + u.VelocityUnitName : "--");
             Line(Lang.T("Group MOA"), row.Score.Group, row.Group?.ToString("0.00", CultureInfo.InvariantCulture) + " MOA");
             Line(Lang.T("Sample size"), row.Score.SampleSize, row.Rounds + " " + Lang.T("Rounds"));
             Line(Lang.T("Consistency"), row.Score.Consistency,

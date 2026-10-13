@@ -70,18 +70,24 @@ internal static class ImportBuilder
         return S.Num(u.TemperatureValue(celsius), 1) + u.TemperatureUnitName;
     }
 
-    private static string BuildChargeNote(AthlonString s, StringStats stats, double? tempC)
+    /// <summary>
+    /// The note GRT shows next to a charge. The SD goes in twice when the chronograph reported one: its own is the population SD
+    /// (÷n), GRT shows the sample SD (÷n−1) on the measurement tab, and the two differ by 10-20% on a 4-5 shot string, so each
+    /// is labelled and neither is passed off as the other. Without a device figure only the sample SD is written.
+    /// </summary>
+    internal static string BuildChargeNote(AthlonString s, StringStats stats, double? tempC)
     {
         string unit = s.SourceUnit == "fps" ? "ft/s" : "m/s";
         double avg = s.DeviceAvg ?? ToFileUnit(stats.Mean, s.SourceUnit);
-        double sd = s.DeviceSd ?? ToFileUnit(stats.Sd, s.SourceUnit);
+        double sdSample = ToFileUnit(stats.Sd, s.SourceUnit);
         double es = s.DeviceEs ?? ToFileUnit(stats.Es, s.SourceUnit);
 
-        var p = new List<string>
-        {
-            "AVG-E=" + S.Num(avg, 1), "SD=" + S.Num(sd, 1), "ES=" + S.Num(es, 1),
-            "N=" + stats.N.ToString(CultureInfo.InvariantCulture), "UNIT=" + unit,
-        };
+        var p = new List<string> { "AVG-E=" + S.Num(avg, 1) };
+        if (s.DeviceSd is { } sdDevice) p.Add("SD-DEVICE=" + S.Num(sdDevice, 1));
+        p.Add("SD-SAMPLE=" + S.Num(sdSample, 1));
+        p.Add("ES=" + S.Num(es, 1));
+        p.Add("N=" + stats.N.ToString(CultureInfo.InvariantCulture));
+        p.Add("UNIT=" + unit);
         if (!string.IsNullOrWhiteSpace(s.DevicePowerFactor)) p.Add("PF=" + s.DevicePowerFactor!.Trim());
         if (!string.IsNullOrWhiteSpace(s.DeviceEnergy)) p.Add("KE=" + s.DeviceEnergy!.Trim());
         if (tempC is { } t) p.Add("T=" + TempToken(t));

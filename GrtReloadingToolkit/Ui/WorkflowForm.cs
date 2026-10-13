@@ -264,8 +264,8 @@ internal sealed class WorkflowForm : Form
             report.AppendLine();
             void Line(string label, double? sub, string detail) =>
                 report.AppendLine($"  {label,-14} {(sub?.ToString("0.0", CultureInfo.InvariantCulture) ?? "--"),5}  {detail}");
-            Line("SD", match.Score.Sd, match.Sd is { } sd ? u.Velocity(sd) : "--");
-            Line("ES", match.Score.Es, match.Es is { } es ? u.Velocity(es) : "--");
+            Line("SD", match.Score.Sd, match.Sd is { } sd ? u.VelocitySd(sd) + " " + u.VelocityUnitName : "--");
+            Line("ES", match.Score.Es, match.Es is { } es ? u.VelocitySd(es) + " " + u.VelocityUnitName : "--");
             Line(Lang.T("Group MOA"), match.Score.Group, match.Group?.ToString("0.00", CultureInfo.InvariantCulture) + " MOA");
             Line(Lang.T("Sample size"), match.Score.SampleSize, match.Rounds + " " + Lang.T("Rounds"));
 
