@@ -356,7 +356,7 @@
 <text x="898" y="1264" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">Rückkehr laut Diagnose</text>
 <path d="M 1200 1259 L 1236 1259" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr5)"/>
 <text x="1248" y="1264" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">Rückkehr aus der Prüfung im Zeitverlauf</text>
-<text x="46" y="1298" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">Am Ende jedes Werkzeugs (in Planung): &quot;Erledigt: … Nächster Schritt: … [Öffnen]&quot;</text>
+<text x="46" y="1298" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">Am Ende jedes Werkzeugs auf dem Weg: &quot;Erledigt: … Nächster Schritt: … [Öffnen]&quot; (folgt der in GRT geöffneten Ladung)</text>
 </svg></div>
     </section>
 
@@ -614,6 +614,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
           lesen, mit einem Schalter <em>drop flyers</em>.</td></tr>
         <tr><td>Write note to GRT load</td><td>Schreibt die Notiz &ldquo;OCW Analysis&rdquo;
           <strong>und das Diagramm</strong> in die Ladung.</td></tr>
+<tr><td>Diese Ladung wählen</td><td>Eine Zeile markieren (die Spalte <em>Punktzahl</em> reiht die Ladungen nach SD, ES, Gruppengröße und Schusszahl) und die Schaltfläche drücken: Es wird eine Notiz &bdquo;Chosen Charge&ldquo; in die Ladung geschrieben, und die Zeile &bdquo;Nächster Schritt&ldquo; zeigt, dass diese Ladung in die Setztiefen-Prüfung geht.</td></tr>
       </tbody></table>
       <p><strong>Tabelle:</strong> Ladung · n · MV · SD · ES · Distanz · POI-Y (MOA) · mittlerer
         Gruppenradius (MOA) · vertikale Streuung (MOA). Der empfohlene Knoten ist grün hinterlegt.</p>
@@ -643,7 +644,8 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         <strong>Gruppengrößen-Plateau</strong> statt der MV-Flachstelle. Der Stufenwert wird aus einer
         Zahl in der Sitzungsnotiz oder im Dateinamen gelesen (&ldquo;salto 0.02&rdquo;,
         &ldquo;jump .015&rdquo;, &ldquo;cbto 2.850&rdquo;).</p>
-      <p>Geschrieben als <code>~~result.Note("Seating Depth Analysis")~~</code> +
+      <p><strong>Diese Tiefe wählen</strong> funktioniert genauso: Zeile markieren und drücken. Eine Notiz &bdquo;Chosen Depth&ldquo; wird in die Ladung geschrieben, und die Import-Fenster zeigen danach auf die Gruppenanalyse (die Prüfung auf Distanz).</p>
+<p>Geschrieben als <code>~~result.Note("Seating Depth Analysis")~~</code> +
         <code>~~result.picture.seating_chart.png~~</code>.</p>
     </section>
 

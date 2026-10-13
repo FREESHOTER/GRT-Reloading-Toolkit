@@ -17,7 +17,7 @@ internal enum PathPhase
 /// window. Pure logic: it takes the titles of the notes in the load, so the tests can run it on any machine.
 ///
 /// <para>The rules, each from a note a tool of the toolkit writes: a "Distance Workflow" or "Group Analysis" note means the
-/// check at distance has been done; a "Seating Depth Analysis" note means the seating-depth test has; a "Chosen Charge" note
+/// check at distance has been done; a "Chosen Depth" note means the seating depth has been picked (the analysis alone does not end the test: the shooter has not said which depth); a "Chosen Charge" note
 /// means the charge has been picked; any measurement or an OCW / Chrono Statistics / Barrel Calibration note means the charge
 /// ladder is under way; an empty load is at the start. The latest of these wins.</para>
 /// </summary>
@@ -32,8 +32,8 @@ internal sealed record PathState(PathPhase Phase)
         bool Has(string prefix) => titles.Any(t => t.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
 
         if (Has("Distance Workflow") || Has("Group Analysis")) return new PathState(PathPhase.Tracking);
-        if (Has("Seating Depth Analysis")) return new PathState(PathPhase.DistanceCheck);
-        if (Has("Chosen Charge")) return new PathState(PathPhase.SeatingDepth);
+        if (Has("Chosen Depth")) return new PathState(PathPhase.DistanceCheck);
+        if (Has("Chosen Charge") || Has("Seating Depth Analysis")) return new PathState(PathPhase.SeatingDepth);
         if (hasMeasurement || Has("OCW Analysis") || Has("Chrono Statistics") || Has("Barrel Calibration"))
             return new PathState(PathPhase.ChargeLadder);
         return new PathState(PathPhase.Preparation);

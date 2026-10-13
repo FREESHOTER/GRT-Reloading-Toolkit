@@ -10,6 +10,7 @@ namespace GrtReloadingToolkit.Ui;
 internal sealed class BrassForm : Form
 {
     private readonly GrtClient? _grt;
+    private NextStepBar? _next;
     private readonly Label _status = new();
 
     // case volume
@@ -50,6 +51,7 @@ internal sealed class BrassForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(520, 400);
         Build();
+        _next = NextStepBar.Attach(this, "Brass", _grt);
         NudFix.ApplyTo(this);
         ApplyGrtUnits();
         // After ApplyGrtUnits, so a unit you picked yourself outlives GRT's default; and unit
@@ -179,6 +181,7 @@ internal sealed class BrassForm : Form
                 _status.Text = Lang.T("note written, but no 'casevol' input in the load");
             string outPath = doc.SaveSibling("casevol");
             await _grt.LoadFileAsync(outPath);
+            _next?.MarkDone();
             _status.Text = string.Format(CultureInfo.InvariantCulture, Lang.T("casevol = mean {0:0.00} gr H2O ({1:0.000} cm3, unit={2}) written and opened in GRT."),
                 _cvResult.MeanGr, _cvResult.MeanCm3, unit);
         }
@@ -351,7 +354,7 @@ internal sealed class BrassForm : Form
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Seating depth"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
-    private async Task OpenSibling(GrtLoadDoc doc) => await _grt!.LoadFileAsync(doc.SaveSibling("seatdepth"));
+    private async Task OpenSibling(GrtLoadDoc doc) { await _grt!.LoadFileAsync(doc.SaveSibling("seatdepth")); _next?.MarkDone(); }
 
     private string SeatingReport()
     {

@@ -359,7 +359,7 @@
 <text x="898" y="1264" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">retour suggéré par le diagnostic</text>
 <path d="M 1200 1259 L 1236 1259" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr5)"/>
 <text x="1248" y="1264" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">retour depuis le suivi dans le temps</text>
-<text x="46" y="1298" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">À la fin de chaque outil (bientôt) : « Fait : … Étape suivante : … [Ouvrir] »</text>
+<text x="46" y="1298" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">À la fin de chaque outil du parcours : « Fait : … Étape suivante : … [Ouvrir] » (suit la charge ouverte dans GRT)</text>
 </svg></div>
     </section>
 
@@ -618,6 +618,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         <tr><td>Re-analyze</td><td>Recalcule avec les poids actuels.</td></tr>
         <tr><td>Groups from GRT load</td><td>Lit les groupements depuis les onglets Shot-group de GRT au lieu du <code>.csv</code>, avec une option <em>drop flyers</em>.</td></tr>
         <tr><td>Write note to GRT load</td><td>Écrit la note &laquo;&nbsp;OCW Analysis&nbsp;&raquo; <strong>et le graphique</strong> dans le load.</td></tr>
+<tr><td>Choisir cette charge</td><td>Sélectionnez une ligne (la colonne <em>Score</em> classe les charges selon l&#39;SD, l&#39;ES, la taille du groupe et le nombre de coups) et appuyez : une note &laquo; Chosen Charge &raquo; est écrite dans la charge, et la ligne &laquo; étape suivante &raquo; indique que cette charge passe au test de profondeur de seating.</td></tr>
       </tbody></table>
       <p><strong>Grille&nbsp;:</strong> charge · n · MV · SD · ES · distance · POI-Y (MOA) · rayon
         moyen du groupe (MOA) · dispersion verticale (MOA). Le nœud recommandé est surligné en vert.</p>
@@ -648,7 +649,8 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
         pas est lue dans un nombre présent dans la note de session ou le nom de fichier
         (&laquo;&nbsp;salto 0.02&nbsp;&raquo;, &laquo;&nbsp;jump .015&nbsp;&raquo;,
         &laquo;&nbsp;cbto 2.850&nbsp;&raquo;).</p>
-      <p>Écrit comme <code>~~result.Note("Seating Depth Analysis")~~</code> +
+      <p><strong>Choisir cette profondeur</strong> fonctionne de la même façon : sélectionnez la ligne et appuyez. Une note &laquo; Chosen Depth &raquo; est écrite dans la charge, et les fenêtres d&#39;import pointent ensuite vers l&#39;analyse de groupe (la vérification à distance).</p>
+<p>Écrit comme <code>~~result.Note("Seating Depth Analysis")~~</code> +
         <code>~~result.picture.seating_chart.png~~</code>.</p>
     </section>
 

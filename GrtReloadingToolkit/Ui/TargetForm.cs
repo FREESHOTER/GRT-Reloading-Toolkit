@@ -26,6 +26,8 @@ internal sealed class TargetForm : Form
     private readonly NumericUpDown _previewPage = new() { Minimum = 1, Maximum = 1, Value = 1, Width = 55 };
     private readonly Label _status = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
 
+    private NextStepBar? _next;
+
     public TargetForm()
     {
         Text = AppVersion.Title(Lang.T("Print Ladder/OCW Target"));
@@ -33,6 +35,7 @@ internal sealed class TargetForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(800, 520);
         Build();
+        _next = NextStepBar.Attach(this, "TargetPrint", null);
         NudFix.ApplyTo(this);
         Render();
     }

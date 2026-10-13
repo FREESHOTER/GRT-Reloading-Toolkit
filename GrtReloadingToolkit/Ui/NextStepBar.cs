@@ -25,6 +25,17 @@ internal sealed class NextStepBar : Panel
     public static NextStepBar? For(string current)
         => ToolPathMap.Sources.Contains(current) ? new NextStepBar(current) : null;
 
+    /// <summary>Adds the bar to <paramref name="form"/> (after its other controls, so it takes the bottom edge) and starts
+    /// following the open load. Null when the path has nothing after this tool in any phase.</summary>
+    public static NextStepBar? Attach(Form form, string current, GrtClient? grt)
+    {
+        NextStepBar? bar = For(current);
+        if (bar is null) return null;
+        form.Controls.Add(bar);
+        _ = bar.TrackLoadAsync(grt);
+        return bar;
+    }
+
     private NextStepBar(string current)
     {
         _current = current;

@@ -26,19 +26,23 @@ public sealed class PathStateTests
         => Assert.Equal(PathPhase.SeatingDepth, Phase(true, "OCW Analysis", "Chosen Charge"));
 
     [Fact]
-    public void ASeatingAnalysisMovesItToTheCheckAtDistance()
-        => Assert.Equal(PathPhase.DistanceCheck, Phase(true, "Chosen Charge", "Seating Depth Analysis"));
+    public void ASeatingAnalysisAloneDoesNotEndTheSeatingTest()
+        => Assert.Equal(PathPhase.SeatingDepth, Phase(true, "Chosen Charge", "Seating Depth Analysis"));
+
+    [Fact]
+    public void AChosenDepthMovesItToTheCheckAtDistance()
+        => Assert.Equal(PathPhase.DistanceCheck, Phase(true, "Chosen Charge", "Seating Depth Analysis", "Chosen Depth"));
 
     [Fact]
     public void AGroupAnalysisOrADistanceWorkflowMovesItToTheTracking()
     {
-        Assert.Equal(PathPhase.Tracking, Phase(true, "Chosen Charge", "Seating Depth Analysis", "Group Analysis"));
+        Assert.Equal(PathPhase.Tracking, Phase(true, "Chosen Charge", "Chosen Depth", "Group Analysis"));
         Assert.Equal(PathPhase.Tracking, Phase(true, "Distance Workflow"));
     }
 
     [Fact]
     public void TheLatestStageWinsWhateverTheOrderOfTheNotes()
-        => Assert.Equal(PathPhase.DistanceCheck, Phase(true, "Seating Depth Analysis", "OCW Analysis", "Chosen Charge"));
+        => Assert.Equal(PathPhase.DistanceCheck, Phase(true, "Chosen Depth", "OCW Analysis", "Chosen Charge"));
 
     [Fact]
     public void TitlesAreMatchedByTheirStartAndWithoutCase()

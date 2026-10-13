@@ -352,7 +352,7 @@
 <text x="898" y="1246" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">ritorno suggerito dalla diagnosi</text>
 <path d="M 1200 1241 L 1236 1241" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr5)"/>
 <text x="1248" y="1246" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">ritorno dal controllo nel tempo</text>
-<text x="46" y="1280" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">A fine di ogni strumento (in arrivo): &quot;Fatto: … Prossimo passo: … [Apri]&quot;</text>
+<text x="46" y="1280" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">A fine di ogni strumento del percorso: &quot;Fatto: … Prossimo passo: … [Apri]&quot; (segue il load aperto in GRT)</text>
 </svg></div>
     </section>
 
@@ -590,6 +590,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>Re-analyze</td><td>Ricalcola con i pesi attuali.</td></tr>
         <tr><td>Groups from GRT load</td><td>Legge i gruppi dai tab &laquo;gruppo di colpi&raquo; di GRT invece che dai <code>.csv</code>, con l&#39;opzione <em>drop flyers</em>.</td></tr>
         <tr><td>Write note to GRT load</td><td>Scrive la nota &laquo;OCW Analysis&raquo; <strong>e il grafico</strong> nel load.</td></tr>
+<tr><td>Scegli questa carica</td><td>Seleziona una riga (la colonna <em>Punteggio</em> ordina le cariche per SD, ES, dimensione del gruppo e numero di colpi) e premilo: nel load viene scritta una nota &laquo;Chosen Charge&raquo; e la riga &laquo;prossimo passo&raquo; indica che questa carica va alla prova di profondità di seduta.</td></tr>
       </tbody></table>
       <p><strong>Griglia:</strong> carica · n · MV · SD · ES · distanza · POI-Y (MOA) · raggio medio
         del gruppo (MOA) · dispersione verticale (MOA). Il nodo consigliato è evidenziato in verde.</p>
@@ -615,7 +616,8 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <strong>plateau della dimensione del gruppo</strong> invece del flat-spot di velocità. Il
         valore del gradino viene letto da un numero negli appunti della sessione o nel nome file
         (&laquo;salto 0.02&raquo;, &laquo;jump .015&raquo;, &laquo;cbto 2.850&raquo;).</p>
-      <p>Scritto come <code>~~result.Note("Seating Depth Analysis")~~</code> +
+      <p><strong>Scegli questa profondità</strong> funziona allo stesso modo: seleziona la riga e premilo. Nel load viene scritta una nota &laquo;Chosen Depth&raquo; e da quel momento le finestre di importazione indicano come passo successivo l&#39;analisi del gruppo (la verifica a distanza).</p>
+<p>Scritto come <code>~~result.Note("Seating Depth Analysis")~~</code> +
         <code>~~result.picture.seating_chart.png~~</code>.</p>
     </section>
 

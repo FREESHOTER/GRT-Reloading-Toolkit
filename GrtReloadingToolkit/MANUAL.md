@@ -271,6 +271,7 @@ folder always wins over the load's own numbers for that charge.
 | **Re-analyze** | Recompute with the current weights. |
 | **Groups from GRT load** | Read the group data from GRT's Shot-group tabs instead of `.csv` (with a *drop flyers* option, see §14). |
 | **Write note to GRT load** | Write the "OCW Analysis" note **and the chart** into the load. |
+| **Choose this charge** | Select a row (the *Score* column ranks the charges on SD, ES, group size and number of rounds) and press it: a "Chosen Charge" note goes into the load, and the "next step" line says that this charge goes on to the seating-depth test. |
 
 **Grid:** charge · n · MV · SD · ES · distance · POI-Y (MOA) · group mean-radius (MOA) · vertical
 spread (MOA). The recommended node is shaded green.
@@ -294,6 +295,8 @@ The report and chart are written as `~~result.Note("OCW Analysis")~~` and
 Same window and workflow as the OCW analyzer, but the X axis is **seating depth / jump (mm)** and
 the primary signal is the **group-size plateau** rather than the MV flat-spot. The step value is
 read from a number in the session note or file name ("salto 0.02", "jump .015", "cbto 2.850").
+
+**Choose this depth** works the same way as choosing a charge: select the row and press it. A "Chosen Depth" note goes into the load, and from then on the import windows point to the group analysis (the check at distance).
 
 Writes `~~result.Note("Seating Depth Analysis")~~` + `~~result.picture.seating_chart.png~~`.
 

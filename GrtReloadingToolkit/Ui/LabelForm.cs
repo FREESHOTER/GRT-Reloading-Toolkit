@@ -12,6 +12,7 @@ namespace GrtReloadingToolkit.Ui;
 internal sealed class LabelForm : Form
 {
     private readonly GrtClient? _grt;
+    private NextStepBar? _next;
     private readonly Db _db;
     private readonly LoadCard _card = new();
     private List<Component> _components;
@@ -37,6 +38,7 @@ internal sealed class LabelForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(760, 480);
         Build();
+        _next = NextStepBar.Attach(this, "Label", _grt);
         NudFix.ApplyTo(this);
         Activated += (_, _) => RefreshComponents();
         Render();
@@ -229,6 +231,7 @@ internal sealed class LabelForm : Form
             doc.AddNote("Load Sheet", BuildLoadSheetNote());
             string outPath = doc.SaveSibling("loadsheet");
             await _grt.LoadFileAsync(outPath);
+            _next?.MarkDone();
             _status.Text = Lang.T("load-sheet note written — opened in GRT.");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("Load sheet"), MessageBoxButtons.OK, MessageBoxIcon.Error); }

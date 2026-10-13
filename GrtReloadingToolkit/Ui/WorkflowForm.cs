@@ -25,6 +25,7 @@ internal sealed class WorkflowForm : Form
     private const int MinRoundsForRanking = WorkflowRanking.MinRoundsForRanking;
 
     private readonly GrtClient? _grt;
+    private NextStepBar? _next;
     private readonly Db _db;
     private readonly ComboBox _caliber = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
     private readonly ComboBox _distance = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 120 };
@@ -103,6 +104,7 @@ internal sealed class WorkflowForm : Form
         Controls.Add(_grid);
         Controls.Add(_status);
         Controls.Add(bar);
+        _next = NextStepBar.Attach(this, "Workflow", _grt);
         NudFix.ApplyTo(this);
 
         RefreshCalibers();
@@ -274,6 +276,7 @@ internal sealed class WorkflowForm : Form
             writeDoc.AddNote(NoteTitle, report.ToString());
             string outPath = writeDoc.SaveSibling("workflow");
             await _grt.LoadFileAsync(outPath);
+            _next?.MarkDone();
             _status.Text = Lang.T("Workflow note written and opened in GRT.");
         }
         catch (Exception ex)

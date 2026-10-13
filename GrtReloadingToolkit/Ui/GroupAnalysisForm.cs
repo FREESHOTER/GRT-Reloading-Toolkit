@@ -49,6 +49,7 @@ internal sealed class GroupAnalysisForm : Form
     }
 
     private readonly GrtClient? _grt;
+    private NextStepBar? _next;
     private readonly GrtUnits _u = GrtUnits.Current;
     private readonly List<GroupEntry> _entries = new();
 
@@ -103,6 +104,7 @@ internal sealed class GroupAnalysisForm : Form
 
         Controls.Add(split);
         Controls.Add(top);
+        _next = NextStepBar.Attach(this, "GroupAnalysis", _grt);
         split.SplitterDistance = 320;
         NudFix.ApplyTo(this);
     }
@@ -481,6 +483,7 @@ internal sealed class GroupAnalysisForm : Form
             if (png != null) writeDoc.AddGalleryPicture($"{NoteTitle} chart", "groupanalysis_chart", png);
             string outPath = writeDoc.SaveSibling("groupanalysis");
             await _grt.LoadFileAsync(outPath);
+            _next?.MarkDone();
             _loadStatus.Text = Lang.T("Group analysis note written and opened in GRT.");
         }
         catch (Exception ex)

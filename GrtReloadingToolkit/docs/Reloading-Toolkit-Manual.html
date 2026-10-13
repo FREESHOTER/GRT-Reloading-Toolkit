@@ -356,7 +356,7 @@
 <text x="898" y="1264" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">return suggested by the diagnosis</text>
 <path d="M 1200 1259 L 1236 1259" stroke="#2b6cb0" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arr5)"/>
 <text x="1248" y="1264" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="normal" fill="#1d2630" text-anchor="start">return from the check over time</text>
-<text x="46" y="1298" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">At the end of every tool (coming soon): &quot;Done: … Next step: … [Open]&quot;</text>
+<text x="46" y="1298" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1d2630" text-anchor="start">At the end of each tool on the path: &quot;Done: … Next step: … [Open]&quot; (it follows the load open in GRT)</text>
 </svg></div>
     </section>
 
@@ -588,6 +588,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <tr><td>Re-analyze</td><td>Recompute with the current weights.</td></tr>
         <tr><td>Groups from GRT load</td><td>Read groups from GRT&#39;s Shot-group tabs instead of <code>.csv</code>, with a <em>drop flyers</em> toggle.</td></tr>
         <tr><td>Write note to GRT load</td><td>Write the &ldquo;OCW Analysis&rdquo; note <strong>and the chart</strong> into the load.</td></tr>
+<tr><td>Choose this charge</td><td>Select a row (the <em>Score</em> column ranks the charges on SD, ES, group size and number of rounds) and press it: a &ldquo;Chosen Charge&rdquo; note goes into the load, and the &ldquo;next step&rdquo; line says that this charge goes on to the seating-depth test.</td></tr>
       </tbody></table>
       <p><strong>Grid:</strong> charge · n · MV · SD · ES · distance · POI-Y (MOA) · group mean-radius
         (MOA) · vertical spread (MOA). The recommended node is shaded green.</p>
@@ -612,7 +613,8 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
         <strong>group-size plateau</strong> rather than the MV flat-spot. The step value is read from a
         number in the session note or file name (&ldquo;salto 0.02&rdquo;, &ldquo;jump .015&rdquo;,
         &ldquo;cbto 2.850&rdquo;).</p>
-      <p>Written as <code>~~result.Note("Seating Depth Analysis")~~</code> +
+      <p><strong>Choose this depth</strong> works the same way: select the row and press it. A &ldquo;Chosen Depth&rdquo; note goes into the load, and from then on the import windows point to the group analysis (the check at distance).</p>
+<p>Written as <code>~~result.Note("Seating Depth Analysis")~~</code> +
         <code>~~result.picture.seating_chart.png~~</code>.</p>
     </section>
 

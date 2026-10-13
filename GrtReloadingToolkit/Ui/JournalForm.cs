@@ -14,6 +14,7 @@ namespace GrtReloadingToolkit.Ui;
 internal sealed class JournalForm : Form
 {
     private readonly GrtClient? _grt;
+    private NextStepBar? _next;
     private readonly Db _db;
     private readonly DataGridView _jrn = new();
     private readonly Label _status = new();
@@ -55,6 +56,7 @@ internal sealed class JournalForm : Form
         Controls.Add(_jrn);
         Controls.Add(bar);
         Controls.Add(_status);
+        _next = NextStepBar.Attach(this, "Journal", _grt);
         NudFix.ApplyTo(this);
 
         RefreshJournal();
@@ -98,6 +100,7 @@ internal sealed class JournalForm : Form
         {
             d.Result.FirearmId = _db.ResolveFirearm(d.Result.Firearm, d.Result.Caliber) is var fid && fid > 0 ? fid : null;
             _db.SaveEntry(d.Result, d.ApplyStock);
+            _next?.MarkDone();
             RefreshJournal();
         }
     }
