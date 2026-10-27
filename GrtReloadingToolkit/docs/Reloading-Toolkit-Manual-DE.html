@@ -124,7 +124,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Handbuch · v0.3.0</span>
+  <span class="k">Handbuch · v0.4.0</span>
 </div></div>
 
 <div class="shell">
@@ -159,6 +159,9 @@
       <li><a href="#shotmarker">ShotMarker-Import</a></li>
       <li><a href="#reports">GRT-Berichtsvorlagen</a></li>
       <li><a href="#cli">Kommandozeile</a></li>
+      <li><a href="#follow">Eine Ladung verfolgen</a></li>
+      <li><a href="#modelprobe">Modellsonde</a></li>
+      <li><a href="#stability">Gyroskopische Stabilit&auml;t</a></li>
       <li><a href="#faq">Einschränkungen &amp; FAQ</a></li>
     </ol>
   </nav>
@@ -166,7 +169,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Handbuch</h1>
-      <p class="sub">Ein Community-Plugin für Gordon&#39;s Reloading Tool. Vierundzwanzig Wiederlade-Werkzeuge
+      <p class="sub">Ein Community-Plugin für Gordon&#39;s Reloading Tool. Fünfundzwanzig Wiederlade-Werkzeuge
         und ein Satz druckbarer GRT-Berichtsvorlagen in einem Fenster.</p>
       <p class="lede">Plugin-Id <code>com.grt.plugin.reloadingtoolkit</code>. Ausgeliefert als
         eigenständige Windows-Einzeldatei-exe &mdash; auf dem Zielrechner wird keine .NET-Laufzeit
@@ -189,6 +192,7 @@
         sobald das letzte Fenster geschlossen wird. Alle Werkzeugfenster werden von einem einzigen
         Hintergrundprozess bedient &mdash; ein zweites Werkzeug zu öffnen, während eines schon offen ist,
         holt dieses Werkzeug einfach nach vorn.</p>
+      <p><strong>Aussehen.</strong> Die Fenster sind wie die von GRT gestaltet: dunkle schieferblaue Flächen, helle Schrift, Segoe&nbsp;UI 9&nbsp;pt. Das Kästchen unten im Launcher, <em>Look of GRT (dark windows)</em> (auf Italienisch &bdquo;Aspetto di GRT&ldquo;), schaltet auf die bisherigen hellen Fenster zurück; es gilt ab dem nächsten Start des Toolkits.</p>
     
 
       <h3>Der empfohlene Ablauf</h3>
@@ -532,6 +536,11 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         <tr><td>Import into GRT</td><td>Die Messung in die Ladung schreiben und den Snapshot
           öffnen.</td></tr>
       </tbody></table>
+      <p><strong>In welche Ladung es geht.</strong> Der Import schreibt in die in GRT oben liegende Ladung, abgefragt
+        im Moment des Klicks. Vor dem Schreiben nennt ein Fenster diese Ladung, ihren Ordner und wem sie gehört:
+        Schütze ist die Person, in deren Ordner sie liegt (<code>...\GRT\Mario\N160\Ladung.grtload</code> gehört
+        Mario), oder ein Name aus der Schützenliste des Launchers, der im Pfad vorkommt. Ist im Launcher jemand
+        anderes gewählt, weist das Fenster darauf hin. Mit <em>Nein</em> abbrechen und in GRT den richtigen Tab wählen.</p>
       <p><strong>Tabelle:</strong> Use · Datei · Ladung (gr, editierbar) · Schüsse · AVG m/s · SD · ES ·
         Temp °C (editierbar).</p>
       <p><strong>Die Ladungsmenge</strong> kommt aus der Sitzungsnotiz (&ldquo;carica 39.2&rdquo;,
@@ -658,6 +667,9 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
       <p>Vergleicht GRTs <strong>simulierte</strong> Mündungsgeschwindigkeit mit deiner
         <strong>gemessenen</strong> MV über mehrere Ladungen und schlägt eine Anpassung von
         <code>Ba</code> (Abbrand-Koeffizient) vor, damit GRT zu deinem Lauf passt.</p>
+      <p><strong>Bevor es etwas liest,</strong> fragt das Werkzeug GRT, ob der Tab der Ladung nicht gespeicherte Änderungen hat. Es arbeitet mit der gespeicherten Datei (Ladung, Messungen), nimmt die simulierte Geschwindigkeit aber aus dem Tab; eine nicht gespeicherte Änderung würde also eine Geschwindigkeit mit einer Ladung paaren, für die sie nicht berechnet wurde: Speichern Sie zuerst in GRT, oder bestätigen Sie, um mit der gespeicherten Datei fortzufahren. Jeder Punkt des Durchlaufs geht weiter, sobald GRT ihn als berechnet meldet, statt eine feste Zeit zu warten.</p>
+      <p><strong>Revolver.</strong> Der Trommelspalt lässt Gas entweichen. Ohne ihn kalibriert stimmt die Geschwindigkeit, aber die Drücke fallen zu niedrig aus, wie GRTs eigene FAQ warnt: Geben Sie den Spalt zuerst in GRT ein (Kaliberfenster, Gasverlust). Das Fenster zeigt diesen Hinweis immer an, weil das Plugin einen Revolver nicht von einem Gewehr unterscheiden kann.</p>
+      <p><strong>Das ursprüngliche Pulvermodell.</strong> Die Plugin-Schnittstelle kann GRTs Pulverdatenbank nicht lesen; deshalb vergleicht das Toolkit die Ladung mit den Modellen, die Sie selbst exportieren: in GRTs Pulverdatenbank Rechtsklick auf das Pulver → Exportieren, und die Datei im Ordner <strong><code>Polveri</code></strong> in GRTs eigenem Ordner speichern. Das Fenster zeigt dann Ba, k, a0, z1 und z2 der Ladung im Vergleich zu diesem Modell, und die Zusammenfassung, wie weit die vorgeschlagene Korrektur Ba (und k) davon entfernen würde. Mehr als 10&nbsp;% Abstand zum Modell deutet häufiger auf eine falsche Eingabe der Ladung (Hülsenvolumen, Geschosslänge, Lauflänge) als auf das Pulver. GRT exportiert nur selbst angelegte oder geänderte Einträge, und der Vergleich ist nur so gut wie die Datei: Legen Sie dort Exporte des Pulvers ab, wie GRT es liefert, nicht einer bereits kalibrierten Kopie. Ohne passende Datei sagt das Fenster, welche zu exportieren ist; nichts wird geraten.</p>
       <h3>Ablauf</h3>
       <ol class="plain">
         <li>Erst deine Chronograph-Serien in die Ladung importieren (§5).</li>
@@ -867,6 +879,16 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         mit dem Ladejournal (§15) und Find best Ba (§16) &mdash; drei getrennte Fenster über derselben
         Datei, alles in einem erfasste taucht also im jeweils anderen auf, sobald dieses Fenster wieder
         in den Fokus kommt. Vier Tabs.</p>
+      <p><strong>Mehrere Personen.</strong> Wer auch für andere lädt (einen Verein, einen Freund), führt für
+        jede Person einen eigenen Bestand, eigene Waffen, ein eigenes Journal und eigene verfolgte Ladungen.
+        Der Launcher öffnet mit einer Auswahl <strong>Schütze</strong>: Wähle eine Person, und jedes Werkzeug
+        zeigt nur deren Arbeit, oder wähle <em>Alle</em>, um alles zu sehen (die Tabellen erhalten dann eine
+        Spalte <em>Schütze</em>, und neue Zeilen gehen an die erste Person). <strong>Verwalten&hellip;</strong>
+        fügt Personen hinzu, benennt sie um und archiviert sie. Was du erfasst, wird der angezeigten Person
+        zugeordnet, und ein Journaleintrag übernimmt den Besitzer seiner Waffe. Um bereits Erfasstes zu
+        verschieben, markiere die Zeilen im Journal, im Bestand oder im Tab Waffen und drücke
+        <strong>Zuweisen an&hellip;</strong>. Eine ältere Datenbank öffnet sich mit allem bei der ersten
+        Person, es ändert sich also nichts, bis du eine zweite hinzufügst.</p>
       <ul>
         <li><strong>Inventory</strong> &mdash; Pulver-/Zündhütchen-/Hülsen-/Geschoss-/Lauf-Bestand mit
           Chargen-Id, Preis und (für Hülsen) einer <em>erwarteten Nutzungszahl</em>, die die
@@ -1190,6 +1212,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         fehlschlägt) korreliert es Ihre Temperatur pro Schuss mit dem Abstand jedes Schusses vom
         Gruppenzentrum, nicht nur mit seiner Geschwindigkeit &mdash; die direkte Antwort auf &ldquo;hört
         dieser Lauf ab einer bestimmten Temperatur auf, enge Gruppen zu halten?&rdquo;</div>
+      <p><strong>Drift entlang der Serie und die Pause zwischen den Sch&uuml;ssen.</strong> Ab 8 Sch&uuml;ssen legt das Werkzeug eine Gerade durch die Geschwindigkeiten in Schussreihenfolge und gibt an, wie stark sich die Geschwindigkeit pro Schuss &auml;ndert, mit Unsicherheit und p-Wert, wie viel das vom ersten bis zum letzten Schuss ist und welche SD bleibt, wenn diese gerade Drift herausgenommen wird. Die fr&uuml;here Pr&uuml;fung &bdquo;keine fortschreitende Drift&ldquo; sieht nur, ob die <em>Streuung</em> entlang der Serie w&auml;chst; eine Serie kann eine gleichbleibende Streuung haben und trotzdem langsam steigen oder fallen, und genau das wird hier gemeldet. Tragen die Sch&uuml;sse Uhrzeiten (der Athlon-Import speichert sie in der Notiz jedes Schusses), gibt es auch die mittlere Pause zwischen den Sch&uuml;ssen und ob die Geschwindigkeit von der Pause vor dem Schuss abh&auml;ngt. Eine Drift ohne Bezug zur Pause folgt der Serie, nicht der Schussfolge. Ein sich erw&auml;rmender Lauf, in der Sonne warmes Pulver und Verschmutzung erzeugen alle eine Drift, und die Reihenfolge der Sch&uuml;sse unterscheidet sie nicht: eine l&auml;ngere Pause zwischen den Sch&uuml;ssen oder eine Lauftemperatur pro Schuss im Raster trennt die Erw&auml;rmung vom Rest. Unter 8 Sch&uuml;ssen wird nichts behauptet.</p>
       <p><strong>Ursachendiagnose-Notiz auf GRT-Ladung schreiben</strong> schreibt die Rangliste, das
         Muster und jede ausgelöste Ursache in eine Notiz, mit dem Leave-one-out-Balkendiagramm als
         Bild angehängt.</p>
@@ -1273,6 +1296,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         Temperatur-Korrelation der SD-Ursachendiagnose verwendet &mdash; und meldet, ob schnellere
         Schüsse in dieser konkreten Serie näher am oder weiter vom Zentrum landen. Dies ist eine Messung
         <em>Ihrer</em> Daten, nie eine allgemeine Aussage.</p>
+      <p><strong>Trefferwahrscheinlichkeit auf ein Ziel</strong>: Geben Sie ein Ziel an (den Durchmesser eines Kreises oder Breite &times; H&ouml;he eines Rechtecks, in der L&auml;ngeneinheit von GRT) und die Entfernung, in der es steht; das Werkzeug sagt, wie wahrscheinlich ein Schuss es trifft, aus der Streuung dieser Gruppe. Die Streuung wird als Winkel gelesen und w&auml;chst daher proportional zur Entfernung: Eine Gruppe von 0,5&nbsp;MOA ist auf 1000&nbsp;m 145&nbsp;mm breit, auch wenn sie auf 100&nbsp;m geschossen wurde. Neben dem Wert steht ein <strong>vorsichtiger</strong>, mit der Streuung an ihrer oberen 90&nbsp;%-Grenze: Eine Gruppe aus f&uuml;nf oder sechs Sch&uuml;ssen sagt wenig &uuml;ber die wahre Streuung, und eine gl&uuml;ckliche Gruppe wirkt enger, als die Waffe wirklich ist; bei wenigen Sch&uuml;ssen gilt daher der vorsichtige Wert. Angegeben wird auch der Radius, der die H&auml;lfte, 90&nbsp;% und 95&nbsp;% der Sch&uuml;sse enth&auml;lt. <em>Abweichung der Gruppe vom Haltepunkt ber&uuml;cksichtigen</em> addiert, wie weit die Gruppenmitte die Zielmitte verfehlt (ausgeschaltet lassen, wenn die Waffe eingeschossen ist). Wind, Abdrift und Entfernungsfehler sind nicht enthalten. Bei Gr&ouml;&szlig;e 0 wird nichts hinzugef&uuml;gt.</p>
       <p><strong>Gruppenanalyse-Notiz auf GRT-Ladung schreiben</strong> schreibt Score, Konfidenz,
         Metriken und jedes ausgelöste Problem in eine Notiz, mit dem Trefferbild-Diagramm (Treffer,
         Schwerpunkt, Zielpunkt, hervorgehobene Ausreißer) als Bild angehängt.</p>
@@ -1289,7 +1313,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         <strong>und</strong> Zoll-Skalen:</p>
       <table><thead><tr><th>Zielscheibe</th><th>Aufbau</th><th>Schüsse pro Punkt</th></tr></thead><tbody>
         <tr><td>OCW</td><td>eine Zielscheibe pro Ladung, Round-Robin-Stil, eine gestrichelte Linie verbindet alle Punkte auf gleicher Höhe</td><td>1&ndash;5, in Durchgängen wiederholt</td></tr>
-        <tr><td>Ladder / Audette</td><td>eine Zielscheibe pro Ladung mit einem darauf zentrierten &plusmn;50&nbsp;mm-Lineal, ausgelegt zum Ablesen auf ~200&ndash;300&nbsp;m</td><td>1&ndash;5, zusammen abgegeben</td></tr>
+        <tr><td>Ladder / Audette</td><td>eine Zielscheibe pro Ladung mit einem von ihr aufsteigenden 0&ndash;100&nbsp;mm-Lineal (die Scheibe sitzt an der Basis), ausgelegt zum Ablesen auf ~200&ndash;300&nbsp;m</td><td>1&ndash;5, zusammen abgegeben</td></tr>
       </tbody></table>
       <p>Ladungsgewichte sind optional (eingetippt, durch Komma getrennt, unter jedem Punkt gedruckt)
         oder leer gelassen, um sie nach der Entscheidung auf dem Schießstand von Hand einzutragen.
@@ -1368,6 +1392,9 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
       <p>Es sind bewusst <em>nicht</em> drei Tabs pro Serie: GRTs Tab-Leiste scrollt nicht, eine so
         geschriebene Sitzung mit fünf Serien schiebt ihre letzten Tabs über den rechten Fensterrand hinaus,
         wo sie gar nicht mehr erreichbar sind.</p>
+      <p><strong>In welche Ladung es geht.</strong> Beim Klick auf den Import fragt das Toolkit GRT erneut, welche Ladung
+        oben liegt (nicht die, die beim Öffnen des Fensters offen war), und zeigt ein Fenster mit Name, Ordner und
+        Besitzer, dasselbe wie beim Chronograph-Import (§5). Mit <em>Nein</em> wird abgebrochen, ohne etwas zu schreiben.</p>
       <p><strong>Maßstab.</strong> GRT gewinnt die echte Größe aus zwei Referenzpunkten mit angegebenem
         Abstand zurück. Der Importer zeichnet die Scheibe selbst und setzt diese Punkte auf seine eigene
         Projektion, ihr Abstand in Millimetern ist also durch Konstruktion exakt und nicht aus Rahmenmaß
@@ -1396,7 +1423,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
 
     <section id="reports">
       <h2><span class="no">27</span>GRT-Berichtsvorlagen</h2>
-      <p><strong>Install GRT report templates</strong> (Launcher / Plugin-Menü) schreibt sechzehn
+      <p><strong>Install GRT report templates</strong> (Launcher / Plugin-Menü) schreibt zwanzig
         DokuWiki-Berichtsseiten nach <code>GRT\doku\&lt;Sprache&gt;\report\</code> und verlinkt sie im
         Berichtsindex. Einmal pro GRT-Installation ausführen (und jedem, mit dem das Plugin geteilt
         wird, dasselbe sagen). Es ist idempotent und nicht-destruktiv; eine Seite löschen, indem sie in
@@ -1420,6 +1447,10 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         <tr><td>SD root-cause report</td><td>die Ursachendiagnose-Notiz + Leave-one-out-Diagramm</td></tr>
         <tr><td>Group analysis report</td><td>die Gruppenanalyse-Notiz + Trefferbild-Diagramm</td></tr>
         <tr><td>Velocity model report</td><td>die Notiz des empirischen Fits</td></tr>
+        <tr><td>Gyroscopic stability report</td><td>die Stabilitätsnotiz (Miller-Regel)</td></tr>
+        <tr><td>Model probe report</td><td>die Sondennotiz + Antwortdiagramm</td></tr>
+        <tr><td>Follow a load report</td><td>die Notiz von Ladung verfolgen + Diagramme zu mittlerer Geschwindigkeit und Temperatur</td></tr>
+        <tr><td>Guided diagnosis report (experimental)</td><td>die Notiz der geführten Diagnose</td></tr>
       </tbody></table>
       <p>Jedes Werkzeug, das eine Notiz schreibt, hat jetzt seine eigene Seite, außer der
         <strong>Sitzkraft-Schätzung (QC)</strong> (§12), dem <strong>Assistenten Geführte neue
@@ -1461,8 +1492,60 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         Ergebnis-Panel, ein nahezu quadratischer ein hohes.</p>
     </section>
 
+    <section id="follow">
+      <h2><span class="no">29</span>Eine Ladung verfolgen</h2>
+      <p>Verfolgt <strong>eine einzelne Ladung</strong> über die Zeit, für sich allein &ndash; nicht das ganze Journal mit allen anderen Ladungen durcheinander. Für eine Ladung, die funktioniert, etwa ein 139-gr-Geschoss über N550 im 6,5 Creedmoor, schreibst du bei jedem Schießstandbesuch auf, was du schießt, und das Werkzeug sagt, was die Schießtage zusammen über sie aussagen: ob ihre Geschwindigkeit mit der Temperatur wandert, ob sie über die Monate driftet und ob der letzte Schießtag für sie normal ist. Du kannst mehrere Ladungen verfolgen (eine je Kaliber oder mehrere Ladungen derselben); jede hat ihre eigene Geschichte. Es führt eine eigene Datei, getrennt von Journal und Inventar, und sein Fenster ist nur auf Italienisch.</p>
+      <table><thead><tr><th>Element</th><th>Wirkung</th></tr></thead><tbody>
+        <tr><td>Segui un carico… (Eine Ladung verfolgen…)</td><td>Beginnt, eine Ladung zu verfolgen. Mit einer in GRT geöffneten Ladung ist sie der Ausgangspunkt (Kaliber, Ladung, Pulver, Geschoss); eine Leiter fragt, welche ihrer Ladungen die Ladung ist. Sonst tippst du sie ein.</td></tr>
+        <tr><td>Filtro (Filter)</td><td>Einen Teil von Name, Kaliber oder Ladung tippen, um die Ladung in der Liste zu finden.</td></tr>
+        <tr><td>Nuova uscita… (Neuer Schießtag…)</td><td>Das Eingabefenster des Schießtags: die Schüsse einer Serie einfügen (Mittelwert, SD und ES folgen daraus) und Temperatur, Druck, Feuchte, Wind, Gruppe, Entfernung, Pulver- und Zündhütchen-Los, Setztiefe, Hülsen-Ladevorgänge und die vom Lauf verschossenen Schuss eintragen. Was sich selten ändert, ist vom letzten Schießtag vorbefüllt.</td></tr>
+        <tr><td>Registra da GRT (Aus GRT eintragen)</td><td>Liest die in GRT geöffnete Ladung und findet heraus, welche verfolgte Ladung es ist (Kaliber, Ladung innerhalb 0,05 gr, Namen von Geschoss und Pulver), übernimmt die chronographierten Schüsse und öffnet das Eingabefenster. Passt keine, bietet es an, sie zu verfolgen.</td></tr>
+        <tr><td>Modifica uscita / Elimina uscita (Schießtag bearbeiten / löschen)</td><td>Korrigieren oder entfernen einen Schießtag.</td></tr>
+        <tr><td>Modifica il carico… / Elimina il carico (Ladung bearbeiten / löschen)</td><td>Eine Ladung zu löschen entfernt sie mit allen ihren Schießtagen.</td></tr>
+        <tr><td>Scrivi nota e grafici nel carico GRT (Notiz und Grafiken in die GRT-Ladung schreiben)</td><td>Legt in der in GRT geöffneten Ladung eine Notiz mit dem Urteil und die Grafiken ab (Geschwindigkeit im Zeitverlauf; Geschwindigkeit gegen Temperatur, wenn Temperaturen notiert sind). GRT kann die geöffnete Ladung nicht ändern, deshalb wird eine Geschwisterdatei geschrieben und geöffnet, wie bei jedem Werkzeug des Toolkits.</td></tr>
+      </tbody></table>
+      <p><strong>Reiter.</strong> <strong>Uscite</strong> listet die Schießtage auf (graue Zeilen haben keine Schüsse notiert oder weniger als drei und werden nicht ausgewertet); <strong>Nel tempo</strong> zeichnet die mittlere Geschwindigkeit mit ihrer SD und jedem Schuss, dazu die Grenzen, mit denen die Auswertung einen Schießtag beurteilt; SD und ES; die Geschwindigkeit gegen die Temperatur mit der angepassten Geraden; die Gruppe; <strong>Cosa dice</strong> ist das geschriebene Urteil.</p>
+      <p><strong>Was es sagt.</strong></p>
+      <ul>
+        <li><strong>Der letzte Schießtag gegen die davor.</strong> Sein Mittelwert gegen das, was diese Ladung üblicherweise ergibt &ndash; bei gleicher Temperatur, wenn die früheren Schießtage zeigen, dass die Temperatur zählt &ndash; und seine SD gegen die SD, die die früheren zusammen zeigten. Braucht 4 frühere Schießtage mit 3 Schuss oder mehr.</li>
+        <li><strong>Temperatur.</strong> Die Geschwindigkeitsänderung pro Grad mit ihrem 95-%-Intervall, zusammen mit den Daten angepasst, damit ein warmer Sommer nicht für eine Drift gehalten wird. Braucht 4 Schießtage mit Temperatur, mindestens 5&nbsp;&deg;C auseinander.</li>
+        <li><strong>Im Zeitverlauf.</strong> Die Änderung pro 30 Tage mit ihrem Intervall; eine Drift, die sich erkennen lässt, aber weit unter der SD einer Serie liegt, heißt klein. Braucht 4 Schießtage, mindestens 7 Tage auseinander.</li>
+        <li><strong>Was sich zwischen Schießtagen geändert hat:</strong> Pulver- oder Zündhütchen-Los, Setztiefe (0,05 mm oder mehr).</li>
+        <li><strong>Was nicht gesagt werden konnte, und warum.</strong></li>
+      </ul>
+      <p><strong>Deine Daten.</strong> Die Daten liegen in <code>%APPDATA%\GRTPlugins\segui_carico.db</code> (die Variable <code>SEGUI_CARICO_DB</code> nennt eine andere Datei): zur Sicherung genügt es, diese Datei zu kopieren. Ein Schießtag ohne seine Schüsse bleibt in der Liste, wird aber nicht ausgewertet, weil ein Mittelwert ohne seine Schüsse nichts über die Streuung sagt; ein Wert, der keine Schussgeschwindigkeit ist (unter 50 oder über 2500 m/s), wird ausgelassen und genannt. Die Urteile sind Statistik auf wenigen Punkten. Mit vier Schießtagen kann &raquo;normal&laquo; falsch sein, und ein Intervall, das null einschließt, heißt &raquo;noch nicht gezeigt&laquo;, nicht &raquo;kein Effekt&laquo;. &raquo;Außerhalb des Üblichen&laquo; ist ein Grund, nachzusehen, was sich geändert hat (die Liste sagt es), keine Diagnose.</p>
+    </section>
+
+    <section id="modelprobe">
+      <h2><span class="no">30</span>Modellsonde</h2>
+      <p>Untersucht GRTs eigene Simulation von außen: Sie verändert <strong>eine einzige Eingabe</strong> der in GRT geöffneten Ladung über einen Bereich, lässt alles andere so, wie es in der Ladung steht, und zeigt, wie das Modell antwortet. So lässt sich herausfinden, was Ba, a0, z1, z2, Qex oder das Hülsenvolumen in GRT tatsächlich bewirken, ohne GRTs Code zu lesen &mdash; nur über die dokumentierte Plugin-Schnittstelle, indem GRT rechnet und seine Antworten gelesen werden.</p>
+      <table><thead><tr><th>Bedienelement</th><th>Wirkung</th></tr></thead><tbody>
+        <tr><td>Ladung aus GRT lesen</td><td>Liest die gespeicherte Datei des vorderen Tabs. Hat der Tab noch nicht gespeicherte Änderungen, erscheint ein Hinweis: Die Sonde arbeitet mit der gespeicherten Datei.</td></tr>
+        <tr><td>Eingabe</td><td>Jede Dezimaleingabe der Ladung, Treibmittel zuerst, mit GRTs eigener Beschreibung. Nicht angeboten: die Ladeleiter, die Patronenlänge (sie folgt Hülsenlänge, Geschosslänge und Setztiefe) und die Felder außerhalb der innenballistischen Simulation (Drall, Waffengewicht, BCs, zulässiger Höchstdruck).</td></tr>
+        <tr><td>Von / bis, Punkte</td><td>Der Bereich in der Einheit der Datei (standardmäßig &plusmn;10&nbsp;% des Ladungswerts; 0 bis 1, wenn der Wert 0 ist) und wie viele gleichmäßig verteilte Punkte. Der Wert der Ladung ist immer einer davon.</td></tr>
+        <tr><td>Druckkurve lesen (langsamer)</td><td>Liest für jeden Punkt auch GRTs P/V/t-Kurve; daraus kommen die Zeit bis zum Spitzendruck, der Mündungsdruck, das an der Mündung verbrannte Pulver und die Zeit bis zum vollständigen Abbrand.</td></tr>
+        <tr><td>Durchlauf starten / Stopp</td><td>Pro Punkt eine Kopie der Ladung mit dieser einen geänderten Eingabe und ausgeschalteter Leiter, in einen temporären Ordner geschrieben und in GRT geöffnet; jeder Punkt wartet, bis GRT ihn als berechnet meldet. Ihre Datei wird nie verändert und am Ende wieder geöffnet. GRTs Plugin-Schnittstelle kann keine Tabs schließen: Schließen Sie die zusätzlichen Tabs von Hand.</td></tr>
+        <tr><td>Sondennotiz in die GRT-Ladung schreiben / CSV exportieren…</td><td>Die Tabelle, die Empfindlichkeiten und das Diagramm als Notiz in einer Kopie Ihrer Ladung, oder alle Punkte als CSV-Datei.</td></tr>
+      </tbody></table>
+      <p><strong>Ausgaben.</strong> Mündungsgeschwindigkeit; Spitzendruck; Laufzeit; Laufzeit ab 10&nbsp;% von Pmax (die, mit der GRT die OBT-Knoten vergleicht); und mit der Kurve die Zeit bis zum Spitzendruck, der Mündungsdruck in % des Spitzendrucks, das an der Mündung verbrannte Pulver und die Zeit bis zum vollständigen Abbrand; der Wirkungsgrad, Geschossenergie an der Mündung geteilt durch Ladung &times; Qex.</p>
+      <p><strong>Die Empfindlichkeiten lesen.</strong> Die <strong>Elastizität</strong> ist die lokale Antwort am Wert der Ladung: um wie viel Prozent sich die Ausgabe bei 1&nbsp;% Änderung der Eingabe ändert. Der <strong>Exponent</strong> ist das b von Ausgabe &asymp; a &middot; Eingabe<sup>b</sup>, angepasst über den ganzen Durchlauf, und <strong>R&sup2;</strong> sagt, wie gut ein einziges Potenzgesetz ihn beschreibt. Stimmen Elastizität und Exponent überein und liegt R&sup2; nahe 1, wirkt die Eingabe über den Bereich wie ein einfaches Potenzgesetz; weichen sie ab, krümmt sich die Antwort im Bereich &mdash; etwa dort, wo das Pulver nicht mehr vollständig im Lauf abbrennt. Beides sind Verhältnisse und daher in jeder Einheit gleich.</p>
+      <p><strong>Was es nicht ist.</strong> Es ist, was GRTs Modell vorhersagt, für Kombinationen, die vielleicht nie geladen werden. Es sind keine Messungen und sie sagen nichts darüber, ob eine Ladung sicher ist: Dafür gelten die Daten der Komponentenhersteller und die Druckgrenzen der Patrone.</p>
+    </section>
+
+    <section id="stability">
+      <h2><span class="no">31</span>Gyroskopische Stabilit&auml;t</h2>
+      <p>Sagt, ob der Drall des Laufs das Geschoss stabil h&auml;lt, nach der <strong>Miller-Regel</strong> (die von Berger und Applied Ballistics verwendete): <code>Sg = 30 m / (t&sup2; d&sup3; l (1 + l&sup2;))</code>, mit der Masse <em>m</em> in Grains, dem Durchmesser <em>d</em> in Zoll sowie Drall <em>t</em> und L&auml;nge <em>l</em> in Kalibern, dann f&uuml;r die Geschwindigkeit, <code>(v / 2800)^(1/3)</code>, und die Luft, <code>(T / 519&nbsp;&deg;R)(29,92 / P)</code>, umgerechnet.</p>
+      <table><thead><tr><th>Bedienelement</th><th>Wirkung</th></tr></thead><tbody>
+        <tr><td>Aus GRT-Ladung lesen</td><td>F&uuml;llt Masse, L&auml;nge und Durchmesser des Geschosses sowie den Drall des Laufs aus der in GRT ge&ouml;ffneten Ladung und die Geschwindigkeit aus deren gemessenen Sch&uuml;ssen, wenn es welche gibt. Fehlt ein Feld in der Datei, wird nichts geraten; Lufttemperatur und H&ouml;he stehen nie in einer Ladung und bleiben, wie Sie sie einstellen.</td></tr>
+        <tr><td>Die sieben Zahlen</td><td>Jede hat ihre eigene Einheit, beginnend mit den in GRT eingestellten: Grains oder Gramm, Millimeter oder Zoll, Drall in Zoll oder Millimeter pro Umdrehung, ft/s oder m/s, &deg;C oder &deg;F, Meter oder Fu&szlig;.</td></tr>
+        <tr><td>Stabilit&auml;ts-Notiz auf GRT-Ladung schreiben</td><td>Das Ergebnis als Notiz auf einer Kopie Ihrer Ladung.</td></tr>
+      </tbody></table>
+      <p><strong>So lesen.</strong> Sg ab 1,5 ist stabil; 1,4 bis 1,5 ausreichend; 1,0 bis 1,4 grenzwertig (das Geschoss fliegt, aber sein Widerstand steigt, und ein kalter Morgen kann es unter 1 dr&uuml;cken); unter 1,0 instabil. Neben Sg nennt das Werkzeug den langsamsten Drall, der in diesen Bedingungen noch Sg 1,5 und 1,4 ergibt, die &auml;ltere Greenhill-Regel als Gegenprobe und Sg &uuml;ber einen Bereich von Lufttemperaturen auf derselben H&ouml;he. Kalte Luft senkt Sg, d&uuml;nne Luft in der H&ouml;he hebt es; der Tag, den man f&uuml;rchten muss, ist der k&auml;lteste und tiefste, an dem das Gewehr geschossen wird.</p>
+      <p><strong>Was es nicht ist.</strong> Eine theoretische Sch&auml;tzung f&uuml;r ein Spitz- oder Boat-Tail-Geschoss. Die echte Rundlaufg&uuml;te des Geschosses z&auml;hlt, eine gemessene L&auml;nge mit Kunststoffspitze muss die wahre Gesamtl&auml;nge sein, und die M&uuml;ndungsgeschwindigkeit sinkt an kalten Tagen, was das Werkzeug nicht wei&szlig; (die niedrigere Geschwindigkeit selbst eintragen). Es behauptet nicht, wie viel ballistischer Koeffizient bei grenzwertigem Sg verloren geht: Ver&ouml;ffentlichte Zahlen widersprechen sich. Im Zweifel auf der Scheibe pr&uuml;fen: ovale L&ouml;cher hei&szlig;en, das Geschoss ist nicht stabil.</p>
+    </section>
+
     <section id="faq">
-      <h2><span class="no">29</span>Einschränkungen &amp; FAQ</h2>
+      <h2><span class="no">32</span>Einschränkungen &amp; FAQ</h2>
       <h3>Warum ein Haufen <code>_toolkit_…</code>-Dateien?</h3>
       <p>GRTs Plugin-API kann die offene Ladung nicht bearbeiten und kann einen bereits offenen Tab nicht
         neu laden &mdash; jeder Schreibvorgang ist also ein frischer zeitgestempelter Snapshot. Jeder
@@ -1477,7 +1560,7 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
         ausgewertet. Den <code>.csv</code>-Weg nehmen, oder die Gruppen zuerst in GRT anlegen (§14).</p>
       <h3>Das Temperaturkoeffizienten-Werkzeug aktiviert &ldquo;Write&rdquo; nicht.</h3>
       <p>Es braucht eine Ladung bei mehreren Temperaturen, keinen Ladder.</p>
-      <h3>Ein Symbolleisten-Symbol, nicht vierundzwanzig.</h3>
+      <h3>Ein Symbolleisten-Symbol, nicht fünfundzwanzig.</h3>
       <p>Absicht &mdash; es öffnet den Launcher; jedes Werkzeug ist dort eine Schaltfläche.
         Manifest-Änderungen brauchen einen GRT-Neustart, um zu erscheinen.</p>
       <h3>Zahlen</h3>
@@ -1489,6 +1572,6 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.3.0 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.4.0 · Community-Plugin für Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

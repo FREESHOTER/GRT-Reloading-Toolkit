@@ -47,9 +47,9 @@ public static class AdvancedDiagnostics
     public static FoulingResult FoulingTrend(IReadOnlyList<double> velocities, int window = 5,
         double foulingSlopeThreshold = 0.1524, double velocityDropThreshold = -0.2438)
     {
-        if (window < 2) throw new AdvancedDiagnosticsError("window must be >= 2.");
+        if (window < 2) throw new AdvancedDiagnosticsError(Tr.T("window must be >= 2."));
         if (velocities.Count < window + 1)
-            throw new AdvancedDiagnosticsError($"Need at least {window + 1} shots (window={window}).");
+            throw new AdvancedDiagnosticsError(Tr.F("Need at least {0} shots (window={1}).", window + 1, window));
 
         var points = new List<FoulingPoint>();
         var rollingSd = new List<double>();
@@ -90,13 +90,13 @@ public static class AdvancedDiagnostics
     public static ColdBoreResult ColdBoreAnalysis(IReadOnlyList<double> velocities, IReadOnlyList<bool> isColdBore, double zThreshold = 1.5)
     {
         if (velocities.Count != isColdBore.Count)
-            throw new AdvancedDiagnosticsError("velocities and isColdBore must have the same length.");
-        if (velocities.Count < 3) throw new AdvancedDiagnosticsError("Need at least 3 shots.");
+            throw new AdvancedDiagnosticsError(Tr.T("velocities and isColdBore must have the same length."));
+        if (velocities.Count < 3) throw new AdvancedDiagnosticsError(Tr.T("Need at least 3 shots."));
 
         var cold = velocities.Where((_, i) => isColdBore[i]).ToList();
         var warm = velocities.Where((_, i) => !isColdBore[i]).ToList();
         if (cold.Count < 1 || warm.Count < 2)
-            throw new AdvancedDiagnosticsError("Need at least 1 cold-bore shot and 2 warm shots.");
+            throw new AdvancedDiagnosticsError(Tr.T("Need at least 1 cold-bore shot and 2 warm shots."));
 
         double meanCold = cold.Average(), meanWarm = warm.Average();
         double sdWarm = Math.Sqrt(warm.Sum(v => (v - meanWarm) * (v - meanWarm)) / (warm.Count - 1));
@@ -121,7 +121,7 @@ public static class AdvancedDiagnostics
     public static PrimerSensitivityResult PrimerSensitivity(IReadOnlyDictionary<string, IReadOnlyList<double>> groups,
         double sdSpreadThreshold = 3.0, double esSpreadThreshold = 10.0)
     {
-        if (groups.Count < 2) throw new AdvancedDiagnosticsError("Need at least 2 primer lots.");
+        if (groups.Count < 2) throw new AdvancedDiagnosticsError(Tr.T("Need at least 2 primer lots."));
 
         var results = new List<PrimerLotResult>();
         foreach (var (lot, velocities) in groups)
@@ -132,7 +132,7 @@ public static class AdvancedDiagnostics
             double es = velocities.Max() - velocities.Min();
             results.Add(new PrimerLotResult(lot, velocities.Count, Math.Round(mean, 1), Math.Round(sd, 2), Math.Round(es, 1)));
         }
-        if (results.Count < 2) throw new AdvancedDiagnosticsError("Not enough data after filtering (min 3 valid shots per lot).");
+        if (results.Count < 2) throw new AdvancedDiagnosticsError(Tr.T("Not enough data after filtering (min 3 valid shots per lot)."));
 
         results = results.OrderBy(r => r.SdMps).ToList();
         var best = results[0]; var worst = results[^1];
@@ -172,7 +172,7 @@ public static class AdvancedDiagnostics
     /// the class doc for the real bug this guards against.</summary>
     public static NeckTensionResult NeckTensionCorrelation(IReadOnlyList<NeckTensionPoint> dataPoints)
     {
-        if (dataPoints.Count < 3) throw new AdvancedDiagnosticsError("Need at least 3 tension points tested.");
+        if (dataPoints.Count < 3) throw new AdvancedDiagnosticsError(Tr.T("Need at least 3 tension points tested."));
 
         var esPairs = dataPoints.Where(p => p.EsMps.HasValue).Select(p => (p.TensionMm, p.EsMps!.Value)).ToList();
         var sdPairs = dataPoints.Where(p => p.SdMps.HasValue).Select(p => (p.TensionMm, p.SdMps!.Value)).ToList();

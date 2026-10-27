@@ -110,7 +110,7 @@ internal sealed class VelocityModelForm : Form
                      ("mv", "MV m/s"), ("pred", Lang.T("Predicted")), ("resid", Lang.T("Residual")) })
             _grid.Columns.Add(n, h);
 
-        _status.Dock = DockStyle.Bottom; _status.Padding = new Padding(8, 4, 0, 4);
+        _status.AutoSize = false; _status.Height = 48; _status.Dock = DockStyle.Bottom; _status.Padding = new Padding(8, 4, 8, 4);
 
         Controls.Add(_grid);
         Controls.Add(_status);

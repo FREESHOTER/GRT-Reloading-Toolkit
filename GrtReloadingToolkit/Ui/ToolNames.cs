@@ -15,6 +15,7 @@ internal static class ToolNames
         "Seating" => "Seating-depth analyzer",
         "Cal" => "Barrel calibration",
         "Journal" => "Load journal",
+        "FollowLoad" => "Follow a load",
         "GroupAnalysis" => "Group analysis",
         "Workflow" => "Distance workflow",
         "Diagnosis" => "Guided diagnosis (experimental)",

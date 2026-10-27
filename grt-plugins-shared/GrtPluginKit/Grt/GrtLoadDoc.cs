@@ -7,6 +7,9 @@ namespace GrtPluginKit.Grt;
 /// <summary>A shot inside an imported/analysed Measurement charge.</summary>
 public sealed record GrtShot(double VelocityMps, string? Note);
 
+/// <summary>One numeric input of a load (see <see cref="GrtLoadDoc.DecimalInputs"/>), in the file's own unit.</summary>
+public sealed record GrtInput(string Section, string Name, double Value, string Unit, string Description);
+
 /// <summary>One &lt;charge&gt; of an appendix &lt;Measurement&gt;.</summary>
 public sealed class GrtCharge
 {
@@ -142,6 +145,8 @@ public sealed class GrtLoadDoc
     public string GunName => InputValue("gun", "GunName");
     public string ProjectileName => InputValue("projectile", "ProjectileName");
     public string PropellantName => InputValue("propellant", "pname");
+    /// <summary>The powder's manufacturer as the load spells it (propellant <c>mname</c>).</summary>
+    public string PropellantMaker => InputValue("propellant", "mname");
     public double? PropellantChargeGr => ParseInputG("propellant", "mc");
     /// <summary>
     /// The chronographed charge that IS this load's recipe: the charge with shots whose weight is
@@ -176,6 +181,12 @@ public sealed class GrtLoadDoc
     public double? SeatingDepthMm => ParseInput("projectile", "gdepth");
     /// <summary>Projectile overall length in mm.</summary>
     public double? BulletLengthMm => ParseInput("projectile", "glen");
+
+    /// <summary>Projectile diameter in mm, as the load states it (the bullet's own, not the groove diameter of the barrel).</summary>
+    public double? BulletDiameterMm => ParseInput("projectile", "Dbul");
+
+    /// <summary>Barrel twist as the length of one full turn, in mm.</summary>
+    public double? TwistLengthMm => ParseInput("gun", "twistlen");
 
     /// <summary>
     /// COAL implied by the current case length, bullet length and seating depth, or null if any of
@@ -687,6 +698,17 @@ public sealed class GrtLoadDoc
 
     /// <summary>Raw numeric value of an input, in whatever unit the file stores it (see <see cref="InputUnit"/>).</summary>
     public double? InputNumber(string section, string name) => ParseInput(section, name);
+
+    /// <summary>Every <c>type="decimal"</c> input of the caliber, gun, projectile and propellant sections, in file
+    /// order, with the value and unit as the file stores them and GRT's own description of the field.</summary>
+    public IEnumerable<GrtInput> DecimalInputs()
+    {
+        foreach (string section in new[] { "caliber", "gun", "projectile", "propellant" })
+            foreach (XmlElement e in _inner.SelectNodes($"{section}/input")!.OfType<XmlElement>())
+                if (e.GetAttribute("type") == "decimal"
+                    && double.TryParse(Uri.UnescapeDataString(e.GetAttribute("value")), NumberStyles.Float, CultureInfo.InvariantCulture, out double v))
+                    yield return new GrtInput(section, e.GetAttribute("name"), v, e.GetAttribute("unit"), Uri.UnescapeDataString(e.GetAttribute("descr")));
+    }
 
     private double? ParseInput(string section, string name)
         => double.TryParse(InputValue(section, name), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) ? v : null;

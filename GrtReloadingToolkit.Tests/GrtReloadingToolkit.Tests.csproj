@@ -48,6 +48,8 @@
     <!-- The calibration maths: the Ba + a0 fit and its report. -->
     <Compile Include="..\GrtReloadingToolkit\Cal\Calibration.cs" Link="Cal\Calibration.cs" />
     <Compile Include="..\GrtReloadingToolkit\Cal\SebertSensitivity.cs" Link="Cal\SebertSensitivity.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Probe\ModelProbe.cs" Link="Probe\ModelProbe.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cal\PowderModels.cs" Link="Cal\PowderModels.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\ToolIconPainter.cs" Link="Ui\ToolIconPainter.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\LauncherCaption.cs" Link="Ui\LauncherCaption.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\ChosenChargeReader.cs" Link="Ui\ChosenChargeReader.cs" />
@@ -61,6 +63,7 @@
     <!-- Same story for the log store: SQLite and arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\Log\LogModels.cs" Link="Log\LogModels.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\Db.cs" Link="Log\Db.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\LoadOwner.cs" Link="Log\LoadOwner.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadSnapshot.cs" Link="Log\LoadSnapshot.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\StaleNotes.cs" Link="Log\StaleNotes.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadIdentity.cs" Link="Log\LoadIdentity.cs" />
@@ -77,6 +80,11 @@
     <Compile Include="..\GrtReloadingToolkit\Log\Diagnosis.cs" Link="Log\Diagnosis.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\SdRootCause.cs" Link="Log\SdRootCause.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\SessionTrend.cs" Link="Log\SessionTrend.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\LoadFollowUp.cs" Link="Log\LoadFollowUp.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\FollowSessions.cs" Link="Log\FollowSessions.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\TrackerModels.cs" Link="Log\TrackerModels.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\TrackerDb.cs" Link="Log\TrackerDb.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\FollowUpReport.cs" Link="Log\FollowUpReport.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\PressureTrend.cs" Link="Log\PressureTrend.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\BaStaleness.cs" Link="Log\BaStaleness.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\BrassLife.cs" Link="Log\BrassLife.cs" />
@@ -95,6 +103,10 @@
     <!-- And for Group Analysis, the 2D sibling of SD Root-Cause: pure logic over TargetGroup above. -->
     <Compile Include="..\GrtReloadingToolkit\Log\GroupAnalysis.cs" Link="Log\GroupAnalysis.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\GroupAnalysisConfig.cs" Link="Log\GroupAnalysisConfig.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\HitProbability.cs" Link="Log\HitProbability.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\GyroStability.cs" Link="Log\GyroStability.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Log\ShotDrift.cs" Link="Log\ShotDrift.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Text\Tr.cs" Link="Text\Tr.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\PressureSign.cs" Link="Log\PressureSign.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadBook.cs" Link="Log\LoadBook.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadBookHtml.cs" Link="Log\LoadBookHtml.cs" />

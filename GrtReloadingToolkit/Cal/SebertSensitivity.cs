@@ -101,26 +101,24 @@ public sealed class SebertSensitivity
         var ci = CultureInfo.InvariantCulture;
         var sb = new System.Text.StringBuilder();
         sb.AppendLine();
-        sb.AppendLine("Sebert factor sensitivity");
+        sb.AppendLine(Tr.T("Sebert factor sensitivity"));
         sb.AppendLine(new string('-', 25));
-        sb.AppendLine(string.Format(ci,
-            "This load uses Sebert {0:0.00}; simulated in GRT at {1}.", Sebert, gu.Charge(ChargeGr)));
-        sb.AppendLine("The chronograph cannot tell the Sebert factor from Ba and k: change it, re-match Ba and k to the same");
-        sb.AppendLine("velocity, and the velocity looks identical. It still moves the pressure and the OBT node:");
+        sb.AppendLine(Tr.F("This load uses Sebert {0}; simulated in GRT at {1}.", Sebert.ToString("0.00", ci), gu.Charge(ChargeGr)));
+        sb.AppendLine(Tr.T("The chronograph cannot tell the Sebert factor from Ba and k: change it, re-match Ba and k to the same"));
+        sb.AppendLine(Tr.T("velocity, and the velocity looks identical. It still moves the pressure and the OBT node:"));
         foreach (var side in new[] { Higher, Lower }.Where(s => s != null).OrderByDescending(s => s!.Sebert))
         {
             var s = side!;
             double shift = NodeShiftGr(s);
-            sb.AppendLine(string.Format(ci,
-                "  Sebert {0:0.00}: Pmax {1:+0;-0;0} {2}, BLT {3:+0.0000;-0.0000;0.0000} ms  -> node charge about {4:+0.00;-0.00;0.00} {5}",
-                s.Sebert, s.Sim.Pmax - Baseline.Pmax, Baseline.PmaxUnit, s.Sim.BltMs - Baseline.BltMs,
-                gu.ChargeValue(shift), gu.ChargeUnitName));
+            sb.AppendLine(Tr.F("  Sebert {0}: Pmax {1} {2}, BLT {3} ms  -> node charge about {4} {5}",
+                s.Sebert.ToString("0.00", ci), (s.Sim.Pmax - Baseline.Pmax).ToString("+0;-0;0", ci), Baseline.PmaxUnit,
+                (s.Sim.BltMs - Baseline.BltMs).ToString("+0.0000;-0.0000;0.0000", ci),
+                gu.ChargeValue(shift).ToString("+0.00;-0.00;0.00", ci), gu.ChargeUnitName));
         }
-        sb.AppendLine(string.Format(ci,
-            "BLT moves {0:0.0000} ms per {1} of charge here, so a Sebert known only to +/-{2:0.0#} leaves the node's charge uncertain by about +/-{3} {4}",
-            Math.Abs(BltPerGrMs / gu.ChargeValue(1.0)), gu.ChargeUnitName, Step,
+        sb.AppendLine(Tr.F("BLT moves {0} ms per {1} of charge here, so a Sebert known only to +/-{2} leaves the node's charge uncertain by about +/-{3} {4}",
+            Math.Abs(BltPerGrMs / gu.ChargeValue(1.0)).ToString("0.0000", ci), gu.ChargeUnitName, Step.ToString("0.0#", ci),
             gu.ChargeValue(WorstShiftGr).ToString(gu.ChargeFormat, ci), gu.ChargeUnitName));
-        sb.AppendLine("(GRT quotes 0.1 to 0.2 gr of node precision.) A measured Pmax, not a velocity, is what constrains the factor.");
+        sb.AppendLine(Tr.T("(GRT quotes 0.1 to 0.2 gr of node precision.) A measured Pmax, not a velocity, is what constrains the factor."));
         return sb.ToString();
     }
 }

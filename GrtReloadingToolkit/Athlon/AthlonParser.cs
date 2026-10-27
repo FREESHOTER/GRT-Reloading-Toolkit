@@ -45,7 +45,7 @@ internal static class AthlonParser
 
         int headerRow = FindHeaderRow(rows);
         if (headerRow < 0)
-            throw new InvalidDataException($"{Path.GetFileName(path)}: could not locate the shot table (no velocity column header).");
+            throw new InvalidDataException(Tr.F("{0}: could not locate the shot table (no velocity column header).", Path.GetFileName(path)));
 
         string[] header = rows[headerRow];
         int velCol = IndexOfHeader(header, h => GrtPluginKit.Util.Str.ContainsAny(h, VelWords) || h.Contains("(mps)") || h.Contains("(fps)") || h.Contains("(m/s)"));
@@ -71,7 +71,7 @@ internal static class AthlonParser
             if (v < VSaneLo || v > VSaneHi)
             {
                 if (raw.Count > 0) break;              // trailing footer value
-                result.Warnings.Add($"row {r + 1}: velocity '{Cell(row, velCol)}' out of range, skipped");
+                result.Warnings.Add(Tr.F("row {0}: velocity '{1}' out of range, skipped", r + 1, Cell(row, velCol)));
                 continue;
             }
             raw.Add((v.Value,
@@ -80,7 +80,7 @@ internal static class AthlonParser
         }
 
         if (raw.Count == 0)
-            throw new InvalidDataException($"{Path.GetFileName(path)}: shot table found but no valid velocities in it.");
+            throw new InvalidDataException(Tr.F("{0}: shot table found but no valid velocities in it.", Path.GetFileName(path)));
 
         result.SourceUnit = DetectUnit(header, velCol, raw.Select(x => x.v), result.Warnings);
         double k = result.SourceUnit == "fps" ? FpsToMps : 1.0;
@@ -91,7 +91,7 @@ internal static class AthlonParser
         result.ChargeGrains = GuessChargeGrains(result.SessionNote, path);
 
         if (result.SourceUnit == "fps")
-            result.Warnings.Add("velocity is in fps — converted to m/s for GRT");
+            result.Warnings.Add(Tr.T("velocity is in fps — converted to m/s for GRT"));
 
         return result;
     }
@@ -146,7 +146,7 @@ internal static class AthlonParser
         var v = velocities.ToList();
         double median = v.Count == 0 ? 0 : v.OrderBy(x => x).ElementAt(v.Count / 2);
         string guess = median >= 1400 ? "fps" : "mps";
-        warnings.Add($"no unit in the header — assuming {(guess == "fps" ? "fps" : "m/s")} from a median of {median:0} (override by adding the unit to the file if wrong)");
+        warnings.Add(Tr.F("no unit in the header — assuming {0} from a median of {1} (override by adding the unit to the file if wrong)", guess == "fps" ? "fps" : "m/s", median.ToString("0", System.Globalization.CultureInfo.InvariantCulture)));
         return guess;
     }
 

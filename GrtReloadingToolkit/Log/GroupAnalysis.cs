@@ -89,12 +89,14 @@ public static class GroupAnalysis
     /// roughly circular spread), then CEP50 = sigma·√(ln4) — the companion of the Rayleigh-distribution
     /// relation <c>TargetGroup.MeanRadiusMoa</c> is already an estimate of (Mean Radius = sigma·√(π/2)).
     /// </summary>
-    public static double Cep50Moa(TargetGroup group)
+    public static double Cep50Moa(TargetGroup group) => SigmaMoa(group) * Math.Sqrt(Math.Log(4));
+
+    /// <summary>The group's own Rayleigh sigma in MOA: the pooled X/Y standard deviation of the impacts about their centre; 0 below 2 shots.</summary>
+    public static double SigmaMoa(TargetGroup group)
     {
         if (group.Impacts.Count < 2) return 0;
         var (varX, varY, _) = Covariance(group);
-        double sigma = Math.Sqrt((varX + varY) / 2.0);
-        return sigma * Math.Sqrt(Math.Log(4));
+        return Math.Sqrt((varX + varY) / 2.0);
     }
 
     /// <summary>

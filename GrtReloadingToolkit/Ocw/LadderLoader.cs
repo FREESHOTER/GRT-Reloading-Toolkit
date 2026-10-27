@@ -51,14 +51,14 @@ public static class LadderLoader
             {
                 var a = AthlonParser.Parse(f);
                 double? x = StepValue(mode, a.ChargeGrains, a.SessionNote, f);
-                if (x is { } v) { AddVelocities(vels, v, a.Velocities.ToList(), log, Path.GetFileName(f)); chronoFiles.Add(f); log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
-                else log.Add($"velocity {Path.GetFileName(f)}: no step value, skipped");
+                if (x is { } v) { AddVelocities(vels, v, a.Velocities.ToList(), log, Path.GetFileName(f)); chronoFiles.Add(f); log.Add(Tr.F("velocity {0} -> {1}, {2} shots", Path.GetFileName(f), StepText(mode, v), a.Shots.Count)); }
+                else log.Add(Tr.F("velocity {0}: no step value, skipped", Path.GetFileName(f)));
             }
             catch (Exception) when (Path.GetExtension(f).Equals(".csv", StringComparison.OrdinalIgnoreCase))
             {
                 // a .csv that isn't a chrono export is probably an OnTarget target — handled below
             }
-            catch (Exception ex) { log.Add($"velocity {Path.GetFileName(f)}: {ex.Message}"); }
+            catch (Exception ex) { log.Add(Tr.F("velocity {0}: {1}", Path.GetFileName(f), ex.Message)); }
         }
 
         var tgts = new Dictionary<double, TargetGroup>();
@@ -68,14 +68,14 @@ public static class LadderLoader
             {
                 var t = OnTargetCsv.Parse(f);
                 double? x = StepValue(mode, t.ChargeGrains, null, f);
-                if (x is { } v) { AddTarget(tgts, v, t, log, Path.GetFileName(f)); log.Add($"target {Path.GetFileName(f)} -> {StepText(mode, v)}, {t.Impacts.Count} impacts @ {GrtUnits.Current.Distance(t.DistanceM)}"); }
-                else log.Add($"target {Path.GetFileName(f)}: no step value, skipped");
+                if (x is { } v) { AddTarget(tgts, v, t, log, Path.GetFileName(f)); log.Add(Tr.F("target {0} -> {1}, {2} impacts @ {3}", Path.GetFileName(f), StepText(mode, v), t.Impacts.Count, GrtUnits.Current.Distance(t.DistanceM))); }
+                else log.Add(Tr.F("target {0}: no step value, skipped", Path.GetFileName(f)));
             }
             catch (Exception) when (chronoFiles.Contains(f))
             {
                 // already consumed as a chrono file
             }
-            catch (Exception ex) { log.Add($"target {Path.GetFileName(f)}: {ex.Message}"); }
+            catch (Exception ex) { log.Add(Tr.F("target {0}: {1}", Path.GetFileName(f), ex.Message)); }
         }
 
         return (tgts, vels, log);
@@ -102,9 +102,9 @@ public static class LadderLoader
                 {
                     var a = AthlonParser.Parse(f);
                     if (StepValue(mode, a.ChargeGrains, a.SessionNote, f) is { } v)
-                    { AddVelocities(vels, v, a.Velocities.ToList(), rep.Log, Path.GetFileName(f)); rep.Log.Add($"velocity {Path.GetFileName(f)} -> {StepText(mode, v)}, {a.Shots.Count} shots"); }
+                    { AddVelocities(vels, v, a.Velocities.ToList(), rep.Log, Path.GetFileName(f)); rep.Log.Add(Tr.F("velocity {0} -> {1}, {2} shots", Path.GetFileName(f), StepText(mode, v), a.Shots.Count)); }
                 }
-                catch (Exception ex) { rep.Log.Add($"velocity {Path.GetFileName(f)}: {ex.Message}"); }
+                catch (Exception ex) { rep.Log.Add(Tr.F("velocity {0}: {1}", Path.GetFileName(f), ex.Message)); }
             }
 
         var tgts = new Dictionary<double, TargetGroup>();
@@ -112,7 +112,7 @@ public static class LadderLoader
         {
             if (t.ChargeGrains is not { } step)
             {
-                rep.Log.Add($"{t.SourceFile}: no charge / step in the group name -- skipped (rename the group in GRT, e.g. \"40.2 gr\")");
+                rep.Log.Add(Tr.F("{0}: no charge / step in the group name -- skipped (rename the group in GRT, e.g. \"40.2 gr\")", t.SourceFile));
                 continue;
             }
             AddTarget(tgts, step, t, rep.Log, t.SourceFile);
@@ -153,7 +153,7 @@ public static class LadderLoader
         if (vels.TryGetValue(key, out var prev))
         {
             vels[key] = prev.Concat(v).ToList();
-            log.Add($"{label}: same step as an earlier string -- pooled ({prev.Count}+{v.Count} shots)");
+            log.Add(Tr.F("{0}: same step as an earlier string -- pooled ({1}+{2} shots)", label, prev.Count, v.Count));
         }
         else vels[key] = v;
     }
@@ -175,7 +175,7 @@ public static class LadderLoader
             pooled.Impacts.AddRange(prev.Impacts);
             pooled.Impacts.AddRange(t.Impacts);
             tgts[key] = pooled;
-            log.Add($"{label}: same step as an earlier group -- pooled ({prev.Impacts.Count}+{t.Impacts.Count} hits)");
+            log.Add(Tr.F("{0}: same step as an earlier group -- pooled ({1}+{2} hits)", label, prev.Impacts.Count, t.Impacts.Count));
         }
         else tgts[key] = t;
     }
@@ -197,7 +197,7 @@ public static class LadderLoader
                 row.VelN = st.N; row.MeanMps = st.Mean; row.SdMps = st.Sd; row.EsMps = st.Es;
                 filled++;
             }
-        if (filled > 0) rep.Log.Add($"filled {filled} step(s) with velocities from the load's Measurement");
+        if (filled > 0) rep.Log.Add(Tr.F("filled {0} step(s) with velocities from the load's Measurement", filled));
     }
 
     private static void Merge(LoadReport rep, Dictionary<double, IReadOnlyList<double>> vels, Dictionary<double, TargetGroup> tgts)

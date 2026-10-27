@@ -285,6 +285,7 @@ internal sealed class LogForm : Form
         B(Lang.T("Add"), () => EditFirearm(new Firearm()));
         B(Lang.T("Edit"), () => { if (_fa.CurrentRow?.Tag is Firearm f) EditFirearm(f); });
         B(Lang.T("Retire"), () => { if (_fa.CurrentRow?.Tag is Firearm f) { f.Retired = true; _db.UpsertFirearm(f); RefreshFirearms(); } });
+        B(Lang.T("Assign to…"), () => AssignRows("firearms", _fa));
 
         _fa.ReadOnly = true; _fa.AllowUserToAddRows = false; _fa.RowHeadersVisible = false;
         _fa.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
@@ -292,8 +293,9 @@ internal sealed class LogForm : Form
         _fa.Dock = DockStyle.Fill;
         _fa.CellDoubleClick += (_, _) => { if (_fa.CurrentRow?.Tag is Firearm f) EditFirearm(f); };
         _fa.SelectionChanged += (_, _) => ShowBarrelChart();
-        foreach (var (n, h) in new[] { ("name", Lang.T("Firearm")), ("cal", Lang.T("Caliber")), ("tot", Lang.T("Total rounds")), ("ent", Lang.T("MV entries")), ("last", Lang.T("Last used")) })
+        foreach (var (n, h) in new[] { ("name", Lang.T("Firearm")), ("cal", Lang.T("Caliber")), ("tot", Lang.T("Total rounds")), ("ent", Lang.T("MV entries")), ("last", Lang.T("Last used")), ("sh", Lang.T("Shooter")) })
             _fa.Columns.Add(n, h);
+        _fa.MultiSelect = true;
 
         var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(180);
         split.Panel1.Controls.Add(_fa);
@@ -308,11 +310,13 @@ internal sealed class LogForm : Form
     private void RefreshFirearms()
     {
         _fa.Rows.Clear();
+        var owners = ShooterState.Names(_db);
+        _fa.Columns["sh"]!.Visible = ShooterState.ShowColumn(_db);
         foreach (var f in _db.Firearms())
         {
             var hist = _db.FirearmMvHistory(f.Id);
             int i = _fa.Rows.Add(f.Name, f.Caliber, _db.FirearmRoundCount(f.Id), hist.Count,
-                hist.Count > 0 ? hist[^1].date : "");
+                hist.Count > 0 ? hist[^1].date : "", owners.GetValueOrDefault(f.ShooterId, ""));
             _fa.Rows[i].Tag = f;
         }
         ShowBarrelChart();
@@ -363,14 +367,16 @@ internal sealed class LogForm : Form
         B(Lang.T("Edit"), EditComponent);
         B(Lang.T("Restock"), RestockComponent);
         B(Lang.T("Archive"), ArchiveComponent);
+        B(Lang.T("Assign to…"), () => AssignRows("components", _inv));
 
         _inv.Dock = DockStyle.Fill;
         _inv.ReadOnly = true; _inv.AllowUserToAddRows = false; _inv.RowHeadersVisible = false;
         _inv.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _inv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _inv.CellDoubleClick += (_, _) => EditComponent();
-        foreach (var (n, h) in new[] { ("k", Lang.T("Kind")), ("d", Lang.T("Component")), ("qty", Lang.T("Left")), ("pct", "%"), ("cu", Lang.T("Cost/unit")), ("note", Lang.T("Notes")) })
+        foreach (var (n, h) in new[] { ("k", Lang.T("Kind")), ("d", Lang.T("Component")), ("qty", Lang.T("Left")), ("pct", "%"), ("cu", Lang.T("Cost/unit")), ("note", Lang.T("Notes")), ("sh", Lang.T("Shooter")) })
             _inv.Columns.Add(n, h);
+        _inv.MultiSelect = true;
 
         page.Controls.Add(_inv);
         page.Controls.Add(bar);
@@ -380,6 +386,8 @@ internal sealed class LogForm : Form
     private void RefreshInventory()
     {
         _inv.Rows.Clear();
+        var owners = ShooterState.Names(_db);
+        _inv.Columns["sh"]!.Visible = ShooterState.ShowColumn(_db);
         foreach (var c in _db.Components())
         {
             int i = _inv.Rows.Add(c.Kind.ToString(), c.Display + c.BarrelSpec,
@@ -388,7 +396,7 @@ internal sealed class LogForm : Form
                 c.CostPerUnit > 0
                     ? c.CostPerUnitIn.ToString("0.0000", CultureInfo.InvariantCulture) + $" {c.Currency}/{c.Unit}"
                     : "",
-                c.Notes);
+                c.Notes, owners.GetValueOrDefault(c.ShooterId, ""));
             _inv.Rows[i].Tag = c;
             if (c.FractionRemaining <= 0.10) _inv.Rows[i].DefaultCellStyle.BackColor = Color.FromArgb(255, 224, 224);
             else if (c.FractionRemaining <= 0.25) _inv.Rows[i].DefaultCellStyle.BackColor = Color.FromArgb(255, 244, 214);
@@ -396,6 +404,16 @@ internal sealed class LogForm : Form
     }
 
     private Component? SelectedComponent => _inv.CurrentRow?.Tag as Component;
+
+    /// <summary>Gives the selected components or firearms to another person (stock bought for a club member, a rifle that is not yours).</summary>
+    private void AssignRows(string table, DataGridView grid)
+    {
+        var ids = grid.SelectedRows.Cast<DataGridViewRow>().Select(r => r.Tag switch { Component c => c.Id, Firearm f => f.Id, _ => 0L }).Where(id => id > 0).ToList();
+        if (ids.Count == 0) { MessageBox.Show(this, Lang.T("Select one or more rows first."), Text, MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+        if (ShooterPicker.Ask(this, _db, string.Format(Lang.T("Assign {0} rows to…"), ids.Count)) is not { } who) return;
+        _db.AssignShooter(table, ids, who);
+        RefreshInventory(); RefreshFirearms(); RefreshBrassLife(); RefreshPressureSignFirearms();
+    }
 
     private void AddComponent()
     {

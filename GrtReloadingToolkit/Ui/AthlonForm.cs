@@ -23,9 +23,12 @@ internal sealed class AthlonForm : Form
 
     private readonly Action<string> _logHandler;
 
-    public AthlonForm(GrtClient? grt)
+    private readonly Log.Db? _db;
+
+    public AthlonForm(GrtClient? grt, Log.Db? db = null)
     {
         _grt = grt;
+        _db = db;
         _logHandler = AppendLog;
         Text = AppVersion.Title(Lang.T("Chronograph import (Athlon / Garmin)"));
         Width = 900;
@@ -176,7 +179,7 @@ internal sealed class AthlonForm : Form
 
         int before = _strings.Count;
         AddPaths(files, showErrorDialog: false);      // a folder may hold target CSVs etc. — just skip those
-        AppendLog($"folder: {_strings.Count - before} of {files.Count} file(s) imported from {Path.GetFileName(d.SelectedPath)}");
+        AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("folder: {0} of {1} file(s) imported from {2}"), _strings.Count - before, files.Count, Path.GetFileName(d.SelectedPath)));
     }
 
     private void AddPaths(IEnumerable<string> paths, bool showErrorDialog)
@@ -264,9 +267,9 @@ internal sealed class AthlonForm : Form
                 {
                     var top = await _grt.GetTabOnTopAsync();
                     basePath = string.IsNullOrWhiteSpace(top.file) ? null : top.file;
-                    AppendLog($"active load in GRT: {top.caption}  [{basePath ?? "unsaved tab"}]");
+                    AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("active load in GRT: {0}  [{1}]"), top.caption, basePath ?? Lang.T("unsaved tab")));
                 }
-                catch (Exception ex) { AppendLog("Get_TabOnTop failed: " + ex.Message); }
+                catch (Exception ex) { AppendLog(Lang.T("Get_TabOnTop failed:") + " " + ex.Message); }
             }
 
             // Anti-chaining: never merge into a file we generated, or a placeholder tab.
@@ -276,6 +279,13 @@ internal sealed class AthlonForm : Form
                     Lang.T("The tab active in GRT is a generated file, not your load.\n\n" +
                     "Switch to your real load tab in GRT, then import again."),
                     Lang.T("Import"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // The load on top in GRT is where the strings go: say whose it is before writing, since the shooter keeps other people's loads too.
+            if (basePath != null && !ImportTarget.Confirm(this, basePath, _db))
+            {
+                AppendLog(Lang.T("import cancelled"));
                 return;
             }
 
@@ -289,7 +299,7 @@ internal sealed class AthlonForm : Form
             {
                 doc = GrtLoadDoc.OpenForToolkitEdit(basePath);
                 string cal = doc.CaliberName;
-                if (cal is "" or "Generic") AppendLog($"note: base load has no real caliber name ('{cal}') — importing anyway");
+                if (cal is "" or "Generic") AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("note: base load has no real caliber name ('{0}') — importing anyway"), cal));
             }
             else
             {
@@ -302,27 +312,27 @@ internal sealed class AthlonForm : Form
                 if (save.ShowDialog(this) != DialogResult.OK) return;
                 explicitPath = save.FileName;
                 doc = GrtLoadDoc.CreateMinimal(title, explicitPath);
-                AppendLog("no load open — writing a minimal file with a Generic caliber/gun/projectile");
+                AppendLog(Lang.T("no load open — writing a minimal file with a Generic caliber/gun/projectile"));
             }
 
             if (_replacePrev.Checked)
             {
                 int rm = doc.RemoveByTitlePrefix(ImportBuilder.MeasurementTitlePrefix);
-                if (rm > 0) AppendLog($"replaced {rm} earlier \"Athlon …\" Measurement(s)");
+                if (rm > 0) AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("replaced {0} earlier \"Athlon …\" Measurement(s)"), rm));
             }
             int flagged = StaleNotes.FlagBarrelCalibration(doc, DateTime.Now);
-            if (flagged > 0) AppendLog("an earlier Barrel Calibration note described the PREVIOUS measurements: renamed it \"" + StaleNotes.OldBarrelCalibrationTitle + "\" and marked it as outdated (nothing deleted)");
+            if (flagged > 0) AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("an earlier Barrel Calibration note described the PREVIOUS measurements: renamed it \"{0}\" and marked it as outdated (nothing deleted)"), StaleNotes.OldBarrelCalibrationTitle));
             doc.AddMeasurement(title, charges);
 
             string outPath;
             if (explicitPath != null) { doc.Save(explicitPath); outPath = explicitPath; }
             else outPath = doc.SaveSibling("athlon");
 
-            AppendLog("wrote " + outPath);
+            AppendLog(Lang.T("wrote") + " " + outPath);
             if (_grt is { Connected: true })
             {
                 await _grt.LoadFileAsync(outPath);
-                AppendLog("asked GRT to open it");
+                AppendLog(Lang.T("asked GRT to open it"));
                 _next?.MarkDone();
                 _status.Text = string.Format(Lang.T("Imported {0} charge(s) into GRT."), charges.Count)
                     + (flagged > 0 ? " " + Lang.T("The old Barrel Calibration note is now marked OLD - redo the calibration.") : "");
@@ -336,7 +346,7 @@ internal sealed class AthlonForm : Form
         }
         catch (Exception ex)
         {
-            AppendLog("IMPORT FAILED: " + ex);
+            AppendLog(Lang.T("IMPORT FAILED:") + " " + ex);
             MessageBox.Show(this, ex.Message, Lang.T("Import failed"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally

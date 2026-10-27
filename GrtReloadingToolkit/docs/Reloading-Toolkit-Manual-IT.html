@@ -124,7 +124,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuale · v0.3.0</span>
+  <span class="k">Manuale · v0.4.0</span>
 </div></div>
 
 <div class="shell">
@@ -159,6 +159,9 @@
       <li><a href="#shotmarker">Importa ShotMarker</a></li>
       <li><a href="#reports">Template report GRT</a></li>
       <li><a href="#cli">Riga di comando</a></li>
+      <li><a href="#follow">Segui un carico</a></li>
+      <li><a href="#modelprobe">Sonda del modello</a></li>
+      <li><a href="#stability">Stabilit&agrave; giroscopica</a></li>
       <li><a href="#faq">Limiti e FAQ</a></li>
     </ol>
   </nav>
@@ -166,7 +169,7 @@
   <main>
     <section>
       <h1>Reloading Toolkit — Manuale</h1>
-      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Ventiquattro strumenti di ricarica e
+      <p class="sub">Plugin community per Gordon&#39;s Reloading Tool. Venticinque strumenti di ricarica e
         una serie di template di report GRT in un&#39;unica finestra.</p>
       <p class="lede">Id plugin <code>com.grt.plugin.reloadingtoolkit</code>. Distribuito come
         eseguibile Windows a file singolo — non serve il runtime .NET sulla macchina che lo esegue
@@ -187,6 +190,7 @@
       <p>Il toolkit è <em>on-demand</em>: GRT lo avvia al primo click ed esce quando chiudi la sua
         ultima finestra. Un solo processo serve tutte le finestre, quindi aprire un secondo strumento
         mentre uno è già aperto lo porta semplicemente in primo piano.</p>
+      <p><strong>Aspetto.</strong> Le finestre sono disegnate come quelle di GRT: pannelli scuri blu-ardesia, testo chiaro, Segoe&nbsp;UI 9&nbsp;pt. La casella in fondo al launcher, <em>Aspetto di GRT (finestre scure)</em>, riporta alle finestre chiare di prima; vale dal prossimo avvio del toolkit.</p>
     
 
       <h3>Il percorso consigliato</h3>
@@ -519,6 +523,11 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>replace previous…</td><td>Toglie le misurazioni &laquo;Athlon …&raquo; precedenti prima di aggiungere questa (attivo di default).</td></tr>
         <tr><td>Import into GRT</td><td>Scrive la misurazione nel load e apre lo snapshot.</td></tr>
       </tbody></table>
+      <p><strong>In quale carico va.</strong> L&#39;import scrive nel carico in primo piano in GRT, chiesto nel
+        momento in cui premi il pulsante. Prima di scrivere, una finestra indica quel carico, la sua cartella e
+        di chi è: il tiratore è la persona nella cui cartella si trova (<code>...\GRT\Mario\N160\carico.grtload</code>
+        è di Mario), oppure un nome dell&#39;elenco Tiratore del launcher trovato nel percorso. Se nel launcher è
+        selezionato qualcun altro, la finestra lo segnala. Rispondi <em>No</em> e passa alla scheda giusta in GRT.</p>
       <p><strong>Griglia:</strong> Use · File · Charge (gr, modificabile) · Shots · AVG m/s · SD · ES · Temp °C (modificabile).</p>
       <p><strong>Il peso della carica</strong> viene dagli appunti della sessione (&laquo;carica 39.2&raquo;,
         &laquo;charge 41.5 gr&raquo;), altrimenti da un numero nel nome file (&laquo;39.20.xlsx&raquo;).
@@ -630,6 +639,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p>Confronta la velocità alla volata <strong>simulata</strong> da GRT con quella
         <strong>misurata</strong> su più cariche e suggerisce un ritocco del <code>Ba</code>
         (coefficiente di combustione) perché GRT combaci con la tua canna.</p>
+      <p><strong>Prima di leggere qualsiasi cosa</strong> chiede a GRT se la scheda del carico ha modifiche non salvate. Lo strumento lavora sul file salvato (la carica, le misure) ma prende la velocità simulata dalla scheda, quindi una modifica non salvata abbinerebbe una velocità a una carica per cui non è stata calcolata: salva prima in GRT, oppure conferma per continuare con il file salvato. Ogni punto della scansione prosegue appena GRT segnala di averlo calcolato, invece di aspettare un tempo fisso.</p>
+      <p><strong>Revolver.</strong> La luce tra tamburo e canna fa uscire gas. Se calibri senza indicarla, la velocità torna ma le pressioni risultano troppo basse, come avverte la FAQ di GRT: inseriscila prima in GRT (finestra del calibro, Perdita di gas). La finestra tiene sempre in vista questa nota, perché il plugin non sa distinguere un revolver da una carabina.</p>
+      <p><strong>Il modello originale della polvere.</strong> L&#39;interfaccia dei plugin non può leggere il database delle polveri di GRT, quindi il Toolkit confronta il carico con i modelli che esporti tu: nel database delle polveri di GRT, clic destro sulla polvere → Esportare.., e salva il file nella cartella <strong><code>Polveri</code></strong> dentro la cartella di GRT. La finestra mostra allora Ba, k, a0, z1 e z2 del carico confrontati con quel modello, e il riepilogo dice di quanto la correzione proposta porterebbe Ba (e k) lontano da esso. Oltre il 10&nbsp;% dal modello indica più spesso un dato sbagliato del carico (volume del bossolo, lunghezza della palla, lunghezza della canna) che la polvere. GRT esporta solo le voci create o modificate da te, e il confronto vale quanto il file: metti lì esportazioni della polvere così come GRT la fornisce, non di una copia già calibrata. Senza un file corrispondente la finestra dice quale esportare; niente viene indovinato.</p>
       <h3>Flusso</h3>
       <ol class="plain">
         <li>Prima importa le stringhe del cronografo nel load (§5).</li>
@@ -831,6 +843,16 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         con il Diario di carico (§15) e Trova miglior Ba (§16) &mdash; tre finestre separate sullo
         stesso file, quindi qualsiasi cosa registrata in una compare nelle altre appena quella finestra
         torna in primo piano. Quattro tab.</p>
+      <p><strong>Più persone.</strong> Se ricarichi anche per altri (un club, un amico), ogni persona ha il
+        proprio inventario, le proprie armi, il proprio diario e i propri carichi seguiti. Il launcher si
+        apre con un selettore <strong>Tiratore</strong>: scegli una persona e ogni strumento mostra solo il
+        suo lavoro, oppure scegli <em>Tutti</em> per vedere tutto (le tabelle aggiungono allora una colonna
+        <em>Tiratore</em> e le nuove righe vanno alla prima persona). <strong>Gestisci&hellip;</strong>
+        aggiunge, rinomina e archivia le persone. Ciò che inserisci viene scritto alla persona in primo
+        piano, e una voce del diario prende il proprietario della sua arma. Per spostare qualcosa già
+        inserito, seleziona le righe nel Diario, nell'Inventario o nella scheda Armi e premi
+        <strong>Assegna a&hellip;</strong>. Un vecchio database si apre con tutto assegnato alla prima
+        persona, quindi non cambia nulla finché non ne aggiungi una seconda.</p>
       <ul>
         <li><strong>Inventory</strong> — scorte di polvere / inneschi / bossoli / palle / canne con id lotto,
           prezzo e (per i bossoli) un contatore <em>usi previsti</em> che ammortizza il costo del
@@ -1138,6 +1160,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         non solo quando fallisce), correla la tua temperatura per colpo con la distanza di ogni colpo
         dal centro del gruppo, non solo con la sua velocità &mdash; la risposta diretta a &laquo;questa
         canna smette di tenere gruppi stretti sopra una certa temperatura?&raquo;</div>
+      <p><strong>Deriva lungo la serie e pausa tra i colpi.</strong> Con almeno 8 colpi lo strumento fa passare una retta per le velocit&agrave; in ordine di sparo e dice di quanto si muove la velocit&agrave; a ogni colpo, con la sua incertezza e un valore p, quanto fa dal primo all&#39;ultimo colpo, e quale SD resta una volta tolta quella deriva lineare. Il controllo precedente &ldquo;nessuna deriva progressiva&rdquo; guarda solo se la <em>dispersione</em> cresce lungo la serie; una serie pu&ograve; avere una dispersione costante e comunque salire o scendere piano piano, ed &egrave; questo che viene segnalato. Se i colpi hanno l&#39;ora (l&#39;importazione Athlon la salva nella nota di ogni colpo), lo strumento d&agrave; anche la pausa mediana tra i colpi e se la velocit&agrave; dipende dalla pausa prima del colpo. Una deriva senza legame con la pausa segue la serie, non il ritmo di tiro. Una canna che si scalda, la polvere che si scalda al sole e lo sporco producono tutti una deriva, e l&#39;ordine dei colpi non li distingue: una pausa pi&ugrave; lunga tra i colpi, o una lettura della temperatura della canna a ogni colpo nella griglia, separa il riscaldamento dal resto. Sotto gli 8 colpi non viene affermato nulla.</p>
       <p><strong>Scrivi nota diagnosi sul load GRT</strong> scrive la classifica, il pattern e ogni
         causa attivata in un&#39;unica nota, con il grafico a barre leave-one-out allegato come
         immagine.</p>
@@ -1217,6 +1240,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         temperatura della Diagnosi SD &mdash; e riporta se i colpi più veloci in questa specifica
         stringa cadono più vicini o più lontani dal centro. È una misura dei <em>tuoi</em> dati, mai
         un&#39;affermazione generale.</p>
+      <p><strong>Probabilità di colpire un bersaglio</strong>: indica un bersaglio (il diametro di un cerchio, oppure larghezza &times; altezza di un rettangolo, nell&#39;unità di lunghezza di GRT) e la distanza a cui sta, e lo strumento dice quanto è probabile che un colpo lo prenda, in base alla dispersione di questo gruppo. La dispersione è letta come angolo, quindi cresce in proporzione alla distanza: un gruppo da 0,5&nbsp;MOA è largo 145&nbsp;mm a 1000&nbsp;m anche se è stato sparato a 100&nbsp;m. Accanto alla cifra c&#39;è quella <strong>prudente</strong>, con la dispersione al limite superiore del 90&nbsp;%: un gruppo di cinque o sei colpi dice poco sulla dispersione vera, e un gruppo fortunato sembra più stretto di quanto sia davvero il fucile, quindi con pochi colpi ci si fida della cifra prudente. Dà anche il raggio che contiene metà, il 90&nbsp;% e il 95&nbsp;% dei colpi. <em>Considera lo scostamento del gruppo dal punto di mira</em> aggiunge di quanto il centro del gruppo manca il centro del bersaglio (lascialo spento se il fucile è azzerato). Vento, deriva ed errori di distanza non sono compresi. Con la misura a 0 non viene aggiunto nulla.</p>
       <p><strong>Scrivi nota analisi gruppo sul load GRT</strong> scrive punteggio, confidenza,
         metriche e ogni problema attivato in un&#39;unica nota, con il grafico del piano bersaglio
         (impatti, centroide, punto di mira, anomalie evidenziate) allegato come immagine.</p>
@@ -1234,7 +1258,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <strong>e</strong> pollici:</p>
       <table><thead><tr><th>Bersaglio</th><th>Struttura</th><th>Colpi per punto</th></tr></thead><tbody>
         <tr><td>OCW</td><td>un disco di mira per carica, stile round-robin, una linea tratteggiata collega ogni punto alla stessa altezza</td><td>1&ndash;5, ripetuti in passate</td></tr>
-        <tr><td>Ladder / Audette</td><td>un disco di mira per carica con un righello di &plusmn;50&nbsp;mm centrato su di esso, dimensionato per leggersi a ~200&ndash;300&nbsp;m</td><td>1&ndash;5, sparati insieme</td></tr>
+        <tr><td>Ladder / Audette</td><td>un disco di mira per carica con un righello da 0 a 100&nbsp;mm che sale da esso (il disco sta alla base), dimensionato per leggersi a ~200&ndash;300&nbsp;m</td><td>1&ndash;5, sparati insieme</td></tr>
       </tbody></table>
       <p>I pesi delle cariche sono facoltativi (digitati, separati da virgola, stampati sotto ogni
         punto) oppure lasciati vuoti per essere compilati a mano dopo che il poligono ha deciso il
@@ -1314,6 +1338,9 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p>Le schede, volutamente, non sono tre per serie: la barra delle schede di GRT non scorre, quindi una
         sessione di cinque serie scritta così finirebbe con le ultime schede oltre il bordo destro della
         finestra, dove non si raggiungono più.</p>
+      <p><strong>In quale carico va.</strong> Quando premi l&#39;import, il Toolkit chiede di nuovo a GRT quale carico è in
+        primo piano (non quello che era aperto all&#39;avvio della finestra) e mostra una finestra con il suo nome, la sua
+        cartella e di chi è, la stessa dell&#39;import cronografo (§5). Rispondi <em>No</em> per fermarti senza scrivere nulla.</p>
       <p><strong>Scala.</strong> GRT ricava la dimensione reale da due punti di riferimento a distanza dichiarata
         l&#39;uno dall&#39;altro. L&#39;importatore disegna il bersaglio da sé e colloca quei punti sulla propria
         proiezione, quindi la loro distanza in millimetri è esatta per costruzione invece di essere
@@ -1342,7 +1369,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 
     <section id="reports">
       <h2><span class="no">27</span>Template report GRT</h2>
-      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive sedici
+      <p><strong>Install GRT report templates</strong> (launcher / menu Plugin) scrive venti
         pagine di report DokuWiki in <code>GRT\doku\&lt;lingua&gt;\report\</code> e le collega nell&#39;indice
         dei report. Va lanciato una volta per installazione di GRT (e chi riceve il plugin fa lo
         stesso). È idempotente e non distruttivo; per cancellare una pagina la salvi vuota in GRT.</p>
@@ -1363,6 +1390,10 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         <tr><td>SD root-cause report</td><td>la nota diagnosi + grafico leave-one-out</td></tr>
         <tr><td>Group analysis report</td><td>la nota analisi gruppo + grafico piano bersaglio</td></tr>
         <tr><td>Velocity model report</td><td>la nota del fit empirico</td></tr>
+        <tr><td>Gyroscopic stability report</td><td>la nota di stabilità (regola di Miller)</td></tr>
+        <tr><td>Model probe report</td><td>la nota della sonda + grafico della risposta</td></tr>
+        <tr><td>Follow a load report</td><td>la nota di Segui un carico + grafici di velocità media e temperatura</td></tr>
+        <tr><td>Guided diagnosis report (experimental)</td><td>la nota della diagnosi guidata</td></tr>
       </tbody></table>
       <p>Ogni strumento che scrive una nota ha ora una sua pagina dedicata, tranne <strong>Stima
         forza di seduta (QC)</strong> (§12), il <strong>wizard Nuovo carico guidato</strong> (§4),
@@ -1403,8 +1434,60 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         pannello risultati largo, un valore quasi quadrato uno alto.</p>
     </section>
 
+    <section id="follow">
+      <h2><span class="no">29</span>Segui un carico</h2>
+      <p>Segue <strong>un solo carico</strong> nel tempo, a sé: non l&#39;intero Diario con tutti gli altri carichi mescolati. Per un carico che funziona, per esempio un proiettile da 139 gr su N550 in 6,5 Creedmoor, scrivi cosa spari ogni volta che va al poligono, e lo strumento dice che cosa dicono insieme le uscite: se la velocità cambia con la temperatura, se deriva nei mesi, e se l&#39;ultima uscita è normale per lui. Puoi seguire più carichi (uno per calibro, o più cariche dello stesso); ognuno ha la sua storia. Ha un archivio suo, separato dal Diario e dall&#39;Inventario, e la sua finestra è solo in italiano.</p>
+      <table><thead><tr><th>Comando</th><th>Effetto</th></tr></thead><tbody>
+        <tr><td>Segui un carico…</td><td>Comincia a seguire un carico. Con un carico aperto in GRT è il punto di partenza (calibro, carica, polvere, proiettile); se è una scala chiede quale delle sue cariche è il carico. Altrimenti li scrivi tu.</td></tr>
+        <tr><td>Filtro</td><td>Scrivi una parte del nome, del calibro o della carica per trovare il carico nell&#39;elenco.</td></tr>
+        <tr><td>Nuova uscita…</td><td>La maschera dell&#39;uscita: incolli i colpi di una stringa (media, SD ed ES ne derivano) e scrivi temperatura, pressione, umidità, vento, gruppo, distanza, lotti di polvere e di inneschi, profondità di seduta, ricariche del bossolo e colpi già sparati dalla canna. Ciò che cambia di rado è già compilato dall&#39;ultima uscita.</td></tr>
+        <tr><td>Registra da GRT</td><td>Legge il carico aperto in GRT e capisce quale carico seguito è (calibro, carica entro 0,05 gr, nomi di proiettile e polvere), porta dentro i colpi cronografati e apre la maschera. Se nessuno combacia, propone di seguirlo.</td></tr>
+        <tr><td>Modifica uscita / Elimina uscita</td><td>Correggono o tolgono un&#39;uscita.</td></tr>
+        <tr><td>Modifica il carico… / Elimina il carico</td><td>Eliminare un carico lo toglie con tutte le sue uscite.</td></tr>
+        <tr><td>Scrivi nota e grafici nel carico GRT</td><td>Lascia nel carico aperto in GRT una nota con il verdetto e i grafici (velocità nel tempo; velocità contro temperatura se ci sono temperature scritte). GRT non può modificare il carico aperto, quindi si scrive un file gemello e lo si apre, come fa ogni strumento del toolkit.</td></tr>
+      </tbody></table>
+      <p><strong>Schede.</strong> <strong>Uscite</strong> le elenca (le righe in grigio non hanno i colpi scritti, o ne hanno meno di tre, e non vengono analizzate); <strong>Nel tempo</strong> disegna la velocità media con la sua SD e ogni colpo, con i limiti che l&#39;analisi usa per giudicare un&#39;uscita; SD ed ES; la velocità contro la temperatura con la retta adattata; il gruppo; <strong>Cosa dice</strong> è il verdetto scritto.</p>
+      <p><strong>Cosa dice.</strong></p>
+      <ul>
+        <li><strong>L&#39;ultima uscita contro quelle prima.</strong> La sua media contro ciò che questo carico di solito dà &mdash; alla stessa temperatura quando le uscite precedenti mostrano che la temperatura conta &mdash; e la sua SD contro la SD che le uscite precedenti mostravano insieme. Servono 4 uscite precedenti di 3 colpi o più.</li>
+        <li><strong>Temperatura.</strong> La variazione di velocità per grado, con il suo intervallo al 95&nbsp;%, adattata insieme alle date perché un&#39;estate calda non sia scambiata per una deriva. Servono 4 uscite con una temperatura, distanti almeno 5&nbsp;&deg;C.</li>
+        <li><strong>Nel tempo.</strong> La variazione ogni 30 giorni, con il suo intervallo; una deriva che si può rilevare ma è ben sotto la SD di una stringa è detta piccola. Servono 4 uscite distanti almeno 7 giorni.</li>
+        <li><strong>Cosa è cambiato tra un&#39;uscita e l&#39;altra:</strong> lotto di polvere o di inneschi, profondità di seduta (0,05 mm o più).</li>
+        <li><strong>Cosa non si è potuto dire, e perché.</strong></li>
+      </ul>
+      <p><strong>I tuoi dati.</strong> I dati stanno in <code>%APPDATA%\GRTPlugins\segui_carico.db</code> (la variabile <code>SEGUI_CARICO_DB</code> indica un altro file): per una copia di sicurezza basta copiare quel file. Un&#39;uscita senza i suoi colpi resta nell&#39;elenco ma non viene analizzata, perché una media senza i suoi colpi non dice nulla sulla dispersione; un valore che non è la velocità di un colpo (sotto 50 o sopra 2500 m/s) viene escluso e nominato. I verdetti sono statistiche su pochi punti. Con quattro uscite &laquo;normale&raquo; può sbagliare, e un intervallo che comprende lo zero vuol dire &laquo;non ancora mostrato&raquo;, non &laquo;nessun effetto&raquo;. &laquo;Fuori da ciò che è normale&raquo; è un motivo per guardare cosa è cambiato (l&#39;elenco lo dice), non una diagnosi.</p>
+    </section>
+
+    <section id="modelprobe">
+      <h2><span class="no">30</span>Sonda del modello</h2>
+      <p>Studia la simulazione di GRT dall'esterno: cambia <strong>un solo dato</strong> del carico aperto in GRT su un intervallo, lascia tutto il resto com'è nel carico e mostra come risponde il modello. Serve a capire cosa fanno davvero in GRT Ba, a0, z1, z2, Qex o il volume del bossolo senza leggere il codice di GRT &mdash; solo attraverso l'interfaccia documentata dei plugin, chiedendo a GRT di calcolare e leggendo le sue risposte.</p>
+      <table><thead><tr><th>Comando</th><th>Effetto</th></tr></thead><tbody>
+        <tr><td>Leggi il carico da GRT</td><td>Legge il file salvato della scheda in primo piano. Se la scheda ha modifiche non ancora salvate compare un avviso: la sonda lavora sul file salvato.</td></tr>
+        <tr><td>Dato</td><td>Tutti i dati numerici decimali del carico, prima quelli della polvere, con la descrizione di GRT. Non sono proposti: la scala di cariche, la COAL (si muove con lunghezza del bossolo, lunghezza della palla e profondità di seduta) e i campi fuori dalla simulazione balistica interna (passo di rigatura, peso dell'arma, BC, pressione massima ammessa).</td></tr>
+        <tr><td>Da / a, Punti</td><td>L'intervallo nell'unità del file (di default &plusmn;10&nbsp;% del valore del carico; da 0 a 1 quando il valore è 0) e quanti punti equidistanti. Il valore del carico è sempre uno dei punti.</td></tr>
+        <tr><td>Leggi la curva di pressione (più lento)</td><td>Legge anche la curva P/V/t di GRT per ogni punto, da cui vengono il tempo al picco di pressione, la pressione alla volata, la polvere bruciata alla volata e il tempo di combustione completa.</td></tr>
+        <tr><td>Avvia la scansione / Ferma</td><td>Una copia del carico per punto, con quel solo dato cambiato e la scala disattivata, scritta in una cartella temporanea e aperta in GRT; ogni punto aspetta che GRT segnali di averlo calcolato. Il tuo file non viene mai modificato e alla fine viene riaperto. L'interfaccia dei plugin di GRT non può chiudere le schede: chiudi a mano quelle in più.</td></tr>
+        <tr><td>Scrivi la nota della sonda nel carico GRT / Esporta CSV…</td><td>La tabella, le sensibilità e il grafico come nota su una copia del tuo carico, oppure tutti i punti in un file CSV.</td></tr>
+      </tbody></table>
+      <p><strong>Uscite.</strong> Velocità alla volata; pressione di picco; tempo di canna; tempo di canna dal 10&nbsp;% di Pmax (quello su cui GRT confronta i nodi OBT); e, con la curva, il tempo al picco di pressione, la pressione alla volata in % del picco, la polvere bruciata alla volata e il tempo di combustione completa; il rendimento, energia della palla alla volata diviso carica &times; Qex.</p>
+      <p><strong>Come leggere le sensibilità.</strong> L'<strong>elasticità</strong> è la risposta locale al valore del carico: di quanti punti percentuali cambia l'uscita per un 1&nbsp;% del dato. L'<strong>esponente</strong> è la b di uscita &asymp; a &middot; dato<sup>b</sup> calcolata su tutta la scansione, e l'<strong>R&sup2;</strong> dice quanto bene la descrive una sola legge di potenza. Se elasticità ed esponente coincidono e R&sup2; è vicino a 1, il dato agisce come una semplice legge di potenza su tutto l'intervallo; se differiscono, la risposta curva al suo interno &mdash; per esempio dove la polvere smette di bruciare tutta nella canna. Sono rapporti, quindi non dipendono dalle unità.</p>
+      <p><strong>Cosa non è.</strong> È ciò che il modello di GRT prevede, per combinazioni che forse nessuno caricherà mai. Non sono misure e non dicono nulla sulla sicurezza di un carico: per quello valgono i dati dei produttori dei componenti e i limiti di pressione della cartuccia.</p>
+    </section>
+
+    <section id="stability">
+      <h2><span class="no">31</span>Stabilit&agrave; giroscopica</h2>
+      <p>Dice se la torsione della canna mantiene stabile il proiettile, con la <strong>regola di Miller</strong> (quella usata da Berger e Applied Ballistics): <code>Sg = 30 m / (t&sup2; d&sup3; l (1 + l&sup2;))</code>, con la massa <em>m</em> in grani, il diametro <em>d</em> in pollici, e la torsione <em>t</em> e la lunghezza <em>l</em> in calibri, poi corretta per la velocit&agrave;, <code>(v / 2800)^(1/3)</code>, e per l&#39;aria, <code>(T / 519&nbsp;&deg;R)(29,92 / P)</code>.</p>
+      <table><thead><tr><th>Comando</th><th>Effetto</th></tr></thead><tbody>
+        <tr><td>Leggi dal carico GRT</td><td>Riempie massa, lunghezza e diametro del proiettile e la torsione della canna dal carico aperto in GRT, e la velocit&agrave; dai colpi misurati se ne ha. Niente viene indovinato se un campo non c&#39;&egrave; nel file; temperatura dell&#39;aria e quota non sono mai in un carico e restano come li imposti.</td></tr>
+        <tr><td>I sette numeri</td><td>Ognuno ha la sua unit&agrave;, che parte da quelle impostate in GRT: grani o grammi, millimetri o pollici, torsione in pollici o millimetri per giro, ft/s o m/s, &deg;C o &deg;F, metri o piedi.</td></tr>
+        <tr><td>Scrivi la nota di stabilit&agrave; nel carico GRT</td><td>Il risultato come nota su un&#39;istantanea del tuo carico.</td></tr>
+      </tbody></table>
+      <p><strong>Come si legge.</strong> Sg di 1,5 o pi&ugrave; &egrave; stabile; da 1,4 a 1,5 sufficiente; da 1,0 a 1,4 al limite (il proiettile vola, ma la resistenza aumenta e una mattina fredda pu&ograve; portarlo sotto 1); sotto 1,0 instabile. Accanto a Sg lo strumento d&agrave; la torsione pi&ugrave; lenta che darebbe ancora Sg 1,5 e 1,4 in queste condizioni, la regola pi&ugrave; vecchia di Greenhill come controllo, e Sg con diverse temperature dell&#39;aria alla stessa quota. L&#39;aria fredda abbassa Sg e quella rarefatta in quota lo alza, quindi il giorno da temere &egrave; il pi&ugrave; freddo e basso in cui si user&agrave; il fucile.</p>
+      <p><strong>Cosa non &egrave;.</strong> Una stima teorica per un proiettile a punta o boat-tail. Conta la concentricit&agrave; reale del proiettile, una lunghezza misurata con la punta di plastica deve essere la lunghezza totale vera, e la velocit&agrave; alla volata cala nelle giornate fredde, cosa che lo strumento non sa (scrivi tu la velocit&agrave; pi&ugrave; bassa). Non dichiara quanto coefficiente balistico si perde quando Sg &egrave; al limite: le cifre pubblicate non concordano. Nel dubbio, controlla sul bersaglio: fori ovali vogliono dire che il proiettile non &egrave; stabile.</p>
+    </section>
+
     <section id="faq">
-      <h2><span class="no">29</span>Limiti e FAQ</h2>
+      <h2><span class="no">32</span>Limiti e FAQ</h2>
       <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
       <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
         aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;
@@ -1419,7 +1502,7 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
         OnTarget. Usa il percorso <code>.csv</code>, o crea prima i gruppi in GRT (§14).</p>
       <h3>Lo strumento coefficienti temperatura non attiva &laquo;Write&raquo;.</h3>
       <p>Serve una carica a più temperature, non una scalare.</p>
-      <h3>Un&#39;icona sola in barra, non ventiquattro.</h3>
+      <h3>Un&#39;icona sola in barra, non venticinque.</h3>
       <p>È voluto — apre il launcher; ogni strumento è un pulsante lì. Le modifiche al manifest
         richiedono un riavvio di GRT per comparire.</p>
       <h3>Numeri</h3>
@@ -1431,6 +1514,6 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.3.0 · plugin community per Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.4.0 · plugin community per Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

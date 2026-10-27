@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit
 
-Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, twenty-four tools.
+Community plugin for [Gordon's Reloading Tool](https://grtools.de). One plugin, twenty-five tools.
 GRT shows a **single toolbar / menu entry** ("Reloading Toolkit") that opens a launcher window;
 every tool is a button there. One background process serves all of them.
 
@@ -29,7 +29,7 @@ every tool is a button there. One background process serves all of them.
 | 🎯🖨 **Print Ladder/OCW Target** | A true-scale printable OCW or Ladder/Audette target, prepared before the range — mm **and** inch scales, 1-5 shots per aim point, optional charge labels, paginated for long ladders. Print at 100% on A3, or **Save PDF…** through Windows' "Microsoft Print to PDF" for a guaranteed-true-A3 file regardless of which printer is selected. No GRT connection needed. |
 | 📚 **Load Book Export** | Walks a folder of `.grtload` files (recursively, one row per real recipe even alongside this toolkit's own write-back siblings) and renders one HTML document grouped by caliber: powder, charge, bullet, COAL, `Ba`/`a0`, and whatever the Journal — or the file's own embedded shot data — measured. No GRT connection needed. |
 
-Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes sixteen DokuWiki
+Plus **📄 Install GRT report templates** (launcher button / Plugins menu): writes twenty DokuWiki
 report pages into `GRT\doku\<lang>\report\` and links them from the Reports index —
 
 - *Toolkit — Full load workup* (recipe + predicted results + every section below, in one page)
@@ -48,6 +48,10 @@ report pages into `GRT\doku\<lang>\report\` and links them from the Reports inde
 - *Toolkit — SD root-cause report* (the root-cause note + leave-one-out chart)
 - *Toolkit — Group analysis report* (the group-analysis note + target-plane chart)
 - *Toolkit — Velocity model report* (the empirical fit)
+- *Toolkit — Gyroscopic stability report* (the Miller-rule stability note)
+- *Toolkit — Model probe report* (the probe note and its response chart)
+- *Toolkit — Follow a load report* (the follow-a-load note with its charts)
+- *Toolkit — Guided diagnosis report (experimental)*
 
 Every note-writing tool has its own dedicated page now, except Seating Force Estimate (QC), the
 Guided New Load wizard, Print Ladder/OCW Target and Load Book Export — none of the four write

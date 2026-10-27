@@ -49,7 +49,7 @@ public static class BrassCalc
         double mandrel = bulletDiaMm - interferenceMm;
         double neckIdAfter = mandrel; // by definition when a mandrel is the last step
         string notes = measuredLoadedNeckOdMm is null
-            ? "loaded neck OD estimated as bullet dia + 2x wall - measure a loaded round for accuracy"
+            ? Tr.T("loaded neck OD estimated as bullet dia + 2x wall - measure a loaded round for accuracy")
             : "";
         return new NeckResult(bushing, mandrel, neckIdAfter, interferenceMm, loadedNeckOd, notes);
     }
@@ -73,22 +73,22 @@ public static class BrassCalc
     public static SeatingResult Seating(double cbtoMm, double caseLenMm, double bbtoMm)
     {
         if (cbtoMm <= 0 || caseLenMm <= 0 || bbtoMm <= 0)
-            throw new ArgumentException("CBTO, case length and BBTO must all be positive.");
+            throw new ArgumentException(Tr.T("CBTO, case length and BBTO must all be positive."));
 
         double diff = cbtoMm - caseLenMm;
         double depth = bbtoMm - diff;
 
         var notes = new List<string>();
         if (diff < 0)
-            notes.Add("CBTO is less than case length - the ogive would sit below the case mouth. Re-check CBTO and case length.");
+            notes.Add(Tr.T("CBTO is less than case length - the ogive would sit below the case mouth. Re-check CBTO and case length."));
         if (depth <= 0)
-            notes.Add("Seating depth came out <= 0 - the bullet base would be at or above the case mouth. Re-check BBTO.");
+            notes.Add(Tr.T("Seating depth came out <= 0 - the bullet base would be at or above the case mouth. Re-check BBTO."));
         else if (depth > caseLenMm)
-            notes.Add("Seating depth exceeds the case length - not physically possible. Re-check the inputs.");
+            notes.Add(Tr.T("Seating depth exceeds the case length - not physically possible. Re-check the inputs."));
         if (depth > 0 && depth < 3)
-            notes.Add("Seating depth under ~3 mm is very shallow - little bearing surface in the neck for grip/alignment.");
+            notes.Add(Tr.T("Seating depth under ~3 mm is very shallow - little bearing surface in the neck for grip/alignment."));
         if (depth > 12.7)
-            notes.Add("Seating depth over 0.5 in (12.7 mm) is unusually deep for most cartridges - worth double-checking.");
+            notes.Add(Tr.T("Seating depth over 0.5 in (12.7 mm) is unusually deep for most cartridges - worth double-checking."));
 
         return new SeatingResult(depth, diff, notes);
     }

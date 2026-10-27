@@ -65,7 +65,7 @@ public static class GrtShotGroups
             if (w <= 0 || h <= 0)
             {
                 w = h = 1000;
-                log.Add($"shot-group '{sg.Title}': no picture size, assuming square target (distances may be off)");
+                log.Add(Tr.F("shot-group '{0}': no picture size, assuming square target (distances may be off)", sg.Title));
             }
 
             double dpx = (sg.RefP2X - sg.RefP1X) * w;
@@ -74,12 +74,12 @@ public static class GrtShotGroups
             double refMm = RefToMm(sg.RefDistance, opt.Ref);
             if (refPx < 1e-6 || refMm <= 0)
             {
-                log.Add($"shot-group '{sg.Title}': reference points/distance not set — skipped");
+                log.Add(Tr.F("shot-group '{0}': reference points/distance not set — skipped", sg.Title));
                 continue;
             }
             double mmPerPx = refMm / refPx;
             double distM = ShootToM(sg.ShootDistance, opt.Shoot);
-            if (distM <= 0) { distM = 100; log.Add($"shot-group '{sg.Title}': no shooting distance, assuming {GrtUnits.Current.Distance(100)}"); }
+            if (distM <= 0) { distM = 100; log.Add(Tr.F("shot-group '{0}': no shooting distance, assuming {1}", sg.Title, GrtUnits.Current.Distance(100))); }
             double mmToMoa = 1.0 / (MoaMmPer100m * (distM / 100.0));
 
             int groupIdx = 0;
@@ -88,7 +88,7 @@ public static class GrtShotGroups
                 groupIdx++;
                 var poa = set.Points.FirstOrDefault(p => p.PointOfAim);
                 var hits = set.Points.Where(p => !p.PointOfAim && (!opt.ExcludeFlyers || !p.Flyer)).ToList();
-                if (hits.Count == 0) { log.Add($"'{sg.Title}' / {set.Name}: no hits, skipped"); continue; }
+                if (hits.Count == 0) { log.Add(Tr.F("'{0}' / {1}: no hits, skipped", sg.Title, set.Name)); continue; }
 
                 // reference for X/Y offsets: the aim point if marked, otherwise the hit centroid
                 double ox = poa?.X ?? hits.Average(p => p.X);
@@ -106,15 +106,15 @@ public static class GrtShotGroups
 
                 int flyers = set.Points.Count(p => p.Flyer && !p.PointOfAim);
                 // No LadderMode here — a shot-group tab is read the same way for both ladders.
-                string tag = step is { } s ? "step " + s.ToString(Str.StepFormat, CultureInfo.InvariantCulture) : $"ordinal {groupIdx}";
-                log.Add($"'{sg.Title}' / {set.Name}: {tg.Impacts.Count} hits @ {GrtUnits.Current.Distance(distM)}, {tag}"
-                        + (flyers > 0 ? $" ({flyers} flyer{(flyers > 1 ? "s" : "")}{(opt.ExcludeFlyers ? " excluded" : " kept")})" : ""));
+                string tag = step is { } s ? Tr.F("step {0}", s.ToString(Str.StepFormat, CultureInfo.InvariantCulture)) : Tr.F("ordinal {0}", groupIdx);
+                string flyerTxt = flyers > 0 ? " " + Tr.F("({0} flyer(s) {1})", flyers, opt.ExcludeFlyers ? Tr.T("excluded") : Tr.T("kept")) : "";
+                log.Add(Tr.F("'{0}' / {1}: {2} hits @ {3}, {4}", sg.Title, set.Name, tg.Impacts.Count, GrtUnits.Current.Distance(distM), tag) + flyerTxt);
                 outp.Add(tg);
             }
         }
 
         if (outp.Count == 0 && tabIdx == 0)
-            log.Add("no shot-group tabs in this load — add one in GRT (target image + reference distance + hits).");
+            log.Add(Tr.T("no shot-group tabs in this load — add one in GRT (target image + reference distance + hits)."));
         return (outp, log);
     }
 

@@ -27,6 +27,8 @@ internal sealed class SdRootCauseForm : Form
     {
         public required string Label { get; init; }
         public required List<double> Velocities { get; init; }
+        /// <summary>The clock time of each shot (seconds from midnight) where its note carries one, as the Athlon import writes it.</summary>
+        public List<double?> Clock { get; init; } = new();
         /// <summary>What the stored per-shot temperatures are filed under: the label alone is not
         /// enough (every GRT Measurement is called "Misurazione"), so the shots themselves are part of it.</summary>
         public string StorageKey => $"{Label} [{RowLabels.Fingerprint(Velocities)}]";
@@ -46,7 +48,7 @@ internal sealed class SdRootCauseForm : Form
     private readonly Label _alignmentCaveat = new() { AutoSize = false, Width = 280, Height = 44, ForeColor = SystemColors.GrayText };
     private readonly DataGridView _tempGrid = new();
     private readonly DataGridView _rankingGrid = new();
-    private readonly TextBox _verdict = new() { Multiline = true, ReadOnly = true, Dock = DockStyle.Top, Height = 70 };
+    private readonly TextBox _verdict = new() { Multiline = true, ReadOnly = true, Dock = DockStyle.Top, Height = 150, ScrollBars = ScrollBars.Vertical };
     private readonly SdRootCauseChart _barChart = new() { Dock = DockStyle.Fill };
     private readonly FindBaChart _tempVelChart = new() { Dock = DockStyle.Fill };
     private readonly FindBaChart _tempPoiChart = new() { Dock = DockStyle.Fill };
@@ -172,12 +174,17 @@ internal sealed class SdRootCauseForm : Form
             foreach (var meas in doc.Measurements())
                 foreach (var ch in meas.Charges)
                 {
-                    var vs = ch.Shots.Select(s => s.VelocityMps).Where(v => v > 50).ToList();
+                    var kept = ch.Shots.Where(s => s.VelocityMps > 50).ToList();
+                    var vs = kept.Select(s => s.VelocityMps).ToList();
                     if (vs.Count < 3) continue;
                     string label = ch.ChargeGrains is { } g
                         ? FormattableString.Invariant($"{g:0.0##} gr ({meas.Title})")
                         : $"{ch.Name} ({meas.Title})";
-                    _rows.Add(new StringRow { Label = RowLabels.Unique(_rows.Select(r => r.Label), label), Velocities = vs });
+                    _rows.Add(new StringRow
+                    {
+                        Label = RowLabels.Unique(_rows.Select(r => r.Label), label), Velocities = vs,
+                        Clock = kept.Select(s => ShotDrift.ClockSeconds(s.Note)).ToList(),
+                    });
                 }
 
             _groups.Clear();
@@ -261,7 +268,7 @@ internal sealed class SdRootCauseForm : Form
 
         try
         {
-            var report = SdRootCause.Diagnose(row.Velocities, coldBoreFlags, manualTemps.Count >= 3 ? manualTemps : null, group);
+            var report = SdRootCause.Diagnose(row.Velocities, coldBoreFlags, manualTemps.Count >= 3 ? manualTemps : null, group, row.Clock);
             _lastReport = report;
             RenderReport(report);
         }
@@ -305,6 +312,49 @@ internal sealed class SdRootCauseForm : Form
         _verdict.Text = BuildVerdict(report);
     }
 
+    /// <summary>
+    /// The drift of velocity along the string and, when the shots carry clock times, how it relates to the pause before each shot.
+    /// Whatever the cause (a barrel that heats, powder warming in the sun, fouling), the order of the shots alone cannot tell, so the
+    /// text says what is measured and what would separate the causes, and no more.
+    /// </summary>
+    private IEnumerable<string> DriftLines(ShotDriftReport d)
+    {
+        var ci = CultureInfo.InvariantCulture;
+        string unit = _u.VelocityUnitName;
+        string V(double mps, string f) => _u.VelocityValue(mps).ToString(f, ci);
+        string slope = (d.SlopePerShot >= 0 ? "+" : "-") + V(Math.Abs(d.SlopePerShot), "0.00");
+        string p = d.PValue < 0.001 ? "<0.001" : d.PValue.ToString("0.000", ci);
+
+        if (d.DriftSignificant)
+        {
+            double total = _u.VelocityValue(d.TotalChange);
+            yield return string.Format(Lang.T("Velocity drifts along the string: {0} {1} per shot ± {2} (p={3}), {4} {1} from the first shot to the last."),
+                slope, unit, V(d.SlopeSe, "0.00"), p, (total >= 0 ? "+" : "-") + Math.Abs(total).ToString("0.0", ci));
+            yield return string.Format(Lang.T("Taking that straight drift out leaves an SD of {0} {1} instead of {2}."),
+                _u.VelocitySd(d.ResidualSdMps), unit, _u.VelocitySd(d.SdMps));
+            yield return Lang.T("A barrel that heats, powder warming in the sun and fouling all look like this, and the order of the shots cannot tell them apart: a longer pause between shots, or a barrel-temperature reading per shot, separates heating from the rest.");
+        }
+        else
+            yield return string.Format(Lang.T("No drift along the string: {0} {1} per shot ± {2} (p={3})."), slope, unit, V(d.SlopeSe, "0.00"), p);
+
+        if (d.MedianPauseS is { } med && d.IntervalCount > 0)
+        {
+            yield return string.Format(Lang.T("Pause between shots: median {0} s (from {1} to {2} s)."),
+                med.ToString("0", ci), d.MinPauseS!.Value.ToString("0", ci), d.MaxPauseS!.Value.ToString("0", ci));
+            if (d.IntervalR is { } r && d.IntervalP is { } ip)
+            {
+                yield return string.Format(Lang.T("Velocity against the pause before the shot: r={0} (p={1}, {2} shots)."),
+                    r.ToString("0.00", ci), ip < 0.001 ? "<0.001" : ip.ToString("0.000", ci), d.IntervalCount);
+                if (d.IntervalSignificant)
+                    yield return r > 0
+                        ? Lang.T("Shots fired after a longer pause were faster: the rate of fire matters, as it does when the barrel is hot.")
+                        : Lang.T("Shots fired after a shorter pause were faster: the rate of fire matters, as it does when the barrel is hot.");
+                else if (d.DriftSignificant)
+                    yield return Lang.T("The drift does not depend on how quickly the shots were fired: it follows the string, not the rate of fire.");
+            }
+        }
+    }
+
     private string BuildVerdict(SdRootCause.SdRootCauseReport report)
     {
         var sb = new StringBuilder();
@@ -341,7 +391,9 @@ internal sealed class SdRootCauseForm : Form
         else if (report.ProgressiveDrift is { } fd)
             sb.AppendLine(fd.FoulingSuspected
                 ? Lang.T("Probable unmeasured thermal/fouling cause: SD rises as the string progresses (no per-shot temperature was entered for this string).")
-                : Lang.T("No progressive drift detected across the string."));
+                : Lang.T("The spread (SD) does not grow as the string progresses."));
+
+        if (report.Drift is { } dr) foreach (string line in DriftLines(dr)) sb.AppendLine(line);
 
         if (report.Pattern == SdRootCause.SdPatternKind.Systematic && Math.Abs(report.Skewness) > 1.0)
             sb.AppendLine(string.Format(Lang.T("Note (informal convention, not a reloading-specific benchmark): the velocity distribution is notably skewed ({0})."),

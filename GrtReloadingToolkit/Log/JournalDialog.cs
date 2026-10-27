@@ -37,6 +37,12 @@ internal sealed class JournalDialog : Form
     private readonly NumericUpDown _sd = new() { DecimalPlaces = 1, Maximum = SdMax, Width = 80 };
     private readonly NumericUpDown _grp = new() { DecimalPlaces = 2, Maximum = 50, Width = 80 };
     private readonly NumericUpDown _dist = new() { Maximum = DistMax, Width = 90 };
+    // Every shot of the string, in GRT's velocity unit, pasted or typed: with them the mean, the SD and the ES are worked out
+    // here, and an outing can be followed over time (a mean without its shots says nothing about the spread). The wind uses the same unit.
+    private readonly TextBox _shots = new() { Width = 300, Multiline = true, Height = 56, ScrollBars = ScrollBars.Vertical };
+    private readonly NumericUpDown _wind = new() { DecimalPlaces = 1, Maximum = (decimal)U.VelocityValue(60), Width = 80 };
+    private readonly NumericUpDown _windDir = new() { Maximum = 360, Width = 80 };
+    private bool _loadingShots;
     private readonly TextBox _notes = new() { Width = 380, Multiline = true, Height = 44, ScrollBars = ScrollBars.Vertical };
     private readonly CheckBox _applyStock = new() { Text = Ui.Lang.T("deduct components from inventory on save"), Checked = true, AutoSize = true };
     private readonly Label _cost = new() { AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
@@ -87,7 +93,14 @@ internal sealed class JournalDialog : Form
         // environment/calibration rows -- caught by rendering the real dialog, not by counting
         // rows on paper. AutoScroll is a safety net on top of the taller size, same combination
         // used everywhere else this session.
-        ClientSize = new Size(560, 820);
+        ClientSize = new Size(560, 930);
+        // taller than a 1366x768 screen or a 150% Windows scale: kept inside the working area, the form scrolls the rest
+        Shown += (_, _) =>
+        {
+            var wa = Screen.FromControl(this).WorkingArea;
+            var fit = Ui.WindowFit.Fit((Left, Top, Width, Height), (wa.Left, wa.Top, wa.Width, wa.Height));
+            if (fit != (Left, Top, Width, Height)) SetBounds(fit.X, fit.Y, fit.Width, fit.Height);
+        };
         AutoScroll = true;
 
         _date.Text = e.Date;
@@ -102,6 +115,12 @@ internal sealed class JournalDialog : Form
         _rounds.Value = Clamp(e.Rounds, _rounds);
         if (e.VelocityAvgMs is { } v) _mv.Value = Clamp(U.VelocityValue(v), _mv);
         if (e.SdMs is { } s) _sd.Value = Clamp(U.VelocityValue(s), _sd);
+        _loadingShots = true;
+        if (e.Velocities().Count > 0) _shots.Text = string.Join(" ", e.Velocities().Select(x => U.VelocityValue(x).ToString("0.##", CultureInfo.InvariantCulture)));
+        if (e.WindMps is { } wm) _wind.Value = Clamp(U.VelocityValue(wm), _wind);
+        if (e.WindDeg is { } wd) _windDir.Value = Clamp(wd, _windDir);
+        _loadingShots = false;
+        _shots.TextChanged += (_, _) => { if (!_loadingShots) FillFromShots(); };
         if (e.GroupMoa is { } g) _grp.Value = Clamp(g, _grp);
         if (e.DistanceM is { } d) _dist.Value = Clamp(U.DistanceValue(d), _dist);
         _envRecorded.Checked = e.TemperatureC.HasValue || e.PressureHpa.HasValue || e.HumidityPct.HasValue;
@@ -140,8 +159,11 @@ internal sealed class JournalDialog : Form
         Row(Ui.Lang.T("Rounds"), _rounds);
         Row("MV " + U.VelocityUnitName, _mv);
         Row("SD " + U.VelocityUnitName, _sd);
+        Row(Ui.Lang.T("Shot velocities") + " " + U.VelocityUnitName, _shots);
         Row(Ui.Lang.T("Group MOA"), _grp);
         Row(Ui.Lang.T("Distance") + " " + U.DistanceUnitName, _dist);
+        Row(Ui.Lang.T("Wind") + " " + U.VelocityUnitName, _wind);
+        Row(Ui.Lang.T("Wind direction (degrees from 12 o'clock)"), _windDir);
         Row("", _envRecorded);
         Row(Ui.Lang.T("Temperature"), UnitField(_temp, _tempUnit));
         Row(Ui.Lang.T("Pressure"), UnitField(_pressure, _pressureUnit));
@@ -258,6 +280,22 @@ internal sealed class JournalDialog : Form
               (probe.Rounds > 0 ? string.Format(Ui.Lang.T("   →  {0} for {1}"), Costing.Format(total, cb.Currency), probe.Rounds) : "");
     }
 
+    /// <summary>The shots as m/s, from what is in the box (which is in GRT's unit).</summary>
+    private List<double> ShotsMps() => JournalEntry.ParseShots(_shots.Text).Select(U.VelocityToMps).Where(JournalEntry.IsPlausibleShotMps).ToList();
+
+    private List<double> ImplausibleShots() => JournalEntry.ParseShots(_shots.Text).Where(v => !JournalEntry.IsPlausibleShotMps(U.VelocityToMps(v))).ToList();
+
+    /// <summary>With the shots in, the mean, SD and ES follow from them: the same numbers GRT shows (sample SD).</summary>
+    private void FillFromShots()
+    {
+        var v = ShotsMps();
+        if (v.Count == 0) return;
+        var st = GrtPluginKit.Analysis.StringStats.From(v);
+        _mv.Value = Clamp(U.VelocityValue(st.Mean), _mv);
+        _sd.Value = Clamp(U.VelocityValue(st.Sd), _sd);
+        if (_rounds.Value == 0) _rounds.Value = Clamp(v.Count, _rounds);
+    }
+
     private void Commit()
     {
         _e.Date = _date.Text.Trim();
@@ -278,6 +316,21 @@ internal sealed class JournalDialog : Form
         _e.A0 = _a0.Value > 0 ? (double)_a0.Value : null;
         _e.K = _k.Value > 0 ? (double)_k.Value : null;
         _e.Notes = _notes.Text.Trim();
+        var ignored = ImplausibleShots();
+        if (ignored.Count > 0)
+            MessageBox.Show(this, string.Format(Ui.Lang.T("These values in the shots box are not velocities of a shot and were left out: {0}"),
+                string.Join(" ", ignored.Select(v => v.ToString("0.##", CultureInfo.InvariantCulture)))), Text);
+        var shots = ShotsMps();
+        _e.ShotsMs = JournalEntry.FormatShots(shots);
+        if (shots.Count > 0)
+        {
+            var st = GrtPluginKit.Analysis.StringStats.From(shots);
+            _e.VelocityAvgMs = st.Mean;
+            _e.SdMs = shots.Count > 1 ? st.Sd : _e.SdMs;
+            _e.EsMs = shots.Count > 1 ? st.Es : _e.EsMs;
+        }
+        _e.WindMps = _wind.Value > 0 ? U.VelocityToMps((double)_wind.Value) : null;
+        _e.WindDeg = _wind.Value > 0 ? (double)_windDir.Value : null;
     }
 
     private sealed record Item(long Id, string Text) { public override string ToString() => Text; }

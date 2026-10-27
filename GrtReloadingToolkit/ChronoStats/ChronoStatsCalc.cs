@@ -179,18 +179,17 @@ public static class ChronoStatsCalc
         var gu = GrtUnits.Current;
         int ci = (int)Math.Round(confidence * 100);
         var sb = new StringBuilder();
-        sb.AppendLine(FormattableString.Invariant(
-            $"{ci}% confidence interval on each string's true mean. \"n needed\" = shots (of that"));
-        sb.AppendLine(FormattableString.Invariant(
-            $"string's own spread) to pin the mean to +/-{gu.VelocityValue(targetMarginMps):F1} {gu.VelocityUnitName}."));
+        sb.AppendLine(Tr.F("{0}% confidence interval on each string's true mean. \"n needed\" = shots (of that", ci));
+        sb.AppendLine(Tr.F("string's own spread) to pin the mean to +/-{0} {1}.",
+            gu.VelocityValue(targetMarginMps).ToString("F1", CultureInfo.InvariantCulture), gu.VelocityUnitName));
         sb.AppendLine();
-        sb.AppendLine($"mean/SD/ES/CI in {gu.VelocityUnitName}; SD = sample SD (/(n-1)), the one GRT shows; a chronograph's own (/n) is a little smaller");
+        sb.AppendLine(Tr.F("mean/SD/ES/CI in {0}; SD = sample SD (/(n-1)), the one GRT shows; a chronograph's own (/n) is a little smaller", gu.VelocityUnitName));
         // The level is the caller's, not always 95 -- a hardcoded "95%" here contradicted the
         // sentence above at 90 or 99. Width 2 covers every level the form offers (90/95/99) and
         // keeps this hand-aligned header lined up with the row format below.
-        sb.AppendLine(FormattableString.Invariant(
-            $" charge            n   mean    SD    ES  |   {ci,2}% CI on mean   | n needed"));
+        sb.AppendLine(Tr.F(" charge            n   mean    SD    ES  |   {0,2}% CI on mean   | n needed", ci));
         var footnotes = new List<string>();
+        string to = Tr.T(" to ");   // between the two ends of the interval
         foreach (var (label, s) in rows)
         {
             string shortLabel = ShortLabel(label);
@@ -198,11 +197,11 @@ public static class ChronoStatsCalc
             string needTxt = need switch { 0 => "–", -1 => ">1000", _ => need.ToString(CultureInfo.InvariantCulture) };
             var flagged = s.Outliers.Where(o => o.Flagged).ToList();
             sb.AppendLine(FormattableString.Invariant(
-                $"{shortLabel,-14}{(flagged.Count > 0 ? "*" : " ")} {s.N,3} {gu.VelocityValue(s.Mean),7:F1} {gu.VelocityValue(s.Sd),5:F1} {gu.VelocityValue(s.Es),5:F1}  | {gu.VelocityValue(s.CiLoMps),7:F1} to {gu.VelocityValue(s.CiHiMps),-7:F1} |   {needTxt,4}"));
+                $"{shortLabel,-14}{(flagged.Count > 0 ? "*" : " ")} {s.N,3} {gu.VelocityValue(s.Mean),7:F1} {gu.VelocityValue(s.Sd),5:F1} {gu.VelocityValue(s.Es),5:F1}  | {gu.VelocityValue(s.CiLoMps),7:F1}{to}{gu.VelocityValue(s.CiHiMps),-7:F1} |   {needTxt,4}"));
             foreach (var o in flagged)
-                footnotes.Add(FormattableString.Invariant(
-                    $"  * {shortLabel}: shot #{o.Index + 1} = {gu.VelocityValue(o.ValueMps):F1} {gu.VelocityUnitName} flagged (Chauvenet) — ")
-                    + (s.OutliersExcluded ? "EXCLUDED, not counted above" : "kept, counted above"));
+                footnotes.Add(Tr.F("  * {0}: shot #{1} = {2} {3} flagged (Chauvenet) — {4}", shortLabel, o.Index + 1,
+                    gu.VelocityValue(o.ValueMps).ToString("F1", CultureInfo.InvariantCulture), gu.VelocityUnitName,
+                    s.OutliersExcluded ? Tr.T("EXCLUDED, not counted above") : Tr.T("kept, counted above")));
         }
         if (footnotes.Count > 0) { sb.AppendLine(); foreach (var f in footnotes) sb.AppendLine(f); }
         return sb.ToString();
@@ -213,13 +212,16 @@ public static class ChronoStatsCalc
     {
         var gu = GrtUnits.Current;
         var sb = new StringBuilder();
-        sb.AppendLine(FormattableString.Invariant($"Compare: {ShortLabel(labelA)}  vs  {ShortLabel(labelB)}"));
-        sb.AppendLine(FormattableString.Invariant(
-            $"  mean:   {gu.VelocityValue(r.MeanA):F1} vs {gu.VelocityValue(r.MeanB):F1} {gu.VelocityUnitName}, diff {gu.VelocityValue(r.MeanDiffMps):+0.0;-0.0} {gu.VelocityUnitName} (p={r.TPValue:0.000}) -> ") +
-            (r.MeansDiffer ? "different, not chrono noise" : "not different — could be chrono noise"));
-        sb.AppendLine(FormattableString.Invariant(
-            $"  spread: SD {gu.VelocityValue(r.SdA):F1} vs {gu.VelocityValue(r.SdB):F1} {gu.VelocityUnitName} (p={r.FPValue:0.000}) -> ") +
-            (r.SpreadsDiffer ? "one load is meaningfully more consistent" : "no evidence either is more consistent"));
+        var inv = CultureInfo.InvariantCulture;
+        sb.AppendLine(Tr.F("Compare: {0}  vs  {1}", ShortLabel(labelA), ShortLabel(labelB)));
+        sb.AppendLine(Tr.F("  mean:   {0} vs {1} {2}, diff {3} {2} (p={4}) -> {5}",
+            gu.VelocityValue(r.MeanA).ToString("F1", inv), gu.VelocityValue(r.MeanB).ToString("F1", inv), gu.VelocityUnitName,
+            gu.VelocityValue(r.MeanDiffMps).ToString("+0.0;-0.0", inv), r.TPValue.ToString("0.000", inv),
+            r.MeansDiffer ? Tr.T("different, not chrono noise") : Tr.T("not different — could be chrono noise")));
+        sb.AppendLine(Tr.F("  spread: SD {0} vs {1} {2} (p={3}) -> {4}",
+            gu.VelocityValue(r.SdA).ToString("F1", inv), gu.VelocityValue(r.SdB).ToString("F1", inv), gu.VelocityUnitName,
+            r.FPValue.ToString("0.000", inv),
+            r.SpreadsDiffer ? Tr.T("one load is meaningfully more consistent") : Tr.T("no evidence either is more consistent")));
         return sb.ToString();
     }
 

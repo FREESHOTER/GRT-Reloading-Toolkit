@@ -11,7 +11,7 @@ report templates.
 — grab `ReloadingToolkit.zip` (or the smaller `-lite.zip`, see [Install](#install-users) below) from
 the Assets list on that page.
 
-> **Status: v0.3.0.** Tested against my own loads. Not every path with
+> **Status: v0.4.0.** Tested against my own loads. Not every path with
 > every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
@@ -37,12 +37,13 @@ the Assets list on that page.
 | **Distance Workflow** | The same scoring engine asked a different question: of the charges logged at *one* distance, which earn a test at the next one. No history term, and groups under 3 rounds are left out. |
 | **Powder Compare** | Same scoring, one level coarser: groups by caliber+powder only, over powders you've actually calibrated. |
 | **Velocity Model** | An empirical `MV ≈ a + b·charge + c·temperature` fit from your own logged sessions, independent of GRT's physics model — plus a predictor and an inverse solver (target MV → needed charge). |
+| **Model Probe** | Sweeps one input of the open load (Ba, a0, z1, z2, Qex, charge, case volume, seating depth…) with everything else held, and shows how GRT's own simulation answers: velocity, pressure, barrel time, time to peak, powder burnt at the muzzle, efficiency — with an elasticity at the load's value and a power-law exponent over the range. Through the plugin API only. |
 | **Advanced Diagnostics** | Six diagnostics needing no calibrated `Ba`: Fouling Tracker, Cold Bore, Primer Sensitivity, Neck Tension Correlation, Pressure Trend, Session Trend. |
 | **SD Root-Cause** | For one shot string: a leave-one-out ranking of which shot(s) are dragging the SD down, classified (single/partial-outlier vs. systematic) by Chauvenet's criterion rather than an invented cutoff — plus cold-bore, progressive-drift, and (with a per-shot barrel temperature you log by hand) real temperature↔velocity and temperature↔group-dispersion correlation using GRT's own shot-group data. |
 | **Group Analysis** | For one shot group: extreme spread, mean radius, CEP50 and H/V spread, with score and confidence reported separately (a tight 3-shot group and a tight 15-shot group are not the same claim) against a distance band. Mahalanobis outlier detection, a problem list that always names the number behind it, group pooling, and velocity↔dispersion correlation. |
 | **Print Ladder/OCW Target** | Printable ladder / OCW targets, scaled for the distance you're shooting. |
 | **Load Book Export** | The whole journal as one printable load book. |
-| **Install GRT report templates** | Writes fifteen DokuWiki report pages into `GRT\doku\<lang>\report\`. |
+| **Install GRT report templates** | Writes twenty DokuWiki report pages into `GRT\doku\<lang>\report\`. |
 
 Full details: **[MANUAL.md](GrtReloadingToolkit/MANUAL.md)**, or as HTML
 ([EN](GrtReloadingToolkit/docs/Reloading-Toolkit-Manual.html) /

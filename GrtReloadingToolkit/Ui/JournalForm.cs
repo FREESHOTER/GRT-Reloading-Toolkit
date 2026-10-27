@@ -18,6 +18,7 @@ internal sealed class JournalForm : Form
     private readonly Db _db;
     private readonly DataGridView _jrn = new();
     private readonly Label _status = new();
+    private readonly TextBox _filter = new() { Width = 170, Margin = new Padding(12, 3, 0, 0) };
     private readonly AlertPanel _alerts = new();
 
     public JournalForm(GrtClient? grt, Db db)
@@ -37,6 +38,10 @@ internal sealed class JournalForm : Form
         B(Lang.T("Edit"), EditEntry);
         B(Lang.T("Delete"), DeleteEntry);
         B(Lang.T("Fill Ba from loads"), FillBaFromLoads);
+        B(Lang.T("Assign to…"), AssignSelected);
+        bar.Controls.Add(new Label { Text = Lang.T("Filter"), AutoSize = true, Padding = new Padding(10, 6, 0, 0) });
+        bar.Controls.Add(_filter);
+        _filter.TextChanged += (_, _) => RefreshJournal(alerts: false);
 
         _jrn.Dock = DockStyle.Fill;
         _jrn.ReadOnly = true; _jrn.AllowUserToAddRows = false; _jrn.RowHeadersVisible = false;
@@ -45,8 +50,9 @@ internal sealed class JournalForm : Form
         _jrn.CellDoubleClick += (_, _) => EditEntry();
         foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("cal", Lang.T("Caliber")), ("chg", Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName),
                      ("rnd", Lang.T("Rounds")), ("mv", "MV " + GrtUnits.Current.VelocityUnitName),
-                     ("sd", "SD " + GrtUnits.Current.VelocityUnitName), ("grp", "MOA"), ("cpr", Lang.T("Cost/rd")), ("tot", Lang.T("Total")) })
+                     ("sd", "SD " + GrtUnits.Current.VelocityUnitName), ("grp", "MOA"), ("cpr", Lang.T("Cost/rd")), ("tot", Lang.T("Total")), ("sh", Lang.T("Shooter")) })
             _jrn.Columns.Add(n, h);
+        _jrn.MultiSelect = true;
 
         _status.Dock = DockStyle.Bottom;
         _status.Height = 20;
@@ -69,14 +75,22 @@ internal sealed class JournalForm : Form
         Activated += (_, _) => RefreshJournal();
     }
 
-    private void RefreshJournal()
+    private void RefreshJournal(bool alerts = true)
     {
-        try { _alerts.Show(LoadAlerts.All(AlertPanel.ContextFor(_db))); } catch (Exception) { _alerts.Visible = false; }
+        // the alerts read the whole journal and run the analysis: not on every key typed in the filter
+        if (alerts)
+            try { _alerts.Show(LoadAlerts.All(AlertPanel.ContextFor(_db))); } catch (Exception) { _alerts.Visible = false; }
         _jrn.Rows.Clear();
         var gu = GrtUnits.Current;
         var comps = _db.Components(includeArchived: true).ToDictionary(c => c.Id);
+        var owners = ShooterState.Names(_db);
+        _jrn.Columns["sh"]!.Visible = ShooterState.ShowColumn(_db);
+        // the filter looks in the load name, the caliber, the charge, the firearm and the notes: "139", "6.5", "n550" find a load
+        var tokens = _filter.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         foreach (var e in _db.Journal())
         {
+            string hay = $"{e.LoadName} {e.Caliber} {e.ChargeGr.ToString("0.0#", CultureInfo.InvariantCulture)} {e.Firearm} {e.Notes} {e.Date}";
+            if (!tokens.All(t => hay.Contains(t, StringComparison.OrdinalIgnoreCase))) continue;
             var cb = Costing.PerRound(e, id => comps.GetValueOrDefault(id));
             int i = _jrn.Rows.Add(e.Date, e.LoadName, e.Caliber,
                 e.ChargeGr > 0 ? gu.ChargeValue(e.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture) : "",
@@ -88,12 +102,23 @@ internal sealed class JournalForm : Form
                 cb.Mixed ? cb.MixedNote
                     : cb.PerRound > 0 && e.Rounds > 0
                         ? (cb.PerRound * e.Rounds).ToString("0.00", CultureInfo.InvariantCulture) + " " + cb.Currency
-                        : "");
+                        : "",
+                owners.GetValueOrDefault(e.ShooterId, ""));
             _jrn.Rows[i].Tag = e;
         }
     }
 
     private JournalEntry? SelectedEntry => _jrn.CurrentRow?.Tag as JournalEntry;
+
+    /// <summary>Gives the selected entries to another person (a load logged under the wrong name, or one reloaded for a club member).</summary>
+    private void AssignSelected()
+    {
+        var ids = _jrn.SelectedRows.Cast<DataGridViewRow>().Select(r => r.Tag).OfType<JournalEntry>().Select(e => e.Id).ToList();
+        if (ids.Count == 0) { MessageBox.Show(this, Lang.T("Select one or more entries first."), Text, MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+        if (ShooterPicker.Ask(this, _db, string.Format(Lang.T("Assign {0} entries to…"), ids.Count)) is not { } who) return;
+        _db.AssignShooter("journal", ids, who);
+        RefreshJournal();
+    }
 
     private void NewEntry(JournalEntry? seed)
     {

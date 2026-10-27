@@ -33,6 +33,19 @@ internal sealed class CalibrationForm : Form
         AutoSize = false, Dock = DockStyle.Top, Height = 0, Visible = false,
         ForeColor = Color.FromArgb(153, 76, 0), Padding = new Padding(8, 4, 8, 4),
     };
+    /// <summary>The load's model constants against the original powder model the user exported from GRT (see
+    /// <see cref="PowderModels"/>), or how to get that model when the folder has none for this powder.</summary>
+    private readonly Label _modelInfo = new()
+    {
+        AutoSize = false, Dock = DockStyle.Top, Height = 0, Visible = false, Padding = new Padding(8, 2, 8, 2),
+    };
+    private PowderModel? _model;
+    /// <summary>GRT's own FAQ: calibrating a revolver against its velocity without the cylinder gap entered as a gas
+    /// leakage gives pressures that are too low. The plugin cannot tell a revolver from a rifle, so the note always shows.</summary>
+    private readonly Label _revolverNote = new()
+    {
+        AutoSize = false, Dock = DockStyle.Top, Height = 0, ForeColor = Color.FromArgb(153, 76, 0), Padding = new Padding(8, 2, 8, 2),
+    };
     private readonly Button _writeNote = new() { Text = Lang.T("Write calibration note"), AutoSize = true, Enabled = false };
     private readonly Button _writeBa = new() { Text = Lang.T("Write Ba-corrected .grtload"), AutoSize = true, Enabled = false };
     private readonly Button _writeBaK = new() { Text = Lang.T("Write Ba+k-corrected .grtload"), AutoSize = true, Enabled = false };
@@ -55,6 +68,12 @@ internal sealed class CalibrationForm : Form
     private string _powder = "powder";
     private string? _basePath;
     private bool _suppressGrid;
+
+    /// <summary>The longest a sweep point waits for GRT to compute: the fixed sleep it used to be. With the
+    /// manifest's TabComputed event on, a point goes on as soon as GRT reports that tab computed.</summary>
+    private static readonly TimeSpan ComputeWait = TimeSpan.FromMilliseconds(1400);
+    /// <summary>The same for the Sebert check, which always waited longer.</summary>
+    private static readonly TimeSpan SebertComputeWait = TimeSpan.FromMilliseconds(2000);
 
     public CalibrationForm(GrtClient? grt, Db db)
     {
@@ -156,8 +175,31 @@ internal sealed class CalibrationForm : Form
         Controls.Add(bottom);
         Controls.Add(_status);
         Controls.Add(_staleWarning);
+        _revolverNote.Text = Lang.T("Revolver? The cylinder gap lets gas out: calibrated without it, the velocity matches but the pressures come out too low. Enter the gap in GRT first (caliber window, Gas leakage), as GRT's own FAQ warns.");
+        Controls.Add(_revolverNote);
+        Controls.Add(_modelInfo);
+        // A fixed height cut the Italian text and any narrow window to two lines; these follow the text instead.
+        Resize += (_, _) => { FitHeight(_revolverNote); FitHeight(_modelInfo); };
+        FitHeight(_revolverNote);
         Controls.Add(top);
         if (_next != null) { Controls.Add(_next); _ = _next.TrackLoadAsync(_grt); }
+    }
+
+    /// <summary>
+    /// The calibration reads the charge and the measurements from the load's saved file but the simulated velocity
+    /// from GRT's tab, so a tab edited since its last save pairs a velocity with a charge it was not computed for.
+    /// GRT's own "changed" flag (Get_Tab) says when that is so, and the user decides whether to go on. True to go on;
+    /// a GRT that does not answer Get_Tab goes on as before this check existed.
+    /// </summary>
+    private async Task<bool> SavedOrConfirmedAsync(long tabHandle)
+    {
+        GrtTabInfo tab;
+        try { tab = await _grt!.GetTabAsync(tabHandle); }
+        catch (Exception ex) { AppendLog("Get_Tab: " + ex.Message); return true; }
+        if (!tab.Changed) return true;
+        return MessageBox.Show(this,
+            Lang.T("This tab has changes that are not saved in GRT. The calibration reads the charge and the measurements from the saved file, so its result would not match what GRT shows. Save the load in GRT first.\n\nContinue with the saved file anyway?"),
+            Lang.T("Calibration"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
     }
 
     private async Task<GrtLoadDoc?> OpenBaseAsync()
@@ -168,6 +210,7 @@ internal sealed class CalibrationForm : Form
         {
             MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Calibration")); return null;
         }
+        if (!await SavedOrConfirmedAsync(top.handle)) return null;
         if (GrtLoadDoc.LooksLikeGeneratedSibling(top.file))
         {
             MessageBox.Show(this, Lang.T("The active tab is a generated file — switch to your real load in GRT."), Lang.T("Calibration"),
@@ -183,9 +226,77 @@ internal sealed class CalibrationForm : Form
         _kOld = pdoc.InputNumber("propellant", "k") is { } kv && kv > 0 ? kv : null;
         _powder = string.IsNullOrWhiteSpace(pdoc.PropellantName) ? "powder" : pdoc.PropellantName;
         UpdateStaleWarning(pdoc.CaliberName, pdoc.PropellantName);
+        UpdateModelInfo(pdoc);
         // Measurements / everything else from the accumulator sibling if it exists (that's where
         // a chrono import lands).
         return GrtLoadDoc.OpenForToolkitEdit(top.file);
+    }
+
+    /// <summary>
+    /// Finds the original model of the load's powder among the exports in GRT's "Polveri" folder and shows how far the
+    /// load's Ba, k, a0, z1 and z2 are from it. Read from the pristine load, like <see cref="_baOld"/>, so a toolkit
+    /// snapshot that already carries a correction is not what gets compared. Nothing is shown without a GRT folder.
+    /// </summary>
+    private void UpdateModelInfo(GrtLoadDoc pdoc)
+    {
+        var ci = CultureInfo.InvariantCulture;
+        string? folder = Reports.ReportTemplates.InferGrtRoot() is { } root ? Path.Combine(root, PowderModels.FolderName) : null;
+        _model = folder is null ? null : PowderModels.Match(PowderModels.ReadFolder(folder), pdoc.PropellantMaker, pdoc.PropellantName);
+        if (folder is null) { _modelInfo.Visible = false; _modelInfo.Height = 0; return; }
+
+        if (_model is not { } m)
+        {
+            _modelInfo.ForeColor = SystemColors.GrayText;
+            _modelInfo.Text = string.Format(Lang.T("No original model of {0} {1} in {2}. Export it from GRT's powder database (right click on the powder → Export) into that folder to compare this load's Ba with it."),
+                pdoc.PropellantMaker, pdoc.PropellantName, folder);
+        }
+        else
+        {
+            var parts = PowderModels.Compare(pdoc, m)
+                .Where(d => d.Field is "Ba" or "k" || Math.Abs(d.Pct) >= 0.05)
+                .Select(d => string.Format(ci, "{0} {1} → {2} ({3}{4:0.0} %)", d.Field, Fmt(d.ModelValue), Fmt(d.LoadValue), d.Pct < 0 ? "-" : "+", Math.Abs(d.Pct)));
+            string text = string.Format(Lang.T("Original model ({0}) → this load: {1}"), m.Label, string.Join("  ·  ", parts));
+            double? baPct = PowderModels.Compare(pdoc, m).FirstOrDefault(d => d.Field == "Ba")?.Pct;
+            bool large = baPct is { } p && Math.Abs(p) > PowderModels.LargeBaDeviationPct;
+            if (large)
+                text += "  " + string.Format(Lang.T("⚠ Ba is {0} % from the original model: check case volume, bullet length and barrel length before putting it on the powder."),
+                    (baPct!.Value < 0 ? "-" : "+") + Math.Abs(baPct.Value).ToString("0.0", ci));
+            _modelInfo.ForeColor = large ? Color.FromArgb(153, 76, 0) : SystemColors.GrayText;
+            _modelInfo.Text = text;
+        }
+        _modelInfo.Visible = true;
+        FitHeight(_modelInfo);
+    }
+
+    /// <summary>Sizes a docked note to its wrapped text at the window's current width, so none of it is clipped.</summary>
+    private void FitHeight(Label note)
+    {
+        if (!note.Visible || string.IsNullOrEmpty(note.Text)) { note.Height = 0; return; }
+        int width = Math.Max(100, ClientSize.Width - note.Padding.Horizontal - 4);
+        var size = TextRenderer.MeasureText(note.Text, note.Font, new Size(width, int.MaxValue), TextFormatFlags.WordBreak);
+        note.Height = size.Height + note.Padding.Vertical + 4;
+    }
+
+    private static string Fmt(double v) => v.ToString(Math.Abs(v) >= 100 ? "0" : "0.0000", CultureInfo.InvariantCulture);
+
+    /// <summary>The proposed correction against the original model: how far the calibration would take Ba (and k) from it.</summary>
+    private string ModelReport()
+    {
+        if (_model is not { Ba: { } mBa } m || _baOld is not { } b0 || _result.N < 1) return "";
+        var ci = CultureInfo.InvariantCulture;
+        string Pct(double v, double? model) => PowderModels.PctFrom(v, model) is { } p ? (p < 0 ? "-" : "+") + Math.Abs(p).ToString("0.0", ci) + " %" : "-";
+        double proposed = b0 * _result.BaMultiplier;
+        var sb = new System.Text.StringBuilder();
+        sb.Append("\r\n").Append(string.Format(ci, "Against the original powder model ({0}; Ba {1}):", m.Label, mBa.ToString("0.000000", ci))).Append("\r\n");
+        sb.Append(string.Format(ci, "  Ba in this load    {0}  ({1})", b0.ToString("0.000000", ci), Pct(b0, mBa))).Append("\r\n");
+        sb.Append(string.Format(ci, "  proposed Ba        {0}  ({1})", proposed.ToString("0.000000", ci), Pct(proposed, mBa))).Append("\r\n");
+        if (_jointFit is { Ok: true } jf)
+            sb.Append(string.Format(ci, "  proposed Ba + k    Ba {0} ({1}), k {2} ({3})", jf.NewBa.ToString("0.000000", ci), Pct(jf.NewBa, mBa),
+                jf.NewK.ToString("0.0000", ci), Pct(jf.NewK, m.K))).Append("\r\n");
+        if (PowderModels.PctFrom(proposed, mBa) is { } pp && Math.Abs(pp) > PowderModels.LargeBaDeviationPct)
+            sb.Append(string.Format(ci, "  More than {0} % from the model: check case volume, bullet length and barrel length before putting it on the powder.",
+                PowderModels.LargeBaDeviationPct)).Append("\r\n");
+        return sb.ToString();
     }
 
     /// <summary>
@@ -256,12 +367,12 @@ internal sealed class CalibrationForm : Form
                     if (v.Count == 0 || c.ChargeGrains is not { } g) continue;
                     byCharge[Math.Round(g, 2)] = StringStats.From(v).Mean;
                 }
-            if (byCharge.Count == 0) { AppendLog("no measured charges found in the load's Measurements"); return; }
+            if (byCharge.Count == 0) { AppendLog(Lang.T("no measured charges found in the load's Measurements")); return; }
 
             _result.Points.Clear();
             foreach (var kv in byCharge)
                 _result.Points.Add(new CalPoint { ChargeGr = kv.Key, MeasMps = kv.Value });
-            AppendLog($"loaded {byCharge.Count} measured charge(s) from '{doc.CaliberName}'  Ba={_baOld}");
+            AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("loaded {0} measured charge(s) from '{1}'  Ba={2}"), byCharge.Count, doc.CaliberName, _baOld));
             RefreshGrid();
             Recompute();
         }
@@ -276,6 +387,7 @@ internal sealed class CalibrationForm : Form
             if (_grt is not { Connected: true }) { MessageBox.Show(this, Lang.T("Not connected to GRT.")); return; }
             var top = await _grt.GetTabOnTopAsync();
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
+            if (!await SavedOrConfirmedAsync(top.handle)) return;
 
             double? chg = GrtLoadDoc.Load(top.file).PropellantChargeGr;
             if (chg is not { } c || c <= 0) { MessageBox.Show(this, Lang.T("Could not read the current charge (mc) from the load.")); return; }
@@ -283,11 +395,12 @@ internal sealed class CalibrationForm : Form
             var res = await _grt.GetTabResultsAsync(top.handle);
             if (res.MuzzleVelocityMps is not { } sim || sim <= 0)
             {
-                AppendLog("Get_TabResults returned no muzzle velocity — compute a result in GRT first.");
+                AppendLog(Lang.T("Get_TabResults returned no muzzle velocity — compute a result in GRT first."));
                 return;
             }
             SetSim(c, sim);
-            AppendLog($"captured sim MV {GrtUnits.Current.Velocity(sim)} for {GrtUnits.Current.Charge(c)} (GRT's current charge)  Pmax {res.MaxPressure:0} {res.MaxPressureUnit}");
+            AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("captured sim MV {0} for {1} (GRT's current charge)  Pmax {2} {3}"),
+                GrtUnits.Current.Velocity(sim), GrtUnits.Current.Charge(c), (res.MaxPressure ?? 0).ToString("0", CultureInfo.InvariantCulture), res.MaxPressureUnit));
             RefreshGrid();
             Recompute();
         }
@@ -308,6 +421,7 @@ internal sealed class CalibrationForm : Form
         {
             var top = await _grt.GetTabOnTopAsync();
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
+            if (!await SavedOrConfirmedAsync(top.handle)) return;
             string basePath = GrtLoadDoc.PristineBasePath(top.file);
             if (!File.Exists(basePath)) basePath = top.file;
 
@@ -329,16 +443,15 @@ internal sealed class CalibrationForm : Form
                 string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "calsweep_{0}_{1:000}.grtload", i++, chg * 100));
                 doc.Save(tmp);
 
-                await _grt.LoadFileAsync(tmp);
-                await Task.Delay(1400);                            // let GRT compute
+                await _grt.LoadFileAndWaitForComputeAsync(tmp, ComputeWait);
                 var t2 = await _grt.GetTabOnTopAsync();
                 var res = await _grt.GetTabResultsAsync(t2.handle);
                 if (res.MuzzleVelocityMps is { } sim && sim > 0)
                 {
                     SetSim(chg, sim);
-                    AppendLog($"{GrtUnits.Current.Charge(chg)} -> sim {GrtUnits.Current.Velocity(sim)}");
+                    AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} -> sim {1}"), GrtUnits.Current.Charge(chg), GrtUnits.Current.Velocity(sim)));
                 }
-                else AppendLog($"{GrtUnits.Current.Charge(chg)} -> no sim MV (skipped)");
+                else AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} -> no sim MV (skipped)"), GrtUnits.Current.Charge(chg)));
                 RefreshGrid();
                 Recompute();
             }
@@ -368,6 +481,7 @@ internal sealed class CalibrationForm : Form
         {
             var top = await _grt.GetTabOnTopAsync();
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
+            if (!await SavedOrConfirmedAsync(top.handle)) return;
             string basePath = GrtLoadDoc.PristineBasePath(top.file);
             if (!File.Exists(basePath)) basePath = top.file;
 
@@ -392,8 +506,7 @@ internal sealed class CalibrationForm : Form
                 string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "calsweep_k_{0}_{1:000}.grtload", i++, chg * 100));
                 doc.Save(tmp);
 
-                await _grt.LoadFileAsync(tmp);
-                await Task.Delay(1400);                            // let GRT compute
+                await _grt.LoadFileAndWaitForComputeAsync(tmp, ComputeWait);
                 var t2 = await _grt.GetTabOnTopAsync();
                 var res = await _grt.GetTabResultsAsync(t2.handle);
                 if (res.MuzzleVelocityMps is { } sim && sim > 0)
@@ -403,9 +516,9 @@ internal sealed class CalibrationForm : Form
                     // other number this plugin shows. The charge and MV carry decimal separators,
                     // so bare interpolation renders them per the OS locale; k+{:0.0%} has neither a
                     // decimal nor a group separator and reads the same either way.
-                    AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ Ba,k +{KPerturbFrac:0.0%} -> sim {sim:0.0} m/s"));
+                    AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} gr @ Ba,k +{1} -> sim {2} m/s"), chg.ToString("0.00", CultureInfo.InvariantCulture), KPerturbFrac.ToString("0.0%", CultureInfo.InvariantCulture), sim.ToString("0.0", CultureInfo.InvariantCulture)));
                 }
-                else AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ Ba,k +{KPerturbFrac:0.0%} -> no sim MV (skipped)"));
+                else AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} gr @ Ba,k +{1} -> no sim MV (skipped)"), chg.ToString("0.00", CultureInfo.InvariantCulture), KPerturbFrac.ToString("0.0%", CultureInfo.InvariantCulture)));
                 Recompute();
             }
 
@@ -431,6 +544,7 @@ internal sealed class CalibrationForm : Form
         {
             var top = await _grt.GetTabOnTopAsync();
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
+            if (!await SavedOrConfirmedAsync(top.handle)) return;
             string basePath = GrtLoadDoc.PristineBasePath(top.file);
             if (!File.Exists(basePath)) basePath = top.file;
 
@@ -457,17 +571,16 @@ internal sealed class CalibrationForm : Form
                 string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "calverify_{0}_{1:000}.grtload", i++, chg * 100));
                 doc.Save(tmp);
 
-                await _grt.LoadFileAsync(tmp);
-                await Task.Delay(1400);
+                await _grt.LoadFileAndWaitForComputeAsync(tmp, ComputeWait);
                 var t2 = await _grt.GetTabOnTopAsync();
                 var res = await _grt.GetTabResultsAsync(t2.handle);
                 var pt = _result.Points.FirstOrDefault(p => Math.Abs(p.ChargeGr - chg) < 0.03);
                 if (pt is not null && res.MuzzleVelocityMps is { } sim && sim > 0)
                 {
                     pt.SimMpsVerify = sim;
-                    AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ proposed Ba/k -> sim {sim:0.0} m/s"));
+                    AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} gr @ proposed Ba/k -> sim {1} m/s"), chg.ToString("0.00", CultureInfo.InvariantCulture), sim.ToString("0.0", CultureInfo.InvariantCulture)));
                 }
-                else AppendLog(FormattableString.Invariant($"{chg:0.00} gr @ proposed Ba/k -> no sim MV (verification incomplete)"));
+                else AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} gr @ proposed Ba/k -> no sim MV (verification incomplete)"), chg.ToString("0.00", CultureInfo.InvariantCulture)));
                 Recompute();
             }
 
@@ -513,6 +626,7 @@ internal sealed class CalibrationForm : Form
         {
             var top = await _grt.GetTabOnTopAsync();
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file)) { MessageBox.Show(this, Lang.T("No saved load open in GRT.")); return; }
+            if (!await SavedOrConfirmedAsync(top.handle)) return;
             string basePath = GrtLoadDoc.PristineBasePath(top.file);
             if (!File.Exists(basePath)) basePath = top.file;
             var pdoc = GrtLoadDoc.Load(basePath);
@@ -546,13 +660,12 @@ internal sealed class CalibrationForm : Form
                 doc.SetInput("propellant", "laddercnt", "0");     // ladder off -- single charge
                 string tmp = Path.Combine(tmpDir, string.Format(CultureInfo.InvariantCulture, "sebert_{0:000}.grtload", n++));
                 doc.Save(tmp);
-                await _grt.LoadFileAsync(tmp);
-                await Task.Delay(2000);                            // let GRT compute
+                await _grt.LoadFileAndWaitForComputeAsync(tmp, SebertComputeWait);
                 var t2 = await _grt.GetTabOnTopAsync();
                 var res = await _grt.GetTabResultsAsync(t2.handle);
                 if (res.MuzzleVelocityMps is not { } mv || mv <= 0 || res.MaxPressure is not { } pm
                     || res.BulletLeadTime10PmaxMs is not { } blt || blt <= 0) return null;
-                AppendLog(FormattableString.Invariant($"Sebert {s:0.00}, Ba,k x{f:0.0000}, {chg:0.00} gr -> {mv:0.0} m/s, BLT {blt:0.0000} ms"));
+                AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("Sebert {0}, Ba,k x{1}, {2} gr -> {3} m/s, BLT {4} ms"), s.ToString("0.00", CultureInfo.InvariantCulture), f.ToString("0.0000", CultureInfo.InvariantCulture), chg.ToString("0.00", CultureInfo.InvariantCulture), mv.ToString("0.0", CultureInfo.InvariantCulture), blt.ToString("0.0000", CultureInfo.InvariantCulture)));
                 return new SebertSim(mv, pm, blt, res.MaxPressureUnit);
             }
 
@@ -625,7 +738,7 @@ internal sealed class CalibrationForm : Form
 
     private void Recompute()
     {
-        string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
+        string headline = $"{Lang.T(NoteTitle)} {DateTime.Now:yyyy-MM-dd}";
         string report = _result.BuildReport(headline, _baOld, _powder);
 
         _jointFit = null;
@@ -647,11 +760,12 @@ internal sealed class CalibrationForm : Form
         else if (_result.N >= 2)
         {
             // Say why the Ba + k button is dead instead of leaving it greyed with no explanation.
-            string why = _kOld is null || _baOld is null ? "the load has no Ba / k to correct"
-                : _result.NPert < 1 ? "capture the GRT-style sweep first: it needs a second simulated MV per charge, with Ba and k nudged together"
-                : "the sweep has no usable nudge";
-            report += "\r\nGRT-style correction (Ba and k together): not available yet -- " + why + ".\r\n";
+            string why = _kOld is null || _baOld is null ? Lang.T("the load has no Ba / k to correct")
+                : _result.NPert < 1 ? Lang.T("capture the GRT-style sweep first: it needs a second simulated MV per charge, with Ba and k nudged together")
+                : Lang.T("the sweep has no usable nudge");
+            report += "\r\n" + Lang.T("GRT-style correction (Ba and k together): not available yet --") + " " + why + ".\r\n";
         }
+        report += ModelReport();
         report += SebertText();
         _summary.Text = report.Replace("\n", "\r\n");
 
@@ -672,7 +786,7 @@ internal sealed class CalibrationForm : Form
             if (_basePath is null || _grt is not { Connected: true }) return;
             var doc = GrtLoadDoc.OpenForToolkitEdit(_basePath);
             doc.RemoveByTitlePrefix(NoteTitle);
-            string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
+            string headline = $"{Lang.T(NoteTitle)} {DateTime.Now:yyyy-MM-dd}";
             doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder) + SebertText());
 
             string suffix = "cal";
@@ -681,13 +795,12 @@ internal sealed class CalibrationForm : Form
                 double baNew = ba * _result.BaMultiplier;
                 if (doc.SetInput("propellant", "Ba", baNew.ToString("0.###############", CultureInfo.InvariantCulture)))
                 {
-                    AppendLog("set Ba " + ba.ToString("0.######", CultureInfo.InvariantCulture)
-                              + " -> " + baNew.ToString("0.######", CultureInfo.InvariantCulture));
+                    AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("set Ba {0} -> {1}"), ba.ToString("0.######", CultureInfo.InvariantCulture), baNew.ToString("0.######", CultureInfo.InvariantCulture)));
                     suffix = "cal_ba";
                 }
             }
             string outPath = doc.SaveSibling(suffix);
-            AppendLog("wrote " + outPath);
+            AppendLog(Lang.T("wrote") + " " + outPath);
             await _grt.LoadFileAsync(outPath);
             _next?.MarkDone();
             _status.Text = withBa ? Lang.T("Ba-corrected load written and opened in GRT.") : Lang.T("Calibration note written.");
@@ -702,17 +815,17 @@ internal sealed class CalibrationForm : Form
             if (_basePath is null || _grt is not { Connected: true } || _jointFit is not { Ok: true } fit || _baOld is not { } ba || _kOld is not { } k) return;
             var doc = GrtLoadDoc.OpenForToolkitEdit(_basePath);
             doc.RemoveByTitlePrefix(NoteTitle);
-            string headline = $"{NoteTitle} {DateTime.Now:yyyy-MM-dd}";
+            string headline = $"{Lang.T(NoteTitle)} {DateTime.Now:yyyy-MM-dd}";
             doc.AddNote(NoteTitle, _result.BuildReport(headline, _baOld, _powder) + _result.BuildJointReport(fit, ba, k, _powder) + SebertText());
 
             string suffix = "cal_ba_k";
             bool wroteBa = doc.SetInput("propellant", "Ba", fit.NewBa.ToString("0.###############", CultureInfo.InvariantCulture));
             bool wroteK = doc.SetInput("propellant", "k", fit.NewK.ToString("0.###############", CultureInfo.InvariantCulture));
-            if (wroteBa && wroteK) AppendLog(FormattableString.Invariant($"set Ba {ba:0.######} -> {fit.NewBa:0.######}, k {k:0.#######} -> {fit.NewK:0.#######}"));
-            else { AppendLog("note written, but Ba/k inputs missing in the load"); suffix = "cal"; }
+            if (wroteBa && wroteK) AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("set Ba {0} -> {1}, k {2} -> {3}"), ba.ToString("0.######", CultureInfo.InvariantCulture), fit.NewBa.ToString("0.######", CultureInfo.InvariantCulture), k.ToString("0.#######", CultureInfo.InvariantCulture), fit.NewK.ToString("0.#######", CultureInfo.InvariantCulture)));
+            else { AppendLog(Lang.T("note written, but Ba/k inputs missing in the load")); suffix = "cal"; }
 
             string outPath = doc.SaveSibling(suffix);
-            AppendLog("wrote " + outPath);
+            AppendLog(Lang.T("wrote") + " " + outPath);
             await _grt.LoadFileAsync(outPath);
             _next?.MarkDone();
             _status.Text = Lang.T("Ba+k-corrected load written and opened in GRT.");
@@ -724,7 +837,7 @@ internal sealed class CalibrationForm : Form
 
     private void Err(Exception ex)
     {
-        AppendLog("ERROR: " + ex.Message);
+        AppendLog(Lang.T("ERROR:") + " " + ex.Message);
         MessageBox.Show(this, ex.Message, Lang.T("Calibration"), MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 

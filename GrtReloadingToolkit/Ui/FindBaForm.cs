@@ -100,7 +100,7 @@ internal sealed class FindBaForm : Form
         _fbChart.Dock = DockStyle.Fill;
         split.Panel2.Controls.Add(_fbChart);
 
-        _fbStatus.Dock = DockStyle.Bottom; _fbStatus.Padding = new Padding(8, 4, 0, 4);
+        _fbStatus.AutoSize = false; _fbStatus.Height = 48; _fbStatus.Dock = DockStyle.Bottom; _fbStatus.Padding = new Padding(8, 4, 8, 4);
 
         Controls.Add(split);
         Controls.Add(_fbStatus);

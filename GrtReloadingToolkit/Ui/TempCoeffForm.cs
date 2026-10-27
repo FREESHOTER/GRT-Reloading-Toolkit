@@ -132,7 +132,7 @@ internal sealed class TempCoeffForm : Form
                     TempC = a.SessionTempC ?? 21,
                     N = st.N, MeanMps = st.Mean, SdMps = st.Sd,
                 });
-                AppendLog($"{Path.GetFileName(f)}: {st.N} shots, {(a.ChargeGrains is { } cg ? GrtUnits.Current.Charge(cg) : "?")}, temp {(a.SessionTempC is { } t ? GrtUnits.Current.Temperature(t) : "?")}");
+                AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0}: {1} shots, {2}, temp {3}"), Path.GetFileName(f), st.N, a.ChargeGrains is { } cg ? GrtUnits.Current.Charge(cg) : "?", a.SessionTempC is { } t ? GrtUnits.Current.Temperature(t) : "?"));
             }
             catch (Exception ex) { AppendLog($"{Path.GetFileName(f)}: {ex.Message}"); }
         }
@@ -157,7 +157,7 @@ internal sealed class TempCoeffForm : Form
             var doc = GrtLoadDoc.Load(File.Exists(pristine) ? pristine : top.file);
             _powder = string.IsNullOrWhiteSpace(doc.PropellantName) ? "powder" : doc.PropellantName;
             if (doc.PropellantBa is { } ba && ba > 0) { _suppress = true; _ba.Value = (decimal)Math.Min(100, ba); _suppress = false; _baManual = ba; }
-            AppendLog($"load '{doc.CaliberName}'  powder {_powder}  Ba {doc.PropellantBa}");
+            AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("load '{0}'  powder {1}  Ba {2}"), doc.CaliberName, _powder, doc.PropellantBa));
             Recompute();
         }
         catch (Exception ex) { Err(ex); }
@@ -195,7 +195,7 @@ internal sealed class TempCoeffForm : Form
     {
         double ba = _baManual > 0 ? _baManual : (double)_ba.Value;
         _result = TempCoeffResult.Fit(_points, ba, _powder);
-        _summary.Text = _result.BuildReport($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}").Replace("\n", "\r\n");
+        _summary.Text = _result.BuildReport($"{Lang.T(NoteTitle)} {DateTime.Now:yyyy-MM-dd}").Replace("\n", "\r\n");
         bool haveCoeff = _result.Tcc is not null || _result.Tch is not null;
         _write.Enabled = haveCoeff && _grt is { Connected: true } && _basePath != null;
 
@@ -221,18 +221,18 @@ internal sealed class TempCoeffForm : Form
             if (_basePath is null || _result is null || _grt is not { Connected: true }) return;
             var doc = GrtLoadDoc.OpenForToolkitEdit(_basePath);
             doc.RemoveByTitlePrefix(NoteTitle);
-            doc.AddNote(NoteTitle, _result.BuildReport($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}"));
-            if (_result.Tcc is { } tcc) { if (doc.SetInput("propellant", "tcc", tcc.ToString("0.###############", CultureInfo.InvariantCulture))) AppendLog("set tcc = " + tcc.ToString("0.######", CultureInfo.InvariantCulture)); }
-            if (_result.Tch is { } tch) { if (doc.SetInput("propellant", "tch", tch.ToString("0.###############", CultureInfo.InvariantCulture))) AppendLog("set tch = " + tch.ToString("0.######", CultureInfo.InvariantCulture)); }
+            doc.AddNote(NoteTitle, _result.BuildReport($"{Lang.T(NoteTitle)} {DateTime.Now:yyyy-MM-dd}"));
+            if (_result.Tcc is { } tcc) { if (doc.SetInput("propellant", "tcc", tcc.ToString("0.###############", CultureInfo.InvariantCulture))) AppendLog(Lang.T("set tcc =") + " " + tcc.ToString("0.######", CultureInfo.InvariantCulture)); }
+            if (_result.Tch is { } tch) { if (doc.SetInput("propellant", "tch", tch.ToString("0.###############", CultureInfo.InvariantCulture))) AppendLog(Lang.T("set tch =") + " " + tch.ToString("0.######", CultureInfo.InvariantCulture)); }
             string outPath = doc.SaveSibling("tcoeff");
-            AppendLog("wrote " + outPath);
+            AppendLog(Lang.T("wrote") + " " + outPath);
             await _grt.LoadFileAsync(outPath);
             _status.Text = Lang.T("tcc/tch written and opened in GRT.");
         }
         catch (Exception ex) { Err(ex); }
     }
 
-    private void Err(Exception ex) { AppendLog("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, Lang.T("Temp coefficients"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    private void Err(Exception ex) { AppendLog(Lang.T("ERROR:") + " " + ex.Message); MessageBox.Show(this, ex.Message, Lang.T("Temp coefficients"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
 
     private void AppendLog(string line) => _summary.SafeAppend(line);
 }

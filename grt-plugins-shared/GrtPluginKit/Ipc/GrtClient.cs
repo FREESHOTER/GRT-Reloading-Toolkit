@@ -49,9 +49,13 @@ public sealed record GrtCurvePoint(
     double PositionMm, double ProjectilePositionMm, double BurnedFraction,
     double PressureBar, double VelocityMps, double EnergyJoule, double TimeMs);
 
+/// <summary>One tab as <c>Get_Tab</c> describes it. <see cref="Changed"/> is GRT's own "edited since the last
+/// save" flag: a tool that reads the load from disk reads the saved file, not what the tab shows, whenever it is set.</summary>
+public sealed record GrtTabInfo(long Handle, bool OnTop, bool Changed, bool Locked, string Caption, string File);
+
 /// <summary>
 /// Minimal client for the GRT plugin IPC channel (plain TCP on 127.0.0.1,
-/// concatenated compact-JSON messages). Commands: Get_TabOnTop, Get_TabResults, Load_File.
+/// concatenated compact-JSON messages). Commands: Get_TabOnTop, Get_Tab, Get_TabResults, Load_File.
 /// </summary>
 public sealed class GrtClient : IDisposable
 {
@@ -99,6 +103,10 @@ public sealed class GrtClient : IDisposable
 
     /// <summary>Raised (background thread) with the GRT UI language code from Event_Attached.</summary>
     public event Action<string>? Attached;
+
+    /// <summary>Raised (background thread) with the tab handle of Event_TabComputed: GRT has finished
+    /// recalculating that tab. Only arrives when the manifest turns the TabComputed event on.</summary>
+    public event Action<long>? TabComputed;
 
     /// <summary>Raised (on a background thread) with a human-readable log line.</summary>
     public event Action<string>? Log;
@@ -174,6 +182,11 @@ public sealed class GrtClient : IDisposable
                               : first.Value.TryGetProperty("languagecode", out var l2) ? l2.GetString() ?? "" : "";
                     Attached?.Invoke(lc);
                 }
+                else if (name == "Event_TabComputed")
+                {
+                    long handle = Str(first.Value, "tabhandle") is { } h && long.TryParse(h, out long hn) ? hn : 0;
+                    TabComputed?.Invoke(handle);
+                }
             }
         }
     }
@@ -235,6 +248,57 @@ public sealed class GrtClient : IDisposable
         };
     }
 
+    /// <summary>Properties of one tab, including whether it holds edits that are not saved yet.</summary>
+    public async Task<GrtTabInfo> GetTabAsync(long tabHandle)
+    {
+        JsonElement result = await RequestAsync(
+            "{\"Get_Tab\":{\"tabhandle\":\"" + tabHandle.ToString(CultureInfo.InvariantCulture) + "\"}}",
+            TimeSpan.FromSeconds(3));
+        if (GetStatus(result) != "success")
+            throw new InvalidOperationException("Get_Tab failed: " + GetMessage(result));
+        if (!result.TryGetProperty("values", out JsonElement v))
+            throw new InvalidOperationException("Get_Tab: no 'values' in response");
+
+        static bool Flag(string? s) => string.Equals(s, "true", StringComparison.OrdinalIgnoreCase) || s == "1";
+        return new GrtTabInfo(
+            Str(v, "tabhandle") is { } h && long.TryParse(h, out long hn) ? hn : tabHandle,
+            Flag(Str(v, "ontop")), Flag(Str(v, "changed")), Flag(Str(v, "locked")),
+            Str(v, "caption") ?? "", Str(v, "file") ?? "");
+    }
+
+    /// <summary>
+    /// Opens a .grtload and waits until GRT has computed it: returns as soon as Event_TabComputed
+    /// arrives for the tab the file opened in, or once <paramref name="maxWait"/> has passed since the
+    /// call when it does not (the event is off in the manifest, or GRT computed before it was asked) --
+    /// so it is never slower than the fixed sleep it replaces. Events are collected from before
+    /// Load_File is sent, so one that beats the command's own answer is not missed, and one for a
+    /// different tab (another plugin's, or a recalculation the user started) does not count. True when
+    /// the new tab's event was seen. Load_File only switches to the tab when the file is already open,
+    /// so pass a path that is not open yet.
+    /// </summary>
+    public async Task<bool> LoadFileAndWaitForComputeAsync(string path, TimeSpan maxWait)
+    {
+        var computed = System.Threading.Channels.Channel.CreateUnbounded<long>();
+        void OnComputed(long handle) => computed.Writer.TryWrite(handle);
+        TabComputed += OnComputed;
+        using var deadline = new CancellationTokenSource(maxWait);
+        try
+        {
+            await LoadFileAsync(path).ConfigureAwait(false);
+            long target = (await GetTabOnTopAsync().ConfigureAwait(false)).handle;
+            // An event without a handle cannot be told apart, so it is taken as this tab's.
+            bool Ours(long handle) => handle == target || handle == 0;
+            // Events that came in while Load_File and Get_TabOnTop were answered are read first: once the
+            // deadline has passed, ReadAsync throws without looking at what is already queued.
+            while (computed.Reader.TryRead(out long early))
+                if (Ours(early)) return true;
+            while (true)
+                if (Ours(await computed.Reader.ReadAsync(deadline.Token).ConfigureAwait(false))) return true;
+        }
+        catch (OperationCanceledException) when (deadline.IsCancellationRequested) { return false; }
+        finally { TabComputed -= OnComputed; }
+    }
+
     /// <summary>Asks GRT to open a .grtload file in a new tab of the current window.</summary>
     public async Task LoadFileAsync(string path)
     {
@@ -267,7 +331,7 @@ public sealed class GrtClient : IDisposable
 
         return new GrtResults
         {
-            MuzzleVelocityMps = ValueOf(d, "MuzzleVelocity") ?? ValueOf(d, "EndVelocity"),
+            MuzzleVelocityMps = MpsOf(d, "MuzzleVelocity") ?? MpsOf(d, "EndVelocity"),
             MaxPressure = ValueOf(d, "MaxPressure"),
             MaxPressureUnit = UnitOf(d, "MaxPressure"),
             // "BarrelTime"/"EndTime" never actually appear in the live IPC payload (verified against
@@ -336,7 +400,7 @@ public sealed class GrtClient : IDisposable
 
         var results = new GrtResults
         {
-            MuzzleVelocityMps = ValueOf(d, "MuzzleVelocity") ?? ValueOf(d, "EndVelocity"),
+            MuzzleVelocityMps = MpsOf(d, "MuzzleVelocity") ?? MpsOf(d, "EndVelocity"),
             MaxPressure = ValueOf(d, "MaxPressure"),
             MaxPressureUnit = UnitOf(d, "MaxPressure"),
             BarrelTimeMs = ValueOf(d, "MuzzleTime") ?? ValueOf(d, "BarrelTime") ?? ValueOf(d, "EndTime"),
@@ -367,6 +431,17 @@ public sealed class GrtClient : IDisposable
     private static double? ValueOf(JsonElement obj, string name)
         // fully qualified: the local Str(JsonElement, string) helper hides GrtPluginKit.Util.Str.
         => GrtPluginKit.Util.Str.ParseNumber(Str(obj, name));
+
+    /// <summary>
+    /// A velocity in m/s. GRT writes results in the unit its window shows, so on an install set to feet per second
+    /// "2800 fps" arrives where every caller of <see cref="GrtResults.MuzzleVelocityMps"/> expects metres per second.
+    /// </summary>
+    private static double? MpsOf(JsonElement obj, string name)
+    {
+        if (ValueOf(obj, name) is not { } v) return null;
+        string unit = UnitOf(obj, name).ToLowerInvariant();
+        return unit is "fps" or "ft/s" or "ft/sec" or "feet/s" ? v * 0.3048 : v;
+    }
 
     private static string UnitOf(JsonElement obj, string name)
     {

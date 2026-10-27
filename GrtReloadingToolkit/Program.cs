@@ -15,6 +15,8 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // The debug command lines stay in English for scripts and logs; TOOLKIT_LANG=it asks for the Italian texts too (to read them).
+        if (string.Equals(Environment.GetEnvironmentVariable("TOOLKIT_LANG"), "it", StringComparison.OrdinalIgnoreCase)) Tr.Translate = Ui.Lang.T;
         if (args.Length >= 1 && args[0] == "--dbtest") { DbSelfTest.Run(args); return; }
         if (args.Length >= 3 && args[0] == "--ladder") { LadderCli.Run(args[1], args[2], args.Length >= 4 ? args[3] : null); return; }
         if (args.Length >= 2 && args[0] == "--chronostats")
@@ -42,6 +44,8 @@ internal static class Program
         }
 
         ApplicationConfiguration.Initialize();
+        Tr.Translate = Ui.Lang.T;     // the engines' report texts follow the UI language
+        Ui.GrtTheme.Install();
 
         int port = 0;
         for (int i = 0; i + 1 < args.Length; i++)
@@ -66,7 +70,7 @@ internal static class Program
     }
 }
 
-internal enum Tool { Launcher, Athlon, ShotMarker, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports, Diagnosis }
+internal enum Tool { Launcher, Athlon, ShotMarker, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports, Diagnosis, FollowLoad, ModelProbe, Stability }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -77,6 +81,7 @@ internal sealed class ToolkitContext : ApplicationContext
 {
     private readonly GrtClient? _grt;
     private readonly Db _db;
+    private TrackerDb? _tracker;
     private readonly Dictionary<Tool, Form> _open = new();
     private readonly WindowsFormsSynchronizationContext _ui = new();
 
@@ -85,6 +90,7 @@ internal sealed class ToolkitContext : ApplicationContext
         _grt = grt;
         SynchronizationContext.SetSynchronizationContext(_ui);
         _db = new Db(Environment.GetEnvironmentVariable("RELOADING_LOG_DB") ?? Db.DefaultPath);
+        _db.CurrentShooterId = Ui.ShooterState.Saved(_db);
 
         // If GRT started us from a click on a *specific* tool, that tool opens itself (the id is
         // replayed synchronously by the subscribe below). A click on the plain toolbar/menu entry
@@ -141,9 +147,12 @@ internal sealed class ToolkitContext : ApplicationContext
         id.EndsWith(".groupanalysis", StringComparison.Ordinal) ? Tool.GroupAnalysis :
         id.EndsWith(".targetprint", StringComparison.Ordinal) ? Tool.TargetPrint :
         id.EndsWith(".wizard", StringComparison.Ordinal) ? Tool.Wizard :
+        id.EndsWith(".followload", StringComparison.Ordinal) ? Tool.FollowLoad :
         id.EndsWith(".velocitymodel", StringComparison.Ordinal) ? Tool.VelocityModel :
         id.EndsWith(".loadbook", StringComparison.Ordinal) ? Tool.LoadBook :
         id.EndsWith(".reports", StringComparison.Ordinal) ? Tool.Reports :
+        id.EndsWith(".modelprobe", StringComparison.Ordinal) ? Tool.ModelProbe :
+        id.EndsWith(".stability", StringComparison.Ordinal) ? Tool.Stability :
         Tool.Launcher;
 
     private void Open(Tool t)
@@ -161,8 +170,8 @@ internal sealed class ToolkitContext : ApplicationContext
         // Every tool window is born here, so this is the one place that has to dress them.
         Form f = AppIcon.Apply<Form>(t switch
         {
-            Tool.Athlon => new AthlonForm(_grt),
-            Tool.ShotMarker => new ShotMarkerForm(_grt),
+            Tool.Athlon => new AthlonForm(_grt, _db),
+            Tool.ShotMarker => new ShotMarkerForm(_grt, _db),
             Tool.ChronoStats => new ChronoStatsForm(_grt),
             Tool.Ocw => new OcwForm(_grt),
             Tool.Seating => new SeatingForm(_grt),
@@ -182,11 +191,15 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.GroupAnalysis => new GroupAnalysisForm(_grt),
             Tool.TargetPrint => new TargetForm(_grt),
             Tool.Diagnosis => new DiagnosisForm(_grt),
+            Tool.FollowLoad => new FollowLoadForm(_grt, Tracker()),
             Tool.Wizard => new WizardForm(Open),
             Tool.VelocityModel => new VelocityModelForm(_grt, _db),
             Tool.LoadBook => new LoadBookForm(_db),
-            _ => new LauncherForm(Open, _grt),
+            Tool.ModelProbe => new ModelProbeForm(_grt),
+            Tool.Stability => new StabilityForm(_grt),
+            _ => new LauncherForm(Open, _grt, _db, SetShooter),
         });
+        Ui.GrtTheme.Apply(f);
         f.FormClosed += (_, _) =>
         {
             _open.Remove(t);
@@ -220,13 +233,13 @@ internal sealed class ToolkitContext : ApplicationContext
         string? root = Reports.ReportTemplates.InferGrtRoot();
         if (root == null)
         {
-            using var d = new FolderBrowserDialog { Description = "Select your GRT folder (the one containing 'doku')" };
+            using var d = new FolderBrowserDialog { Description = Ui.Lang.T("Select your GRT folder (the one containing 'doku')") };
             if (d.ShowDialog() != DialogResult.OK) return;
             root = d.SelectedPath;
         }
         var log = Reports.ReportTemplates.Install(root);
         MessageBox.Show(string.Join(Environment.NewLine, log),
-            "Install GRT report templates", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Ui.Lang.T("Install GRT report templates"), MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     /// <summary>
@@ -236,11 +249,22 @@ internal sealed class ToolkitContext : ApplicationContext
     /// into a crash on exit. May run twice (Application.Run and Main's using both dispose);
     /// SqliteConnection.Dispose tolerates that.
     /// </summary>
+    /// <summary>The followed loads' own file, opened the first time "Segui un carico" is: nobody else gets an empty one.</summary>
+    private TrackerDb Tracker() => _tracker ??= new TrackerDb(TrackerDb.DefaultPath) { CurrentShooterId = _db.CurrentShooterId };
+
+    /// <summary>The launcher's picker changed: every list from now on shows this person (null = everybody). Windows already open keep what they show until they refresh.</summary>
+    private void SetShooter(long? id)
+    {
+        _db.CurrentShooterId = id;
+        if (_tracker != null) _tracker.CurrentShooterId = id;
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
             try { _db.Dispose(); } catch { }
+            try { _tracker?.Dispose(); } catch { }
         }
         base.Dispose(disposing);
     }

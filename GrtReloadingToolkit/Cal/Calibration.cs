@@ -83,12 +83,12 @@ public sealed class CalResult
         string reason;
         bool ok;
         if (Math.Abs(meanOrig) < NoiseFloorMps)
-        { ok = false; reason = "The model already matches the measured velocities to within chronograph noise: nothing to correct."; }
+        { ok = false; reason = Tr.T("The model already matches the measured velocities to within chronograph noise: nothing to correct."); }
         else if (Math.Abs(meanFit) > Math.Max(NoiseFloorMps, MaxResidualShare * Math.Abs(meanOrig)))
-        { ok = false; reason = "GRT's own simulation with the proposed values still leaves a clear offset from the measured velocities, so it is not offered."; }
+        { ok = false; reason = Tr.T("GRT's own simulation with the proposed values still leaves a clear offset from the measured velocities, so it is not offered."); }
         else if (rmsFit > 1.05 * rmsOrig + 0.05)
-        { ok = false; reason = "GRT's own simulation with the proposed values makes the charge-to-charge scatter worse, so it is not offered."; }
-        else { ok = true; reason = "GRT's own simulation confirms the correction."; }
+        { ok = false; reason = Tr.T("GRT's own simulation with the proposed values makes the charge-to-charge scatter worse, so it is not offered."); }
+        else { ok = true; reason = Tr.T("GRT's own simulation confirms the correction."); }
         return new JointVerification(pts.Count, meanOrig, meanFit, rmsOrig, rmsFit, ok, reason);
     }
 
@@ -128,7 +128,7 @@ public sealed class CalResult
         var notes = new List<string>();
         if (sgg <= 0)
         {
-            notes.Add("the simulated velocity did not respond to the nudge of Ba and k -- capture the sweep again.");
+            notes.Add(Tr.T("the simulated velocity did not respond to the nudge of Ba and k -- capture the sweep again."));
             return new JointFit(baOld, kOld, 1.0, notes);
         }
         double d = sgr / sgg;
@@ -136,8 +136,8 @@ public sealed class CalResult
         double newBa = baOld * factor, newK = kOld * factor;
         if (Math.Abs(d) > MaxJointStep || newK < 1.05 || newK > 1.50)
         {
-            notes.Add(FormattableString.Invariant(
-                $"the correction asks for Ba and k to move together by {d:+0.00%;-0.00%} -- larger than a believable powder-model adjustment (limit +/-{MaxJointStep:0%}, k between 1.05 and 1.50). Check the measured velocities and the load before trusting any calibration."));
+            notes.Add(Tr.F("the correction asks for Ba and k to move together by {0} -- larger than a believable powder-model adjustment (limit +/-{1}, k between 1.05 and 1.50). Check the measured velocities and the load before trusting any calibration.",
+                d.ToString("+0.00%;-0.00%", CultureInfo.InvariantCulture), MaxJointStep.ToString("0%", CultureInfo.InvariantCulture)));
             return new JointFit(baOld, kOld, 1.0, notes);
         }
         return new JointFit(newBa, newK, factor, notes);
@@ -154,8 +154,8 @@ public sealed class CalResult
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
-        sb.AppendLine($"charge in {gu.ChargeUnitName}, velocities in {gu.VelocityUnitName}");
-        sb.AppendLine("charge   meas MV   sim MV     d MV    d %");
+        sb.AppendLine(Tr.F("charge in {0}, velocities in {1}", gu.ChargeUnitName, gu.VelocityUnitName));
+        sb.AppendLine(Tr.T("charge   meas MV   sim MV     d MV    d %"));
         foreach (var p in Points.OrderBy(p => p.ChargeGr))
             // A point whose sim MV has not been captured yet has no offset: printing meas - 0 gave a
             // meaningless "+806.6" row.
@@ -171,28 +171,28 @@ public sealed class CalResult
                     gu.ChargeValue(p.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture),
                     gu.VelocityValue(p.MeasMps), "-", "-", "-"));
         sb.AppendLine();
-        if (N == 0) { sb.AppendLine("no valid points captured."); return sb.ToString(); }
+        if (N == 0) { sb.AppendLine(Tr.T("no valid points captured.")); return sb.ToString(); }
 
-        sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-            "mean offset: {0:+0.0;-0.0;0.0} {1}  ({2:+0.00;-0.00;0.00} %)   over {3} point(s), spread {4:0.00} %",
-            gu.VelocityValue(MeanDeltaMps), gu.VelocityUnitName, MeanDeltaPct, N, SdDeltaPct));
+        sb.AppendLine(Tr.F("mean offset: {0} {1}  ({2} %)   over {3} point(s), spread {4} %",
+            gu.VelocityValue(MeanDeltaMps).ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture), gu.VelocityUnitName,
+            MeanDeltaPct.ToString("+0.00;-0.00;0.00", CultureInfo.InvariantCulture), N, SdDeltaPct.ToString("0.00", CultureInfo.InvariantCulture)));
         sb.AppendLine(N >= 2
-            ? (Consistent ? "-> consistent across charges: a clean barrel-vs-model offset."
-                          : "-> offset varies with charge: the powder model shape is off, not just a scale."
-                            + (N >= 3 ? " Try 'Capture shape-fit sweep (k)' below." : " Capture a 3rd+ charge, then try the k shape fit."))
-            : "-> capture 2+ charges to tell a scale error from a shape error.");
+            ? (Consistent ? Tr.T("-> consistent across charges: a clean barrel-vs-model offset.")
+                          : Tr.T("-> offset varies with charge: the powder model shape is off, not just a scale.")
+                            + (N >= 3 ? Tr.T(" Try 'Capture shape-fit sweep (k)' below.") : Tr.T(" Capture a 3rd+ charge, then try the k shape fit.")))
+            : Tr.T("-> capture 2+ charges to tell a scale error from a shape error."));
         sb.AppendLine();
         if (baOld is { } ba)
-            sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "suggested Ba for {0}: {1:0.######}  (was {2:0.######}, x{3:0.####})  -- first-order, MV scales as sqrt(Ba)",
-                powderName, ba * BaMultiplier, ba, BaMultiplier));
+            sb.AppendLine(Tr.F("suggested Ba for {0}: {1}  (was {2}, x{3})  -- first-order, MV scales as sqrt(Ba)",
+                powderName, (ba * BaMultiplier).ToString("0.######", CultureInfo.InvariantCulture), ba.ToString("0.######", CultureInfo.InvariantCulture),
+                BaMultiplier.ToString("0.####", CultureInfo.InvariantCulture)));
         else
-            sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "no Ba in the load; apply the offset mentally: GRT runs {0:0.0} {1} {2} for this barrel.",
-                Math.Abs(gu.VelocityValue(MeanDeltaMps)), gu.VelocityUnitName, MeanDeltaMps >= 0 ? "slow" : "fast"));
+            sb.AppendLine(Tr.F("no Ba in the load; apply the offset mentally: GRT runs {0} {1} {2} for this barrel.",
+                Math.Abs(gu.VelocityValue(MeanDeltaMps)).ToString("0.0", CultureInfo.InvariantCulture), gu.VelocityUnitName,
+                MeanDeltaMps >= 0 ? Tr.T("slow") : Tr.T("fast")));
         sb.AppendLine();
-        sb.AppendLine("Method: measured MV = Athlon Rangecraft; sim MV = GRT Get_TabResults for the charge set in GRT.");
-        sb.AppendLine("Re-verify after applying, and keep this per barrel + powder lot.");
+        sb.AppendLine(Tr.T("Method: measured MV = Athlon Rangecraft; sim MV = GRT Get_TabResults for the charge set in GRT."));
+        sb.AppendLine(Tr.T("Re-verify after applying, and keep this per barrel + powder lot."));
         return sb.ToString();
     }
 
@@ -200,28 +200,27 @@ public sealed class CalResult
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine();
-        sb.AppendLine("GRT-style correction (Ba and k together)");
+        sb.AppendLine(Tr.T("GRT-style correction (Ba and k together)"));
         sb.AppendLine(new string('-', 40));
         if (!fit.Ok)
         {
             foreach (var n in fit.Notes) sb.AppendLine("! " + n);
             return sb.ToString();
         }
-        sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-            "common factor for {0}: x{1:0.#####}  ({2:+0.000%;-0.000%})", powderName, fit.Factor, fit.Factor - 1));
-        sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-            "suggested Ba: {0:0.######}  (was {1:0.######})", fit.NewBa, baOld));
-        sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-            "suggested k:  {0:0.#######}  (was {1:0.#######})", fit.NewK, kOld));
-        sb.AppendLine("Fit over " + NPert + " charge(s) with both baseline and Ba/k-nudged sim MV captured.");
+        sb.AppendLine(Tr.F("common factor for {0}: x{1}  ({2})", powderName, fit.Factor.ToString("0.#####", CultureInfo.InvariantCulture),
+            (fit.Factor - 1).ToString("+0.000%;-0.000%", CultureInfo.InvariantCulture)));
+        sb.AppendLine(Tr.F("suggested Ba: {0}  (was {1})", fit.NewBa.ToString("0.######", CultureInfo.InvariantCulture), baOld.ToString("0.######", CultureInfo.InvariantCulture)));
+        sb.AppendLine(Tr.F("suggested k:  {0}  (was {1})", fit.NewK.ToString("0.#######", CultureInfo.InvariantCulture), kOld.ToString("0.#######", CultureInfo.InvariantCulture)));
+        sb.AppendLine(Tr.F("Fit over {0} charge(s) with both baseline and Ba/k-nudged sim MV captured.", NPert));
         if (verification is { } v)
-            sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "Verified in GRT at the proposed Ba and k: mean offset {0:+0.00;-0.00;0.00} m/s (was {1:+0.00;-0.00;0.00}), RMS {2:0.00} m/s (was {3:0.00}) -> {4}. {5}",
-                v.MeanFitMps, v.MeanOriginalMps, v.RmsFitMps, v.RmsOriginalMps, v.Accepted ? "ACCEPTED" : "REFUSED", v.Reason));
+            sb.AppendLine(Tr.F("Verified in GRT at the proposed Ba and k: mean offset {0} m/s (was {1}), RMS {2} m/s (was {3}) -> {4}. {5}",
+                v.MeanFitMps.ToString("+0.00;-0.00;0.00", CultureInfo.InvariantCulture), v.MeanOriginalMps.ToString("+0.00;-0.00;0.00", CultureInfo.InvariantCulture),
+                v.RmsFitMps.ToString("0.00", CultureInfo.InvariantCulture), v.RmsOriginalMps.ToString("0.00", CultureInfo.InvariantCulture),
+                v.Accepted ? Tr.T("ACCEPTED") : Tr.T("REFUSED"), v.Reason));
         else
-            sb.AppendLine("! NOT verified yet: run 'Verify correction in GRT'. The Ba + k file is written only after GRT's own simulation confirms it.");
-        sb.AppendLine("This is the adjustment GRT's own OBT tool makes (Ba and k scaled by the same factor), so Pmax, BLT and the");
-        sb.AppendLine("OBT nodes of the corrected load agree with what GRT's OBT tool would give.");
+            sb.AppendLine(Tr.T("! NOT verified yet: run 'Verify correction in GRT'. The Ba + k file is written only after GRT's own simulation confirms it."));
+        sb.AppendLine(Tr.T("This is the adjustment GRT's own OBT tool makes (Ba and k scaled by the same factor), so Pmax, BLT and the"));
+        sb.AppendLine(Tr.T("OBT nodes of the corrected load agree with what GRT's OBT tool would give."));
         return sb.ToString();
     }
 }

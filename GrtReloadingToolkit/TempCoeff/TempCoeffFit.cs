@@ -40,7 +40,7 @@ public sealed class TempCoeffResult
         if (p.Count < 2)
         {
             var bad = new TempCoeffResult { BaNormal = baNormal, PowderName = powder };
-            bad.Notes.Add("need at least 2 usable strings at different temperatures");
+            bad.Notes.Add(Tr.T("need at least 2 usable strings at different temperatures"));
             bad.Points.AddRange(p);
             return bad;
         }
@@ -54,13 +54,13 @@ public sealed class TempCoeffResult
         if (Math.Abs(near.TempC - NormalC) <= 2.0)
         {
             mvNormal = near.MeanMps;
-            if (near.TempC != NormalC) notes.Add($"normal point is {gu.Temperature(near.TempC)}, not {gu.Temperature(NormalC)} — used its MV as the reference");
+            if (near.TempC != NormalC) notes.Add(Tr.F("normal point is {0}, not {1} — used its MV as the reference", gu.Temperature(near.TempC), gu.Temperature(NormalC)));
         }
         else
         {
             var (a, b) = LinFit(p.Select(x => x.TempC).ToArray(), p.Select(x => x.MeanMps).ToArray());
             mvNormal = a + b * NormalC;
-            notes.Add($"no string near {gu.Temperature(NormalC)} — extrapolated MV there ≈ {gu.Velocity(mvNormal)} from a linear fit");
+            notes.Add(Tr.F("no string near {0} — extrapolated MV there ≈ {1} from a linear fit", gu.Temperature(NormalC), gu.Velocity(mvNormal)));
         }
 
         double Ba(double mv) => baNormal * (mv / mvNormal) * (mv / mvNormal);
@@ -74,7 +74,7 @@ public sealed class TempCoeffResult
             tcc = cold.Average(x => (baNormal - Ba(x.MeanMps)) / (NormalC - x.TempC));
             coldMps = cold.Average(x => (mvNormal - x.MeanMps) / (NormalC - x.TempC));
         }
-        else if (cold.Count == 0) notes.Add($"no cold string (< {gu.Temperature(NormalC)}) — tcc not fitted");
+        else if (cold.Count == 0) notes.Add(Tr.F("no cold string (< {0}) — tcc not fitted", gu.Temperature(NormalC)));
 
         double? tch = null, hotMps = null;
         if (hot.Count > 0 && baNormal > 0)
@@ -82,9 +82,9 @@ public sealed class TempCoeffResult
             tch = hot.Average(x => (Ba(x.MeanMps) - baNormal) / (x.TempC - NormalC));
             hotMps = hot.Average(x => (x.MeanMps - mvNormal) / (x.TempC - NormalC));
         }
-        else if (hot.Count == 0) notes.Add($"no hot string (> {gu.Temperature(NormalC)}) — tch not fitted");
+        else if (hot.Count == 0) notes.Add(Tr.F("no hot string (> {0}) — tch not fitted", gu.Temperature(NormalC)));
 
-        if (baNormal <= 0) notes.Add($"the load has no propellant Ba — can only report the raw {gu.VelocityPerDegreeUnitName}");
+        if (baNormal <= 0) notes.Add(Tr.F("the load has no propellant Ba — can only report the raw {0}", gu.VelocityPerDegreeUnitName));
 
         var r = new TempCoeffResult
         {
@@ -115,27 +115,27 @@ public sealed class TempCoeffResult
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
-        sb.AppendLine($"temp in {gu.TemperatureUnitName}, MV/SD in {gu.VelocityUnitName}, charge in {gu.ChargeUnitName}");
-        sb.AppendLine("  temp   n     MV      SD    charge");
+        sb.AppendLine(Tr.F("temp in {0}, MV/SD in {1}, charge in {2}", gu.TemperatureUnitName, gu.VelocityUnitName, gu.ChargeUnitName));
+        sb.AppendLine(Tr.T("  temp   n     MV      SD    charge"));
         foreach (var x in Points)
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "{0,6:0.0} {1,3} {2,8:0.0} {3,6:0.0}   {4}",
                 gu.TemperatureValue(x.TempC), x.N, gu.VelocityValue(x.MeanMps), gu.VelocityValue(x.SdMps),
                 gu.ChargeValue(x.ChargeGr).ToString(gu.ChargeFormat, CultureInfo.InvariantCulture)));
         sb.AppendLine();
         string perDeg = gu.VelocityPerDegreeUnitName;
-        if (MvNormal is { } mvn) sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "MV at {0}: {1}   (powder Ba = {2:0.######})", gu.Temperature(NormalC), gu.Velocity(mvn), BaNormal));
-        if (ColdSlopeMps is { } c) sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "cold side: {0:+0.00;-0.00} {1}", gu.VelocityPerDegreeValue(c), perDeg));
-        if (HotSlopeMps is { } h) sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "hot side : {0:+0.00;-0.00} {1}", gu.VelocityPerDegreeValue(h), perDeg));
+        if (MvNormal is { } mvn) sb.AppendLine(Tr.F("MV at {0}: {1}   (powder Ba = {2})", gu.Temperature(NormalC), gu.Velocity(mvn), BaNormal.ToString("0.######", CultureInfo.InvariantCulture)));
+        if (ColdSlopeMps is { } c) sb.AppendLine(Tr.F("cold side: {0} {1}", gu.VelocityPerDegreeValue(c).ToString("+0.00;-0.00", CultureInfo.InvariantCulture), perDeg));
+        if (HotSlopeMps is { } h) sb.AppendLine(Tr.F("hot side : {0} {1}", gu.VelocityPerDegreeValue(h).ToString("+0.00;-0.00", CultureInfo.InvariantCulture), perDeg));
         sb.AppendLine();
         // tcc and tch are GRT's own model coefficients, defined per °C by its formalism. They are
         // not a reading, so they are printed exactly as GRT would take them back, unconverted.
-        if (Tcc is { } tcc) sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "tcc = {0:0.########}   (GRT cold coefficient, ΔBa per °C below 21°C -- GRT's own definition)", tcc));
-        if (Tch is { } tch) sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "tch = {0:0.########}   (GRT hot coefficient, ΔBa per °C above 21°C -- GRT's own definition)", tch));
-        if (Tcc is null && Tch is null) sb.AppendLine("no coefficients fitted — see notes.");
+        if (Tcc is { } tcc) sb.AppendLine(Tr.F("tcc = {0}   (GRT cold coefficient, ΔBa per °C below 21°C -- GRT's own definition)", tcc.ToString("0.########", CultureInfo.InvariantCulture)));
+        if (Tch is { } tch) sb.AppendLine(Tr.F("tch = {0}   (GRT hot coefficient, ΔBa per °C above 21°C -- GRT's own definition)", tch.ToString("0.########", CultureInfo.InvariantCulture)));
+        if (Tcc is null && Tch is null) sb.AppendLine(Tr.T("no coefficients fitted — see notes."));
         if (Notes.Count > 0) { sb.AppendLine(); foreach (var n in Notes) sb.AppendLine("! " + n); }
         sb.AppendLine();
-        sb.AppendLine("Method: Ba(T) ≈ Ba_normal·(MV(T)/MV_21)² per GRT formalism (formalism.txt). First-order.");
-        sb.AppendLine($"Best with 3 strings: cold (~{gu.Temperature(-10)}), normal ({gu.Temperature(NormalC)}), hot (~{gu.Temperature(40)}), same charge & barrel.");
+        sb.AppendLine(Tr.T("Method: Ba(T) ≈ Ba_normal·(MV(T)/MV_21)² per GRT formalism (formalism.txt). First-order."));
+        sb.AppendLine(Tr.F("Best with 3 strings: cold (~{0}), normal ({1}), hot (~{2}), same charge & barrel.", gu.Temperature(-10), gu.Temperature(NormalC), gu.Temperature(40)));
         return sb.ToString();
     }
 }

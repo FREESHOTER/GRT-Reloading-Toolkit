@@ -43,11 +43,14 @@ internal static class ToolIconPainter
         ["flask"] = new Prim[] { P("M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"), P("M7.5 15h9") },
         ["curve"] = new Prim[] { P("M3 4v16h18"), P("M5 7c4 8 8 10 15 10"), C(7.4f, 11.0f, 1.2f, CircleStyle.White), C(14.5f, 16.0f, 1.2f, CircleStyle.White) },
         ["pulse"] = new Prim[] { P("M3 12h4l2-6 4 12 2-6h6") },
+        ["probe"] = new Prim[] { P("M5 3v18"), C(5.0f, 9.0f, 2.2f, CircleStyle.White), P("M9 18c3 0 4-11 7-11s3 6 5 6"), P("M9 21h12") },
         ["sdcause"] = new Prim[] { C(10.0f, 10.0f, 6.0f, CircleStyle.Ring), P("m15 15 6 6"), P("M7 12c1 0 1-4 3-4s2 4 3 4") },
         ["diagnose"] = new Prim[] { C(10.0f, 10.0f, 6.0f, CircleStyle.Ring), P("m15 15 6 6"), P("m7.5 10 2 2 3.5-4") },
         ["group"] = new Prim[] { C(12.0f, 12.0f, 9.0f, CircleStyle.Ring), C(12.0f, 12.0f, 5.0f, CircleStyle.Ring), C(9.6f, 10.0f, 0.9f, CircleStyle.Solid), C(14.2f, 11.2f, 0.9f, CircleStyle.Solid), C(12.0f, 14.6f, 0.9f, CircleStyle.Solid) },
+        ["follow"] = new Prim[] { P("M3 4v16h18"), P("m6 16 4-3 3 2 5-7"), C(6.0f, 16.0f, 1.3f, CircleStyle.Solid), C(10.0f, 13.0f, 1.3f, CircleStyle.Solid), C(13.0f, 15.0f, 1.3f, CircleStyle.Solid), C(18.0f, 8.0f, 1.3f, CircleStyle.Solid) },
         ["box"] = new Prim[] { P("M3 8l9-5 9 5v8l-9 5-9-5z"), P("M3 8l9 5 9-5M12 13v8") },
         ["books"] = new Prim[] { P("M4 5h4v14H4zM10 5h4v14h-4z"), P("m16 6 4-1 3 13-4 1z") },
+        ["gyro"] = new Prim[] { C(12.0f, 12.0f, 8.5f, CircleStyle.Ring), P("M12 3.5v17"), P("M7 9.5c3-1.6 7-1.6 10 0"), P("M7 14.5c3 1.6 7 1.6 10 0") },
         ["doc"] = new Prim[] { P("M6 3h8l5 5v13H6z"), P("M14 3v5h5M9 13h7M9 17h7") },
     };
 

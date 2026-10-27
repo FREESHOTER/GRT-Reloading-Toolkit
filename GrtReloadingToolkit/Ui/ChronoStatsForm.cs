@@ -180,7 +180,7 @@ internal sealed class ChronoStatsForm : Form
         if (files.Count == 0) { MessageBox.Show(this, Lang.T("No .xlsx / .csv files in that folder."), Lang.T("Add folder")); return; }
         int before = _rows.Count;
         AddPaths(files, showErrorDialog: false);   // the folder may hold target CSVs etc. — just skip those
-        AppendLog($"folder: {_rows.Count - before} of {files.Count} file(s) added from {Path.GetFileName(d.SelectedPath)}");
+        AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("folder: {0} of {1} file(s) added from {2}"), _rows.Count - before, files.Count, Path.GetFileName(d.SelectedPath)));
     }
 
     private void AddPaths(IEnumerable<string> paths, bool showErrorDialog)
@@ -191,12 +191,12 @@ internal sealed class ChronoStatsForm : Form
             {
                 var a = AthlonParser.Parse(path);
                 var vs = a.Velocities.ToList();
-                if (vs.Count == 0) { AppendLog($"{Path.GetFileName(path)}: no shots, skipped"); continue; }
+                if (vs.Count == 0) { AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0}: no shots, skipped"), Path.GetFileName(path))); continue; }
                 string label = a.ChargeGrains is { } g
                     ? FormattableString.Invariant($"{g:0.0##} gr ({Path.GetFileName(path)})")
                     : Path.GetFileName(path);
                 _rows.Add(new Row { Label = UniqueLabel(label), Values = vs });
-                AppendLog($"{Path.GetFileName(path)}: {vs.Count} shots");
+                AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0}: {1} shots"), Path.GetFileName(path), vs.Count));
             }
             catch (Exception ex)
             {
@@ -228,7 +228,7 @@ internal sealed class ChronoStatsForm : Form
                     _rows.Add(new Row { Label = UniqueLabel(label), Values = vs });
                     added++;
                 }
-            AppendLog($"load Measurement: {added} string(s) added");
+            AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("load Measurement: {0} string(s) added"), added));
             Recompute();
         }
         catch (Exception ex) { Err(ex); }
@@ -288,7 +288,7 @@ internal sealed class ChronoStatsForm : Form
             if (string.IsNullOrWhiteSpace(basePath) || !File.Exists(basePath)) { MessageBox.Show(this, Lang.T("No saved load is open in GRT.")); return; }
 
             var report = new System.Text.StringBuilder();
-            report.AppendLine($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}");
+            report.AppendLine($"{Lang.T(NoteTitle)} {DateTime.Now:yyyy-MM-dd}");
             report.AppendLine(new string('-', 20));
             report.AppendLine();
             report.Append(ChronoStatsCalc.BuildTableReport(_rows.Select(r => (r.Label, r.Summary)).ToList(), TargetMarginMps, Confidence));
@@ -302,7 +302,7 @@ internal sealed class ChronoStatsForm : Form
             doc.RemoveByTitlePrefix(NoteTitle);
             doc.AddNote(NoteTitle, report.ToString());
             string outPath = doc.SaveSibling("chronostats");
-            AppendLog("wrote " + outPath);
+            AppendLog(Lang.T("wrote") + " " + outPath);
             await _grt.LoadFileAsync(outPath);
             _next?.MarkDone();
             _status.Text = Lang.T("Chrono Statistics note written and opened in GRT.");
@@ -310,7 +310,7 @@ internal sealed class ChronoStatsForm : Form
         catch (Exception ex) { Err(ex); }
     }
 
-    private void Err(Exception ex) { AppendLog("ERROR: " + ex.Message); MessageBox.Show(this, ex.Message, Lang.T("Chrono Statistics"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    private void Err(Exception ex) { AppendLog(Lang.T("ERROR:") + " " + ex.Message); MessageBox.Show(this, ex.Message, Lang.T("Chrono Statistics"), MessageBoxButtons.OK, MessageBoxIcon.Error); }
 
     private void AppendLog(string line) => _cmpResult.SafeAppend(line);
 }

@@ -48,7 +48,7 @@ internal sealed class LauncherForm : Form
     /// <summary>The mark that ends a step already done in the open load.</summary>
     private const string DoneMark = "  \u2714";
 
-    public LauncherForm(Action<Tool> open, GrtClient? grt = null)
+    public LauncherForm(Action<Tool> open, GrtClient? grt = null, Log.Db? db = null, Action<long?>? shooterChanged = null)
     {
         _grt = grt;
         Text = AppVersion.Title("Reloading Toolkit");
@@ -56,9 +56,9 @@ internal sealed class LauncherForm : Form
         // working area, so the last seven buttons -- Velocity model down to the report templates --
         // were laid out past the bottom edge and simply never painted, with no grip to drag and no
         // wheel to scroll. Reported from a 3840x2160 screen showing 17 of the 24.
-        FormBorderStyle = FormBorderStyle.SizableToolWindow;
+        FormBorderStyle = FormBorderStyle.Sizable;
         StartPosition = FormStartPosition.CenterScreen;
-        MaximizeBox = false;
+        MaximizeBox = true;
         TopMost = false;
 
         var flow = new FlowLayoutPanel
@@ -112,6 +112,9 @@ internal sealed class LauncherForm : Form
             flow.Controls.Add(b);
         }
 
+        // Whose work every tool shows: the shooter reloads for others too, and each person has their own inventory, journal and loads.
+        if (db != null && shooterChanged != null) flow.Controls.Add(new ShooterBar(db, shooterChanged) { Margin = new Padding(0, 0, 0, 8) });
+
         // Above the phases, not inside any: it starts before the range (brass, card) and can only finish after
         // (calibration needs a real measured velocity) -- see WizardForm's own doc comment for why it doesn't get
         // filed under just one phase.
@@ -143,6 +146,7 @@ internal sealed class LauncherForm : Form
 
         Section(Lang.T("PHASE 5 — FINAL LOAD, OVER TIME"), PathPhase.Tracking);
         B(Lang.T("📓  Load journal"), Tool.Journal, "journal", "8 / 18");
+        B(Lang.T("📈  Follow a load"), Tool.FollowLoad, "follow", "20");
 
         // Outside the chain of steps: it reads the load open in GRT, whatever phase it is in, and is experimental.
         Section(Lang.T("GUIDED DIAGNOSIS (EXPERIMENTAL)"));
@@ -155,11 +159,32 @@ internal sealed class LauncherForm : Form
         B(Lang.T("🏆  Load leaderboard"), Tool.Leaderboard, "trophy");
         B(Lang.T("🧪  Powder compare"), Tool.PowderCompare, "flask");
         B(Lang.T("📉  Velocity model (charge + temperature)"), Tool.VelocityModel, "curve");
+        B(Lang.T("🔬  Model probe (how GRT answers one input)"), Tool.ModelProbe, "probe");
+        B(Lang.T("🌀  Gyroscopic stability (twist)"), Tool.Stability, "gyro");
 
         Section(Lang.T("ALWAYS AT HAND"));
         B(Lang.T("📒  Inventory"), Tool.Log, "box");
         B(Lang.T("📚  Load book export"), Tool.LoadBook, "books");
         B(Lang.T("📄  Install GRT report templates"), Tool.Reports, "doc");
+
+        // The classic light look stays one tick away; the windows are dressed as they open, so it takes effect from the next start.
+        var look = new CheckBox
+        {
+            Text = Lang.T("Look of GRT (dark windows)"), AutoSize = true, UseMnemonic = false,
+            Checked = GrtTheme.Enabled, Margin = new Padding(2, 14, 0, 2),
+        };
+        var lookNote = new Label
+        {
+            Text = Lang.T("Takes effect the next time the toolkit starts."), UseMnemonic = false, AutoSize = true,
+            MaximumSize = new Size(300, 0), ForeColor = SystemColors.GrayText, Margin = new Padding(2, 0, 0, 6), Visible = false,
+        };
+        look.CheckedChanged += (_, _) =>
+        {
+            UiState.Set(GrtTheme.StateKey, look.Checked ? "1" : "0");
+            lookNote.Visible = true;
+        };
+        flow.Controls.Add(look);
+        flow.Controls.Add(lookNote);
 
         // One column width for all of them, measured rather than hardcoded. These are left-aligned
         // captions, and the Italian overlay runs to 277px where the English reads 235, so the fixed

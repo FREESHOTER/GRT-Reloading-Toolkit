@@ -44,14 +44,15 @@ public static class SdRootCause
         AdvancedDiagnostics.FoulingResult? ProgressiveDrift,
         double? TempVelocityR,
         double? TempPoiR,
-        double Skewness);
+        double Skewness,
+        ShotDriftReport? Drift = null);
 
     /// <summary>For each shot, the string's sample SD with that one shot excluded — sample SD
     /// (&#247;n&#8722;1), the same convention <see cref="ChronoStatsCalc.SampleSd"/> uses and what
     /// "SD" means everywhere else in the toolkit.</summary>
     public static IReadOnlyList<LeaveOneOutRow> LeaveOneOutRanking(IReadOnlyList<double> velocities)
     {
-        if (velocities.Count < 3) throw new SdRootCauseError("Need at least 3 shots.");
+        if (velocities.Count < 3) throw new SdRootCauseError(Tr.T("Need at least 3 shots."));
         double sdAll = SampleSd(velocities);
         var flagged = ChronoStatsCalc.ChauvenetOutliers(velocities).Where(o => o.Flagged).Select(o => o.Index).ToHashSet();
 
@@ -145,7 +146,8 @@ public static class SdRootCause
         IReadOnlyList<double> velocities,
         IReadOnlyList<bool>? coldBoreFlags = null,
         IReadOnlyList<(int ShotIndex, double TempC)>? manualTemps = null,
-        TargetGroup? shotGroup = null)
+        TargetGroup? shotGroup = null,
+        IReadOnlyList<double?>? clockSeconds = null)
     {
         var ranking = LeaveOneOutRanking(velocities);
         var pattern = ClassifySdPattern(ranking);
@@ -189,7 +191,8 @@ public static class SdRootCause
             catch (AdvancedDiagnostics.AdvancedDiagnosticsError) { /* window too large for this string -- omit */ }
         }
 
-        return new SdRootCauseReport(sdAll, pattern, ranking, coldBore, drift, tempVelR, tempPoiR, Skewness(velocities));
+        return new SdRootCauseReport(sdAll, pattern, ranking, coldBore, drift, tempVelR, tempPoiR, Skewness(velocities),
+            ShotDrift.Analyze(velocities, clockSeconds));
     }
 
     private static double SampleSd(IReadOnlyList<double> v)

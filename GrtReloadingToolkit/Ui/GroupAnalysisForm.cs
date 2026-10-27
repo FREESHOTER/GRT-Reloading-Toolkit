@@ -63,6 +63,14 @@ internal sealed class GroupAnalysisForm : Form
     private readonly TextBox _verdict = new() { Multiline = true, ReadOnly = true, Dock = DockStyle.Top, Height = 240, ScrollBars = ScrollBars.Vertical };
     private readonly GroupTargetChart _chart = new() { Dock = DockStyle.Fill };
 
+    // Chance of hitting a target of a given size: 0 in the size box means "not asked", so nothing is added to the verdict.
+    private readonly ComboBox _hitShape = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 280 };
+    private readonly NumericUpDown _hitSizeA = new() { Minimum = 0, Maximum = 100000, Value = 0, Width = 90 };
+    private readonly NumericUpDown _hitSizeB = new() { Minimum = 0, Maximum = 100000, Value = 0, Width = 90 };
+    private readonly NumericUpDown _hitDistance = new() { Minimum = 0, Maximum = 5000, DecimalPlaces = 1, Value = 0, Width = 90 };
+    private readonly CheckBox _hitOffset = new() { AutoSize = true, MaximumSize = new Size(280, 0) };
+    private Label? _hitSizeBLabel;
+
     private GroupAnalysisReport? _lastReport;
     private TargetGroup? _lastGroup;
 
@@ -107,6 +115,8 @@ internal sealed class GroupAnalysisForm : Form
         _next = NextStepBar.Attach(this, "GroupAnalysis", _grt);
         split.SplitterDistance = 320;
         NudFix.ApplyTo(this);
+        UiState.Bind(this, "groupanalysis", ("hitshape", _hitShape), ("hitsizea", _hitSizeA), ("hitsizeb", _hitSizeB),
+            ("hitdistance", _hitDistance), ("hitoffset", _hitOffset));
     }
 
     // ── Left panel: source picker, range override, manual entry ────────
@@ -145,6 +155,40 @@ internal sealed class GroupAnalysisForm : Form
         Add(new Label { Text = Lang.T("Distance band"), AutoSize = true, Margin = new Padding(0, 10, 0, 2) });
         PopulateRangeOverride();
         Add(_rangeOverride);
+
+        Add(new Label { Text = Lang.T("Chance of hitting a target"), AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 14, 0, 2) });
+        _hitShape.Items.Add(Lang.T("Circle (diameter)"));
+        _hitShape.Items.Add(Lang.T("Rectangle (width × height)"));
+        _hitShape.SelectedIndex = 0;
+        Add(_hitShape);
+        _hitSizeA.DecimalPlaces = _hitSizeB.DecimalPlaces = _u.LengthInInch ? 2 : 1;
+        Add(new Label { Text = Lang.T("Size") + " (" + _u.LengthUnitName + ")", AutoSize = true, Margin = new Padding(0, 6, 0, 2) });
+        var sizeRow = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 0, 0, 0) };
+        sizeRow.Controls.Add(_hitSizeA);
+        _hitSizeBLabel = new Label { Text = "×", AutoSize = true, Margin = new Padding(0, 6, 4, 0), Visible = false };
+        sizeRow.Controls.Add(_hitSizeBLabel);
+        sizeRow.Controls.Add(_hitSizeB);
+        _hitSizeB.Visible = false;
+        Add(sizeRow);
+        var distRow = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 4, 0, 0) };
+        distRow.Controls.Add(new Label { Text = Lang.T("Target distance") + " (" + _u.DistanceUnitName + ")", AutoSize = true, Margin = new Padding(0, 6, 4, 0) });
+        distRow.Controls.Add(_hitDistance);
+        Add(distRow);
+        Add(new Label { Text = "(" + Lang.T("0 = the group's own distance") + ")", AutoSize = true, ForeColor = SystemColors.GrayText, Margin = new Padding(0, 0, 0, 2) });
+        _hitOffset.Text = Lang.T("Include the group's offset from the aim point");
+        _hitOffset.Margin = new Padding(0, 4, 0, 0);
+        Add(_hitOffset);
+        _hitShape.SelectedIndexChanged += (_, _) =>
+        {
+            bool rect = _hitShape.SelectedIndex == 1;
+            _hitSizeB.Visible = rect;
+            if (_hitSizeBLabel != null) _hitSizeBLabel.Visible = rect;
+            RefreshHitProbability();
+        };
+        _hitSizeA.ValueChanged += (_, _) => RefreshHitProbability();
+        _hitSizeB.ValueChanged += (_, _) => RefreshHitProbability();
+        _hitDistance.ValueChanged += (_, _) => RefreshHitProbability();
+        _hitOffset.CheckedChanged += (_, _) => RefreshHitProbability();
 
         Add(new Label { Text = "— " + Lang.T("or enter a group manually") + " —", AutoSize = true, Margin = new Padding(0, 14, 0, 2), ForeColor = SystemColors.GrayText });
 
@@ -413,6 +457,59 @@ internal sealed class GroupAnalysisForm : Form
         _verdict.Text = BuildVerdict(report, group);
     }
 
+    /// <summary>A length in the user's unit with a sensible number of digits (the stored precision of <c>GrtUnits.Length</c> is for files, not for reading).</summary>
+    private string ShortLength(double mm)
+    {
+        double v = _u.LengthValue(mm);
+        return v.ToString(v >= 100 ? "0" : v >= 10 ? "0.#" : "0.##", CultureInfo.InvariantCulture) + " " + _u.LengthUnitName;
+    }
+
+    /// <summary>A chance as a whole percent, never "0" or "100" for something that is not quite certain or impossible.</summary>
+    private static string Percent(double pct) =>
+        pct >= 99.5 ? ">99" : pct < 0.5 ? "<1" : pct.ToString("0", CultureInfo.InvariantCulture);
+
+    private void RefreshHitProbability()
+    {
+        if (_lastReport is { } r && _lastGroup is { } g) _verdict.Text = BuildVerdict(r, g);
+    }
+
+    /// <summary>
+    /// The paragraph on the chance of hitting the target typed in the left panel; empty while no size is entered. Read from the group's
+    /// own spread, so it says nothing the group has not shown: see <see cref="HitProbability"/> for what it assumes and leaves out.
+    /// </summary>
+    private IEnumerable<string> HitProbabilityLines(TargetGroup group)
+    {
+        var ci = CultureInfo.InvariantCulture;
+        bool rect = _hitShape.SelectedIndex == 1;
+        double a = _u.LengthToMm((double)_hitSizeA.Value), b = _u.LengthToMm((double)_hitSizeB.Value);
+        if (a <= 0 || (rect && b <= 0)) yield break;
+        if (group.Impacts.Count < 2)
+        {
+            yield return Lang.T("Chance of hitting: a group needs at least 2 shots.");
+            yield return "";
+            yield break;
+        }
+
+        double distanceM = _hitDistance.Value > 0 ? _u.DistanceToMetres((double)_hitDistance.Value) : group.DistanceM;
+        double sigmaMoa = GroupAnalysis.SigmaMoa(group);
+        var r = HitProbability.Compute(sigmaMoa, group.Impacts.Count, distanceM, rect ? HitProbability.Shape.Rectangle : HitProbability.Shape.Circle, a, b,
+            _hitOffset.Checked ? group.CenterXMoa : 0, _hitOffset.Checked ? group.CenterYMoa : 0);
+
+        string target = rect
+            ? string.Format(Lang.T("{0} × {1} rectangle"), ShortLength(a), ShortLength(b))
+            : string.Format(Lang.T("{0} circle"), ShortLength(a));
+        yield return string.Format(Lang.T("◎ Chance of hitting a {0} at {1}: {2} %."), target, _u.Distance(distanceM), Percent(r.HitPct));
+        if (r.CautiousHitPct is { } c)
+            yield return "   " + string.Format(Lang.T("Cautious figure, with the group's spread taken at its upper 90 % bound ({0} shots): {1} %."),
+                group.Impacts.Count, Percent(c));
+        yield return "   " + string.Format(Lang.T("Half of the shots land within {0} of the centre of the group at that distance, 90 % within {1}, 95 % within {2}."),
+            ShortLength(r.R50Mm), ShortLength(r.R90Mm), ShortLength(r.R95Mm));
+        if (group.Impacts.Count < 10)
+            yield return "   " + Lang.T("A group of few shots usually understates the true spread: read the cautious figure.");
+        yield return "   " + Lang.T("Assumes a round spread that grows in proportion to the distance; wind, drift and range error are not included.");
+        yield return "";
+    }
+
     private string BuildVerdict(GroupAnalysisReport report, TargetGroup group)
     {
         var ci = CultureInfo.InvariantCulture;
@@ -434,6 +531,8 @@ internal sealed class GroupAnalysisForm : Form
         if (report.VelocityPoiR is { } vr)
             sb.AppendLine(string.Format(Lang.T("Per-shot velocity <-> distance-from-centre correlation: r={0}."), vr.ToString("0.00", ci)));
         sb.AppendLine();
+
+        foreach (string line in HitProbabilityLines(group)) sb.AppendLine(line);
 
         if (report.NodeCrossCheck is { } nc)
         {

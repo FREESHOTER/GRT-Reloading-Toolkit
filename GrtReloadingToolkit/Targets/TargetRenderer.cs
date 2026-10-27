@@ -31,9 +31,9 @@ public sealed class TargetSpec
 /// (not just its PDF output) and redrawn in GDI+ instead of reportlab so it fits this plugin's own
 /// print/PNG pipeline rather than adding a PDF library dependency. Every mm offset and adaptive-sizing
 /// formula below has a matching line in that Python source, called out in the comments, with two
-/// deliberate exceptions: the Ladder/Audette ruler is centred on its own aim point rather than drawn
-/// in a separate zone above it (the user's own explicit choice, checked directly against the
-/// original), and a second unit ruler in inches runs alongside the mm one (the reference has no inch
+/// deliberate exceptions: the Ladder/Audette ruler rises from its own aim disc, which sits at its base,
+/// rather than being drawn in a separate zone above it (the user's own explicit choice, checked directly
+/// against the original), and a second unit ruler in inches runs alongside the mm one (the reference has no inch
 /// ruler at all — this is a value-add, not a fidelity gap).
 ///
 /// Every drawing call takes <paramref name="unitsPerMm"/> so the SAME layout code serves both a true
@@ -54,7 +54,7 @@ public static class TargetRenderer
     private const double AimDiscMinMmOcw = 12, AimDiscMaxMmOcw = 25;
     private const double AimDiscMinMmLadder = 15, AimDiscMaxMmLadder = 30;
     private const double GridStepMm = 10, GridHalfWMinMm = 10, GridHalfWMaxMm = 60, GridHalfVMaxMm = 80;
-    private const double RulerHalfHeightMm = 50, RulerStepMm = 10;
+    private const double RulerHeightMm = 100, RulerStepMm = 10;
     private const double ScaleBarMm = 100;
 
     /// <summary>Loaded once from the embedded copy (see the .csproj) rather than reaching into the
@@ -249,10 +249,9 @@ public static class TargetRenderer
         }
         else
         {
-            // Ladder/Audette: the user's own explicit choice keeps the ruler centred on the aim
-            // point (not the reference's separate zone above it), so this only needs a row Y that
-            // clears the header by the ruler's own half-height.
-            rowYMm = instrYMm + 20 + RulerHalfHeightMm;
+            // Ladder/Audette: the aim disc sits at the BASE of the ruler and the scale rises from it (a heavier
+            // charge hits higher), so this only needs a row Y that clears the header by the ruler's whole height.
+            rowYMm = instrYMm + 20 + RulerHeightMm;
         }
 
         for (int col = 0; col < count; col++)
@@ -279,7 +278,7 @@ public static class TargetRenderer
             else
             {
                 DrawLadderPoint(g, cx, cy, discMm, u, black, blackBrush, tickFont);
-                float labelY = cy + (float)(RulerHalfHeightMm + discMm) * u + 6 * u;
+                float labelY = cy + (float)(discMm / 2) * u + 6 * u;
                 string stepId = "C" + (i + 1).ToString(CultureInfo.InvariantCulture);
                 g.DrawString(stepId, labelFont, blackBrush, cx - g.MeasureString(stepId, labelFont).Width / 2f, labelY);
                 labelY += labelFont.GetHeight(g) * 1.15f;
@@ -298,7 +297,7 @@ public static class TargetRenderer
 
         string meta = isOcw
             ? FormattableString.Invariant($"Pagina {pageWMm:0}×{pageHMm:0} mm — mira ⌀{discMm:0} mm, griglia {GridStepMm:0} mm")
-            : FormattableString.Invariant($"Pagina {pageWMm:0}×{pageHMm:0} mm — mira ⌀{discMm:0} mm, scala ±{RulerHalfHeightMm:0} mm");
+            : FormattableString.Invariant($"Pagina {pageWMm:0}×{pageHMm:0} mm — mira ⌀{discMm:0} mm, scala 0…+{RulerHeightMm:0} mm");
         g.DrawString(meta, tickFont, greyBrush2, X(pageWMm - MarginXMm) - g.MeasureString(meta, tickFont).Width, Y(barYMm) - tickFont.GetHeight(g));
     }
 
@@ -330,23 +329,23 @@ public static class TargetRenderer
 
     /// <summary>Ladder/Audette: one shot per aim point, so only a vertical ruler is needed to read the
     /// impact's vertical offset -- no horizontal grid, and a bigger disc since this is shot at
-    /// distance (~200-300 m), not 100 m. Kept centred on the aim point rather than the reference's own
-    /// separate zone above it -- the user's explicit choice after comparing both directly.</summary>
+    /// distance (~200-300 m), not 100 m. The disc sits at the base and the ruler rises from its centre, rather
+    /// than the reference's own separate zone above it -- the user's explicit choice after comparing both directly.</summary>
     private static void DrawLadderPoint(Graphics g, float cx, float cy, double discMm, float u, Pen linePen, Brush brush, Font tickFont)
     {
         using var tickPen = new Pen(Color.FromArgb(0x88, 0x88, 0x88), 0.18f * u);
-        g.DrawLine(tickPen, cx, cy - (float)RulerHalfHeightMm * u, cx, cy + (float)RulerHalfHeightMm * u);
+        g.DrawLine(tickPen, cx, cy, cx, cy - (float)RulerHeightMm * u);
         using var redPen = new Pen(Color.FromArgb(0xcc, 0x00, 0x00), 0.35f * u);
         using var redBrush = new SolidBrush(Color.FromArgb(0xcc, 0x00, 0x00));
         using var tickBrush = new SolidBrush(Color.FromArgb(0x44, 0x44, 0x44));
-        for (double mm = -RulerHalfHeightMm; mm <= RulerHalfHeightMm; mm += RulerStepMm / 2)
+        for (double mm = 0; mm <= RulerHeightMm + 1e-6; mm += RulerStepMm / 2)
         {
-            float y = cy + (float)mm * u;
+            float y = cy - (float)mm * u;   // up is positive: the ruler rises from the disc
             bool major = Math.Abs(mm % RulerStepMm) < 1e-6;
             float tickW = major ? 2.5f * u : 1.2f * u;
             g.DrawLine(tickPen, cx - tickW, y, cx + tickW, y);
-            if (major && Math.Abs(mm) > 1e-6)
-                g.DrawString(Math.Abs(mm).ToString("0", CultureInfo.InvariantCulture), tickFont, tickBrush, cx + tickW + 1 * u, y - tickFont.GetHeight(g) / 2f);
+            if (major && mm > 1e-6)
+                g.DrawString(mm.ToString("0", CultureInfo.InvariantCulture), tickFont, tickBrush, cx + tickW + 1 * u, y - tickFont.GetHeight(g) / 2f);
         }
         // Zero gets its own red "0" and red centre line -- the read-off reference every other tick's
         // +/- delta is relative to. It sits at the same height as the disc drawn on top afterward, so
@@ -354,7 +353,7 @@ public static class TargetRenderer
         g.DrawLine(redPen, cx - 5 * u, cy, cx + 5 * u, cy);
         g.DrawString("0", tickFont, redBrush, cx + (float)discMm / 2f * u + 2 * u, cy - tickFont.GetHeight(g) / 2f);
 
-        DrawInchTicks(g, cx - 10 * u, cy, RulerHalfHeightMm, u, linePen, tickFont, brush);
+        DrawInchTicks(g, cx - 10 * u, cy, RulerHeightMm, u, linePen, tickFont, brush, upOnly: true);
         DrawAimDisc(g, cx, cy, discMm, u, linePen, Color.FromArgb(0xe6, 0x00, 0x00));
     }
 
@@ -382,13 +381,14 @@ public static class TargetRenderer
     /// <summary>A separate inch ruler alongside the mm one (never overlaid on it): half-inch ticks
     /// out to the same physical half-height as the mm scale it sits next to. The reference has no
     /// inch ruler at all -- this is the one dimension added on top of it, per explicit request.</summary>
-    private static void DrawInchTicks(Graphics g, float x, float cy, double halfHeightMm, float u, Pen pen, Font tickFont, Brush brush)
+    private static void DrawInchTicks(Graphics g, float x, float cy, double halfHeightMm, float u, Pen pen, Font tickFont, Brush brush, bool upOnly = false)
     {
+        // upOnly: the ruler rises from cy (the Ladder, whose disc is at its base) instead of running both ways around it.
         double halfHeightIn = halfHeightMm / MmPerInch;
-        g.DrawLine(pen, x, cy - (float)(halfHeightIn * MmPerInch) * u, x, cy + (float)(halfHeightIn * MmPerInch) * u);
-        for (double inch = -Math.Floor(halfHeightIn * 2) / 2; inch <= halfHeightIn; inch += 0.5)
+        g.DrawLine(pen, x, upOnly ? cy : cy - (float)(halfHeightIn * MmPerInch) * u, x, upOnly ? cy - (float)(halfHeightIn * MmPerInch) * u : cy + (float)(halfHeightIn * MmPerInch) * u);
+        for (double inch = upOnly ? 0 : -Math.Floor(halfHeightIn * 2) / 2; inch <= halfHeightIn; inch += 0.5)
         {
-            float y = cy + (float)(inch * MmPerInch) * u;
+            float y = cy + (float)(inch * MmPerInch) * u * (upOnly ? -1 : 1);
             float tickW = Math.Abs(inch - Math.Round(inch)) < 1e-6 ? 2.5f * u : 1.2f * u;
             g.DrawLine(pen, x - tickW, y, x, y);
             if (Math.Abs(inch - Math.Round(inch)) < 1e-6 && inch != 0)

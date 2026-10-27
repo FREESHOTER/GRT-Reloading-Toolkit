@@ -45,9 +45,9 @@ public static class PressureTrend
         IReadOnlyList<double>? meanSeMps = null)
     {
         if (chargesGr.Count != velocitiesMps.Count)
-            throw new PressureTrendError("chargesGr and velocitiesMps must have the same length.");
+            throw new PressureTrendError(Tr.T("chargesGr and velocitiesMps must have the same length."));
         if (chargesGr.Count < MinCharges)
-            throw new PressureTrendError($"Need at least {MinCharges} charges for the pressure trend.");
+            throw new PressureTrendError(Tr.F("Need at least {0} charges for the pressure trend.", MinCharges));
 
         var paired = chargesGr.Zip(velocitiesMps, (c, v) => (Charge: c, Velocity: v)).OrderBy(p => p.Charge).ToList();
         var charges = paired.Select(p => p.Charge).ToList();

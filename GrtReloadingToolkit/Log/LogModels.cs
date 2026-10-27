@@ -7,9 +7,23 @@ namespace GrtReloadingToolkit.Log;
 /// </summary>
 public enum ComponentKind { Powder, Primer, Brass, Bullet, Barrel }
 
+/// <summary>A person whose reloading is kept in the database: the shooter, a club member, a friend. Everything in the inventory,
+/// the firearms and the journal belongs to one of them.</summary>
+public sealed class Shooter
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Notes { get; set; } = "";
+    public bool Archived { get; set; }
+
+    public override string ToString() => Name;
+}
+
 public sealed class Component
 {
     public long Id { get; set; }
+    /// <summary>Whose stock this is (0 = not said yet: the database gives it to the person on screen).</summary>
+    public long ShooterId { get; set; }
     public ComponentKind Kind { get; set; }
     public string Brand { get; set; } = "";
     public string Name { get; set; } = "";
@@ -94,6 +108,8 @@ public sealed class Component
 public sealed class JournalEntry
 {
     public long Id { get; set; }
+    /// <summary>Whose work this is (0 = not said yet: the firearm's owner, or the person on screen).</summary>
+    public long ShooterId { get; set; }
     public string Date { get; set; } = DateTime.Now.ToString("yyyy-MM-dd");
     public string LoadName { get; set; } = "";
     public string Caliber { get; set; } = "";
@@ -134,6 +150,38 @@ public sealed class JournalEntry
     /// <summary>The propellant's isentropic exponent (k) the calibration landed on: with Ba, the other
     /// coefficient GRT's own OBT tool moves, so a Ba without its k does not reproduce the calibration.</summary>
     public double? K { get; set; }
+
+    /// <summary>Every shot's velocity in m/s, comma-separated, as written down at the range. Empty when only the average, SD and ES were typed:
+    /// such an outing is listed but cannot be analysed, because a mean without its shots says nothing about the spread.</summary>
+    public string ShotsMs { get; set; } = "";
+
+    public double? WindMps { get; set; }
+    public double? WindDeg { get; set; }
+
+    /// <summary>The shots as numbers: what <see cref="ShotsMs"/> holds, ignoring anything that is not a positive number.</summary>
+    public List<double> Velocities() => ParseShots(ShotsMs);
+
+    /// <summary>Shots separated by spaces, semicolons or new lines (what a chronograph's export pastes as). A comma is a decimal
+    /// separator when one or two digits follow it ("800,5": an Italian keyboard), a separator between shots otherwise ("800,801").</summary>
+    public static List<double> ParseShots(string text)
+    {
+        var list = new List<double>();
+        foreach (string token in (text ?? "").Split(new[] { ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = System.Text.RegularExpressions.Regex.IsMatch(token, @"^\d+,\d{1,2}$") ? new[] { token.Replace(',', '.') } : token.Split(',');
+            foreach (string part in parts)
+                if (double.TryParse(part, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v) && v > 0 && !double.IsNaN(v))
+                    list.Add(v);
+        }
+        return list;
+    }
+
+    /// <summary>A shot of a rifle or a pistol is between these: a "5" or a "9000" in a list of velocities is a slip (a round count, a comma
+    /// read as a separator in "800,5,801,2") and would wreck the mean and the SD of the string.</summary>
+    public static bool IsPlausibleShotMps(double mps) => mps is >= 50 and <= 2500;
+
+    public static string FormatShots(IEnumerable<double> velocities)
+        => string.Join(",", velocities.Select(v => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)));
 }
 
 /// <summary>
@@ -157,6 +205,8 @@ public sealed class ShotMeasurement
 public sealed class Firearm
 {
     public long Id { get; set; }
+    /// <summary>Whose firearm this is (0 = not said yet: the database gives it to the person on screen).</summary>
+    public long ShooterId { get; set; }
     public string Name { get; set; } = "";
     public string Caliber { get; set; } = "";
     public string Notes { get; set; } = "";

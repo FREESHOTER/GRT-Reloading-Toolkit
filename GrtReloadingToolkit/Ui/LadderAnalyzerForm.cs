@@ -189,9 +189,9 @@ internal abstract class LadderAnalyzerForm : Form
                     if (LadderLoader.MeasurementStep(Mode, ch.ChargeGrains, ch.Name, ch.Note) is { } step)
                         vlist.Add(new LadderVelocity(step, vs));
                 }
-            if (vlist.Count > 0) { _grtVels = vlist; AppendLog($"velocities available from load Measurement: {vlist.Count} charge(s)"); }
+            if (vlist.Count > 0) { _grtVels = vlist; AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("velocities available from load Measurement: {0} charge(s)"), vlist.Count)); }
         }
-        catch (Exception ex) { AppendLog("load-velocity read skipped: " + ex.Message); }
+        catch (Exception ex) { AppendLog(Lang.T("load-velocity read skipped:") + " " + ex.Message); }
     }
 
     private async Task LoadGrtGroupsAsync()
@@ -200,7 +200,7 @@ internal abstract class LadderAnalyzerForm : Form
         try
         {
             var top = await _grt.GetTabOnTopAsync();
-            AppendLog($"reading shot groups from: {top.caption} [{top.file}]");
+            AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("reading shot groups from: {0} [{1}]"), top.caption, top.file));
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
             {
                 MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Groups from GRT")); return;
@@ -236,13 +236,13 @@ internal abstract class LadderAnalyzerForm : Form
                         + "\n\n" + list + "\n\n"
                         + Lang.T("Choose No if you did not shoot them in ascending order: rename the groups in GRT instead (e.g. \"40.2 gr\")."),
                         Lang.T("Groups from GRT"), MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (ans == DialogResult.Yes) { LadderLoader.ApplySteps(pairs); AppendLog($"{pairs.Count} unnamed group(s) assigned to the load's charges in ascending order (confirmed)"); }
+                    if (ans == DialogResult.Yes) { LadderLoader.ApplySteps(pairs); AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} unnamed group(s) assigned to the load's charges in ascending order (confirmed)"), pairs.Count)); }
                 }
                 int skipped = groups.Count(g => g.ChargeGrains is null);
                 if (skipped > 0)
                 {
                     groups = groups.Where(g => g.ChargeGrains is not null).ToList();
-                    AppendLog($"{skipped} shot group(s) without a charge in the name were left out");
+                    AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} shot group(s) without a charge in the name were left out"), skipped));
                     MessageBox.Show(this,
                         string.Format(Lang.T("{0} shot group(s) were left out: their name has no charge, so they cannot be placed on the ladder. Rename them in GRT (e.g. \"40.2 gr\") and load again."), skipped),
                         Lang.T("Groups from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -256,7 +256,7 @@ internal abstract class LadderAnalyzerForm : Form
         }
         catch (Exception ex)
         {
-            AppendLog("GROUPS FAILED: " + ex.Message);
+            AppendLog(Lang.T("GROUPS FAILED:") + " " + ex.Message);
             MessageBox.Show(this, ex.Message, Lang.T("Groups from GRT"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -316,12 +316,12 @@ internal abstract class LadderAnalyzerForm : Form
         }
         catch (Exception ex)
         {
-            AppendLog("ANALYZE FAILED: " + ex.Message);
+            AppendLog(Lang.T("ANALYZE FAILED:") + " " + ex.Message);
             MessageBox.Show(this, ex.Message, Lang.T("Analyze failed"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
-    private string HeadlineFor(DateTime d) => $"{NoteTitle} {d:yyyy-MM-dd}";
+    private string HeadlineFor(DateTime d) => $"{Lang.T(NoteTitle)} {d:yyyy-MM-dd}";
 
     private string ChooseText => Mode == LadderMode.Charge ? "Choose this charge" : "Choose this depth";
 
@@ -376,7 +376,7 @@ internal abstract class LadderAnalyzerForm : Form
             doc.RemoveByTitlePrefix(noteTitle);
             doc.AddNote(noteTitle, note);
             string outPath = doc.SaveSibling("chosen");
-            AppendLog("wrote " + outPath);
+            AppendLog(Lang.T("wrote") + " " + outPath);
             await _grt.LoadFileAsync(outPath);
             if (charge) _next?.SetHint(string.Format(Lang.T("Chosen charge: {0}. Use it for the seating-depth test."), value));
             if (_next != null) await _next.TrackLoadAsync(_grt);
@@ -384,7 +384,7 @@ internal abstract class LadderAnalyzerForm : Form
         }
         catch (Exception ex)
         {
-            AppendLog("ERROR: " + ex.Message);
+            AppendLog(Lang.T("ERROR:") + " " + ex.Message);
             MessageBox.Show(this, ex.Message, title, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -395,7 +395,7 @@ internal abstract class LadderAnalyzerForm : Form
         {
             _writeBtn.Enabled = false;
             var top = await _grt.GetTabOnTopAsync();
-            AppendLog($"active load: {top.caption} [{top.file}]");
+            AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("active load: {0} [{1}]"), top.caption, top.file));
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
             {
                 MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Write note")); return;
@@ -414,10 +414,10 @@ internal abstract class LadderAnalyzerForm : Form
             if (png != null)
             {
                 doc.AddGalleryPicture($"{NoteTitle} chart", GalleryPictureName, png);
-                AppendLog($"embedded chart as gallery picture '{GalleryPictureName}'");
+                AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("embedded chart as gallery picture '{0}'"), GalleryPictureName));
             }
             string outPath = doc.SaveSibling(SiblingSuffix);
-            if (removed > 0) AppendLog($"replaced {removed} earlier '{NoteTitle}' note(s)");
+            if (removed > 0) AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("replaced {0} earlier '{1}' note(s)"), removed, NoteTitle));
             AppendLog("wrote " + outPath);
             await _grt.LoadFileAsync(outPath);
             _next?.MarkDone();
@@ -425,7 +425,7 @@ internal abstract class LadderAnalyzerForm : Form
         }
         catch (Exception ex)
         {
-            AppendLog("WRITE FAILED: " + ex);
+            AppendLog(Lang.T("WRITE FAILED:") + " " + ex);
             MessageBox.Show(this, ex.Message, Lang.T("Write failed"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally { _writeBtn.Enabled = _result?.BestNode != null && _grt is { Connected: true }; }

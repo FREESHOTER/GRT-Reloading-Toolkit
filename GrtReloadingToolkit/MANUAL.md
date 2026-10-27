@@ -1,6 +1,6 @@
 # GRT Reloading Toolkit — Manual
 
-A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles twenty-four reloading tools plus a
+A community plugin for **Gordon's Reloading Tool (GRT)**. It bundles twenty-five reloading tools plus a
 set of printable GRT report templates into one window.
 
 - **Author:** community
@@ -21,6 +21,8 @@ set of printable GRT report templates into one window.
 The toolkit is *on-demand*: GRT starts it on the first click and it exits when you close its last
 window. All tool windows are served by one background process, so opening a second tool while one is
 already open just brings up that tool.
+
+**Look.** The windows are drawn like GRT's own: dark slate panels, light text, Segoe UI 9 pt. The box at the bottom of the launcher, *Look of GRT (dark windows)*, goes back to the classic light windows; it takes effect the next time the toolkit starts.
 
 ### The recommended path
 
@@ -197,6 +199,8 @@ or `.csv`.
 | **replace previous chrono import in this load** | Remove earlier "Athlon …" measurements before adding this one (on by default). |
 | **Import into GRT** | Write the measurement into the load and open the snapshot. |
 
+**Which load it goes into.** The import writes into the load on top in GRT, asked at the moment you press the button. Before writing, a box names that load, its folder and whose it is: the shooter is the person whose folder it sits in (`...\GRT\Mario\N160\load.grtload` is Mario's), or a name from the launcher's Shooter list found in the path. If the launcher is set to somebody else, the box says so. Answer *No* and switch to the right tab in GRT.
+
 **Grid columns:** Use · File · Charge (gr) · Shots · AVG m/s · SD · ES · Temp °C (editable).
 
 **How the charge weight is found:** from the session note ("carica 39.2", "charge 41.5 gr"), else a
@@ -314,6 +318,24 @@ Writes `~~result.Note("Seating Depth Analysis")~~` + `~~result.picture.seating_c
 
 Compares GRT's **simulated** muzzle velocity to your **measured** MV over several charges and
 suggests a `Ba` (combustion coefficient) tweak so GRT matches your barrel.
+
+**Before it reads anything** it asks GRT whether the load's tab has changes that are not saved. The tool works on the
+saved file (the charge, the measurements) but takes the simulated velocity from the tab, so an unsaved edit would pair a
+velocity with a charge it was not computed for: save in GRT first, or confirm to go on with the saved file. Each sweep
+point goes on as soon as GRT reports it computed, instead of waiting a fixed time.
+
+**Revolvers.** The cylinder gap lets gas out. Calibrated without it, the velocity matches but the pressures come out too
+low, as GRT's own FAQ warns: enter the gap in GRT first (caliber window, Gas leakage). The window keeps this note in view,
+because the plugin cannot tell a revolver from a rifle.
+
+**The original powder model.** GRT's plugin interface cannot read GRT's powder database, so the toolkit compares the
+load with the models you export yourself: in GRT's powder database, right click on the powder → Export, and save the file
+in the **`Polveri`** folder inside GRT's own folder. The window then shows the load's Ba, k, a0, z1 and z2 against that
+model, and the summary shows how far the proposed correction would take Ba (and k) from it. More than 10 % from the model
+points at a wrong load input (case volume, bullet length, barrel length) more often than at the powder. GRT only exports
+the records you have created or changed, and the comparison is only as good as the file: put there exports of the
+powder as GRT ships it, not of a copy you have already calibrated. Without a matching file the window says which one to
+export; nothing is guessed.
 
 **Workflow**
 
@@ -506,6 +528,15 @@ Printable **recipe card (A6)** or **ammo-box labels**, each with a **QR code** o
 A small SQLite database at `%AppData%\GRTPlugins\reloading_log.db`, shared with the Load Journal
 (§15) and Find best Ba (§16) — three separate windows over the same file, so anything logged in one
 shows up in the others the next time each window gets focus. Four tabs.
+
+**Several people.** If you reload for others too (a club, a friend), each person keeps their own
+inventory, firearms, journal and followed loads. The launcher opens with a **Shooter** picker:
+choose a person and every tool shows only their work, or choose *Everyone* to see all of it (the
+grids then gain a *Shooter* column, and new rows go to the first person). **Manage…** adds, renames
+and archives people. What you enter is written to the person on screen, and a journal entry takes
+the owner of its firearm. To move something already entered, select the rows in the Journal, the
+Inventory or the Firearms tab and press **Assign to…**. An older database opens with everything
+belonging to the first person, so nothing changes until you add a second one.
 
 - **Inventory** — powder / primer / brass / bullet / barrel stock with lot id, price and (for
   brass) an *expected uses* count that amortises the case cost. **Add / Edit / Restock / Archive**.
@@ -798,6 +829,8 @@ it fails), it correlates your per-shot temperature against each shot's distance 
 centre, not just its velocity — the direct answer to "does this barrel stop holding tight groups
 above some temperature?"
 
+**Drift along the string and the pause between shots.** With at least 8 shots the tool fits a straight line through the velocities in firing order and says how much the velocity moves per shot, with its uncertainty and a p-value, how far that is from the first shot to the last, and what SD is left once that straight drift is taken out. The older "no progressive drift" check looks only at whether the *spread* grows along the string; a string can hold a steady spread and still creep up or down, and that is what this reports. If the shots carry clock times (the Athlon import saves them in each shot's note), it also gives the median pause between shots and whether the velocity depends on the pause before the shot. A drift with no link to the pause follows the string, not the rate of fire. A barrel that heats, powder warming in the sun and fouling all produce a drift, and the order of the shots cannot tell them apart: a longer pause between shots, or a barrel-temperature reading per shot in the grid, separates heating from the rest. Below 8 shots nothing is claimed.
+
 **Write root-cause note to GRT load** writes the ranking, pattern and every triggered cause into one
 note, with the leave-one-out bar chart attached as a picture.
 
@@ -873,6 +906,8 @@ its distance from the group centre by **firing order** — the same alignment SD
 temperature correlation uses — and reports whether faster shots in this specific string land
 closer to or further from centre. This is a measurement of *your* data, never a general claim.
 
+**Chance of hitting a target**: enter a target (a circle's diameter, or a rectangle's width × height, in GRT's length unit) and the distance it stands at, and the tool says how likely one shot is to land on it, from this group's own spread. The spread is read as an angle, so it grows in proportion to the distance; a 0.5 MOA group is 145 mm wide at 1000 m even if it was shot at 100 m. Next to the figure comes a **cautious** one, taking the spread at its upper 90 % bound: a group of five or six shots says little about the true spread, and a lucky group reads tighter than the rifle really is, so the cautious figure is the one to trust with few shots. It also gives the radius holding half, 90 % and 95 % of the shots. *Include the group's offset from the aim point* adds the distance by which the centre of the group misses the centre of the target (leave it off if the rifle is zeroed). Wind, drift and errors of range are not included. Leave the size at 0 and nothing is added.
+
 **Write group-analysis note to GRT load** writes the score, confidence, metrics and every triggered
 problem into one note, with the target-plane chart (impacts, centroid, point of aim, outliers
 highlighted) attached as a picture.
@@ -893,7 +928,7 @@ OCW, 3–20 for Ladder) and both showing mm **and** inch scales:
 | Target | Layout | Shots per point |
 |---|---|---|
 | **OCW** | one aim disc per charge, round-robin style, a dashed line connecting every point at the same height | 1–5, repeated in passes |
-| **Ladder / Audette** | one aim disc per charge with a ±50 mm ruler centred on it, sized to read at ~200–300 m | 1–5, fired together |
+| **Ladder / Audette** | one aim disc per charge with a 0–100 mm ruler rising from it (the disc sits at the base), sized to read at ~200–300 m | 1–5, fired together |
 
 Charge weights are optional (typed in, comma-separated, printed under each point) or left blank for
 you to fill in by hand after the range decides the actual step. **per page** (0 = all) splits
@@ -974,6 +1009,8 @@ Tabs are deliberately *not* three per string: GRT's tab bar does not scroll, so 
 session written that way puts its last tabs past the right-hand edge of the window where they
 cannot be reached at all.
 
+**Which load it goes into.** When you press the import, the toolkit asks GRT again which load is on top (not the one that was open when the window started) and shows a box with its name, its folder and whose it is, the same box as the chronograph import (§5). Answer *No* to stop without writing anything.
+
 **Scale.** GRT recovers real-world size from two reference points a stated distance apart. The
 importer draws the target itself and places those points on its own projection, so their
 separation in millimetres is exact by construction rather than recomputed from board size and
@@ -1001,7 +1038,7 @@ each best-effort per string, and whatever failed is named in the log.
 
 ## 27. GRT report templates
 
-**Install GRT report templates** (launcher / Plugin menu) writes sixteen DokuWiki report pages into
+**Install GRT report templates** (launcher / Plugin menu) writes twenty DokuWiki report pages into
 `GRT\doku\<language>\report\` and links them in the report index. Run it once per GRT install
 (and tell anyone you share the plugin with to do the same). It is idempotent and non-destructive;
 delete a page by saving it empty in GRT.
@@ -1024,6 +1061,10 @@ delete a page by saving it empty in GRT.
 | **Toolkit — SD root-cause report** | the root-cause note + leave-one-out chart |
 | **Toolkit — Group analysis report** | the group-analysis note + target-plane chart |
 | **Toolkit — Velocity model report** | the empirical fit note |
+| **Toolkit — Gyroscopic stability report** | the Miller-rule stability note |
+| **Toolkit — Model probe report** | the probe note + response chart |
+| **Toolkit — Follow a load report** | the follow-a-load note + mean-velocity and temperature charts |
+| **Toolkit — Guided diagnosis report (experimental)** | the guided-diagnosis note |
 
 Every tool that writes a note has its own dedicated page now, except **Seating Force Estimate
 (QC)** (§12), the **Guided New Load wizard** (§4), **Print Ladder/OCW Target** (§24) and **Load
@@ -1064,7 +1105,72 @@ fills a wide results panel, a near-square value a tall one.
 
 ---
 
-## 29. Limitations & FAQ
+## 29. Follow a Load  📈
+
+Follows **one load** over time, on its own — not the whole Journal with every other load mixed in. For a load that works, say a 139 gr bullet over N550 in a 6.5 Creedmoor, you write down what you shoot each time it goes to the range, and the tool says what the outings together tell about it: whether its velocity moves with temperature, whether it drifts over the months, and whether the last outing is normal for it. You can follow several loads (one per caliber, or several charges of one); each has its own history. It keeps its own data file, apart from the Journal and the Inventory, and its window is in Italian only.
+
+| Control | Effect |
+|---|---|
+| **Segui un carico… (Follow a load…)** | Starts following a load. With a load open in GRT it is the starting point (caliber, charge, powder, bullet); a ladder asks which of its charges is the load. Otherwise you type them. |
+| **Filtro (Filter)** | Type part of a name, caliber or charge to find the load in the list. |
+| **Nuova uscita… (New outing…)** | The outing window: paste the shots of one string (the mean, SD and ES follow from them) and write the temperature, pressure, humidity, wind, group, distance, powder and primer lots, seating depth, brass firings and the rounds the barrel has fired. What rarely changes is filled in from the last outing. |
+| **Registra da GRT (Log from GRT)** | Reads the load open in GRT and works out which followed load it is (caliber, charge within 0.05 gr, bullet and powder names), brings in the chronographed shots and opens the outing window. When none matches it offers to follow it. |
+| **Modifica uscita / Elimina uscita (Edit / Delete outing)** | Correct or remove an outing. |
+| **Modifica il carico… / Elimina il carico (Edit / Delete the load)** | Deleting a load removes it with all its outings. |
+| **Scrivi nota e grafici nel carico GRT (Write note and charts to the GRT load)** | Leaves in the load open in GRT a note with the verdict and the charts (velocity over time; velocity against temperature when temperatures are written down). GRT cannot edit the open load, so a sibling file is written and opened, as every tool of the toolkit does. |
+
+**Tabs.** **Uscite** lists the outings (grey rows have no shots written down, or fewer than three, and are not analysed); **Nel tempo** draws the mean velocity with its SD and every shot, with the limits the analysis uses to judge an outing; the SD and ES; the velocity against the temperature with the fitted line; the group; **Cosa dice** is the written verdict.
+
+**What it says.**
+
+- **The latest outing against the ones before it.** Its mean against what this load usually gives — at the same temperature when the earlier outings show that temperature matters — and its SD against the SD the earlier outings showed together. Needs 4 earlier outings of 3 shots or more.
+- **Temperature.** The change in velocity per degree, with its 95 % interval, fitted together with the dates so that a warm summer is not mistaken for a drift. Needs 4 outings with a temperature, at least 5 °C apart.
+- **Over time.** The change per 30 days, with its interval; a drift that can be detected but is well under the SD of one string is called small. Needs 4 outings at least 7 days apart.
+- **What changed between outings:** powder or primer lot, seating depth (0.05 mm or more).
+- **What could not be said, and why.**
+
+**Your data.** The data live in `%APPDATA%\GRTPlugins\segui_carico.db` (the `SEGUI_CARICO_DB` variable names another file): copy that file to back it up. An outing without its shots stays in the list but is not analysed, because a mean without its shots says nothing about the spread; a value that is not the velocity of a shot (under 50 or over 2500 m/s) is left out and named. The verdicts are statistics on few points. With four outings “normal” can be wrong, and an interval that includes zero means “not shown yet”, not “no effect”. “Outside what is usual” is a reason to look at what changed (the list says), not a diagnosis.
+
+---
+
+## 30. Model Probe  🔬
+
+Studies GRT's own simulation from the outside: it changes **one input** of the load open in GRT over a range, leaves everything else as the load has it, and shows how the model answers. It is how to learn what Ba, a0, z1, z2, Qex or the case volume actually do in GRT without reading GRT's code — through the documented plugin interface only, by asking GRT to compute and reading its answers.
+
+| Control | Effect |
+|---|---|
+| **Read load from GRT** | Reads the saved file of the tab on top. A warning shows when the tab has changes that are not saved yet: the probe works on the saved file. |
+| **Input** | Every decimal input of the load, propellant first, with GRT's own description. Not offered: the ladder, the COAL (it moves with case length, bullet length and seating depth), and the fields outside the interior-ballistic simulation (twist, gun weight, BCs, the allowed maximum pressure). |
+| **From / to, Points** | The range in the file's own unit (by default ±10 % of the load's value; 0 to 1 when the value is 0) and how many evenly spaced points. The load's own value is always one of them. |
+| **Read the pressure curve (slower)** | Also reads GRT's P/V/t curve for every point, which gives the time to peak pressure, the muzzle pressure, the powder burnt at the muzzle and the all-burnt time. |
+| **Run sweep / Stop** | One copy of the load per point, with that one input changed and the ladder off, written to a temporary folder and opened in GRT; each point waits until GRT reports it computed. Your file is never changed and is reopened at the end. GRT's plugin interface cannot close tabs, so close the extra tabs by hand. |
+| **Write probe note to GRT load / Export CSV…** | The table, the sensitivities and the chart as a note on a snapshot of your load, or every point as a CSV file. |
+
+**Outputs.** Muzzle velocity; peak pressure; barrel time; barrel time from 10 % of Pmax (the one GRT's OBT nodes are matched on); and, with the curve, the time to peak pressure, the muzzle pressure as a % of the peak, the powder burnt at the muzzle and the all-burnt time; the efficiency, bullet energy at the muzzle over charge × Qex.
+
+**Reading the sensitivities.** The **elasticity** is the local answer at the load's own value: the % change of the output for a 1 % change of the input. The **exponent** is the b of output ≈ a · input^b fitted over the whole sweep, with **R²** saying how well one power law describes it. When elasticity and exponent agree and R² is close to 1, the input acts as a simple power law over the range; when they differ, the response bends inside it — for example where the powder stops being all burnt in the barrel. Both are ratios, so they are the same in any unit.
+
+**What it is not.** These are what GRT's model predicts, for combinations that may never be loaded. They are not measurements and say nothing about whether a load is safe: for that, the component makers' data and the cartridge's pressure limits stand.
+
+---
+
+## 31. Gyroscopic Stability  🌀
+
+Says whether the barrel's twist keeps the bullet stable, by the **Miller twist rule** (the one Berger and Applied Ballistics use): `Sg = 30 m / (t² d³ l (1 + l²))`, with the mass *m* in grains, the diameter *d* in inches, and the twist *t* and the length *l* in calibres, then scaled for the velocity, `(v / 2800)^(1/3)`, and for the air, `(T / 519 °R)(29.92 / P)`.
+
+| Control | Effect |
+|---|---|
+| **Read from GRT load** | Fills the bullet mass, length, diameter and the barrel's twist from the load open in GRT, and the velocity from its measured shots when it has some. Nothing is guessed when a field is not in the file; the air temperature and the altitude are never in a load and stay as you set them. |
+| **The seven numbers** | Each has its own unit box, starting from the units GRT is set to: grains or grams, millimetres or inches, twist as inches or millimetres per turn, ft/s or m/s, °C or °F, metres or feet. |
+| **Write stability note to GRT load** | The result as a note on a snapshot of your load. |
+
+**Reading it.** Sg of 1.5 or more is stable; 1.4 to 1.5 adequate; 1.0 to 1.4 marginal (the bullet flies, but its drag rises, and a cold morning can take it under 1); below 1.0 unstable. Next to Sg the tool gives the slowest twist that would still give Sg 1.5 and 1.4 in these conditions, Greenhill's older rule as a cross-check, and Sg across a range of air temperatures at the same altitude. Cold air lowers Sg and thin air at altitude raises it, so the day to worry about is the coldest, lowest one the rifle will be shot on.
+
+**What it is not.** A theoretical estimate for a spitzer or boat-tail bullet. The bullet's real concentricity matters, a measured length that includes a plastic tip has to be the real overall length, and muzzle velocity falls on a cold day, which the tool does not know (type the lower velocity yourself). It does not claim how much ballistic coefficient is lost when Sg is marginal: published figures disagree. When in doubt, check on the target: oval holes mean the bullet is not stable.
+
+---
+
+## 32. Limitations & FAQ
 
 **Why a pile of `_toolkit_…` files?** GRT's plugin API can't edit the open load and can't reload an
 already-open tab — so each write is a fresh timestamped snapshot. Each snapshot is complete; keep
@@ -1081,7 +1187,7 @@ in OnTarget instead. Use the `.csv` path, or build the groups in GRT first (§14
 **Temp-coefficient tool won't enable "Write".** It needs one charge at several temperatures, not a
 ladder.
 
-**One toolbar icon, not twenty-four.** By design — it opens the launcher; every tool is a button there.
+**One toolbar icon, not twenty-five.** By design — it opens the launcher; every tool is a button there.
 Manifest changes need a GRT restart to show.
 
 **Numbers:** every field accepts `.` or `,` as the decimal separator regardless of your Windows

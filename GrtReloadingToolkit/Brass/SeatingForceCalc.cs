@@ -118,23 +118,24 @@ public static class SeatingForceCalc
             // string helpers that way, and these notes land in the same report beside them. Bare
             // interpolation picks up the OS locale, so on an Italian machine a note read
             // "0,142 mm" next to a GrtUnits value showing "0.142 mm" for the same quantity.
-            notes.Add(FormattableString.Invariant(
-                          $"WARNING: neck ID ({neckIdMm:0.000} mm) is wider than the bullet ({bulletDiameterMm:0.000} mm). ") +
-                      "Neck tension is essentially absent: the bullet can push back into the case. Dangerous -- resize the neck.");
+            notes.Add(Tr.F("WARNING: neck ID ({0} mm) is wider than the bullet ({1} mm). ",
+                          neckIdMm.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture),
+                          bulletDiameterMm.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)) +
+                      Tr.T("Neck tension is essentially absent: the bullet can push back into the case. Dangerous -- resize the neck."));
         }
         else
         {
             interferenceFactor = interferenceMm / typicalInterferenceMm;
             if (interferenceMm < 0.0127)
-                notes.Add(FormattableString.Invariant($"Very low interference ({interferenceMm:0.000} mm): insufficient neck tension. Risk of the bullet pushing back into the case."));
+                notes.Add(Tr.F("Very low interference ({0} mm): insufficient neck tension. Risk of the bullet pushing back into the case.", (interferenceMm).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
             else if (interferenceMm > 0.127)
-                notes.Add(FormattableString.Invariant($"Very high interference ({interferenceMm:0.000} mm): risk of deforming the bullet or the neck. Consider a larger bushing."));
+                notes.Add(Tr.F("Very high interference ({0} mm): risk of deforming the bullet or the neck. Consider a larger bushing.", (interferenceMm).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
         }
 
         double depthFactorRaw = actualSeatingDepthMm / typicalSeatingDepthMm;
         double depthFactor = Math.Clamp(depthFactorRaw, 0.4, 2.5);
         if (Math.Abs(depthFactorRaw - depthFactor) > 1e-9)
-            notes.Add(FormattableString.Invariant($"Seating depth ({actualSeatingDepthMm:0.0} mm) is outside the range these baseline values were calibrated for. Clamped for this calculation."));
+            notes.Add(Tr.F("Seating depth ({0} mm) is outside the range these baseline values were calibrated for. Clamped for this calculation.", (actualSeatingDepthMm).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)));
 
         Factor bt = boatTail ? new Factor(0.95, 1.00) : new Factor(1.00, 1.00);
 
@@ -157,9 +158,9 @@ public static class SeatingForceCalc
         double maxRecommended = p2High * MaxSafetyMargin;
 
         if (forceMean < 8.0)
-            notes.Add(FormattableString.Invariant($"Estimated mean force is very low ({forceMean:0.0} kg): check the inputs and that the neck has enough interference."));
+            notes.Add(Tr.F("Estimated mean force is very low ({0} kg): check the inputs and that the neck has enough interference.", (forceMean).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)));
         if (forceMean > 45.0)
-            notes.Add(FormattableString.Invariant($"Estimated mean force is very high ({forceMean:0.0} kg): check lubrication and case annealing before proceeding."));
+            notes.Add(Tr.F("Estimated mean force is very high ({0} kg): check lubrication and case annealing before proceeding.", (forceMean).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)));
 
         var (bar, psi) = ForceKgToEquivalentPressure(forceMean, bulletDiameterMm);
         return new Estimate(forceMean, forceStd, p1Low, p1High, p2Low, p2High, maxRecommended,

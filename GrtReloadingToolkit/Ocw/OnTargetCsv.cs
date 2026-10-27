@@ -75,7 +75,7 @@ public static class OnTargetCsv
     {
         string[] lines = File.ReadAllLines(path).Where(l => l.Trim().Length > 0).ToArray();
         if (lines.Length < 2)
-            throw new InvalidDataException($"{Path.GetFileName(path)}: empty target CSV.");
+            throw new InvalidDataException(Tr.F("{0}: empty target CSV.", Path.GetFileName(path)));
 
         string[] header = SplitCsv(lines[0]);
         int Col(params string[] names)
@@ -92,7 +92,7 @@ public static class OnTargetCsv
         int cPtX = Col("Point X", "Impact X", "Hit X"), cPtY = Col("Point Y", "Impact Y", "Hit Y");
 
         if (cPtX < 0 || cPtY < 0)
-            throw new InvalidDataException($"{Path.GetFileName(path)}: no Point X / Point Y columns (got: {string.Join(", ", header)}).");
+            throw new InvalidDataException(Tr.F("{0}: no Point X / Point Y columns (got: {1}).", Path.GetFileName(path), string.Join(", ", header)));
 
         var g = new TargetGroup { SourceFile = path };
         g.ChargeGrains = GuessChargeGrains(path);
@@ -112,7 +112,7 @@ public static class OnTargetCsv
         }
 
         if (g.Impacts.Count == 0)
-            throw new InvalidDataException($"{Path.GetFileName(path)}: no impact rows.");
+            throw new InvalidDataException(Tr.F("{0}: no impact rows.", Path.GetFileName(path)));
         if (g.DistanceM <= 0) g.DistanceM = 100;
         return g;
     }

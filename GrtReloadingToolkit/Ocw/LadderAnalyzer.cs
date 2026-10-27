@@ -11,12 +11,12 @@ public static class LadderAnalyzer
         var r = new LadderResult { Mode = mode, XUnit = xUnit, Weights = w };
         r.Rows.AddRange(steps.OrderBy(x => x.X));
         var xs = r.Rows;
-        if (xs.Count < 3) { r.Warnings.Add("need at least 3 steps for node analysis"); return r; }
+        if (xs.Count < 3) { r.Warnings.Add(Tr.T("need at least 3 steps for node analysis")); return r; }
 
-        if (mode == LadderMode.Charge && xs.Any(x => !x.HasVel)) r.Warnings.Add("some steps have no chrono velocity");
-        if (xs.Any(x => !x.HasTarget)) r.Warnings.Add("some steps have no target group");
+        if (mode == LadderMode.Charge && xs.Any(x => !x.HasVel)) r.Warnings.Add(Tr.T("some steps have no chrono velocity"));
+        if (xs.Any(x => !x.HasTarget)) r.Warnings.Add(Tr.T("some steps have no target group"));
         var dists = xs.Where(x => x.HasTarget).Select(x => Math.Round(x.DistanceM)).Distinct().ToList();
-        if (dists.Count > 1) r.Warnings.Add($"target groups shot at different distances ({string.Join(" / ", dists)} m) — POI compared in MOA, but conditions differ");
+        if (dists.Count > 1) r.Warnings.Add(Tr.F("target groups shot at different distances ({0} m) — POI compared in MOA, but conditions differ", string.Join(" / ", dists)));
 
         int win = Math.Clamp(w.Window, 3, 5);
         var windows = new List<Win>();
@@ -42,8 +42,7 @@ public static class LadderAnalyzer
             {
                 var best = velW.OrderBy(x => x.VelRange).First();
                 r.PrimaryNode = Node(xs, best,
-                    string.Format(CultureInfo.InvariantCulture, "MV varies only {0} across {1} steps",
-                        GrtUnits.Current.VelocitySd(best.VelRange), win));
+                    Tr.F("MV varies only {0} across {1} steps", GrtUnits.Current.VelocitySd(best.VelRange), win));
             }
         }
         else
@@ -54,7 +53,7 @@ public static class LadderAnalyzer
                 // tightest groups that are also stable across the window (forgiving node)
                 var best = grpW.OrderBy(x => x.GrpMean + 0.5 * x.GrpRange).First();
                 r.PrimaryNode = Node(xs, best,
-                    string.Format(CultureInfo.InvariantCulture, "mean group {0:0.00} MOA, varies only {1:0.00} MOA across {2} steps", best.GrpMean, best.GrpRange, win));
+                    Tr.F("mean group {0} MOA, varies only {1} MOA across {2} steps", best.GrpMean.ToString("0.00", CultureInfo.InvariantCulture), best.GrpRange.ToString("0.00", CultureInfo.InvariantCulture), win));
             }
         }
 
@@ -64,7 +63,7 @@ public static class LadderAnalyzer
         {
             var best = poiW.OrderBy(x => x.PoiRange).ThenBy(x => x.GrpMean).First();
             r.PoiNode = Node(xs, best,
-                string.Format(CultureInfo.InvariantCulture, "vertical POI varies only {0:0.00} MOA across {1} steps", best.PoiRange, win));
+                Tr.F("vertical POI varies only {0} MOA across {1} steps", best.PoiRange.ToString("0.00", CultureInfo.InvariantCulture), win));
         }
 
         // ---- weighted best -------------------------------------------------
@@ -78,7 +77,7 @@ public static class LadderAnalyzer
         if (cand.Count == 0)
         {
             cand = windows;
-            r.Warnings.Add("no window has both chrono and target data on every step — the recommended node is a best-effort over partly measured windows");
+            r.Warnings.Add(Tr.T("no window has both chrono and target data on every step — the recommended node is a best-effort over partly measured windows"));
         }
         // normalise over the candidates only, so a missing signal scores the worst (1.0)
         double nVel = Norm(cand.Where(x => x.VelFull).Select(x => x.VelRange));
@@ -101,8 +100,9 @@ public static class LadderAnalyzer
             if (score < bestS) { bestS = score; bestC = x; }
         }
         if (bestC is { } bc)
-            r.BestNode = Node(xs, bc, bestS, "weighted "
-                + (mode == LadderMode.Seating ? "group plateau + POI stability" : "MV flatness + POI stability + group + SD"));
+            r.BestNode = Node(xs, bc, bestS, mode == LadderMode.Seating
+                ? Tr.T("weighted group plateau + POI stability")
+                : Tr.T("weighted MV flatness + POI stability + group + SD"));
 
         return r;
     }
@@ -110,7 +110,7 @@ public static class LadderAnalyzer
     public static string BuildReport(LadderResult r, string headline)
     {
         bool seat = r.Mode == LadderMode.Seating;
-        string xh = seat ? $"seat({r.XUnit})" : "charge";
+        string xh = seat ? $"{Tr.T("seat")}({r.XUnit})" : Tr.T("charge");
         // In a seating ladder the step IS a length, so it follows the length rule; in a charge
         // ladder it is a powder weight, and LadderModes owns both halves of that.
         string xf = r.Mode.XFormat();
@@ -121,9 +121,9 @@ public static class LadderAnalyzer
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
-        sb.AppendLine($"{(seat ? "seat" : "charge")} in {r.XUnit}, MV/SD/ES in {gu.VelocityUnitName}, "
-            + $"dist in {gu.DistanceUnitName}, POI-Y/grpMR/vert in MOA");
-        sb.AppendLine($"{xh,7}  n   MV      SD    ES   | dist  POI-Y   grpMR  vert");
+        sb.AppendLine(Tr.F("{0} in {1}, MV/SD/ES in {2}, dist in {3}, POI-Y/grpMR/vert in MOA",
+            seat ? Tr.T("seat") : Tr.T("charge"), r.XUnit, gu.VelocityUnitName, gu.DistanceUnitName));
+        sb.AppendLine(Tr.F("{0,7}  n   MV      SD    ES   | dist  POI-Y   grpMR  vert", xh));
         foreach (var x in r.Rows)
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 "{0,7} {1,3} {2,7:F1} {3,5:F1} {4,5:F1} | {5,4:0} {6,7:0.00} {7,6:0.00} {8,5:0.00}",
@@ -131,9 +131,9 @@ public static class LadderAnalyzer
                 gu.VelocityValue(x.MeanMps), gu.VelocityValue(x.SdMps), gu.VelocityValue(x.EsMps),
                 x.HasTarget ? gu.DistanceValue(x.DistanceM) : 0, x.PoiYMoa, x.MeanRadiusMoa, x.VertSpreadMoa));
         sb.AppendLine();
-        Line(sb, seat ? "Group-size plateau" : "Velocity flat-spot (Satterlee)", r.PrimaryNode, r);
-        Line(sb, "Vertical-POI node", r.PoiNode, r);
-        Line(sb, "Recommended node (weighted)", r.BestNode, r);
+        Line(sb, seat ? Tr.T("Group-size plateau") : Tr.T("Velocity flat-spot (Satterlee)"), r.PrimaryNode, r);
+        Line(sb, Tr.T("Vertical-POI node"), r.PoiNode, r);
+        Line(sb, Tr.T("Recommended node (weighted)"), r.BestNode, r);
         // Machine-readable, always raw grains regardless of what unit GRT is currently displaying --
         // the human-readable line above follows GrtUnits (see LadderModes.XValue's own doc comment),
         // so a reader parsing it back would need to also parse the unit suffix and convert, which is
@@ -148,8 +148,8 @@ public static class LadderAnalyzer
             foreach (var wn in r.Warnings) sb.AppendLine("! " + wn);
         }
         sb.AppendLine();
-        sb.AppendLine("Method: MOA target coordinates from OnTarget" + (seat ? "." : ", velocities from Athlon Rangecraft."));
-        sb.AppendLine("SD is the sample SD (n-1), as GRT shows it. Confirm any node with a fresh confirmation group before committing.");
+        sb.AppendLine(seat ? Tr.T("Method: MOA target coordinates from OnTarget.") : Tr.T("Method: MOA target coordinates from OnTarget, velocities from Athlon Rangecraft."));
+        sb.AppendLine(Tr.T("SD is the sample SD (n-1), as GRT shows it. Confirm any node with a fresh confirmation group before committing."));
         return sb.ToString();
 
         // A node's bounds are the same quantity as the X column, so they take the same conversion.
@@ -158,9 +158,8 @@ public static class LadderAnalyzer
             string xf = r.Mode.XFormat();
             string F(double v) => r.Mode.XValue(v).ToString(xf, CultureInfo.InvariantCulture);
             s.AppendLine(n is null
-                ? $"{label}: n/a"
-                : string.Format(CultureInfo.InvariantCulture, "{0}: {1}-{2} {3}  (center {4})  -- {5}",
-                    label, F(n.Low), F(n.High), r.XUnit, F(n.Center), n.Basis));
+                ? $"{label}: {Tr.T("n/a")}"
+                : Tr.F("{0}: {1}-{2} {3}  (center {4})  -- {5}", label, F(n.Low), F(n.High), r.XUnit, F(n.Center), n.Basis));
         }
     }
 

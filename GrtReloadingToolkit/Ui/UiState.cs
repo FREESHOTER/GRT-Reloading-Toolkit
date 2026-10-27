@@ -48,6 +48,12 @@ internal static class UiState
         catch (Exception) { /* not worth interrupting the user over */ }
     }
 
+    /// <summary>One stored value, or <paramref name="fallback"/> when it was never set.</summary>
+    public static string Get(string key, string fallback) => Values.TryGetValue(key, out string? v) ? v : fallback;
+
+    /// <summary>Stores one value now (a setting, not a measurement: it must survive a crash).</summary>
+    public static void Set(string key, string value) { Values[key] = value; Save(); }
+
     /// <summary>
     /// Restores the given controls from the store now, and writes them back when the form closes.
     ///

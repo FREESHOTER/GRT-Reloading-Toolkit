@@ -29,7 +29,7 @@ public class LauncherLayoutTests
     {
         // A Fixed* border gives no resize grip, so a clipped list cannot be opened up by hand.
         string src = Source();
-        Assert.Contains("FormBorderStyle = FormBorderStyle.SizableToolWindow;", src);
+        Assert.Contains("FormBorderStyle = FormBorderStyle.Sizable;", src);
         Assert.DoesNotMatch(new Regex(@"FormBorderStyle\s*=\s*FormBorderStyle\.Fixed"), src);
     }
 

@@ -19,6 +19,8 @@ public sealed class LoadSnapshot
     public double? SdMs { get; init; }
     public double? EsMs { get; init; }
     public int Shots { get; init; }
+    /// <summary>Every shot of the chronographed charge, in m/s, in firing order.</summary>
+    public IReadOnlyList<double> ShotVelocities { get; init; } = Array.Empty<double>();
     public string Path { get; init; } = "";
     public double? Ba { get; init; }
     public double? A0 { get; init; }
@@ -40,6 +42,7 @@ public sealed class LoadSnapshot
         SdMs = SdMs,
         EsMs = EsMs,
         Rounds = Shots > 0 ? Shots : 0,
+        ShotsMs = JournalEntry.FormatShots(ShotVelocities),
         GrtloadPath = Path,
         Ba = Ba,
         A0 = A0,
@@ -73,6 +76,7 @@ public sealed class LoadSnapshot
             SdMs = st is { N: > 0 } ? st.Value.Sd : null,
             EsMs = st is { N: > 0 } ? st.Value.Es : null,
             Shots = st?.N ?? 0,
+            ShotVelocities = charge is { Shots.Count: > 0 } ? charge.Shots.Select(s => s.VelocityMps).Where(v => v > 0).ToList() : Array.Empty<double>(),
             Ba = doc.PropellantBa is > 0 ? doc.PropellantBa : null,
             A0 = doc.InputNumber("propellant", "a0") is { } a0 && a0 > 0 ? a0 : null,
             K = doc.InputNumber("propellant", "k") is { } kk && kk > 0 ? kk : null,
@@ -101,7 +105,7 @@ public sealed class LoadSnapshot
         double? a0 = doc.InputNumber("propellant", "a0") is { } a0v && a0v > 0 ? a0v : null;
         double? kExp = doc.InputNumber("propellant", "k") is { } kv && kv > 0 ? kv : null;
 
-        LoadSnapshot Base(double? chargeGr, string? label, StringStats? st) => new()
+        LoadSnapshot Base(double? chargeGr, string? label, StringStats? st, IReadOnlyList<double>? shots = null) => new()
         {
             Path = path,
             LoadName = loadName,
@@ -116,6 +120,7 @@ public sealed class LoadSnapshot
             SdMs = st is { N: > 0 } ? st.Value.Sd : null,
             EsMs = st is { N: > 0 } ? st.Value.Es : null,
             Shots = st?.N ?? 0,
+            ShotVelocities = shots ?? Array.Empty<double>(),
             Ba = ba,
             A0 = a0,
             K = kExp,
@@ -132,7 +137,7 @@ public sealed class LoadSnapshot
                 string label = ch.ChargeGrains is { } g
                     ? $"{GrtUnits.Current.Charge(g)} ({meas.Title}) — {st.N} shots, {GrtUnits.Current.Velocity(st.Mean)}"
                     : $"{ch.Name} ({meas.Title}) — {st.N} shots, {GrtUnits.Current.Velocity(st.Mean)}";
-                candidates.Add(Base(ch.ChargeGrains ?? doc.PropellantChargeGr, label, st));
+                candidates.Add(Base(ch.ChargeGrains ?? doc.PropellantChargeGr, label, st, vs));
             }
 
         if (candidates.Count == 0)

@@ -94,6 +94,12 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         foreach (var col in new[] { "temperature_c", "pressure_hpa", "humidity_pct", "ba", "a0", "k" })
             if (!ColumnExists("journal", col))
                 Exec($"ALTER TABLE journal ADD COLUMN {col} REAL");
+        // Every shot's velocity and the wind of the day, for the entries that have them. Additive, so an old journal is untouched.
+        if (!ColumnExists("journal", "shots_ms"))
+            Exec("ALTER TABLE journal ADD COLUMN shots_ms TEXT DEFAULT ''");
+        foreach (var col in new[] { "wind_mps", "wind_deg" })
+            if (!ColumnExists("journal", col))
+                Exec($"ALTER TABLE journal ADD COLUMN {col} REAL");
         // Brass Life (see Log/BrassLife.cs): anneal reminder, expressed as an average-firings-per-
         // case interval, and the value the lot was AT the last time it was marked annealed -- both
         // null on an existing lot until the user sets a reminder or clicks "mark annealed" once.
@@ -101,6 +107,87 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
             Exec("ALTER TABLE components ADD COLUMN anneal_every_uses INTEGER");
         if (!ColumnExists("components", "annealed_at_uses"))
             Exec("ALTER TABLE components ADD COLUMN annealed_at_uses REAL");
+        // Who a row belongs to (the shooter, a club member, a friend): every existing row is the first shooter's, so an old
+        // database opens exactly as it was and the filter only shows anything new once a second person is added.
+        Exec(@"CREATE TABLE IF NOT EXISTS shooters (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 name TEXT NOT NULL, notes TEXT DEFAULT '', archived INTEGER DEFAULT 0
+               );");
+        foreach (var table in new[] { "components", "firearms", "journal" })
+            if (!ColumnExists(table, "shooter_id"))
+                Exec($"ALTER TABLE {table} ADD COLUMN shooter_id INTEGER NOT NULL DEFAULT 1");
+        Exec("INSERT INTO shooters(id,name) SELECT 1, $n WHERE NOT EXISTS (SELECT 1 FROM shooters WHERE id=1)", null, ("$n", Tr.T("Me")));
+        Exec("CREATE INDEX IF NOT EXISTS ix_journal_shooter ON journal(shooter_id)");
+        Exec("CREATE INDEX IF NOT EXISTS ix_components_shooter ON components(shooter_id)");
+    }
+
+    // ---- shooters -------------------------------------------------------------
+
+    /// <summary>
+    /// The person whose work the lists show, or null for everybody. Set once by the launcher; every list and search below
+    /// reads it, so a tool never has to know there is more than one shooter. A new row is written to this person (to the first
+    /// shooter while everybody is shown), unless it already says whose it is.
+    /// </summary>
+    public long? CurrentShooterId { get; set; }
+
+    /// <summary>The owner a new record gets when it does not say: the person on screen, the first shooter otherwise.</summary>
+    public long DefaultShooterId => CurrentShooterId ?? 1;
+
+    /// <summary>" AND shooter_id=$sh" while a person is selected, nothing otherwise; bind it with <see cref="BindShooter"/>.</summary>
+    private string ShooterWhere() => CurrentShooterId is null ? "" : " AND shooter_id=$sh";
+
+    private void BindShooter(SqliteCommand cmd)
+    {
+        if (CurrentShooterId is { } sh) cmd.Parameters.AddWithValue("$sh", sh);
+    }
+
+    public List<Shooter> Shooters(bool includeArchived = false)
+    {
+        var list = new List<Shooter>();
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "SELECT * FROM shooters" + (includeArchived ? "" : " WHERE archived=0") + " ORDER BY id";
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+            list.Add(new Shooter { Id = Lng(r, "id"), Name = Str(r, "name"), Notes = Str(r, "notes"), Archived = Lng(r, "archived") != 0 });
+        return list;
+    }
+
+    public long UpsertShooter(Shooter s)
+    {
+        if (string.IsNullOrWhiteSpace(s.Name)) throw new ArgumentException(Tr.T("A shooter needs a name."));
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = s.Id == 0
+            ? "INSERT INTO shooters(name,notes,archived) VALUES ($n,$no,$ar); SELECT last_insert_rowid();"
+            : "UPDATE shooters SET name=$n,notes=$no,archived=$ar WHERE id=$id; SELECT $id;";
+        if (s.Id != 0) cmd.Parameters.AddWithValue("$id", s.Id);
+        cmd.Parameters.AddWithValue("$n", s.Name.Trim());
+        cmd.Parameters.AddWithValue("$no", s.Notes ?? "");
+        cmd.Parameters.AddWithValue("$ar", s.Archived ? 1 : 0);
+        s.Id = Convert.ToInt64(cmd.ExecuteScalar());
+        return s.Id;
+    }
+
+    /// <summary>How many rows of each kind a person owns: what the management dialog shows.</summary>
+    public (int Components, int Firearms, int Journal) ShooterCounts(long id)
+    {
+        int Count(string table)
+        {
+            using var cmd = _cn.CreateCommand();
+            cmd.CommandText = $"SELECT COUNT(*) FROM {table} WHERE shooter_id=$id";
+            cmd.Parameters.AddWithValue("$id", id);
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+        return (Count("components"), Count("firearms"), Count("journal"));
+    }
+
+    /// <summary>Gives rows to another person (a load first logged under the wrong name).</summary>
+    public void AssignShooter(string table, IEnumerable<long> ids, long shooterId)
+    {
+        if (table is not ("components" or "firearms" or "journal")) throw new ArgumentException("table", nameof(table));
+        using var tx = _cn.BeginTransaction();
+        foreach (long id in ids)
+            Exec($"UPDATE {table} SET shooter_id=$s WHERE id=$id", tx, ("$s", shooterId), ("$id", id));
+        tx.Commit();
     }
 
     private bool ColumnExists(string table, string col)
@@ -118,7 +205,8 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
     {
         var list = new List<Component>();
         using var cmd = _cn.CreateCommand();
-        cmd.CommandText = "SELECT * FROM components" + (includeArchived ? "" : " WHERE archived=0") + " ORDER BY kind, brand, name";
+        cmd.CommandText = "SELECT * FROM components WHERE " + (includeArchived ? "1=1" : "archived=0") + ShooterWhere() + " ORDER BY kind, brand, name";
+        BindShooter(cmd);
         using var r = cmd.ExecuteReader();
         while (r.Read()) list.Add(ReadComponent(r));
         return list;
@@ -138,8 +226,8 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         using var cmd = _cn.CreateCommand();
         if (c.Id == 0)
             cmd.CommandText = @"INSERT INTO components
-              (kind,brand,name,lot,unit,qty_initial,qty_current,cost_total,currency,expected_uses,anneal_every_uses,annealed_at_uses,bullet_weight_gr,twist_mm,barrel_length_mm,notes,archived)
-              VALUES ($kind,$brand,$name,$lot,$unit,$qi,$qc,$cost,$cur,$exp,$ae,$aa,$bw,$twist,$blen,$notes,$arch);
+              (kind,brand,name,lot,unit,qty_initial,qty_current,cost_total,currency,expected_uses,anneal_every_uses,annealed_at_uses,bullet_weight_gr,twist_mm,barrel_length_mm,notes,archived,shooter_id)
+              VALUES ($kind,$brand,$name,$lot,$unit,$qi,$qc,$cost,$cur,$exp,$ae,$aa,$bw,$twist,$blen,$notes,$arch,$shooter);
               SELECT last_insert_rowid();";
         else
         {
@@ -147,7 +235,7 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
               qty_initial=$qi,qty_current=$qc,cost_total=$cost,currency=$cur,expected_uses=$exp,
               anneal_every_uses=$ae,annealed_at_uses=$aa,
               bullet_weight_gr=$bw,twist_mm=$twist,barrel_length_mm=$blen,
-              notes=$notes,archived=$arch WHERE id=$id; SELECT $id;";
+              notes=$notes,archived=$arch,shooter_id=$shooter WHERE id=$id; SELECT $id;";
             cmd.Parameters.AddWithValue("$id", c.Id);
         }
         cmd.Parameters.AddWithValue("$kind", c.Kind.ToString());
@@ -167,6 +255,7 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         cmd.Parameters.AddWithValue("$blen", (object?)c.BarrelLengthMm ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$notes", c.Notes);
         cmd.Parameters.AddWithValue("$arch", c.Archived ? 1 : 0);
+        cmd.Parameters.AddWithValue("$shooter", c.ShooterId > 0 ? c.ShooterId : DefaultShooterId);
         return (long)(cmd.ExecuteScalar() ?? 0L);
     }
 
@@ -187,7 +276,8 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
     {
         var list = new List<JournalEntry>();
         using var cmd = _cn.CreateCommand();
-        cmd.CommandText = "SELECT * FROM journal ORDER BY date DESC, id DESC";
+        cmd.CommandText = "SELECT * FROM journal WHERE 1=1" + ShooterWhere() + " ORDER BY date DESC, id DESC";
+        BindShooter(cmd);
         using var r = cmd.ExecuteReader();
         while (r.Read()) list.Add(ReadEntry(r));
         return list;
@@ -210,16 +300,17 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
                 cmd.CommandText = @"INSERT INTO journal
                   (date,load_name,caliber,firearm,firearm_id,powder_id,primer_id,brass_id,bullet_id,charge_gr,coal_mm,cbto_mm,rounds,
                    velocity_avg_ms,sd_ms,es_ms,group_moa,distance_m,notes,grtload_path,stock_applied,
-                   temperature_c,pressure_hpa,humidity_pct,ba,a0,k)
+                   temperature_c,pressure_hpa,humidity_pct,ba,a0,k,shots_ms,wind_mps,wind_deg,shooter_id)
                   VALUES ($date,$ln,$cal,$fa,$fid,$pw,$pr,$br,$bu,$chg,$coal,$cbto,$rnd,$v,$sd,$es,$grp,$dist,$notes,$path,$sa,
-                          $temp,$pres,$hum,$ba,$a0,$k);
+                          $temp,$pres,$hum,$ba,$a0,$k,$shots,$wm,$wd,$shooter);
                   SELECT last_insert_rowid();";
             else
             {
                 cmd.CommandText = @"UPDATE journal SET date=$date,load_name=$ln,caliber=$cal,firearm=$fa,firearm_id=$fid,powder_id=$pw,
                   primer_id=$pr,brass_id=$br,bullet_id=$bu,charge_gr=$chg,coal_mm=$coal,cbto_mm=$cbto,rounds=$rnd,
                   velocity_avg_ms=$v,sd_ms=$sd,es_ms=$es,group_moa=$grp,distance_m=$dist,notes=$notes,grtload_path=$path,
-                  stock_applied=$sa,temperature_c=$temp,pressure_hpa=$pres,humidity_pct=$hum,ba=$ba,a0=$a0,k=$k WHERE id=$id; SELECT $id;";
+                  stock_applied=$sa,temperature_c=$temp,pressure_hpa=$pres,humidity_pct=$hum,ba=$ba,a0=$a0,k=$k,
+                  shots_ms=$shots,wind_mps=$wm,wind_deg=$wd,shooter_id=$shooter WHERE id=$id; SELECT $id;";
                 cmd.Parameters.AddWithValue("$id", e.Id);
             }
             void Q(string n, object? v) => cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
@@ -230,6 +321,8 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
             Q("$notes", e.Notes); Q("$path", e.GrtloadPath);
             Q("$sa", applyStock ? 1 : 0);
             Q("$temp", e.TemperatureC); Q("$pres", e.PressureHpa); Q("$hum", e.HumidityPct); Q("$ba", e.Ba); Q("$a0", e.A0); Q("$k", e.K);
+            Q("$shots", e.ShotsMs ?? ""); Q("$wm", e.WindMps); Q("$wd", e.WindDeg);
+            Q("$shooter", e.ShooterId > 0 ? e.ShooterId : ShooterOfFirearm(e.FirearmId) ?? DefaultShooterId);
             id = Convert.ToInt64(cmd.ExecuteScalar());
         }
 
@@ -264,8 +357,9 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         using var cmd = _cn.CreateCommand();
         cmd.CommandText = @"SELECT * FROM journal
             WHERE ba IS NOT NULL AND caliber = $cal COLLATE NOCASE
-              AND ($pw IS NULL OR powder_id = $pw) AND ($bu IS NULL OR bullet_id = $bu)
+              AND ($pw IS NULL OR powder_id = $pw) AND ($bu IS NULL OR bullet_id = $bu)" + ShooterWhere() + @"
             ORDER BY date DESC, id DESC";
+        BindShooter(cmd);
         cmd.Parameters.AddWithValue("$cal", caliber);
         cmd.Parameters.AddWithValue("$pw", (object?)powderId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$bu", (object?)bulletId ?? DBNull.Value);
@@ -280,7 +374,8 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
     {
         var list = new List<string>();
         using var cmd = _cn.CreateCommand();
-        cmd.CommandText = "SELECT DISTINCT caliber FROM journal WHERE ba IS NOT NULL AND caliber <> '' ORDER BY caliber";
+        cmd.CommandText = "SELECT DISTINCT caliber FROM journal WHERE ba IS NOT NULL AND caliber <> ''" + ShooterWhere() + " ORDER BY caliber";
+        BindShooter(cmd);
         using var r = cmd.ExecuteReader();
         while (r.Read()) list.Add(r.GetString(0));
         return list;
@@ -295,8 +390,9 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         var list = new List<string>();
         using var cmd = _cn.CreateCommand();
         cmd.CommandText = @"SELECT DISTINCT caliber FROM journal
-            WHERE charge_gr > 0 AND temperature_c IS NOT NULL AND velocity_avg_ms IS NOT NULL AND caliber <> ''
+            WHERE charge_gr > 0 AND temperature_c IS NOT NULL AND velocity_avg_ms IS NOT NULL AND caliber <> ''" + ShooterWhere() + @"
             ORDER BY caliber";
+        BindShooter(cmd);
         using var r = cmd.ExecuteReader();
         while (r.Read()) list.Add(r.GetString(0));
         return list;
@@ -312,8 +408,9 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         using var cmd = _cn.CreateCommand();
         cmd.CommandText = @"SELECT * FROM journal
             WHERE charge_gr > 0 AND temperature_c IS NOT NULL AND velocity_avg_ms IS NOT NULL
-              AND caliber = $cal COLLATE NOCASE AND (powder_id IS $pw) AND (bullet_id IS $bu)
+              AND caliber = $cal COLLATE NOCASE AND (powder_id IS $pw) AND (bullet_id IS $bu)" + ShooterWhere() + @"
             ORDER BY date, id";
+        BindShooter(cmd);
         cmd.Parameters.AddWithValue("$cal", caliber);
         cmd.Parameters.AddWithValue("$pw", (object?)powderId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$bu", (object?)bulletId ?? DBNull.Value);
@@ -380,13 +477,15 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
     {
         var list = new List<Firearm>();
         using var cmd = _cn.CreateCommand();
-        cmd.CommandText = "SELECT * FROM firearms" + (includeRetired ? "" : " WHERE retired=0") + " ORDER BY name";
+        cmd.CommandText = "SELECT * FROM firearms WHERE " + (includeRetired ? "1=1" : "retired=0") + ShooterWhere() + " ORDER BY name";
+        BindShooter(cmd);
         using var r = cmd.ExecuteReader();
         while (r.Read()) list.Add(new Firearm
         {
             Id = r.GetInt64(r.GetOrdinal("id")), Name = Str(r, "name"), Caliber = Str(r, "caliber"),
             Notes = Str(r, "notes"), RoundsBefore = (int)Lng(r, "rounds_before"), Retired = Lng(r, "retired") != 0,
             RoundsLimit = r.IsDBNull(r.GetOrdinal("rounds_limit")) ? null : (int)r.GetInt64(r.GetOrdinal("rounds_limit")),
+            ShooterId = Lng(r, "shooter_id"),
         });
         return list;
     }
@@ -395,8 +494,8 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
     {
         using var cmd = _cn.CreateCommand();
         cmd.CommandText = f.Id == 0
-            ? "INSERT INTO firearms(name,caliber,notes,rounds_before,retired,rounds_limit) VALUES ($n,$c,$no,$rb,$rt,$rl); SELECT last_insert_rowid();"
-            : "UPDATE firearms SET name=$n,caliber=$c,notes=$no,rounds_before=$rb,retired=$rt,rounds_limit=$rl WHERE id=$id; SELECT $id;";
+            ? "INSERT INTO firearms(name,caliber,notes,rounds_before,retired,rounds_limit,shooter_id) VALUES ($n,$c,$no,$rb,$rt,$rl,$sh); SELECT last_insert_rowid();"
+            : "UPDATE firearms SET name=$n,caliber=$c,notes=$no,rounds_before=$rb,retired=$rt,rounds_limit=$rl,shooter_id=$sh WHERE id=$id; SELECT $id;";
         if (f.Id != 0) cmd.Parameters.AddWithValue("$id", f.Id);
         cmd.Parameters.AddWithValue("$n", f.Name);
         cmd.Parameters.AddWithValue("$c", f.Caliber);
@@ -404,7 +503,17 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         cmd.Parameters.AddWithValue("$rb", f.RoundsBefore);
         cmd.Parameters.AddWithValue("$rt", f.Retired ? 1 : 0);
         cmd.Parameters.AddWithValue("$rl", (object?)f.RoundsLimit ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$sh", f.ShooterId > 0 ? f.ShooterId : DefaultShooterId);
         return Convert.ToInt64(cmd.ExecuteScalar());
+    }
+
+    private long? ShooterOfFirearm(long? firearmId)
+    {
+        if (firearmId is null or <= 0) return null;
+        using var cmd = _cn.CreateCommand();
+        cmd.CommandText = "SELECT shooter_id FROM firearms WHERE id=$id";
+        cmd.Parameters.AddWithValue("$id", firearmId.Value);
+        return cmd.ExecuteScalar() is { } o && o != DBNull.Value ? Convert.ToInt64(o) : null;
     }
 
     /// <summary>Find an existing firearm by name (case-insensitive), or create one.</summary>
@@ -412,8 +521,9 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
     {
         if (string.IsNullOrWhiteSpace(name)) return 0;
         using var cmd = _cn.CreateCommand();
-        cmd.CommandText = "SELECT id FROM firearms WHERE name=$n COLLATE NOCASE LIMIT 1";
+        cmd.CommandText = "SELECT id FROM firearms WHERE name=$n COLLATE NOCASE" + ShooterWhere() + " LIMIT 1";
         cmd.Parameters.AddWithValue("$n", name.Trim());
+        BindShooter(cmd);
         if (cmd.ExecuteScalar() is { } o && o != DBNull.Value) return Convert.ToInt64(o);
         return UpsertFirearm(new Firearm { Name = name.Trim(), Caliber = caliber });
     }
@@ -613,6 +723,7 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         TwistMm = Nul(r, "twist_mm"), BarrelLengthMm = Nul(r, "barrel_length_mm"),
         Notes = Str(r, "notes"), AcquiredAt = Str(r, "acquired_at"),
         Archived = Lng(r, "archived") != 0,
+        ShooterId = Lng(r, "shooter_id"),
     };
 
     private JournalEntry? ReadEntryById(long id, SqliteTransaction tx)
@@ -639,6 +750,8 @@ CREATE INDEX IF NOT EXISTS ix_case_head_key ON case_head_measurements(firearm_id
         StockApplied = Lng(r, "stock_applied") != 0,
         TemperatureC = Nul(r, "temperature_c"), PressureHpa = Nul(r, "pressure_hpa"), HumidityPct = Nul(r, "humidity_pct"),
         Ba = Nul(r, "ba"), A0 = Nul(r, "a0"), K = Nul(r, "k"),
+        ShotsMs = Str(r, "shots_ms"), WindMps = Nul(r, "wind_mps"), WindDeg = Nul(r, "wind_deg"),
+        ShooterId = Lng(r, "shooter_id"),
     };
 
     private static string Str(SqliteDataReader r, string c) { int i = r.GetOrdinal(c); return r.IsDBNull(i) ? "" : r.GetString(i); }

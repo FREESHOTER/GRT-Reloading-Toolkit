@@ -26,3 +26,6 @@ screenshots/
 
 # local
 *.zip
+
+# personal notes and drafts (never part of the repository)
+note/

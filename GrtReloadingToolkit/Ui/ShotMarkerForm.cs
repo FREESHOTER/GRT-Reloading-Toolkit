@@ -48,9 +48,12 @@ internal sealed class ShotMarkerForm : Form
     /// treat the rows it is populating as the shooter striking shots out.</summary>
     private bool _populating;
 
-    public ShotMarkerForm(GrtClient? grt)
+    private readonly Log.Db? _db;
+
+    public ShotMarkerForm(GrtClient? grt, Log.Db? db = null)
     {
         _grt = grt;
+        _db = db;
         Text = AppVersion.Title(Lang.T("ShotMarker import"));
         Width = 1240;
         Height = 760;
@@ -464,7 +467,14 @@ internal sealed class ShotMarkerForm : Form
 
     private async Task ImportAsync()
     {
+        // The load on top may have changed since this window opened (the label was read once, then): ask GRT again, now.
+        await DiscoverActiveLoadAsync();
         string? target = _loadPath;
+        if (target != null && File.Exists(target) && !ImportTarget.Confirm(this, target, _db))
+        {
+            Note(Lang.T("import cancelled"));
+            return;
+        }
         if (target == null || !File.Exists(target))
         {
             using var dlg = new SaveFileDialog { Title = Lang.T("Write the import to"),
