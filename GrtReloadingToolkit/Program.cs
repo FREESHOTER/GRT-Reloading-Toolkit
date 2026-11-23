@@ -107,8 +107,9 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Tr.Translate = Ui.Lang.T;     // the engines' report texts follow the UI language
         // On its own the program is Reloading Toolkit Desktop and its windows take the colours of its home page; launched by GRT
-        // (with an IPC port) they keep GRT's look.
-        bool standalone = !args.Contains("--ipcport");
+        // (with an IPC port or socket file) they keep GRT's look.
+        var launch = LaunchArgs.Parse(args);
+        bool standalone = !launch.ShouldConnect;
         if (standalone) Ui.GrtTheme.UseBancoPalette();
         Ui.GrtTheme.Install();
         Measuring.ProgramUnits.Prefs = Ui.AppUnits.Prefs;     // the printed texts follow the units chosen in "Units of measure"
@@ -344,12 +345,8 @@ internal static class Program
             return;
         }
 
-        int port = 0;
-        for (int i = 0; i + 1 < args.Length; i++)
-            if (args[i] == "--ipcport" && int.TryParse(args[i + 1], out int p)) port = p;
-
         // The plugin is started by GRT. The program that runs on its own is Reloading Toolkit Desktop, a separate build.
-        if (port == 0 && !Ui.Product.IsDesktop)
+        if (!launch.ShouldConnect && !Ui.Product.IsDesktop)
         {
             MessageBox.Show(Ui.Lang.T("This is the plugin of GRT: it is started from GRT's Plugins menu. The program that runs on its own is Reloading Toolkit Desktop, a separate download."),
                 Ui.Product.PluginName);
@@ -357,9 +354,10 @@ internal static class Program
         }
 
         GrtClient? grt = null;
-        if (port > 0)
+        if (launch.ShouldConnect)
         {
-            grt = new GrtClient(port);
+            // GRT on Linux passes a Unix socket file (--ipcfile), elsewhere a TCP port (--ipcport).
+            grt = launch.IpcFile is { } file ? new GrtClient(file) : new GrtClient(launch.Port);
             try { grt.Connect(); } catch { }
             // Give GRT a moment to deliver the toolbar/menu click that launched us (onDemand),
             // so we can open that tool straight away instead of the launcher.
