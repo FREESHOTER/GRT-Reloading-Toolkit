@@ -127,7 +127,7 @@
     <path d="M19 9 L8 20" stroke="var(--meas)" stroke-width="3" stroke-linecap="round"/>
   </svg>
   <b>GRT Reloading Toolkit</b>
-  <span class="k">Manuel · v0.5.1</span>
+  <span class="k">Manuel · v0.6.0</span>
 </div></div>
 
 <div class="shell">
@@ -1570,7 +1570,7 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
 
     <section id="archive">
       <h2><span class="no">32</span>L'archive, la bibliothèque et les rapports PDF</h2>
-      <p>Deux produits naissent du même code. Le <strong>GRT Reloading Toolkit</strong> est le plugin : GRT le lance et il travaille sur la charge ouverte dans GRT. <strong>Reload Lab</strong> est le programme qui fonctionne seul, sans GRT, et tient <strong>sa propre archive</strong> (<code>Documents\Ricarica\archivio.db</code>, un fichier SQLite) : les séances, les séries et chaque tir, les groupements, les charges, les cartouches une à une et les analyses enregistrées. Les outils des sections 4 à 31 sont dans les deux ; les sections 32 à 36 décrivent ce qui n'appartient qu'à <strong>Reload Lab</strong> (l'archive, les cartouches, entraînement et compétition, la lecture des coups, la bibliothèque). GRT et les autres fichiers ne sont qu'une entrée et une sortie, jamais l'endroit où vivent les données. Ce que GRT reçoit reste les notes et les instantanés de la section 2.</p>
+      <p>Deux produits naissent du même code. Le <strong>GRT Reloading Toolkit</strong> est le plugin : le Toolkit tel qu'il a toujours été, lancé par GRT et travaillant sur la charge ouverte dans GRT. <strong>Reloading Toolkit Desktop</strong> est le même Toolkit en programme séparé, pour qui ne le veut pas dans GRT : il fait tout ce que fait le plugin et ajoute les nouveautés de cette version. Il n'a pas besoin de GRT, et ne prend à GRT que ce qu'il faut pour que rien ne soit saisi deux fois (le fichier d'une charge, les unités de GRT, le dossier des poudres). Les deux seuls outils qu'il n'a pas sont ceux qui font tourner la simulation propre de GRT, ce qui demande GRT ouvert : l'étalonnage du canon (§9) et la sonde du modèle (§30). Les nouveautés, présentes seulement dans le programme, sont décrites dans les sections 32 à 36 : <strong>une archive à lui</strong> (<code>Documents\Ricarica\archivio.db</code>, un fichier SQLite) avec les séances, les séries et chaque tir, les groupements, les charges, les cartouches une à une et les analyses enregistrées ; les cartouches, entraînement et compétition, la lecture des coups et la bibliothèque de composants. GRT et les autres fichiers ne sont qu'une entrée et une sortie, jamais l'endroit où vivent les données. Ce que GRT reçoit reste les notes et les instantanés de la section 2. Les deux produits partagent l'archive et les fichiers de l'inventaire et du journal.</p>
       <ul>
         <li><strong>Enregistrer dans l'archive</strong> (dans les analyses qui ont ce bouton) conserve les chiffres et le rapport de l'analyse avec la charge et la séance auxquelles ils appartiennent ; le bouton <strong>Rapport PDF</strong> écrit un PDF avec les chiffres, les graphiques et le texte, l'ouvre et le conserve aussi dans l'archive (les fichiers PDF sont aussi dans <code>Documents\Ricarica\rapporti</code>).</li>
         <li><strong>Bibliothèque de composants.</strong> Douilles, balles, amorces et poudres avec les valeurs connues. Quand une même pièce a plusieurs valeurs, l'ordre est : ce que vous avez mesuré, puis le fabricant, puis GRT, puis les outils plus anciens. Un rapprochement entre deux noms n'est jamais fait en cachette : la fenêtre liste les rapprochements à <strong>confirmer</strong>.</li>
@@ -1668,6 +1668,6 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
 </div>
 
 <footer><div class="shell">
-  <span>GRT Reloading Toolkit · v0.5.1 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
+  <span>GRT Reloading Toolkit · v0.6.0 · plugin communautaire pour Gordon&#39;s Reloading Tool</span>
   <span class="mono">com.grt.plugin.reloadingtoolkit</span>
 </div></footer>

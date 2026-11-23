@@ -26,13 +26,13 @@ internal static class GrtTheme
     public static Color Dim { get; private set; } = Color.FromArgb(0x8c, 0x9b, 0xb0);
     public static Color Accent { get; private set; } = Color.FromArgb(0xff, 0xb3, 0x47);
 
-    /// <summary>True when the program runs on its own as Reload Lab: the windows take the colours of its home page
+    /// <summary>True when the program runs on its own as Reloading Toolkit Desktop: the windows take the colours of its home page
     /// (deeper slate, cards a step lighter) and the main action of a window is an amber button.</summary>
     public static bool Banco { get; private set; }
 
     private static HashSet<string> _primary = new();
 
-    /// <summary>The palette of Reload Lab's home page, for every window opened from now on. Called once at start,
+    /// <summary>The palette of Reloading Toolkit Desktop's home page, for every window opened from now on. Called once at start,
     /// before any window, when GRT did not launch the program; beside GRT the windows keep GRT's own look.</summary>
     public static void UseBancoPalette()
     {

@@ -424,7 +424,7 @@ internal sealed class HomeHeader : HomeControl
         using var sf = new Font("Segoe UI", 9.5f);
         int th = TextRenderer.MeasureText(g, "Ag", tf).Height, sh = TextRenderer.MeasureText(g, "Ag", sf).Height;
         int top = (Height - th - sh) / 2;
-        TextRenderer.DrawText(g, Product.LabName, tf, new Point((int)x, top), HomeColors.Text, TextFormatFlags.NoPrefix);
+        TextRenderer.DrawText(g, Product.DesktopName, tf, new Point((int)x, top), HomeColors.Text, TextFormatFlags.NoPrefix);
         TextRenderer.DrawText(g, Lang.T("Your own reloading archive, analyses and reports") + "  ·  v" + AppVersion.Short, sf,
             new Point((int)x + (int)(2 * k), top + th), HomeColors.Dim, TextFormatFlags.NoPrefix);
     }
@@ -476,7 +476,7 @@ internal sealed class HomeCanvas : ScrollableControl
 }
 
 /// <summary>
-/// The home page of Reload Lab when it is started on its own: the archive at a glance (how many loads,
+/// The home page of Reloading Toolkit Desktop when it is started on its own: the archive at a glance (how many loads,
 /// sessions, shots and groups; the latest sessions and PDF reports), the five phases of the recommended path as cards
 /// in their own colours with their tools, the other tools, and where the archive and its copies are. Opened by GRT the
 /// toolkit keeps the compact <see cref="LauncherForm"/> beside GRT's window instead.
@@ -503,7 +503,7 @@ internal sealed class HomeForm : Form
         _open = open;
         _db = db;
         _archive = archive;
-        Text = AppVersion.Title(Product.LabName);
+        Text = AppVersion.Title(Product.DesktopName);
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.Sizable;
         BackColor = HomeColors.Back;
@@ -513,6 +513,7 @@ internal sealed class HomeForm : Form
 
         _header = new HomeHeader(Keep(HomeArt.EmblemPng((int)(60 * k))));
         _wizard = new HomeButton("＋  " + LauncherCaption.From(Lang.T(ToolCatalog.Wizard.Key)), () => _open(Tool.Wizard));
+        _wizard.Visible = Product.Offers(Tool.Wizard);     // the guided new load writes into GRT: that is the plugin's
         _header.Controls.Add(_wizard);
         if (shooterChanged != null)
         {
@@ -541,15 +542,15 @@ internal sealed class HomeForm : Form
                 Title = Lang.T(title), Kicker = string.Format(CultureInfo.InvariantCulture, Lang.T("PHASE {0}"), i + 1),
                 Number = i + 1, Accent = color, Note = note == null ? null : Lang.T(note), TileHeight = 46,
             };
-            card.SetTiles(tools.Select(t => ToolTile(t, color)));
+            card.SetTiles(tools.Where(t => Product.Offers(t.Tool)).Select(t => ToolTile(t, color)));
             _phaseCards.Add(card);
         }
         _canvas.Controls.AddRange(_phaseCards.ToArray<Control>());
 
         _more = new HomeCard { Title = Lang.T("Optional tools"), Kicker = Lang.T("MORE ANALYSES"), Accent = HomeColors.Neutral, TileHeight = 42 };
-        _more.SetTiles(ToolCatalog.More.Select(t => ToolTile(t, HomeColors.Neutral, t.Tool == Tool.Diagnosis ? Lang.T("experimental") : null)));
+        _more.SetTiles(ToolCatalog.More.Where(t => Product.Offers(t.Tool)).Select(t => ToolTile(t, HomeColors.Neutral, t.Tool == Tool.Diagnosis ? Lang.T("experimental") : null)));
         _always = new HomeCard { Title = Lang.T("Always at hand"), Kicker = Lang.T("ARCHIVE AND DOCUMENTS"), Accent = HomeColors.Accent, TileHeight = 42 };
-        _always.SetTiles(ToolCatalog.Always.Select(t => ToolTile(t, HomeColors.Accent)));
+        _always.SetTiles(ToolCatalog.Always.Where(t => Product.Offers(t.Tool)).Select(t => ToolTile(t, HomeColors.Accent)));
         _recent = new HomeCard { Title = Lang.T("Latest range sessions"), Kicker = Lang.T("FROM THE ARCHIVE"), Accent = HomeColors.Phase[1], TileHeight = 46 };
         _reports = new HomeCard { Title = Lang.T("Latest PDF reports"), Kicker = Lang.T("REPORTS"), Accent = HomeColors.Phase[4], TileHeight = 46 };
         _store = new HomeCard { Title = Lang.T("Where your data is"), Kicker = Lang.T("ARCHIVE"), Accent = HomeColors.Phase[3], TileHeight = 40 };
@@ -611,13 +612,13 @@ internal sealed class HomeForm : Form
             Directory.CreateDirectory(folder);
             Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
         }
-        catch (Exception ex) { MessageBox.Show(ex.Message, Product.LabName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(ex.Message, Product.DesktopName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private static void OpenFile(string path)
     {
         try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-        catch (Exception ex) { MessageBox.Show(ex.Message, Product.LabName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(ex.Message, Product.DesktopName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     protected override void OnLoad(EventArgs e)
@@ -737,7 +738,7 @@ internal sealed class HomeForm : Form
         }
         else _wizard.SetBounds(width - bw - m, (headerH - bh) / 2, bw, bh);
         // narrow: the title needs the room, the button goes
-        _wizard.Visible = _wizard.Left > (int)(470 * k);
+        _wizard.Visible = Product.Offers(Tool.Wizard) && _wizard.Left > (int)(470 * k);
 
         bool side = width >= (int)(1400 * k);
         int sideW = side ? (int)(320 * k) : 0;

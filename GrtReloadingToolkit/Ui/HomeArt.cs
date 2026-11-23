@@ -3,7 +3,7 @@ using SkiaSharp;
 namespace GrtReloadingToolkit.Ui;
 
 /// <summary>
-/// The emblem of Reload Lab: a cartridge standing on a target, in brass and copper on a dark disc with an amber
+/// The emblem of Reloading Toolkit Desktop: a cartridge standing on a target, in brass and copper on a dark disc with an amber
 /// ring. Drawn here (SkiaSharp, on a 64 x 64 grid) so it is sharp at any size and needs no image file.
 /// </summary>
 internal static class HomeArt

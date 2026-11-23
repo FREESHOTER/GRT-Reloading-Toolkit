@@ -51,8 +51,8 @@ internal sealed class LauncherForm : Form
     public LauncherForm(Action<Tool> open, GrtClient? grt = null, Log.Db? db = null, Action<long?>? shooterChanged = null)
     {
         _grt = grt;
-        // started on its own it is the shooter's Reload Lab; opened by GRT it is GRT's Reloading Toolkit
-        Text = AppVersion.Title(grt == null ? Product.LabName : "Reloading Toolkit");
+        // started on its own it is the shooter's Reloading Toolkit Desktop; opened by GRT it is GRT's Reloading Toolkit
+        Text = AppVersion.Title(grt == null ? Product.DesktopName : "Reloading Toolkit");
         // Sizable, not Fixed: the list outgrew the screen. Windows caps a window at the desktop
         // working area, so the last seven buttons -- Velocity model down to the report templates --
         // were laid out past the bottom edge and simply never painted, with no grip to drag and no
@@ -71,8 +71,11 @@ internal sealed class LauncherForm : Form
             Padding = new Padding(12, 10, 12, 12),
         };
 
+        // A heading, or a note, is added only when a tool under it is shown (the plugin offers fewer tools than the program).
+        var pending = new List<Control>();
         void Section(string title, PathPhase? phase = null)
         {
+            pending.Clear();
             var label = new Label
             {
                 Text = title,
@@ -83,15 +86,18 @@ internal sealed class LauncherForm : Form
                 Margin = new Padding(2, flow.Controls.Count == 0 ? 0 : 12, 0, 4),
             };
             if (phase is { } ph) _phases[ph] = (label, title);
-            flow.Controls.Add(label);
+            pending.Add(label);
         }
-        void Note(string text) => flow.Controls.Add(new Label
+        void Note(string text) => pending.Add(new Label
         {
             Text = text, UseMnemonic = false, AutoSize = true, MaximumSize = new Size(300, 0),
             ForeColor = SystemColors.GrayText, Margin = new Padding(2, 0, 0, 6),
         });
         void B(string text, Tool t, string icon, string? step = null)
         {
+            if (!Product.Offers(t)) return;
+            foreach (var c in pending) flow.Controls.Add(c);
+            pending.Clear();
             // GRT-coloured line icon in place of the emoji that used to open the caption: the label keeps its
             // translation key (emoji included) and the emoji is dropped here, so no translation had to change.
             int px = LogicalToDeviceUnits(22);
@@ -149,8 +155,8 @@ internal sealed class LauncherForm : Form
         B(Lang.T("📓  Load journal"), Tool.Journal, "journal", "8 / 18");
         B(Lang.T("📈  Follow a load"), Tool.FollowLoad, "follow", "20");
 
-        // The training and the race belong to Reload Lab (cartridges, lots, the match), not to the plugin that works on the load open in GRT.
-        if (Product.IsLab)
+        // The training and the race belong to Reloading Toolkit Desktop (cartridges, lots, the match), not to the plugin that works on the load open in GRT.
+        if (Product.IsDesktop)
         {
             // Training and race are about cartridges and the match, not about the load open in GRT: no step, no mark of their own.
             Section(Lang.T("PHASE 6 — TRAINING"));
@@ -182,7 +188,7 @@ internal sealed class LauncherForm : Form
         Section(Lang.T("ALWAYS AT HAND"));
         B(Lang.T("📏  Units of measure (grains/grams, mm/inches, m/yards, MOA/mrad)"), Tool.Units, "ruler");
         B(Lang.T("📒  Inventory"), Tool.Log, "box");
-        if (Product.IsLab)
+        if (Product.IsDesktop)
         {
             B(Lang.T("📚  Component library"), Tool.Library, "books");
             B(Lang.T("📦  Cartridges (measure, predict, plan)"), Tool.Cartridges, "cartridge");

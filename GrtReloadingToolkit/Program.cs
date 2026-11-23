@@ -106,7 +106,7 @@ internal static class Program
 
         ApplicationConfiguration.Initialize();
         Tr.Translate = Ui.Lang.T;     // the engines' report texts follow the UI language
-        // On its own the program is Reload Lab and its windows take the colours of its home page; launched by GRT
+        // On its own the program is Reloading Toolkit Desktop and its windows take the colours of its home page; launched by GRT
         // (with an IPC port) they keep GRT's look.
         bool standalone = !args.Contains("--ipcport");
         if (standalone) Ui.GrtTheme.UseBancoPalette();
@@ -146,6 +146,7 @@ internal static class Program
                 "bilancio" => new Form { Size = new Size(1000, 640), Text = "Bilancio", Controls = { BudgetPreview() } },
                 "progresso" => new Form { Size = new Size(760, 330), Text = "Progresso", Controls = { ProgressPreview() } },
                 "stampa" => new Form { Size = new Size(1100, 1000), Text = "Stampa", Controls = { PrintPreview() } },
+                "lanciatore" => new Ui.LauncherForm(_ => { }, new GrtClient(0), new Log.Db(Path.Combine(Path.GetTempPath(), "anteprima_log.db")), _ => { }),
                 "classifica" => new Form { Size = new Size(900, 360), Text = "Classifica", Controls = { RankPreview() } },
                 "pulsanti" => new Form { Size = new Size(560, 120), Text = "Pulsanti", Controls = { new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), Controls = {
                     new Button { Text = Ui.Lang.T("PDF report"), AutoSize = true },
@@ -205,6 +206,12 @@ internal static class Program
                         break;
                     case DataGridView dg:
                         lines.Add($"tabella: {dg.Rows.Count} righe");
+                        break;
+                    case Button bt when f is Ui.LauncherForm:
+                        lines.Add("pulsante: " + bt.Text);       // the whole column of the launcher, also what the screen shows only after scrolling
+                        break;
+                    case Label lb when f is Ui.LauncherForm && lb.Text.Length > 0:
+                        lines.Add("voce: " + lb.Text);
                         break;
                 }
                 foreach (Control k in c.Controls) Dump(k);
@@ -328,10 +335,10 @@ internal static class Program
         for (int i = 0; i + 1 < args.Length; i++)
             if (args[i] == "--ipcport" && int.TryParse(args[i + 1], out int p)) port = p;
 
-        // The plugin is started by GRT. The program that runs on its own is Reload Lab, a separate build.
-        if (port == 0 && !Ui.Product.IsLab)
+        // The plugin is started by GRT. The program that runs on its own is Reloading Toolkit Desktop, a separate build.
+        if (port == 0 && !Ui.Product.IsDesktop)
         {
-            MessageBox.Show(Ui.Lang.T("This is the plugin of GRT: it is started from GRT's Plugins menu. The program that runs on its own is Reload Lab, a separate download."),
+            MessageBox.Show(Ui.Lang.T("This is the plugin of GRT: it is started from GRT's Plugins menu. The program that runs on its own is Reloading Toolkit Desktop, a separate download."),
                 Ui.Product.PluginName);
             return;
         }
@@ -516,7 +523,7 @@ internal sealed class ToolkitContext : ApplicationContext
 
     private void Open(Tool t)
     {
-        if (!Ui.Product.Offers(t)) return;                    // the plugin does not offer what belongs to Reload Lab
+        if (!Ui.Product.Offers(t)) return;                    // the plugin does not offer what belongs to Reloading Toolkit Desktop
         if (t == Tool.Reports) { InstallReports(); return; }
         if (t == Tool.GrtLoad) { ImportGrtLoad(); return; }
         if ((t == Tool.Library || t == Tool.GrtLoad || t == Tool.Cartridges || t == Tool.TrainingCartridges || t == Tool.RaceCartridges || t == Tool.TrainingBudget) && _archive == null)
@@ -578,7 +585,7 @@ internal sealed class ToolkitContext : ApplicationContext
             // on its own it opens on the home page; beside GRT it keeps the compact column
             _ => _grt == null ? new HomeForm(Open, _db, SetShooter, _archive) : new LauncherForm(Open, _grt, _db, SetShooter),
         });
-        // on its own, each tool window wears the band of Reload Lab (its phase, step and colour)
+        // on its own, each tool window wears the band of Reloading Toolkit Desktop (its phase, step and colour)
         if (_grt == null && t != Tool.Launcher && Ui.GrtTheme.Banco && Ui.GrtTheme.Enabled) Ui.ToolBanner.Attach(f, t);
         Ui.GrtTheme.Apply(f);
         f.FormClosed += (_, _) =>

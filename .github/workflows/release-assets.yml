@@ -28,14 +28,14 @@ jobs:
           echo "==> attached to $TAG:"
           sed 's/^/      /' /tmp/have.txt
 
-          # The three install artifacts (the plugin, the lite plugin, the Reload Lab program), plus one PDF per HTML manual in docs/. README points at
+          # The three install artifacts (the plugin, the lite plugin, the Reloading Toolkit Desktop program), plus one PDF per HTML manual in docs/. README points at
           # "the latest release" for all of them, so each release needs its own copy - a user who
           # lands on a patch release should not have to hunt backwards for a manual.
           missing=0
           for want in \
             ReloadingToolkit.zip \
             ReloadingToolkit-lite.zip \
-            ReloadLab.zip \
+            ReloadingToolkitDesktop.zip \
             GRT-Reloading-Toolkit-Manual-EN.pdf \
             GRT-Reloading-Toolkit-Manual-IT.pdf \
             GRT-Reloading-Toolkit-Manual-DE.pdf \

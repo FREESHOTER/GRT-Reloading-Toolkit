@@ -11,21 +11,22 @@ report templates.
 — grab `ReloadingToolkit.zip` (or the smaller `-lite.zip`, see [Install](#install-users) below) from
 the Assets list on that page.
 
-> **Status: v0.5.1.** Tested against my own loads. Not every path with
+> **Status: v0.6.0.** Tested against my own loads. Not every path with
 > every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
 ## Two downloads from this repository
 
-| | **GRT Reloading Toolkit** (plugin) | **Reload Lab** (program) |
+| | **GRT Reloading Toolkit** (plugin) | **Reloading Toolkit Desktop** (program) |
 |---|---|---|
-| Asset | `ReloadingToolkit.zip` (or `-lite.zip`) | `ReloadLab.zip` |
+| What it is | the Toolkit as it has always been, inside GRT | the same Toolkit as a separate program, for whoever does not want it inside GRT |
+| Asset | `ReloadingToolkit.zip` (or `-lite.zip`) | `ReloadingToolkitDesktop.zip` |
 | Started by | GRT, from its Plugins menu | you, by double click |
-| Works on | the load open in GRT: notes, charts and corrected inputs are written back | your own archive of loads, sessions and every shot (`Documents\Ricarica\archivio.db`) |
-| Has | the tools below: chronograph and ShotMarker import, ladder / OCW, seating depth, calibration, journal, inventory, follow a load, stability… | all of those, **plus** cartridges (measure, predict, plan), training and race, the reading of the shooter's errors and of a match, the component library and a home page |
-| Needs GRT | yes | no (optional) |
+| Needs GRT | yes | no: from GRT it takes only what it needs so that nothing is typed twice (a load's file, GRT's units, the folder of powders) |
+| Has | all the tools: chronograph and ShotMarker import, ladder / OCW, seating depth, calibration, journal, inventory, follow a load, stability… | everything the plugin has, **plus** the novelties: your own archive, cartridges (measure, predict, plan), training and race, the reading of the shooter's errors and of a match, the component library and a home page |
+| What it lacks | the novelties | barrel calibration and the model probe, which run GRT's own simulation and need GRT open |
 
-Both are built from the same source (`-p:Product=Lab` builds the program). The manual describes both: sections 32 to 36 are about what belongs to Reload Lab only. See [`GrtReloadingToolkit/reloadlab/README.md`](GrtReloadingToolkit/reloadlab/README.md).
+Both are built from the same source (`-p:Product=Desktop` builds the program). The manual describes both; section 32 says what each has, and sections 32 to 36 describe the novelties that only the program has. See [`GrtReloadingToolkit/desktop/README.md`](GrtReloadingToolkit/desktop/README.md).
 
 ## Tools
 

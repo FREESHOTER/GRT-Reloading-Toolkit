@@ -48,7 +48,7 @@ public static class PdfReport
         foreach (var img in d.Images.Where(i => i.Png is { Length: > 0 }))
             sb.Append("<figure><img src=\"data:image/png;base64,").Append(Convert.ToBase64String(img.Png)).Append("\"><figcaption>")
               .Append(E(img.Caption)).Append("</figcaption></figure>");
-        sb.Append("<div class=\"foot\">Reload Lab v").Append(E(d.Version))
+        sb.Append("<div class=\"foot\">Reloading Toolkit Desktop v").Append(E(d.Version))
           .Append(" — rapporto creato dal programma; i numeri vengono dai dati indicati sopra.</div></body></html>");
         return sb.ToString();
     }
