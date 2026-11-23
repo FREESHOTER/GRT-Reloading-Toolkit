@@ -33,7 +33,7 @@ public sealed class PdfReportTests : IDisposable
         Assert.Contains("<td class=\"k\">Carico</td><td>Scala N550</td>", html);
         Assert.DoesNotContain("<td class=\"k\">Arma</td>", html);     // an empty fact is left out
         Assert.Contains("data:image/png;base64,iVBORw==", html);
-        Assert.Contains("Banco di Ricarica v0.4.0", html);
+        Assert.Contains("Reload Lab v0.4.0", html);
     }
 
     [Fact]

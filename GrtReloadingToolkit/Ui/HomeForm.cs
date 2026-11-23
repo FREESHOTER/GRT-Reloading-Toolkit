@@ -424,7 +424,7 @@ internal sealed class HomeHeader : HomeControl
         using var sf = new Font("Segoe UI", 9.5f);
         int th = TextRenderer.MeasureText(g, "Ag", tf).Height, sh = TextRenderer.MeasureText(g, "Ag", sf).Height;
         int top = (Height - th - sh) / 2;
-        TextRenderer.DrawText(g, "Banco di Ricarica", tf, new Point((int)x, top), HomeColors.Text, TextFormatFlags.NoPrefix);
+        TextRenderer.DrawText(g, Product.LabName, tf, new Point((int)x, top), HomeColors.Text, TextFormatFlags.NoPrefix);
         TextRenderer.DrawText(g, Lang.T("Your own reloading archive, analyses and reports") + "  ·  v" + AppVersion.Short, sf,
             new Point((int)x + (int)(2 * k), top + th), HomeColors.Dim, TextFormatFlags.NoPrefix);
     }
@@ -476,7 +476,7 @@ internal sealed class HomeCanvas : ScrollableControl
 }
 
 /// <summary>
-/// The home page of the Banco di Ricarica when it is started on its own: the archive at a glance (how many loads,
+/// The home page of Reload Lab when it is started on its own: the archive at a glance (how many loads,
 /// sessions, shots and groups; the latest sessions and PDF reports), the five phases of the recommended path as cards
 /// in their own colours with their tools, the other tools, and where the archive and its copies are. Opened by GRT the
 /// toolkit keeps the compact <see cref="LauncherForm"/> beside GRT's window instead.
@@ -503,7 +503,7 @@ internal sealed class HomeForm : Form
         _open = open;
         _db = db;
         _archive = archive;
-        Text = AppVersion.Title("Banco di Ricarica");
+        Text = AppVersion.Title(Product.LabName);
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.Sizable;
         BackColor = HomeColors.Back;
@@ -611,13 +611,13 @@ internal sealed class HomeForm : Form
             Directory.CreateDirectory(folder);
             Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
         }
-        catch (Exception ex) { MessageBox.Show(ex.Message, "Banco di Ricarica", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(ex.Message, Product.LabName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private static void OpenFile(string path)
     {
         try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-        catch (Exception ex) { MessageBox.Show(ex.Message, "Banco di Ricarica", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { MessageBox.Show(ex.Message, Product.LabName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     protected override void OnLoad(EventArgs e)

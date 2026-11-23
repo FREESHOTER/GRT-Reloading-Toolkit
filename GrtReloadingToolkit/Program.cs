@@ -106,7 +106,7 @@ internal static class Program
 
         ApplicationConfiguration.Initialize();
         Tr.Translate = Ui.Lang.T;     // the engines' report texts follow the UI language
-        // On its own the program is the Banco di Ricarica and its windows take the colours of its home page; launched by GRT
+        // On its own the program is Reload Lab and its windows take the colours of its home page; launched by GRT
         // (with an IPC port) they keep GRT's look.
         bool standalone = !args.Contains("--ipcport");
         if (standalone) Ui.GrtTheme.UseBancoPalette();
@@ -328,6 +328,14 @@ internal static class Program
         for (int i = 0; i + 1 < args.Length; i++)
             if (args[i] == "--ipcport" && int.TryParse(args[i + 1], out int p)) port = p;
 
+        // The plugin is started by GRT. The program that runs on its own is Reload Lab, a separate build.
+        if (port == 0 && !Ui.Product.IsLab)
+        {
+            MessageBox.Show(Ui.Lang.T("This is the plugin of GRT: it is started from GRT's Plugins menu. The program that runs on its own is Reload Lab, a separate download."),
+                Ui.Product.PluginName);
+            return;
+        }
+
         GrtClient? grt = null;
         if (port > 0)
         {
@@ -508,6 +516,7 @@ internal sealed class ToolkitContext : ApplicationContext
 
     private void Open(Tool t)
     {
+        if (!Ui.Product.Offers(t)) return;                    // the plugin does not offer what belongs to Reload Lab
         if (t == Tool.Reports) { InstallReports(); return; }
         if (t == Tool.GrtLoad) { ImportGrtLoad(); return; }
         if ((t == Tool.Library || t == Tool.GrtLoad || t == Tool.Cartridges || t == Tool.TrainingCartridges || t == Tool.RaceCartridges || t == Tool.TrainingBudget) && _archive == null)
@@ -569,7 +578,7 @@ internal sealed class ToolkitContext : ApplicationContext
             // on its own it opens on the home page; beside GRT it keeps the compact column
             _ => _grt == null ? new HomeForm(Open, _db, SetShooter, _archive) : new LauncherForm(Open, _grt, _db, SetShooter),
         });
-        // on its own, each tool window wears the band of the Banco di Ricarica (its phase, step and colour)
+        // on its own, each tool window wears the band of Reload Lab (its phase, step and colour)
         if (_grt == null && t != Tool.Launcher && Ui.GrtTheme.Banco && Ui.GrtTheme.Enabled) Ui.ToolBanner.Attach(f, t);
         Ui.GrtTheme.Apply(f);
         f.FormClosed += (_, _) =>

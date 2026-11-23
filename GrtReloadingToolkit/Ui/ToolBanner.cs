@@ -4,7 +4,7 @@ using System.Globalization;
 namespace GrtReloadingToolkit.Ui;
 
 /// <summary>
-/// The band on top of a tool window when the program runs as the Banco di Ricarica: the tool's icon and name in the colour
+/// The band on top of a tool window when the program runs as Reload Lab: the tool's icon and name in the colour
 /// of its phase, where it sits on the path ("FASE 2 · SCALA DI CARICHE · PASSO 5"), and the small emblem of the program,
 /// so every window reads as part of the home page it was opened from.
 /// </summary>
@@ -109,9 +109,9 @@ internal sealed class ToolBanner : HomeControl
         float ex = Width - _emblem.Width - 16 * k;
         g.DrawImage(_emblem, ex, (Height - _emblem.Height) / 2f, _emblem.Width, _emblem.Height);
         using var nf = new Font("Segoe UI", 8.5f);
-        var size = TextRenderer.MeasureText(g, "Banco di Ricarica", nf);
+        var size = TextRenderer.MeasureText(g, Product.LabName, nf);
         if (ex - size.Width - 10 * k > x + 200 * k)
-            TextRenderer.DrawText(g, "Banco di Ricarica", nf, new Point((int)(ex - size.Width - 8 * k), (Height - size.Height) / 2), HomeColors.Dim,
+            TextRenderer.DrawText(g, Product.LabName, nf, new Point((int)(ex - size.Width - 8 * k), (Height - size.Height) / 2), HomeColors.Dim,
                 TextFormatFlags.NoPrefix);
     }
 }

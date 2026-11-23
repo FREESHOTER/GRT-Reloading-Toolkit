@@ -3,6 +3,7 @@
 
     ./dist/ReloadingToolkit/       self-contained (~69 MB exe) - no runtime needed, host it
     ./dist/ReloadingToolkit-lite/  framework-dependent (~6 MB zip) - needs .NET 8 Desktop Runtime
+    ./dist/ReloadLab/              the separate program Reload Lab (self-contained, Reload_Lab.exe) - not a plugin
 
   Usage:
     ./build-plugin.ps1
@@ -139,12 +140,30 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish (framework-dependent) failed wi
 $liteOut = Join-Path $root "dist\ReloadingToolkit-lite"
 Assemble $liteOut $fdDir
 
+# ---- 3. Reload Lab: the program that runs on its own (self-contained, its own exe name; same source, -p:Product=Lab) ----
+Write-Host "==> publish: Reload Lab (self-contained single file)"
+$labDir = Join-Path $root "artifacts\publish-lab"
+& $dotnet publish $csproj -c $Configuration -r win-x64 --self-contained true -p:Product=Lab `
+    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:EnableCompressionInSingleFile=true -p:DebugType=none -o $labDir | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish (Reload Lab) failed with exit code $LASTEXITCODE" }
+$labOut = Join-Path $root "dist\ReloadLab"
+if (Test-Path $labOut) { Remove-Item -Recurse -Force $labOut }
+New-Item -ItemType Directory -Force $labOut | Out-Null
+Copy-Item (Join-Path $labDir "Reload_Lab.exe") $labOut
+Copy-Item (Join-Path $root "reloadlab\README.md") $labOut
+Copy-Item (Join-Path $root "MANUAL.md") $labOut
+$docs = Join-Path $root "docs"
+if (Test-Path $docs) { Copy-Item $docs $labOut -Recurse }
+
 Write-Host "==> dist\ReloadingToolkit      $('{0:N0}' -f ((Get-ChildItem $pluginOut -Recurse -File | Measure-Object Length -Sum).Sum/1KB)) KB"
 Write-Host "==> dist\ReloadingToolkit-lite $('{0:N0}' -f ((Get-ChildItem $liteOut  -Recurse -File | Measure-Object Length -Sum).Sum/1KB)) KB"
+Write-Host "==> dist\ReloadLab            $('{0:N0}' -f ((Get-ChildItem $labOut   -Recurse -File | Measure-Object Length -Sum).Sum/1KB)) KB"
 
 if ($Zip) {
     WriteZip $pluginOut (Join-Path $root "dist\ReloadingToolkit.zip")
     WriteZip $liteOut   (Join-Path $root "dist\ReloadingToolkit-lite.zip")
+    WriteZip $labOut    (Join-Path $root "dist\ReloadLab.zip")
     Write-Host "==> zips written to dist\"
 }
 

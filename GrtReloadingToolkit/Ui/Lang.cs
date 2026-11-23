@@ -911,6 +911,7 @@ internal static class Lang
         ["with"] = "con",
         ["before the session"] = "prima della seduta",
         ["with the session"] = "con la seduta",
+        ["This is the plugin of GRT: it is started from GRT's Plugins menu. The program that runs on its own is Reload Lab, a separate download."] = "Questo è il plugin di GRT: si avvia dal menu Plugin di GRT. Il programma che funziona da solo è Reload Lab, un download separato.",
         ["The shots of each string"] = "I colpi di ogni serie",
         ["Add the strings: their shots are drawn here, one column for each string."] = "Aggiungi le serie: i loro colpi vengono disegnati qui, una colonna per serie.",
         ["smallest SD: {0} ({1} {2})"] = "SD minima: {0} ({1} {2})",

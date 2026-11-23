@@ -15,6 +15,18 @@ the Assets list on that page.
 > every export format has been exercised. Bug reports and Garmin sample exports very welcome —
 > please open an issue.
 
+## Two downloads from this repository
+
+| | **GRT Reloading Toolkit** (plugin) | **Reload Lab** (program) |
+|---|---|---|
+| Asset | `ReloadingToolkit.zip` (or `-lite.zip`) | `ReloadLab.zip` |
+| Started by | GRT, from its Plugins menu | you, by double click |
+| Works on | the load open in GRT: notes, charts and corrected inputs are written back | your own archive of loads, sessions and every shot (`Documents\Ricarica\archivio.db`) |
+| Has | the tools below: chronograph and ShotMarker import, ladder / OCW, seating depth, calibration, journal, inventory, follow a load, stability… | all of those, **plus** cartridges (measure, predict, plan), training and race, the reading of the shooter's errors and of a match, the component library and a home page |
+| Needs GRT | yes | no (optional) |
+
+Both are built from the same source (`-p:Product=Lab` builds the program). The manual describes both: sections 32 to 36 are about what belongs to Reload Lab only. See [`GrtReloadingToolkit/reloadlab/README.md`](GrtReloadingToolkit/reloadlab/README.md).
+
 ## Tools
 
 | | |
