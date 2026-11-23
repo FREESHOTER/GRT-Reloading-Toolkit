@@ -12,7 +12,6 @@ internal static class Program
 {
     internal const string PluginId = "com.grt.plugin.reloadingtoolkit";
 
-    [STAThread]
     private static Ui.BudgetChart BudgetPreview()
     {
         // 6 series of 8 shots: a velocity that drifts from one series to the next, a bullet-weight effect and a first shot that is slow
@@ -60,6 +59,7 @@ internal static class Program
         return c;
     }
 
+    [STAThread]       // the file and folder dialogs and the clipboard need a single-threaded apartment: without it they freeze the program
     private static void Main(string[] args)
     {
         // The debug command lines stay in English for scripts and logs; TOOLKIT_LANG=it asks for the Italian texts too (to read them).
