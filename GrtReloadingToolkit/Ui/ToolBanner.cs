@@ -71,10 +71,15 @@ internal sealed class ToolBanner : HomeControl
         var host = new Panel { Size = f.ClientSize, AutoScroll = f.AutoScroll, AutoScrollMinSize = f.AutoScrollMinSize };
         foreach (var c in f.Controls.Cast<Control>().ToArray()) host.Controls.Add(c);
         f.AutoScroll = false;
-        host.Dock = DockStyle.Fill;
+        // A window that sizes itself on its content (the guided new load) must keep doing so: a panel that fills the window would give it nothing to measure and
+        // the window would shrink to a sliver. Such a window gets a panel that sizes on its content, under the band.
+        bool selfSizing = f.AutoSize;
+        // (a docked panel adds its height but not its width to a window that sizes itself: the panel sits at a fixed place under the band instead)
+        if (selfSizing) { host.AutoSize = true; host.AutoSizeMode = AutoSizeMode.GrowAndShrink; host.Dock = DockStyle.None; host.Location = new Point(0, banner.Height); }
+        else host.Dock = DockStyle.Fill;
         f.Controls.Add(host);
         f.Controls.Add(banner);   // added last, docked first: the band is the top edge, the panel fills what is left
-        f.ClientSize = new Size(f.ClientSize.Width, f.ClientSize.Height + banner.Height);
+        if (!selfSizing) f.ClientSize = new Size(f.ClientSize.Width, f.ClientSize.Height + banner.Height);
         if (f.MinimumSize.Height > 0) f.MinimumSize = new Size(f.MinimumSize.Width, f.MinimumSize.Height + banner.Height);
         f.ResumeLayout(true);
         f.Disposed += (_, _) => { banner._icon.Dispose(); banner._emblem.Dispose(); };

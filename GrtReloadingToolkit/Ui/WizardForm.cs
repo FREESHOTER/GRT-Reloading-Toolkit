@@ -73,8 +73,12 @@ internal sealed class WizardForm : Form
     {
         _steps.Controls.Clear();
 
+        // The steps that this build does not offer (barrel calibration is not in the program: it needs GRT's simulation) are left out, and the rest numbered again
+        int n = 0;
         void Step(string title, string detail, Tool tool)
         {
+            if (!Product.Offers(tool)) return;
+            title = ++n + ". " + System.Text.RegularExpressions.Regex.Replace(title, @"^\d+\.\s*", "");
             var row = new TableLayoutPanel { AutoSize = true, ColumnCount = 3, Margin = new Padding(0, 0, 0, 10) };
             var check = new CheckBox { AutoCheck = false, Enabled = false, Margin = new Padding(0, 6, 8, 0) };
             var text = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Margin = new Padding(0) };

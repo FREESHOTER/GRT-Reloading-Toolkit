@@ -113,6 +113,18 @@ internal static class Program
         Ui.GrtTheme.Install();
         Measuring.ProgramUnits.Prefs = Ui.AppUnits.Prefs;     // the printed texts follow the units chosen in "Units of measure"
 
+        // --collaudo <folder>: opens every tool through the real path (Open), off the screen, and reports what came out: no window, an exception, a window
+        // that collapsed or is not on a sane size; a picture of each goes in the folder. Run it on COPIES of the data (RICARICA_ARCHIVIO, RELOADING_LOG_DB, SEGUI_CARICO_DB).
+        if (args.Length >= 2 && args[0] == "--collaudo")
+        {
+            Directory.CreateDirectory(args[1]);
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+            ToolkitContext.Offscreen = true;
+            using var testCtx = new ToolkitContext(Ui.Product.IsDesktop ? null : new GrtClient(0));
+            File.WriteAllLines(Path.Combine(args[1], "collaudo.txt"), testCtx.Collaudo(args[1]), new System.Text.UTF8Encoding(true));
+            return;
+        }
+
         // --anteprima athlon <file.png>: draws a tool window into a picture without GRT and without showing it, to check
         // its layout. The archive is opened read only for the lists (a copy, so not even its schema is touched).
         if (args.Length >= 3 && args[0] == "--anteprima")
@@ -147,6 +159,7 @@ internal static class Program
                 "progresso" => new Form { Size = new Size(760, 330), Text = "Progresso", Controls = { ProgressPreview() } },
                 "stampa" => new Form { Size = new Size(1100, 1000), Text = "Stampa", Controls = { PrintPreview() } },
                 "lanciatore" => new Ui.LauncherForm(_ => { }, new GrtClient(0), new Log.Db(Path.Combine(Path.GetTempPath(), "anteprima_log.db")), _ => { }),
+                "guidato" => new Ui.WizardForm(_ => { }),
                 "classifica" => new Form { Size = new Size(900, 360), Text = "Classifica", Controls = { RankPreview() } },
                 "pulsanti" => new Form { Size = new Size(560, 120), Text = "Pulsanti", Controls = { new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), Controls = {
                     new Button { Text = Ui.Lang.T("PDF report"), AutoSize = true },
@@ -156,7 +169,7 @@ internal static class Program
             };
             Tool? asTool = args[1] switch
             {
-                "athlon" => Tool.Athlon, "cronostat" or "cronostat2" => Tool.ChronoStats, "rosate" or "rosate2" => Tool.GroupAnalysis, "diagnostica" => Tool.Diagnostics, "uscita" => Tool.FollowLoad, "workflow" => Tool.Workflow, "sd" => Tool.SdRootCause,
+                "athlon" => Tool.Athlon, "cronostat" or "cronostat2" => Tool.ChronoStats, "rosate" or "rosate2" => Tool.GroupAnalysis, "diagnostica" => Tool.Diagnostics, "guidato" => Tool.Wizard, "uscita" => Tool.FollowLoad, "workflow" => Tool.Workflow, "sd" => Tool.SdRootCause,
                 "ocw" or "scala" => Tool.Ocw, "seduta" => Tool.Seating, "shotmarker" => Tool.ShotMarker, "libreria" => Tool.Library,
                 "cartucce1" or "cartucce2" or "cartucce6" or "cartucce7" => Tool.Cartridges,
                 "cartucce3" => Tool.TrainingCartridges, "cartucce4" or "cartucce5" => Tool.RaceCartridges,
@@ -439,6 +452,8 @@ internal sealed class ToolkitContext : ApplicationContext
     /// the tools work as they did before it existed.</summary>
     private Archive.ArchiveDb? _archive;
     private long _archiveBaseline;
+    /// <summary>Set by --collaudo: the windows open off the screen and stay where they are.</summary>
+    internal static bool Offscreen;
     private readonly Dictionary<Tool, Form> _open = new();
     private readonly WindowsFormsSynchronizationContext _ui = new();
 
@@ -605,7 +620,8 @@ internal sealed class ToolkitContext : ApplicationContext
         };
         _open[t] = f;
         // The launcher places itself; every other window is kept inside the screen it opens on (see WindowFit).
-        if (t != Tool.Launcher && f.WindowState == FormWindowState.Normal)
+        if (Offscreen) { f.StartPosition = FormStartPosition.Manual; f.Location = new Point(-5000, -5000); f.ShowInTaskbar = false; }
+        else if (t != Tool.Launcher && f.WindowState == FormWindowState.Normal)
             f.Shown += (_, _) =>
             {
                 var wa = Screen.FromControl(f).WorkingArea;
@@ -696,6 +712,40 @@ internal sealed class ToolkitContext : ApplicationContext
     /// </summary>
     /// <summary>The archive as the analysis tools see it (with the launcher's current shooter), or null without an archive.</summary>
     private Ui.ArchiveLink? Link() => _archive is { } a ? new Ui.ArchiveLink(a, () => _db.CurrentShooterId) : null;
+
+    /// <summary>--collaudo: every tool opened through <see cref="Open"/>, what came out, and a picture of each.</summary>
+    internal List<string> Collaudo(string outDir)
+    {
+        var report = new List<string> { $"COLLAUDO di {Ui.Product.Name}  v{Ui.AppVersion.Short}  ({DateTime.Now:dd/MM/yyyy HH:mm})", "" };
+        string progress = Path.Combine(outDir, "avanzamento.txt");
+        Application.ThreadException += (_, e) => report.Add("  ECCEZIONE non gestita: " + e.Exception.GetType().Name + ": " + e.Exception.Message
+            + " | " + (e.Exception.StackTrace?.Split((char)10).FirstOrDefault()?.Trim() ?? ""));
+        foreach (Tool t in Enum.GetValues<Tool>())
+        {
+            File.AppendAllText(progress, t + Environment.NewLine);
+            if (t is Tool.GrtLoad or Tool.Reports) { report.Add($"{t,-22} saltato (apre una finestra di Windows di scelta file)"); continue; }
+            if (!Ui.Product.Offers(t)) { report.Add($"{t,-22} non offerto da questa versione"); continue; }
+            int before = report.Count;
+            try
+            {
+                Open(t);
+                for (int i = 0; i < 15; i++) { Application.DoEvents(); Thread.Sleep(40); }
+                if (!_open.TryGetValue(t, out var f) || f.IsDisposed) { report.Add($"{t,-22} PROBLEMA: nessuna finestra creata"); continue; }
+                string flag = f.Width < 300 || f.Height < 160 || f.ClientSize.Width < 250 ? "  <-- PROBLEMA: finestra troppo piccola o collassata" : "";
+                report.Add($"{t,-22} {f.GetType().Name,-26} {f.Width}x{f.Height}  controlli={f.Controls.Count}  titolo='{f.Text}'{flag}");
+                using (var bmp = new Bitmap(Math.Max(1, f.Width), Math.Max(1, f.Height)))
+                {
+                    f.DrawToBitmap(bmp, new Rectangle(0, 0, bmp.Width, bmp.Height));
+                    bmp.Save(Path.Combine(outDir, t + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
+                if (t != Tool.Launcher) { f.Close(); Application.DoEvents(); }
+            }
+            catch (Exception ex) { report.Add($"{t,-22} ERRORE: {ex.GetType().Name}: {ex.Message} | {ex.StackTrace?.Split((char)10).FirstOrDefault()?.Trim()}"); }
+            _ = before;
+        }
+        report.Add(""); report.Add("fine del collaudo");
+        return report;
+    }
 
     private void OpenArchive()
     {
