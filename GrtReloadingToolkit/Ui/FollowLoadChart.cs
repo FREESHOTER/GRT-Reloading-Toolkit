@@ -17,7 +17,7 @@ internal sealed class FollowLoadChart : Panel
 {
     private FollowUpResult? _result;
     private FollowChartMode _mode;
-    private readonly GrtUnits _u = GrtUnits.Current;
+    private readonly Measuring.ProgramUnitView _u = Measuring.ProgramUnits.Current;
 
     private static readonly Color Blue = Color.FromArgb(56, 189, 248), Amber = Color.FromArgb(251, 191, 36);
     private static readonly Color Ink = Color.FromArgb(210, 220, 230), Axis = Color.FromArgb(120, 148, 163, 184);
@@ -76,8 +76,8 @@ internal sealed class FollowLoadChart : Panel
                 yTitle = _u.VelocityUnitName;
                 break;
             case FollowChartMode.GroupOverTime:
-                series.Add((used.Where(s => s.Session.GroupMoa is not null).Select(s => new Pt(X(s), s.Session.GroupMoa!.Value)).ToList(), Blue, "MOA", true));
-                yTitle = "MOA";
+                series.Add((used.Where(s => s.Session.GroupMoa is not null).Select(s => new Pt(X(s), _u.AngleValue(s.Session.GroupMoa!.Value))).ToList(), Blue, _u.AngleUnitName, true));
+                yTitle = _u.AngleUnitName;
                 break;
             default:
                 var means = used.Where(s => !double.IsNaN(X(s))).Select(s => new Pt(X(s), _u.VelocityValue(s.Stats.Mean))).ToList();

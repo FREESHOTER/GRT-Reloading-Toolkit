@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using System.Drawing.Imaging;
 using System.Globalization;
 using GrtPluginKit.Grt;
@@ -15,7 +16,7 @@ internal sealed class LadderChart : Panel
     public LadderChart()
     {
         DoubleBuffered = true;
-        BackColor = Color.FromArgb(18, 24, 36);
+        BackColor = Ui.ChartPalette.Dark.Back;
     }
 
     /// <summary>Sets the result to draw. Not <see cref="Control.Show"/> — the panel's visibility is the caller's business.</summary>
@@ -24,7 +25,7 @@ internal sealed class LadderChart : Panel
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        Render(e.Graphics, Width, Height);
+        Render(e.Graphics, Width, Height, Ui.ChartPalette.Dark);
     }
 
     /// <summary>Default export size. <c>GRT_OCW_CHART_SIZE=WxH</c> overrides it — GRT's picture tab
@@ -44,23 +45,24 @@ internal sealed class LadderChart : Panel
     }
 
     /// <summary>Renders the current result to a stand-alone PNG (for the GRT report gallery).</summary>
-    public byte[]? RenderPng() { var (w, h) = ExportSize(); return RenderPng(w, h); }
+    public byte[]? RenderPng(bool print = false) { var (w, h) = ExportSize(); return RenderPng(w, h, print); }
 
-    public byte[]? RenderPng(int width, int height)
+    /// <param name="print">white ground for paper (<see cref="Ui.ChartPalette.Print"/>).</param>
+    public byte[]? RenderPng(int width, int height, bool print = false)
     {
         if (_r is null || _r.Rows.Count < 2) return null;
         using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
         using (var g = Graphics.FromImage(bmp))
-            Render(g, width, height);
+            Render(g, width, height, Ui.ChartPalette.For(print));
         using var ms = new MemoryStream();
         bmp.Save(ms, ImageFormat.Png);
         return ms.ToArray();
     }
 
-    private void Render(Graphics g, int width, int height)
+    private void Render(Graphics g, int width, int height, Ui.ChartPalette c)
     {
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        g.Clear(BackColor);
+        g.Clear(c.Back);
         if (_r is null || _r.Rows.Count < 2) return;
 
         var mode = _r.Mode;
@@ -76,39 +78,39 @@ internal sealed class LadderChart : Panel
         float X(double c) => ml + (float)((c - cMin) / Math.Max(1e-9, cMax - cMin)) * pw;
 
         // primary series
-        // MOA is an angle, so it is the same number everywhere; a velocity is stored in m/s and has
+        // angles are stored in MOA and drawn in the angle unit of the program; a velocity is stored in m/s and has
         // to be drawn in whatever GRT is showing, or the node reads in units the load never used.
-        var u = GrtUnits.Current;
+        var u = ProgramUnits.Current;
         Func<LadderStep, bool> hasP = seat ? x => x.HasTarget : x => x.HasVel;
-        Func<LadderStep, double> valP = seat ? x => x.MeanRadiusMoa : x => u.VelocityValue(x.MeanMps);
-        string pName = seat ? "group MOA" : "MV";
-        string pUnitLo = seat ? "MOA" : u.VelocityUnitName;
+        Func<LadderStep, double> valP = seat ? x => u.AngleValue(x.MeanRadiusMoa) : x => u.VelocityValue(x.MeanMps);
+        string pName = seat ? u.AngleText(Ui.Lang.T("group MOA")) : "MV";
+        string pUnitLo = seat ? u.AngleUnitName : u.VelocityUnitName;
 
         var pr = rows.Where(hasP).ToList();
         var po = rows.Where(x => x.HasTarget).ToList();
         (double lo, double hi) PR = pr.Count > 0 ? (pr.Min(valP), pr.Max(valP)) : (0, 1);
-        (double lo, double hi) PoR = po.Count > 0 ? (po.Min(x => x.PoiYMoa), po.Max(x => x.PoiYMoa)) : (0, 1);
+        (double lo, double hi) PoR = po.Count > 0 ? (po.Min(x => u.AngleValue(x.PoiYMoa)), po.Max(x => u.AngleValue(x.PoiYMoa))) : (0, 1);
         PR = Pad(PR); PoR = Pad(PoR);
         float Yp(double v) => mt + ph - (float)((v - PR.lo) / (PR.hi - PR.lo)) * ph;
         float Ypo(double v) => mt + ph - (float)((v - PoR.lo) / (PoR.hi - PoR.lo)) * ph;
 
         if (_r.BestNode is { } n)
         {
-            using var band = new SolidBrush(Color.FromArgb(40, 120, 200, 120));
+            using var band = new SolidBrush(c.Band);
             g.FillRectangle(band, X(n.Low), mt, X(n.High) - X(n.Low), ph);
         }
 
-        using var axis = new Pen(Color.FromArgb(120, 148, 163, 184), Math.Max(1f, s));
+        using var axis = new Pen(c.Axis, Math.Max(1f, s));
         g.DrawRectangle(axis, ml, mt, pw, ph);
 
         var ci = CultureInfo.InvariantCulture;
         using var fnt = new Font("Segoe UI", fpt);
         using var fsm = new Font("Segoe UI", fpt * 0.9f);
-        using var tb = new SolidBrush(Color.FromArgb(210, 220, 230));
-        using var tf = new SolidBrush(Color.FromArgb(150, 165, 180));
+        using var tb = new SolidBrush(c.Text);
+        using var tf = new SolidBrush(c.TextDim);
 
         // horizontal grid + dual y-axis ticks at round values (left = primary series, right = POI-Y)
-        using var grid = new Pen(Color.FromArgb(30, 148, 163, 184));
+        using var grid = new Pen(c.Grid);
         void YAxis((double lo, double hi) rng, Func<double, float> Y, bool left, string unit, bool drawGrid)
         {
             double step = NiceStep(rng.hi - rng.lo, 4);
@@ -124,7 +126,7 @@ internal sealed class LadderChart : Panel
             g.DrawString(unit, fsm, tf, xTxt, mt - 16 * s);
         }
         if (pr.Count > 1) YAxis(PR, Yp, left: true, pUnitLo, drawGrid: true);
-        if (po.Count > 1) YAxis(PoR, Ypo, left: false, "MOA", drawGrid: pr.Count <= 1);
+        if (po.Count > 1) YAxis(PoR, Ypo, left: false, u.AngleUnitName, drawGrid: pr.Count <= 1);
 
         foreach (var x in rows)
         {
@@ -136,20 +138,20 @@ internal sealed class LadderChart : Panel
 
         if (pr.Count > 1)
         {
-            using var p = new Pen(Color.FromArgb(56, 189, 248), penW);
+            using var p = new Pen(c.Primary, penW);
             var pts = pr.Select(x => new PointF(X(x.X), Yp(valP(x)))).ToArray();
             g.DrawLines(p, pts);
-            using var dot = new SolidBrush(Color.FromArgb(56, 189, 248));
+            using var dot = new SolidBrush(c.Primary);
             foreach (var pt in pts) g.FillEllipse(dot, pt.X - dotR, pt.Y - dotR, dotR * 2, dotR * 2);
         }
 
         if (po.Count > 1)
         {
-            using var p = new Pen(Color.FromArgb(251, 191, 36), penW) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
-            var pts = po.Select(x => new PointF(X(x.X), Ypo(x.PoiYMoa))).ToArray();
+            using var p = new Pen(c.Accent, penW) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
+            var pts = po.Select(x => new PointF(X(x.X), Ypo(u.AngleValue(x.PoiYMoa)))).ToArray();
             g.DrawLines(p, pts);
             double grpMax = po.Max(x => x.MeanRadiusMoa);
-            using var dot = new SolidBrush(Color.FromArgb(251, 191, 36));
+            using var dot = new SolidBrush(c.Accent);
             for (int i = 0; i < po.Count; i++)
             {
                 float rad = (3 + 5 * (float)(1 - po[i].MeanRadiusMoa / Math.Max(1e-6, grpMax))) * s;
@@ -158,7 +160,7 @@ internal sealed class LadderChart : Panel
         }
 
         using var lg = new Font("Segoe UI", fpt, FontStyle.Bold);
-        g.DrawString($"- {pName}    - - POI-Y (marker = group, bigger = tighter)", lg, tb, ml, 4 * s);
+        g.DrawString($"— {pName}    – – POI-Y " + Ui.Lang.T("(marker = group, bigger = tighter)"), lg, tb, ml, 4 * s);
     }
 
     /// <summary>A 1-2-5 &times; 10ⁿ step that splits <paramref name="span"/> into roughly <paramref name="target"/> intervals.</summary>

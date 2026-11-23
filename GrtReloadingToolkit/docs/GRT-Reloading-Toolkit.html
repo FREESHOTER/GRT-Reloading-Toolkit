@@ -135,7 +135,7 @@
 <div class="wrap">
   <div class="hero">
     <div class="eyebrow">Plugin for Gordon&#39;s Reloading Tool</div>
-    <h1>Twenty-seven reloading tools, one GRT window.</h1>
+    <h1>Thirty-six reloading tools, one GRT window.</h1>
     <p class="lede">Import your chronograph, find the accuracy node, calibrate the barrel to your
       simulation, size necks, cost your rounds, and print the load card &mdash; then push every
       result back into GRT as a note, a chart, or a corrected input.</p>
@@ -197,7 +197,7 @@
 <section><div class="wrap">
   <div class="sec-head">
     <span class="n">01</span>
-    <div><h2>The twenty-seven tools</h2>
+    <div><h2>The thirty-six tools</h2>
     <p>All reached from one launcher window. Each writes its result into the load.</p></div>
   </div>
   <div class="tools">
@@ -315,10 +315,24 @@
     </div>
 
     <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M12 2c2.2 1.6 3.2 4.3 3.2 7.5H8.8C8.8 6.3 9.8 3.6 12 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.8 9.5h6.4V19H8.8zM7.5 19h9v2.5h-9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <h3>Cartridges</h3></div>
+      <p>Measure cases, bullets and primers into numbered lots of cartridges &mdash; one lot kept for the match, and separate training lots of other cartridges that you shoot to learn, with a check that the match lot stays inside what the training taught &mdash; let the program learn from the shots of your archive which measures really move the velocity (inside each string, with the p values corrected for the number of measures tried), plan a race or a training in the order that gives the lowest SD, and check the prediction after the shooting.</p>
+      <div class="out">works without GRT · <b>the prediction is saved before the shooting and can never be changed</b></div>
+    </div>
+
+    <div class="tool"><div class="top">
       <svg class="ic" viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="17" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 3h6v3H9z" stroke="currentColor" stroke-width="2"/><path d="M8.5 11l2 2 4-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <h3>Inventory</h3></div>
       <p>Component stock with lot tracking and cost per round, a Firearms tab (round count and MV-drift chart per barrel), a Brass Life tab tracking anneal and retirement per lot, and a Pressure Signs tab logging fired-case head expansion per charge, flagging when it accelerates beyond that ladder's own trend.</p>
       <div class="out">SQLite · <span class="mono">%AppData%\GRTPlugins\</span></div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 5h4v14H4zM10 5h4v14h-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m16 6 4-1 3 13-4 1z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <h3>Component Library</h3></div>
+      <p>What each bullet, cartridge, powder, case, primer and rifle is, every figure with its source: your own measurements first, then the maker's, then your GRT loads, then the Empirical Precision library. Proposed matches with that library are confirmed or set aside one by one.</p>
+      <div class="out">SQLite · <span class="mono">Documents\Ricarica\archivio.db</span></div>
     </div>
 
     <div class="tool"><div class="top">
@@ -382,6 +396,55 @@
       <h3>Group Analysis</h3></div>
       <p>The 2D sibling of SD Root-Cause: for one shot group &mdash; from an OnTarget CSV, GRT&#39;s own Shot-group tabs, or typed in by hand &mdash; a dispersion score AND a separate confidence rating from sample size alone, robust outlier detection (Mahalanobis, not just a look at the target), and a plain list of specific problems found, each with its own evidence number.</p>
       <div class="out">score + confidence, never one number · → <b>group analysis</b> note + report page</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="15.5" cy="14" r="1.2" fill="currentColor"/><circle cx="9" cy="14.5" r="1.2" fill="currentColor"/><circle cx="14.5" cy="8.5" r="1.2" fill="currentColor"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>Group Reading</h3></div>
+      <p>Reads the pattern of the shots on the target for the mistakes of the <i>shooter</i>, not of the load: a zero that is off, a sideways spread bigger than the vertical one once the velocity part is taken out, shots far from their own group, the point of impact drifting during a series, shots held too long or fired in a hurry, a first shot that is always worse, a group that opens up from one series to the next. The shots come from the archive&#39;s groups or are typed in; it says how many scope clicks fix the zero and gives advice that depends on how the rifle rests. A second mode reads a <b>match</b> &mdash; one shot for each target, targets at different distances, wind and positions &mdash; and takes every shot apart into the part from the cartridge&#39;s velocity, from the settings (zero, elevation, windage), from the wind not corrected and from the shooting itself, so each shot is named for what weighs most on it.</p>
+      <div class="out">each reading with the probability that it is chance · no change to the archive</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><rect x="7" y="3" width="10" height="18" rx="3" stroke="currentColor" stroke-width="2"/><path d="M7 9h10M7 15h10" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></svg>
+      <h3>Training Cartridges</h3></div>
+      <p>Phase 6 of the path. Training lots are <i>other</i> cartridges than the match&#39;s: you shoot them to teach the model what moves the velocity, to try the plan in the order that separates the measures from the warming of the barrel, and to check a prediction, while the match lot stays untouched. Each training lot says which match lot it imitates, and the comparison tells whether what was learned with it can be used for the match lot or whether those cartridges lie outside what the model has seen.</p>
+      <div class="out">opens the Cartridges window on the Training tab · works without GRT</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 20h16M7 20V10M12 20V5M17 20v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="3" r="1" fill="currentColor"/></svg>
+      <h3>Chronograph Statistics (Training)</h3></div>
+      <p>The same statistics of a string &mdash; mean, SD, extreme spread, how the velocity moves inside the series &mdash; opened in the training phase, for the strings fired with the training cartridges. Once those shots are linked to their cartridges they are also what teaches the model, and the Training tab shows what the latest session changed in what the model has proven and in what it expects of the match lot.</p>
+      <div class="out">opens the chronograph statistics · the shots then teach the model</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M4 20V12M10 20V6M16 20v-5M20 20V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>SD Budget (Training)</h3></div>
+      <p>Where the SD of a string comes from &mdash; the change of velocity between series, the cartridges, the chronograph, what is left &mdash; for the latest training session in one press, with the cost of each measure of the cartridges and the band each one would need to be held to.</p>
+      <div class="out">opens the Cartridges window on the SD budget tab</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M3 16l13-13 5 5-13 13z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 11l2 2M11 8l2 2M14 5l2 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <h3>Units of Measure</h3></div>
+      <p>Every number can be shown and typed in the unit you prefer: grains or grams, millimetres or inches, metres or yards, and for the optics and the errors on the target minutes of angle or milliradians, with the click of the scope in 1/8, 1/4 or 1/2 MOA or in 1/20 or 1/10 mrad. One starting choice for the whole program, and a unit of its own for any column or field. The archive keeps its own units, so changing them never changes what is stored.</p>
+      <div class="out">grains/grams · mm/inches · m/yards · MOA/mrad · works without GRT</div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M5 21V4M5 4h12l-2.5 4L17 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3>Race Plan and Check</h3></div>
+      <p>Phase 7 of the path, for the lot kept for the match. The shape of a race changes from one race to the next, so the number of targets, of barilotti on each, of returns and of proving shots is yours; the prediction is saved before the shooting and can never be changed, and after the shooting the shots are linked to their cartridges and the prediction is checked against what happened.</p>
+      <div class="out">opens the Cartridges window on the plan tab · <b>the prediction is saved before the shooting</b></div>
+    </div>
+
+    <div class="tool"><div class="top">
+      <svg class="ic" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M17 17l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="14.5" cy="9.5" r="1.2" fill="currentColor"/></svg>
+      <h3>Match Reading</h3></div>
+      <p>Phase 7 of the path: one shot for each target, targets at different distances, wind and positions. Every shot is turned into MOA from the aim of its own target and taken apart into the part from the cartridge, from the settings (zero, elevation, windage), from the wind that was not corrected and from the shooting; each shot is named for what weighs most on it. A target visited again and again and always missed the same way is found with the probability that it is chance.</p>
+      <div class="out">each finding with its evidence level · no change to the archive</div>
     </div>
 
     <div class="tool"><div class="top">

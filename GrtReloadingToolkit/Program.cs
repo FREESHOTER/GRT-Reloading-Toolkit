@@ -13,11 +13,72 @@ internal static class Program
     internal const string PluginId = "com.grt.plugin.reloadingtoolkit";
 
     [STAThread]
+    private static Ui.BudgetChart BudgetPreview()
+    {
+        // 6 series of 8 shots: a velocity that drifts from one series to the next, a bullet-weight effect and a first shot that is slow
+        var rnd = new Random(5);
+        var shots = new List<Cartridges.ShotSample>();
+        for (int sr = 0; sr < 6; sr++)
+            for (int k = 0; k < 8; k++)
+            {
+                double w = 140.0 + (rnd.NextDouble() - 0.5) * 1.6;
+                double v = 825 + sr * 1.8 + (w - 140) * 3.1 + (k == 0 ? -2.5 : 0) + (rnd.NextDouble() - 0.5) * 3.2;
+                shots.Add(new Cartridges.ShotSample(sr + 1, v, new Dictionary<string, double> { ["bullet_weight_gr"] = w }));
+            }
+        var c = new Ui.BudgetChart { Dock = DockStyle.Fill };
+        c.SetData(Cartridges.VarianceBudget.Analyze(shots, 0.8, 300));
+        return c;
+    }
+
+    private static Ui.ProgressChart ProgressPreview()
+    {
+        var c = new Ui.ProgressChart { Dock = DockStyle.Fill };
+        var before = new Cartridges.ModelSnapshot(48, 6, 3.4, 3.1, 0.31, new[] { new Cartridges.ModelProof("bullet_weight_gr", 3.0, 0.9, 0.046) });
+        var after = new Cartridges.ModelSnapshot(72, 9, 3.3, 2.6, 0.48, new[] { new Cartridges.ModelProof("bullet_weight_gr", 3.1, 0.6, 0.002), new Cartridges.ModelProof("case_volume", -0.4, 0.1, 0.01) });
+        c.SetData(new Cartridges.ProgressReport(3, "2026-11-12", 24, before, after, new Cartridges.LotExpectation(30, 2.4, 3.9), new Cartridges.LotExpectation(30, 2.1, 3.3)));
+        return c;
+    }
+
+    private static Control PrintPreview()
+    {
+        // the charts as they go into a PDF (white ground), one under the other
+        var box = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, AutoScroll = true, BackColor = Color.White };
+        foreach (var png in new[] { BudgetPreview().RenderPng(1000, 640, print: true), ProgressPreview().RenderPng(760, 330, print: true) })
+            if (png != null) box.Controls.Add(new PictureBox { Image = Image.FromStream(new MemoryStream(png)), SizeMode = PictureBoxSizeMode.AutoSize });
+        return box;
+    }
+
+    private static Ui.RankChart RankPreview()
+    {
+        var c = new Ui.RankChart { Dock = DockStyle.Fill };
+        c.SetData(new[]
+        {
+            new Ui.RankBar("41.2 gr  Varget", 8.6, "SD 3.1 · 0.42 MOA · 30 colpi"), new Ui.RankBar("41.0 gr  Varget", 8.1, "SD 3.8 · 0.51 MOA · 20 colpi"),
+            new Ui.RankBar("41.4 gr  Varget", 6.9, "SD 5.2 · 0.60 MOA · 20 colpi"), new Ui.RankBar("40.8 gr  Varget", 5.2, "SD 7.4 · 0.88 MOA · 10 colpi"),
+            new Ui.RankBar("41.6 gr  Varget", null, "SD 4.0 · 0.70 MOA · 5 colpi"),
+        });
+        return c;
+    }
+
     private static void Main(string[] args)
     {
         // The debug command lines stay in English for scripts and logs; TOOLKIT_LANG=it asks for the Italian texts too (to read them).
         if (string.Equals(Environment.GetEnvironmentVariable("TOOLKIT_LANG"), "it", StringComparison.OrdinalIgnoreCase)) Tr.Translate = Ui.Lang.T;
         if (args.Length >= 1 && args[0] == "--dbtest") { DbSelfTest.Run(args); return; }
+        if (args.Length >= 2 && args[0] == "--archivio") { Environment.ExitCode = ArchiveCli(args); return; }
+        if (args.Length >= 3 && args[0] == "--recupera")
+        {
+            // Reads every .grtload under args[1] (read only) and writes what it holds into args[2].
+            string fotoDir = Path.Combine(args[2], "foto");
+            var result = Recovery.HistoryRecovery.Run(args[1], (name, data) =>
+            {
+                Directory.CreateDirectory(fotoDir);
+                File.WriteAllBytes(Path.Combine(fotoDir, name), data);
+            });
+            Recovery.RecoveryWriter.Write(result, args[2]);
+            Console.WriteLine(Recovery.RecoveryWriter.Summary(result));
+            return;
+        }
         if (args.Length >= 3 && args[0] == "--ladder") { LadderCli.Run(args[1], args[2], args.Length >= 4 ? args[3] : null); return; }
         if (args.Length >= 2 && args[0] == "--chronostats")
         {
@@ -45,7 +106,223 @@ internal static class Program
 
         ApplicationConfiguration.Initialize();
         Tr.Translate = Ui.Lang.T;     // the engines' report texts follow the UI language
+        // On its own the program is the Banco di Ricarica and its windows take the colours of its home page; launched by GRT
+        // (with an IPC port) they keep GRT's look.
+        bool standalone = !args.Contains("--ipcport");
+        if (standalone) Ui.GrtTheme.UseBancoPalette();
         Ui.GrtTheme.Install();
+        Measuring.ProgramUnits.Prefs = Ui.AppUnits.Prefs;     // the printed texts follow the units chosen in "Units of measure"
+
+        // --anteprima athlon <file.png>: draws a tool window into a picture without GRT and without showing it, to check
+        // its layout. The archive is opened read only for the lists (a copy, so not even its schema is touched).
+        if (args.Length >= 3 && args[0] == "--anteprima")
+        {
+            string copy = Path.Combine(Path.GetTempPath(), "anteprima_archivio.db");
+            Archive.ArchiveDb? arc = null;
+            if (File.Exists(Archive.ArchivePaths.Database)) { File.Copy(Archive.ArchivePaths.Database, copy, true); arc = new Archive.ArchiveDb(copy); }
+            Ui.ArchiveLink? link = arc != null ? new Ui.ArchiveLink(arc, () => 1) : null;
+            using Form f = args[1] switch
+            {
+                "athlon" => new Ui.AthlonForm(null, null, arc),
+                "cronostat" => new Ui.ChronoStatsForm(null, link), "cronostat2" => Ui.ChronoStatsForm.Preview(),
+                "rosate" => new Ui.GroupAnalysisForm(null, link), "rosate2" => Ui.GroupAnalysisForm.Preview(),
+                "sd" => new Ui.SdRootCauseForm(null, new Log.Db(Path.Combine(Path.GetTempPath(), "anteprima_log.db")), link),
+                "ocw" => new Ui.OcwForm(null, link), "scala" => Ui.OcwForm.Preview(), "seduta" => Ui.SeatingForm.Preview(),
+                "scegli" => new Ui.ArchivePickForm(link!, Ui.ArchivePick.Both),
+                "shotmarker" => new Ui.ShotMarkerForm(null, null, link),
+                "libreria" => new Ui.LibraryForm(link!),
+                "cartucce1" => Ui.CartridgesForm.Preview(link!, 0), "cartucce2" => Ui.CartridgesForm.Preview(link!, 1),
+                "cartucce3" => Ui.CartridgesForm.Preview(link!, 2), "cartucce4" => Ui.CartridgesForm.Preview(link!, 3),
+                "cartucce5" => Ui.CartridgesForm.Preview(link!, 4), "cartucce6" => Ui.CartridgesForm.Preview(link!, 5), "cartucce7" => Ui.CartridgesForm.Preview(link!, 6),
+                "lettura" => Ui.GroupReadingForm.Preview(), "gara" => Ui.GroupReadingForm.PreviewMatch(), "unita" => new Ui.UnitsForm(), "bossoli" => Ui.BrassForm.Preview(),
+                "testolungo" => new Ui.LongTextDialog("Installa i template report GRT", "Cartella di GRT: C:\\GRT" + Environment.NewLine + "fatto — 9 cartelle di lingua",
+                    string.Join(Environment.NewLine, Enumerable.Range(1, 300).Select(i => $"de: scritto toolkit-pagina-{i}.txt"))),
+                "home" => new Ui.HomeForm(_ => { }, new Log.Db(Path.Combine(Path.GetTempPath(), "anteprima_log.db")), _ => { }, arc),
+                "abbinamenti" => Ui.LibraryForm.OnMatches(link!),
+                // the three kinds of button side by side: main action on, main action off, an ordinary one
+                "diagnostica" => new Ui.AdvancedDiagnosticsForm(null, new Log.Db(Path.Combine(Path.GetTempPath(), "anteprima_log.db"))),
+                "workflow" => new Ui.WorkflowForm(null, new Log.Db(Path.Combine(Path.GetTempPath(), "anteprima_log.db"))),
+                "uscita" => new Ui.OutingDialog(new Log.Outing { GroupMoa = 0.62, DistanceM = 300, SeatingMm = 0.508, ShotsMs = "821.4 823.0 820.2 822.8 821.9", WindMps = 2.5, TempC = 18 }, "Prova"),
+                "bilancio" => new Form { Size = new Size(1000, 640), Text = "Bilancio", Controls = { BudgetPreview() } },
+                "progresso" => new Form { Size = new Size(760, 330), Text = "Progresso", Controls = { ProgressPreview() } },
+                "stampa" => new Form { Size = new Size(1100, 1000), Text = "Stampa", Controls = { PrintPreview() } },
+                "classifica" => new Form { Size = new Size(900, 360), Text = "Classifica", Controls = { RankPreview() } },
+                "pulsanti" => new Form { Size = new Size(560, 120), Text = "Pulsanti", Controls = { new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), Controls = {
+                    new Button { Text = Ui.Lang.T("PDF report"), AutoSize = true },
+                    new Button { Text = Ui.Lang.T("Save in the archive"), AutoSize = true, Enabled = false },
+                    new Button { Text = Ui.Lang.T("From the archive…"), AutoSize = true } } } } },
+                _ => throw new ArgumentException("finestra sconosciuta: " + args[1]),
+            };
+            Tool? asTool = args[1] switch
+            {
+                "athlon" => Tool.Athlon, "cronostat" or "cronostat2" => Tool.ChronoStats, "rosate" or "rosate2" => Tool.GroupAnalysis, "diagnostica" => Tool.Diagnostics, "uscita" => Tool.FollowLoad, "workflow" => Tool.Workflow, "sd" => Tool.SdRootCause,
+                "ocw" or "scala" => Tool.Ocw, "seduta" => Tool.Seating, "shotmarker" => Tool.ShotMarker, "libreria" => Tool.Library,
+                "cartucce1" or "cartucce2" or "cartucce6" or "cartucce7" => Tool.Cartridges,
+                "cartucce3" => Tool.TrainingCartridges, "cartucce4" or "cartucce5" => Tool.RaceCartridges,
+                "lettura" => Tool.GroupReading, "gara" => Tool.MatchReading, "unita" => Tool.Units, "bossoli" => Tool.Brass, _ => null,
+            };
+            if (asTool is { } at) Ui.ToolBanner.Attach(f, at);
+            Ui.GrtTheme.Apply(f);
+            // RICARICA_ANTEPRIMA_DIM=WxH: the window at another size (a small screen, the bottom of a long page)
+            if (Environment.GetEnvironmentVariable("RICARICA_ANTEPRIMA_DIM")?.Split('x') is [var dw, var dh]
+                && int.TryParse(dw, out int pw) && int.TryParse(dh, out int ph))
+                f.Size = new Size(pw, ph);
+            // RICARICA_ANTEPRIMA_MOSTRA=1: the window stays open on screen (to look at it as it really draws, list views included)
+            if (Environment.GetEnvironmentVariable("RICARICA_ANTEPRIMA_MOSTRA") == "1")
+            {
+                f.StartPosition = FormStartPosition.CenterScreen;
+                Application.Run(f);
+                arc?.Dispose();
+                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                File.Delete(copy);
+                return;
+            }
+            // shown for a moment far off-screen: a window never shown draws its children blank
+            f.StartPosition = FormStartPosition.Manual;
+            f.Location = new Point(-5000, -5000);
+            f.ShowInTaskbar = false;
+            f.Show();
+            for (int i = 0; i < 10; i++) { Application.DoEvents(); Thread.Sleep(30); }
+            using var bmp = new Bitmap(f.Width, f.Height);
+            f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));
+            // Off-screen a list view draws only its first row into the picture, so what every list really holds is written
+            // beside it (<file>.txt): the count and the first rows.
+            var lines = new List<string>();
+            void Dump(Control c)
+            {
+                switch (c)
+                {
+                    case ListView lv:
+                        lines.Add($"elenco: {lv.Items.Count} righe");
+                        lines.AddRange(lv.Items.Cast<ListViewItem>().Take(8).Select(i => "  " + string.Join(" | ", i.SubItems.Cast<ListViewItem.ListViewSubItem>().Select(x => x.Text))));
+                        break;
+                    case CheckedListBox cl:
+                        lines.Add($"lista da spuntare: {cl.Items.Count} voci, {cl.CheckedItems.Count} spuntate");
+                        lines.AddRange(cl.Items.Cast<object>().Take(8).Select(o => "  " + o));
+                        break;
+                    case ComboBox cb:
+                        lines.Add($"tendina: {cb.Items.Count} voci, scelta \"{cb.SelectedItem}\"");
+                        break;
+                    case DataGridView dg:
+                        lines.Add($"tabella: {dg.Rows.Count} righe");
+                        break;
+                }
+                foreach (Control k in c.Controls) Dump(k);
+            }
+            Dump(f);
+            File.WriteAllLines(args[2] + ".txt", lines, new System.Text.UTF8Encoding(true));
+            bmp.Save(args[2], System.Drawing.Imaging.ImageFormat.Png);
+            arc?.Dispose();
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            File.Delete(copy);
+            return;
+        }
+
+        // --icona <file.ico>: the emblem of the home page as the program's icon (the source of app.ico)
+        if (args.Length >= 2 && args[0] == "--icona")
+        {
+            File.WriteAllBytes(args[1], Ui.HomeArt.EmblemIco());
+            return;
+        }
+
+        // --rapporto-seduta [id]: the chronograph statistics of one session of the real archive (the latest one when no id is
+        // given) as the "PDF report" button makes them: the PDF in Documenti\Ricarica\rapporti and, with its analysis, in the
+        // archive, after a dated copy of the archive.
+        if (args.Length >= 1 && args[0] == "--rapporto-seduta")
+        {
+            string backup = Archive.ArchiveBackup.Copy(Archive.ArchivePaths.Database, Archive.ArchivePaths.Backups);
+            using var arc = new Archive.ArchiveDb(Archive.ArchivePaths.Database);
+            long shooter = Archive.ArchiveImports.ShooterFor(arc, null);
+            var all = Archive.ArchiveQueries.Sessions(arc, shooter).Where(x => x.Strings > 0).ToList();
+            var s = args.Length >= 2 && long.TryParse(args[1], out long sid) ? all.First(x => x.Id == sid) : all.First();
+            var strings = Archive.ArchiveQueries.Strings(arc, s.Id).Where(st => st.Velocities.Count(v => v > 50) >= 2).ToList();
+            var rows = strings.Select(st => ($"{st.Label} ({s.Date})", ChronoStats.ChronoStatsCalc.Analyze(st.Velocities.Where(v => v > 50).ToList()))).ToList();
+            string tool = Ui.Lang.T("Chronograph Statistics");
+            var text = new System.Text.StringBuilder();
+            text.AppendLine($"{tool} {DateTime.Now:yyyy-MM-dd}");
+            text.AppendLine(new string('-', 20));
+            text.AppendLine();
+            text.Append(ChronoStats.ChronoStatsCalc.BuildTableReport(rows, 3.0, 0.95));
+            string title = $"{Ui.HomeForm.ShortLoadName(s.LoadName)} — {s.Date}";
+            var doc = new Reports.ReportDoc(title, tool, Ui.AppVersion.Short, DateTime.Now,
+                Archive.ArchiveQueries.ReportFacts(arc, s.LoadId, s.Id), text.ToString(), Array.Empty<Reports.ReportImage>());
+            string pdfPath = Reports.PdfReport.DefaultPath(doc, Path.Combine(Archive.ArchivePaths.Folder, "rapporti"));
+            byte[] pdf = Reports.PdfReport.Write(doc, pdfPath);
+            string inputs = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                serie_archivio = strings.Select(st => st.Id).ToList(), serie = rows.Select(r => r.Item1).ToList(), confidenza = 0.95,
+            });
+            long id = Archive.ArchiveQueries.SaveAnalysis(arc, tool, Ui.AppVersion.Short, s.LoadId, s.Id, inputs, text.ToString(),
+                (pdf, Path.GetFileName(pdfPath)));
+            File.WriteAllLines(Path.Combine(Archive.ArchivePaths.Folder, "ultimo_rapporto.txt"), new[]
+            {
+                "copia prima: " + backup, "seduta: " + s.Id + " " + title, "rapporto: " + pdfPath, "analisi n. " + id,
+                "archivio principale: " + arc.IsMaster,
+            }, new System.Text.UTF8Encoding(true));
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            return;
+        }
+
+        // --rapporto-prova <file.pdf>: a PDF report from the shooter's real archive (a copy of it), to check the page the
+        // tools print: the session with the most strings and groups, its velocity table and its first measurable group.
+        if (args.Length >= 2 && args[0] == "--rapporto-prova")
+        {
+            string copy = Path.Combine(Path.GetTempPath(), "rapporto_prova_archivio.db");
+            File.Copy(Archive.ArchivePaths.Database, copy, true);
+            try
+            {
+                using var arc = new Archive.ArchiveDb(copy);
+                long shooter = Archive.ArchiveImports.ShooterFor(arc, null);
+                var s = Archive.ArchiveQueries.Sessions(arc, shooter).Where(x => x.Strings > 0)
+                    .OrderByDescending(x => x.Groups > 0).ThenByDescending(x => x.Strings).First();
+                var rows = Archive.ArchiveQueries.Strings(arc, s.Id).Where(st => st.Velocities.Count(v => v > 50) >= 2)
+                    .Select(st => ($"{st.Label} ({s.Date})", ChronoStats.ChronoStatsCalc.Analyze(st.Velocities.Where(v => v > 50).ToList())))
+                    .ToList();
+                string body = ChronoStats.ChronoStatsCalc.BuildTableReport(rows, 3.0, 0.95);
+                var images = new List<Reports.ReportImage>();
+                foreach (var g in Archive.ArchiveQueries.Groups(arc, s.Id))
+                    if (Archive.ArchiveQueries.ToTargetGroup(g) is { } t)
+                    {
+                        using var chart = new Ui.GroupTargetChart();
+                        chart.SetData(t, Array.Empty<GrtReloadingToolkit.Log.MahalanobisOutlier>());
+                        images.AddRange(Ui.ReportPdfAction.Chart($"{g.Label} — {t.Impacts.Count} colpi", chart.RenderPng(900, 900, print: true)));
+                        break;
+                    }
+                // the other charts of the tools, so every one is seen in its print colours
+                var strings = Archive.ArchiveQueries.Strings(arc, s.Id);
+                if (strings.FirstOrDefault(st => st.Velocities.Count(v => v > 50) >= 3) is { } first)
+                {
+                    var rep = Log.SdRootCause.Diagnose(first.Velocities.Where(v => v > 50).ToList());
+                    using var sd = new Ui.SdRootCauseChart();
+                    sd.SetData(rep.Ranking);
+                    images.AddRange(Ui.ReportPdfAction.Chart(Ui.Lang.T("SD contribution") + " — " + first.Label, sd.RenderPng(print: true)));
+                }
+                var vels = strings.Select(st => (st, vs: st.Velocities.Where(v => v > 50).ToList()))
+                    .Where(x => x.vs.Count > 0 && Ocw.LadderLoader.MeasurementStep(Ocw.LadderMode.Charge, x.st.ChargeGr, x.st.Label, x.st.Notes) != null)
+                    .Select(x => new Ocw.LadderVelocity(Ocw.LadderLoader.MeasurementStep(Ocw.LadderMode.Charge, x.st.ChargeGr, x.st.Label, x.st.Notes)!.Value, x.vs))
+                    .ToList();
+                if (vels.Count >= 2)
+                {
+                    var loaded = Ocw.LadderLoader.FromParts(Array.Empty<Ocw.TargetGroup>(), vels, Ocw.LadderMode.Charge);
+                    var res = Ocw.LadderAnalyzer.Analyze(loaded.Rows, Ocw.LadderMode.Charge, Ocw.LadderMode.Charge.XUnitName());
+                    using var lc = new Ocw.LadderChart();
+                    lc.SetData(res);
+                    images.AddRange(Ui.ReportPdfAction.Chart("Ladder / OCW", lc.RenderPng(1400, 900, print: true)));
+                    using var fb = new Ui.FindBaChart();
+                    fb.SetData(res.Rows.Where(r => r.HasVel).Select(r => (r.X, r.MeanMps)), "gr", "m/s", "");
+                    images.AddRange(Ui.ReportPdfAction.Chart("Carica → velocità", fb.RenderPng(print: true)));
+                }
+                var doc = new Reports.ReportDoc($"{s.LoadName} — {s.Date}", Ui.Lang.T("Chronograph Statistics"), Ui.AppVersion.Short, DateTime.Now,
+                    Archive.ArchiveQueries.ReportFacts(arc, s.LoadId, s.Id), body, images);
+                Reports.PdfReport.Write(doc, args[1]);
+            }
+            finally
+            {
+                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                File.Delete(copy);
+            }
+            return;
+        }
 
         int port = 0;
         for (int i = 0; i + 1 < args.Length; i++)
@@ -68,9 +345,70 @@ internal static class Program
             Application.Run(ctx);
         grt?.Dispose();
     }
+
+    /// <summary>
+    /// <c>--archivio crea [--sostituisci] &lt;recupero&gt;…</c> builds Documenti\Ricarica\archivio.db from the old databases and
+    /// the folders written by <c>--recupera</c>; <c>--archivio copia</c> makes a dated copy of it.
+    /// </summary>
+    private static int ArchiveCli(string[] args)
+    {
+        // A Windows program has no console of its own when started from a shell: then the encoding cannot be set, and
+        // the report file below is what counts anyway.
+        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch (IOException) { }
+        string db = Archive.ArchivePaths.Database;
+        if (args[1] == "copia")
+        {
+            Console.WriteLine("Copia fatta: " + Archive.ArchiveBackup.Copy(db, Archive.ArchivePaths.Backups));
+            return 0;
+        }
+        if (args[1] == "aggiorna")
+        {
+            if (!File.Exists(db)) { Console.WriteLine($"Archivio non trovato: {db}"); return 1; }
+            Archive.ArchiveBuildReport r;
+            using (var a = new Archive.ArchiveDb(db))
+                r = Archive.ArchiveBuilder.Refresh(a, Archive.ArchiveSources.Defaults(Array.Empty<string>()));
+            Console.WriteLine(r.Text());
+            return r.Ok ? 0 : 1;
+        }
+        if (args[1] != "crea") { Console.WriteLine("uso: --archivio crea [--sostituisci] <cartella recupero>…  |  --archivio aggiorna  |  --archivio copia"); return 2; }
+
+        bool replace = args.Contains("--sostituisci");
+        var folders = args.Skip(2).Where(s => s != "--sostituisci").ToList();
+        if (File.Exists(db))
+        {
+            using (var old = new Archive.ArchiveDb(db))
+                if (old.IsMaster)
+                {
+                    Console.WriteLine("L'archivio è già quello principale (i programmi ci scrivono): non si ricostruisce dai vecchi archivi.");
+                    return 1;
+                }
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            if (!replace) { Console.WriteLine($"Esiste già {db}. Usa --sostituisci per ricostruirlo (prima ne viene fatta una copia)."); return 1; }
+            Console.WriteLine("Copia del vecchio archivio: " + Archive.ArchiveBackup.Copy(db, Archive.ArchivePaths.Backups));
+        }
+
+        string tmp = db + ".nuovo";
+        if (File.Exists(tmp)) File.Delete(tmp);
+        Archive.ArchiveBuildReport rep;
+        using (var a = new Archive.ArchiveDb(tmp))
+            rep = Archive.ArchiveBuilder.Build(a, Archive.ArchiveSources.Defaults(folders));
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
+        string text = "COSTRUZIONE DELL'ARCHIVIO " + db + "\n" + DateTime.Now.ToString("dd/MM/yyyy HH:mm") + "\n\n" + rep.Text();
+        File.WriteAllText(Path.Combine(Path.GetDirectoryName(db)!, "verifica_archivio.txt"), text, new System.Text.UTF8Encoding(true));
+        Console.WriteLine(text);
+        if (!rep.Ok)
+        {
+            Console.WriteLine($"L'archivio NON è stato messo al suo posto: il file provvisorio è {tmp}.");
+            return 1;
+        }
+        File.Move(tmp, db, overwrite: true);
+        Console.WriteLine("Archivio pronto: " + db);
+        return 0;
+    }
 }
 
-internal enum Tool { Launcher, Athlon, ShotMarker, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports, Diagnosis, FollowLoad, ModelProbe, Stability }
+internal enum Tool { Launcher, Athlon, ShotMarker, ChronoStats, Ocw, Seating, Cal, Temp, Brass, SeatingForce, Label, Log, Journal, FindBa, Leaderboard, Workflow, PowderCompare, Diagnostics, SdRootCause, GroupAnalysis, TargetPrint, Wizard, VelocityModel, LoadBook, Reports, Diagnosis, FollowLoad, ModelProbe, Stability, Library, GrtLoad, Cartridges, GroupReading, TrainingCartridges, RaceCartridges, MatchReading, TrainingStats, TrainingBudget, Units }
 
 /// <summary>
 /// One process, three tools. GRT (launch-type onDemand) starts us on the first
@@ -82,6 +420,10 @@ internal sealed class ToolkitContext : ApplicationContext
     private readonly GrtClient? _grt;
     private readonly Db _db;
     private TrackerDb? _tracker;
+    /// <summary>The shooter's own archive (Documenti\Ricarica\archivio.db); null when it could not be opened, and then
+    /// the tools work as they did before it existed.</summary>
+    private Archive.ArchiveDb? _archive;
+    private long _archiveBaseline;
     private readonly Dictionary<Tool, Form> _open = new();
     private readonly WindowsFormsSynchronizationContext _ui = new();
 
@@ -91,6 +433,7 @@ internal sealed class ToolkitContext : ApplicationContext
         SynchronizationContext.SetSynchronizationContext(_ui);
         _db = new Db(Environment.GetEnvironmentVariable("RELOADING_LOG_DB") ?? Db.DefaultPath);
         _db.CurrentShooterId = Ui.ShooterState.Saved(_db);
+        OpenArchive();
 
         // If GRT started us from a click on a *specific* tool, that tool opens itself (the id is
         // replayed synchronously by the subscribe below). A click on the plain toolbar/menu entry
@@ -153,11 +496,26 @@ internal sealed class ToolkitContext : ApplicationContext
         id.EndsWith(".reports", StringComparison.Ordinal) ? Tool.Reports :
         id.EndsWith(".modelprobe", StringComparison.Ordinal) ? Tool.ModelProbe :
         id.EndsWith(".stability", StringComparison.Ordinal) ? Tool.Stability :
+        id.EndsWith(".cartridges", StringComparison.Ordinal) ? Tool.Cartridges :
+        id.EndsWith(".groupreading", StringComparison.Ordinal) ? Tool.GroupReading :
+        id.EndsWith(".trainingcartridges", StringComparison.Ordinal) ? Tool.TrainingCartridges :
+        id.EndsWith(".racecartridges", StringComparison.Ordinal) ? Tool.RaceCartridges :
+        id.EndsWith(".matchreading", StringComparison.Ordinal) ? Tool.MatchReading :
+        id.EndsWith(".trainingstats", StringComparison.Ordinal) ? Tool.TrainingStats :
+        id.EndsWith(".trainingbudget", StringComparison.Ordinal) ? Tool.TrainingBudget :
+        id.EndsWith(".units", StringComparison.Ordinal) ? Tool.Units :
         Tool.Launcher;
 
     private void Open(Tool t)
     {
         if (t == Tool.Reports) { InstallReports(); return; }
+        if (t == Tool.GrtLoad) { ImportGrtLoad(); return; }
+        if ((t == Tool.Library || t == Tool.GrtLoad || t == Tool.Cartridges || t == Tool.TrainingCartridges || t == Tool.RaceCartridges || t == Tool.TrainingBudget) && _archive == null)
+        {
+            MessageBox.Show(Ui.Lang.T("The archive could not be opened; the tools work as before and the chronograph import writes to GRT only."),
+                Ui.Lang.T("Shooter's archive"));
+            return;
+        }
 
         if (_open.TryGetValue(t, out var existing) && !existing.IsDisposed)
         {
@@ -170,11 +528,11 @@ internal sealed class ToolkitContext : ApplicationContext
         // Every tool window is born here, so this is the one place that has to dress them.
         Form f = AppIcon.Apply<Form>(t switch
         {
-            Tool.Athlon => new AthlonForm(_grt, _db),
-            Tool.ShotMarker => new ShotMarkerForm(_grt, _db),
-            Tool.ChronoStats => new ChronoStatsForm(_grt),
-            Tool.Ocw => new OcwForm(_grt),
-            Tool.Seating => new SeatingForm(_grt),
+            Tool.Athlon => new AthlonForm(_grt, _db, _archive),
+            Tool.ShotMarker => new ShotMarkerForm(_grt, _db, Link()),
+            Tool.ChronoStats => new ChronoStatsForm(_grt, Link()),
+            Tool.Ocw => new OcwForm(_grt, Link()),
+            Tool.Seating => new SeatingForm(_grt, Link()),
             Tool.Cal => new CalibrationForm(_grt, _db),
             Tool.Temp => new TempCoeffForm(_grt),
             Tool.Brass => new BrassForm(_grt),
@@ -187,8 +545,8 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.Workflow => new WorkflowForm(_grt, _db),
             Tool.PowderCompare => new PowderCompareForm(_grt, _db),
             Tool.Diagnostics => new AdvancedDiagnosticsForm(_grt, _db),
-            Tool.SdRootCause => new SdRootCauseForm(_grt, _db),
-            Tool.GroupAnalysis => new GroupAnalysisForm(_grt),
+            Tool.SdRootCause => new SdRootCauseForm(_grt, _db, Link()),
+            Tool.GroupAnalysis => new GroupAnalysisForm(_grt, Link()),
             Tool.TargetPrint => new TargetForm(_grt),
             Tool.Diagnosis => new DiagnosisForm(_grt),
             Tool.FollowLoad => new FollowLoadForm(_grt, Tracker()),
@@ -197,8 +555,22 @@ internal sealed class ToolkitContext : ApplicationContext
             Tool.LoadBook => new LoadBookForm(_db),
             Tool.ModelProbe => new ModelProbeForm(_grt),
             Tool.Stability => new StabilityForm(_grt),
-            _ => new LauncherForm(Open, _grt, _db, SetShooter),
+            Tool.Library => new LibraryForm(Link()!),
+            Tool.Cartridges => new CartridgesForm(Link()!),
+            Tool.GroupReading => new GroupReadingForm(Link()),
+            // the training and the race open the cartridges window already on their own tab, the match reading on its own mode
+            Tool.TrainingCartridges => new CartridgesForm(Link()!, startTab: 2),
+            Tool.RaceCartridges => new CartridgesForm(Link()!, startTab: 3),
+            Tool.MatchReading => new GroupReadingForm(Link(), match: true),
+            // the statistics of the chronograph and the budget of the SD are the same windows, in the phase where the training teaches the model
+            Tool.TrainingStats => new ChronoStatsForm(_grt, Link()),
+            Tool.TrainingBudget => new CartridgesForm(Link()!, startTab: 6),
+            Tool.Units => new UnitsForm(),
+            // on its own it opens on the home page; beside GRT it keeps the compact column
+            _ => _grt == null ? new HomeForm(Open, _db, SetShooter, _archive) : new LauncherForm(Open, _grt, _db, SetShooter),
         });
+        // on its own, each tool window wears the band of the Banco di Ricarica (its phase, step and colour)
+        if (_grt == null && t != Tool.Launcher && Ui.GrtTheme.Banco && Ui.GrtTheme.Enabled) Ui.ToolBanner.Attach(f, t);
         Ui.GrtTheme.Apply(f);
         f.FormClosed += (_, _) =>
         {
@@ -228,6 +600,47 @@ internal sealed class ToolkitContext : ApplicationContext
         f.Activate();
     }
 
+    /// <summary>
+    /// "Import a load from GRT": a load designed and saved in GRT enters the archive whole (its file, components, charge,
+    /// COAL, case capacity, Ba), before any range session, and the shooter sees what came in.
+    /// </summary>
+    private void ImportGrtLoad()
+    {
+        if (_archive == null) return;
+        var owner = Form.ActiveForm;
+        string title = Ui.LauncherCaption.From(Ui.Lang.T("📥  Import a load from GRT"));
+        long shooter = Archive.ArchiveImports.ShooterFor(_archive, _db.CurrentShooterId);
+        var log = new List<string>();
+        if (Ui.ArchiveLoadPicker.PickGrtFile(owner, _archive, shooter, log) is not { } id) return;
+        bool isNew = log.Any(l => l.StartsWith("nuovo carico", StringComparison.Ordinal));
+        var lines = new List<string>
+        {
+            isNew ? Ui.Lang.T("The load is now in the archive:") : Ui.Lang.T("This load was already in the archive:"), "",
+        };
+        using (var cmd = _archive.Connection.CreateCommand())
+        {
+            cmd.CommandText = "SELECT name, caliber, firearm_text, bullet, powder, charge_gr, coal_mm, case_capacity_cm3 FROM loads WHERE id=$i";
+            cmd.Parameters.AddWithValue("$i", id);
+            using var r = cmd.ExecuteReader();
+            if (r.Read())
+            {
+                var it = System.Globalization.CultureInfo.GetCultureInfo("it-IT");
+                string N(int i) => r.IsDBNull(i) ? "" : Convert.ToString(r.GetValue(i), System.Globalization.CultureInfo.InvariantCulture) ?? "";
+                string D(int i, string fmt, string unit) => r.IsDBNull(i) ? "" : r.GetDouble(i).ToString(fmt, it) + unit;
+                void Add(string label, string value) { if (value.Trim().Length > 0) lines.Add(label + ": " + value.Trim()); }
+                Add(Ui.Lang.T("Load"), N(0));
+                Add(Ui.Lang.T("Caliber"), N(1));
+                Add(Ui.Lang.T("Firearm"), N(2));
+                Add(Ui.Lang.T("Bullet"), N(3));
+                Add(Ui.Lang.T("Powder"), (N(4) + " " + D(5, "0.0#", " gr")).Trim());
+                Add("COAL", D(6, "0.00", " mm"));
+                Add(Ui.Lang.T("Case capacity"), D(7, "0.00", " cm³"));
+            }
+        }
+        if (isNew) { lines.Add(""); lines.Add(Ui.Lang.T("Its components are in the component library; the imports can now pick it from the list.")); }
+        MessageBox.Show(owner, string.Join(Environment.NewLine, lines), title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
     private static void InstallReports()
     {
         string? root = Reports.ReportTemplates.InferGrtRoot();
@@ -238,8 +651,9 @@ internal sealed class ToolkitContext : ApplicationContext
             root = d.SelectedPath;
         }
         var log = Reports.ReportTemplates.Install(root);
-        MessageBox.Show(string.Join(Environment.NewLine, log),
-            Ui.Lang.T("Install GRT report templates"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+        // one line per page and per language of GRT: hundreds of lines, so a scrolling box, not a MessageBox
+        Ui.LongTextDialog.Show(Form.ActiveForm, Ui.Lang.T("Install GRT report templates"),
+            string.Format(Ui.Lang.T("GRT folder: {0}"), root) + Environment.NewLine + (log.LastOrDefault() ?? ""), log);
     }
 
     /// <summary>
@@ -259,12 +673,66 @@ internal sealed class ToolkitContext : ApplicationContext
         if (_tracker != null) _tracker.CurrentShooterId = id;
     }
 
+    /// <summary>
+    /// Opens the archive and brings it up to date with the old databases the other tools still write to; builds it from
+    /// them the first time. A failure is shown once and leaves the tools as they were: nothing depends on the archive yet
+    /// except the chronograph import, which then writes to GRT only.
+    /// </summary>
+    /// <summary>The archive as the analysis tools see it (with the launcher's current shooter), or null without an archive.</summary>
+    private Ui.ArchiveLink? Link() => _archive is { } a ? new Ui.ArchiveLink(a, () => _db.CurrentShooterId) : null;
+
+    private void OpenArchive()
+    {
+        try
+        {
+            string path = Archive.ArchivePaths.Database;
+            bool existed = File.Exists(path);
+            var src = Archive.ArchiveSources.Defaults(Array.Empty<string>());
+            src = new Archive.ArchiveSources
+            {
+                LogDb = Environment.GetEnvironmentVariable("RELOADING_LOG_DB") ?? src.LogDb,
+                TrackerDb = Environment.GetEnvironmentVariable("SEGUI_CARICO_DB") ?? src.TrackerDb,
+                ModelLabDb = src.ModelLabDb,
+                EpLibrary = src.EpLibrary,
+            };
+            _archive = new Archive.ArchiveDb(path);
+            var rep = existed ? Archive.ArchiveBuilder.Refresh(_archive, src) : Archive.ArchiveBuilder.Build(_archive, src);
+            File.WriteAllText(Path.Combine(Path.GetDirectoryName(path)!, "ultimo_aggiornamento.txt"),
+                (existed ? "AGGIORNAMENTO DELL'ARCHIVIO DAI VECCHI ARCHIVI" : "ARCHIVIO CREATO") + Environment.NewLine
+                + DateTime.Now.ToString("dd/MM/yyyy HH:mm") + Environment.NewLine + Environment.NewLine + rep.Text(),
+                new System.Text.UTF8Encoding(true));
+            if (!rep.Ok)
+                MessageBox.Show(Ui.Lang.T("The archive was brought up to date, but a check did not match: see ultimo_aggiornamento.txt in the Ricarica folder."),
+                    Ui.Lang.T("Shooter's archive"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            _archiveBaseline = _archive.TotalChanges();
+        }
+        catch (Exception ex)
+        {
+            try { _archive?.Dispose(); } catch { }
+            _archive = null;
+            MessageBox.Show(Ui.Lang.T("The archive could not be opened; the tools work as before and the chronograph import writes to GRT only.")
+                + Environment.NewLine + Environment.NewLine + ex.Message,
+                Ui.Lang.T("Shooter's archive"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
             try { _db.Dispose(); } catch { }
             try { _tracker?.Dispose(); } catch { }
+            if (_archive != null)
+            {
+                // a dated copy whenever this run changed something (the newest 30 are kept)
+                bool changed = false;
+                try { changed = _archive.TotalChanges() > _archiveBaseline; } catch { }
+                string path = _archive.Path;
+                try { _archive.Dispose(); } catch { }
+                _archive = null;
+                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                if (changed) try { Archive.ArchiveBackup.Copy(path, Archive.ArchivePaths.Backups); } catch { }
+            }
         }
         base.Dispose(disposing);
     }

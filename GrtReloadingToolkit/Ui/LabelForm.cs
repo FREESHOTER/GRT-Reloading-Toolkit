@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using System.Drawing.Printing;
 using System.Globalization;
 using GrtReloadingToolkit.Cards;
@@ -205,8 +206,8 @@ internal sealed class LabelForm : Form
             // was the load you meant or a different charge/session left open by mistake -- a
             // forgotten tab is otherwise indistinguishable from the right one until it's already
             // printed.
-            var u = GrtUnits.Current;
-            string chargeTxt = _card.ChargeGr is { } g ? u.ChargeValue(g).ToString(u.ChargeFormat, CultureInfo.InvariantCulture) + " " + u.ChargeUnitName : "?";
+            var u = ProgramUnits.Current;
+            string chargeTxt = _card.ChargeGr is { } g ? u.Charge(g) : "?";
             _status.Text = string.Format(Lang.T("Loaded: {0}, {1} {2} — from '{3}'"),
                 _card.Caliber, chargeTxt, _card.Powder, Path.GetFileName(_card.SourceFile));
         }
@@ -254,7 +255,7 @@ internal sealed class LabelForm : Form
         L("Caliber", _card.Caliber);
         L("Firearm", _card.Firearm);
         L("Barrel", _card.BarrelLine);
-        var u = GrtUnits.Current;
+        var u = ProgramUnits.Current;
         string bw = _card.BulletGr is { } bg && bg > 0 ? " " + u.BulletMass(bg) : "";
         L("Bullet", (_card.Bullet + bw).Trim());
         L("Powder", _card.Powder);

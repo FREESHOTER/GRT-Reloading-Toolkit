@@ -19,6 +19,9 @@ public sealed class TargetSpec
     /// this is one shared field rather than a fixed constant baked into the instructional text.</summary>
     public int ShotsPerPoint { get; set; } = 3;
     public double? DistanceM { get; set; }
+    /// <summary>The unit the charges are written in on the sheet ("gr" or "g") and the one of the distance ("m" or "yd"); the values above stay in grains and metres.</summary>
+    public string ChargeUnit { get; set; } = "gr";
+    public string DistanceUnit { get; set; } = "m";
     public string? Firearm { get; set; }
     public string? Powder { get; set; }
     public string? Bullet { get; set; }
@@ -162,7 +165,7 @@ public static class TargetRenderer
         if (!string.IsNullOrWhiteSpace(spec.Firearm)) infoParts.Add("Arma: " + spec.Firearm);
         if (!string.IsNullOrWhiteSpace(spec.Powder)) infoParts.Add("Polvere: " + spec.Powder);
         if (!string.IsNullOrWhiteSpace(spec.Bullet)) infoParts.Add("Palla: " + spec.Bullet);
-        if (spec.DistanceM is { } d) infoParts.Add(FormattableString.Invariant($"Distanza: {d:0.#} m"));
+        if (spec.DistanceM is { } d) infoParts.Add("Distanza: " + Measuring.UnitSystem.FromBase(d, spec.DistanceUnit).ToString("0.#", CultureInfo.InvariantCulture) + " " + Measuring.UnitSystem.Label(spec.DistanceUnit));
         infoParts.Add("Data: " + DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         // Wrapped inside the room left of the logo: a long "Arma | Polvere | Palla" line used to run
         // on under the logo and off the page. Its measured height is what the header ends at below.
@@ -259,9 +262,10 @@ public static class TargetRenderer
             int i = start + col; // global charge index, so N/Carica numbering doesn't reset per page
             float cx = X(xPositionsMm[col]);
             float cy = Y(rowYMm);
+            string chargeUnit = Measuring.UnitSystem.Label(spec.ChargeUnit);
             string chargeLabel = spec.ChargesGr is { } charges && i < charges.Count
-                ? charges[i].ToString("0.00", CultureInfo.InvariantCulture) + " gr"
-                : "______ gr";
+                ? Measuring.UnitSystem.FromBase(charges[i], spec.ChargeUnit).ToString(spec.ChargeUnit == "g" ? "0.000" : "0.00", CultureInfo.InvariantCulture) + " " + chargeUnit
+                : "______ " + chargeUnit;
 
             if (isOcw)
             {

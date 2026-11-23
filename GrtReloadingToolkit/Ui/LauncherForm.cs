@@ -51,7 +51,8 @@ internal sealed class LauncherForm : Form
     public LauncherForm(Action<Tool> open, GrtClient? grt = null, Log.Db? db = null, Action<long?>? shooterChanged = null)
     {
         _grt = grt;
-        Text = AppVersion.Title("Reloading Toolkit");
+        // started on its own it is the shooter's "Banco di Ricarica"; opened by GRT it is GRT's Reloading Toolkit
+        Text = AppVersion.Title(grt == null ? "Banco di Ricarica" : "Reloading Toolkit");
         // Sizable, not Fixed: the list outgrew the screen. Windows caps a window at the desktop
         // working area, so the last seven buttons -- Velocity model down to the report templates --
         // were laid out past the bottom edge and simply never painted, with no grip to drag and no
@@ -148,6 +149,17 @@ internal sealed class LauncherForm : Form
         B(Lang.T("📓  Load journal"), Tool.Journal, "journal", "8 / 18");
         B(Lang.T("📈  Follow a load"), Tool.FollowLoad, "follow", "20");
 
+        // Training and race are about cartridges and the match, not about the load open in GRT: no step, no mark of their own.
+        Section(Lang.T("PHASE 6 — TRAINING"));
+        B(Lang.T("🏋  Training cartridges (other lots, plan)"), Tool.TrainingCartridges, "cartridge");
+        B(Lang.T("📐  Chronograph statistics (training)"), Tool.TrainingStats, "stats");
+        B(Lang.T("🌡🎯  SD budget (training)"), Tool.TrainingBudget, "sdcause");
+        B(Lang.T("🎯🔍  Group reading (shooter errors)"), Tool.GroupReading, "group");
+
+        Section(Lang.T("PHASE 7 — RACE"));
+        B(Lang.T("🏁  Race plan and check (match lot)"), Tool.RaceCartridges, "cartridge");
+        B(Lang.T("🎯🔍  Match reading (one shot per target)"), Tool.MatchReading, "group");
+
         // Outside the chain of steps: it reads the load open in GRT, whatever phase it is in, and is experimental.
         Section(Lang.T("GUIDED DIAGNOSIS (EXPERIMENTAL)"));
         B(Lang.T("🩺  Guided diagnosis"), Tool.Diagnosis, "diagnose", "");
@@ -163,7 +175,10 @@ internal sealed class LauncherForm : Form
         B(Lang.T("🌀  Gyroscopic stability (twist)"), Tool.Stability, "gyro");
 
         Section(Lang.T("ALWAYS AT HAND"));
+        B(Lang.T("📏  Units of measure (grains/grams, mm/inches, m/yards, MOA/mrad)"), Tool.Units, "ruler");
         B(Lang.T("📒  Inventory"), Tool.Log, "box");
+        B(Lang.T("📚  Component library"), Tool.Library, "books");
+        B(Lang.T("📦  Cartridges (measure, predict, plan)"), Tool.Cartridges, "cartridge");
         B(Lang.T("📚  Load book export"), Tool.LoadBook, "books");
         B(Lang.T("📄  Install GRT report templates"), Tool.Reports, "doc");
 

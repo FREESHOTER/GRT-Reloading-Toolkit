@@ -49,9 +49,12 @@ internal static class ToolIconPainter
         ["group"] = new Prim[] { C(12.0f, 12.0f, 9.0f, CircleStyle.Ring), C(12.0f, 12.0f, 5.0f, CircleStyle.Ring), C(9.6f, 10.0f, 0.9f, CircleStyle.Solid), C(14.2f, 11.2f, 0.9f, CircleStyle.Solid), C(12.0f, 14.6f, 0.9f, CircleStyle.Solid) },
         ["follow"] = new Prim[] { P("M3 4v16h18"), P("m6 16 4-3 3 2 5-7"), C(6.0f, 16.0f, 1.3f, CircleStyle.Solid), C(10.0f, 13.0f, 1.3f, CircleStyle.Solid), C(13.0f, 15.0f, 1.3f, CircleStyle.Solid), C(18.0f, 8.0f, 1.3f, CircleStyle.Solid) },
         ["box"] = new Prim[] { P("M3 8l9-5 9 5v8l-9 5-9-5z"), P("M3 8l9 5 9-5M12 13v8") },
+        ["cartridge"] = new Prim[] { P("M12 2c2.2 1.6 3.2 4.3 3.2 7.5H8.8C8.8 6.3 9.8 3.6 12 2z"), P("M8.8 9.5h6.4V19H8.8zM7.5 19h9v2.5h-9z") },
         ["books"] = new Prim[] { P("M4 5h4v14H4zM10 5h4v14h-4z"), P("m16 6 4-1 3 13-4 1z") },
         ["gyro"] = new Prim[] { C(12.0f, 12.0f, 8.5f, CircleStyle.Ring), P("M12 3.5v17"), P("M7 9.5c3-1.6 7-1.6 10 0"), P("M7 14.5c3 1.6 7 1.6 10 0") },
         ["doc"] = new Prim[] { P("M6 3h8l5 5v13H6z"), P("M14 3v5h5M9 13h7M9 17h7") },
+        ["grtin"] = new Prim[] { P("M12 3v10"), P("m8 9.5 4 4 4-4"), P("M4 14v6h16v-6") },
+        ["folder"] = new Prim[] { P("M3 6.5V19h18V8.5h-9l-2-2.5H3z"), P("M3 10.5h18") },
     };
 
     /// <summary>Every icon name, in drawing order.</summary>
@@ -61,12 +64,17 @@ internal static class ToolIconPainter
 
     /// <summary>The icon as a square PNG of <paramref name="px"/> pixels with a transparent background.</summary>
     public static byte[] RenderPng(string name, bool hover, int px)
+        => RenderPng(name, px, hover ? HoverTop : NormalTop, hover ? HoverBottom : NormalBottom);
+
+    /// <summary>The same drawing in other colours (top and bottom of the gradient, "#rrggbb"): the home page draws each
+    /// phase's tools in that phase's colour, light enough to read on its dark cards.</summary>
+    public static byte[] RenderPng(string name, int px, string topColor, string bottomColor)
     {
         if (!Icons.TryGetValue(name, out var prims)) throw new ArgumentException("No icon named '" + name + "'.", nameof(name));
         if (px < 8) throw new ArgumentOutOfRangeException(nameof(px));
 
-        var top = SKColor.Parse(hover ? HoverTop : NormalTop);
-        var bottom = SKColor.Parse(hover ? HoverBottom : NormalBottom);
+        var top = SKColor.Parse(topColor);
+        var bottom = SKColor.Parse(bottomColor);
 
         using var surface = SKSurface.Create(new SKImageInfo(px, px, SKColorType.Bgra8888, SKAlphaType.Premul));
         var canvas = surface.Canvas;

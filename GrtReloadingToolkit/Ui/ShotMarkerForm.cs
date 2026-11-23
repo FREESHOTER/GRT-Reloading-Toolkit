@@ -50,10 +50,18 @@ internal sealed class ShotMarkerForm : Form
 
     private readonly Log.Db? _db;
 
-    public ShotMarkerForm(GrtClient? grt, Log.Db? db = null)
+    // the archive first, GRT if asked
+    private readonly ArchiveLink? _link;
+    private readonly ArchiveLoadPicker? _picker;
+    private readonly CheckBox _toGrt = new() { Text = Lang.T("also send to GRT"), AutoSize = true, Checked = true, Margin = new Padding(12, 6, 0, 0) };
+    private string? _exportPath;
+
+    public ShotMarkerForm(GrtClient? grt, Log.Db? db = null, ArchiveLink? link = null)
     {
         _grt = grt;
         _db = db;
+        _link = link;
+        if (_link != null) _picker = new ArchiveLoadPicker(_link, _grt != null);
         Text = AppVersion.Title(Lang.T("ShotMarker import"));
         Width = 1240;
         Height = 760;
@@ -65,6 +73,12 @@ internal sealed class ShotMarkerForm : Form
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true };
         _pointBox.Controls.AddRange(new Control[] { _pointLabel, _point });
         top.Controls.AddRange(new Control[] { _browse, _import, _pointBox, _load });
+        if (_picker != null)
+        {
+            top.Controls.Add(_picker);
+            top.Controls.Add(_toGrt);
+            UiState.Bind(this, "shotmarker", ("toGrt", _toGrt));
+        }
 
         _preview.Panel1.Controls.Add(_face);
         _preview.Panel2.Controls.Add(_shots);
@@ -135,7 +149,7 @@ internal sealed class ShotMarkerForm : Form
         _shots.Columns.Add(new DataGridViewTextBoxColumn { Name = "No", HeaderText = "#", ReadOnly = true });
         _shots.Columns.Add(new DataGridViewTextBoxColumn { Name = "Score", HeaderText = Lang.T("Score"), ReadOnly = true });
         _shots.Columns.Add(new DataGridViewTextBoxColumn { Name = "V", HeaderText = "m/s", ReadOnly = true });
-        _shots.Columns.Add(new DataGridViewTextBoxColumn { Name = "Pos", HeaderText = "x, y (mm)", ReadOnly = true });
+        _shots.Columns.Add(new DataGridViewTextBoxColumn { Name = "Pos", HeaderText = "x, y (" + Measuring.ProgramUnits.Current.LengthUnitName + ")", ReadOnly = true });
         _shots.Columns.Add(new DataGridViewTextBoxColumn { Name = "Why", HeaderText = Lang.T("Excluded"), ReadOnly = true });
 
         // A checkbox cell does not raise CellValueChanged until the cell loses focus, which
@@ -160,7 +174,13 @@ internal sealed class ShotMarkerForm : Form
         // Captured into a local: nullable flow analysis narrows a local across an `await`
         // reliably, where it cannot always be trusted to keep narrowing a field.
         GrtClient? grt = _grt;
-        if (grt == null) { Note(Lang.T("Not attached to GRT — the import will ask where to write.")); return; }
+        if (grt == null)
+        {
+            Note(_link != null
+                ? Lang.T("Not attached to GRT: the strings go to the archive; with \"also send to GRT\" the import asks where to save the GRT file.")
+                : Lang.T("Not attached to GRT — the import will ask where to write."));
+            return;
+        }
         try
         {
             var (_, caption, file) = await grt.GetTabOnTopAsync();
@@ -189,6 +209,7 @@ internal sealed class ShotMarkerForm : Form
 
         var log = new List<string>();
         IReadOnlyList<SmString> strings = ImportJob.Plan(dlg.FileName, log);
+        _exportPath = dlg.FileName;
         foreach (string l in log) Note(l);
 
         _grid.Rows.Clear();
@@ -348,6 +369,13 @@ internal sealed class ShotMarkerForm : Form
     /// so the picture above has discs the GRT tab will not. Saying so is what keeps that from
     /// being a surprise — the shooter should be able to see where their sighters went and still
     /// know what they are about to get.</para></summary>
+    // Millimetres stored, shown in the length unit the program uses (whole mm, or two places of an inch).
+    private static string ShownLength(double mm, CultureInfo ic)
+    {
+        var u = Measuring.ProgramUnits.Current;
+        return u.LengthValue(mm).ToString(u.LengthInInch ? "0.00" : "0", ic);
+    }
+
     private static string CaptionFor(SmString s)
     {
         var ic = CultureInfo.CurrentCulture;
@@ -356,7 +384,7 @@ internal sealed class ShotMarkerForm : Form
             ? "   ·   " + string.Format(Lang.T("{0} sighter(s) (red, not imported)"), sighters)
             : "";
         string stats = s.Stats is { } st && st.GroupSizeMm is { } g
-            ? "   ·   " + string.Format(Lang.T("ShotMarker: group {0} mm"), g.ToString("0.0", ic))
+            ? "   ·   " + string.Format(Lang.T("ShotMarker: group {0}"), Measuring.ProgramUnits.Current.LengthValue(g).ToString(Measuring.ProgramUnits.Current.LengthInInch ? "0.00" : "0.0", ic) + " " + Measuring.ProgramUnits.Current.LengthUnitName)
               + (st.VelocitySdMps is { } sd
                     ? string.Format(Lang.T(", sd {0} m/s"), sd.ToString("0.0", ic)) : "")
               + (s.Shots.Any(sh => sh.IsExcludedByUser)
@@ -408,7 +436,7 @@ internal sealed class ShotMarkerForm : Form
                     sh.Score ?? "",
                     sh.VelocityMps is { } v && double.IsFinite(v) ? v.ToString("0.0", ic) : "",
                     double.IsFinite(sh.XMm) && double.IsFinite(sh.YMm)
-                        ? $"{sh.XMm.ToString("0", ic)}, {sh.YMm.ToString("0", ic)}" : "",
+                        ? $"{ShownLength(sh.XMm, ic)}, {ShownLength(sh.YMm, ic)}" : "",
                     why);
                 DataGridViewRow row = _shots.Rows[i];
                 row.Tag = sh.Number;
@@ -467,22 +495,6 @@ internal sealed class ShotMarkerForm : Form
 
     private async Task ImportAsync()
     {
-        // The load on top may have changed since this window opened (the label was read once, then): ask GRT again, now.
-        await DiscoverActiveLoadAsync();
-        string? target = _loadPath;
-        if (target != null && File.Exists(target) && !ImportTarget.Confirm(this, target, _db))
-        {
-            Note(Lang.T("import cancelled"));
-            return;
-        }
-        if (target == null || !File.Exists(target))
-        {
-            using var dlg = new SaveFileDialog { Title = Lang.T("Write the import to"),
-                                                Filter = Lang.T("GRT loads") + " (*.grtload)|*.grtload" };
-            if (dlg.ShowDialog(this) != DialogResult.OK) return;
-            target = dlg.FileName;
-        }
-
         var selected = new List<(SmString, double?)>();
         foreach (DataGridViewRow row in _grid.Rows)
         {
@@ -493,6 +505,36 @@ internal sealed class ShotMarkerForm : Form
             selected.Add((s, charge));
         }
         if (selected.Count == 0) { Note(Lang.T("Nothing ticked.")); return; }
+
+        bool toGrt = _picker == null || _toGrt.Checked;
+        if (_picker is { IsNone: true })
+        {
+            MessageBox.Show(this, Lang.T("Choose the load in the archive these strings belong to (or \"New load…\")."), Lang.T("Import"),
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        // The load on top may have changed since this window opened (the label was read once, then): ask GRT again, now.
+        await DiscoverActiveLoadAsync();
+        string? target = _loadPath;
+        bool needGrtLoad = toGrt || _picker is { IsFromGrt: true };
+        if (needGrtLoad && target != null && File.Exists(target) && !ImportTarget.Confirm(this, target, _db))
+        {
+            Note(Lang.T("import cancelled"));
+            return;
+        }
+
+        // the archive first: it is the shooter's own copy, whatever happens with GRT next
+        if (_link != null && !SaveToArchive(selected, target)) return;
+        if (!toGrt) { _next?.MarkDone(); Note(Lang.T("Saved in the archive (not sent to GRT).")); return; }
+
+        if (target == null || !File.Exists(target))
+        {
+            using var dlg = new SaveFileDialog { Title = Lang.T("Write the import to"),
+                                                Filter = Lang.T("GRT loads") + " (*.grtload)|*.grtload" };
+            if (dlg.ShowDialog(this) != DialogResult.OK) return;
+            target = dlg.FileName;
+        }
 
         // A second click while this one is still in flight would start a concurrent write
         // against the same sibling load; RequestAsync serialises GRT's own IPC traffic but the
@@ -519,6 +561,49 @@ internal sealed class ShotMarkerForm : Form
                 Lang.T("GRT did not open it ({0}); open {1} by hand."), ex.Message, outPath)); }
         }
         finally { _import.Enabled = true; _browse.Enabled = true; }
+    }
+
+    /// <summary>
+    /// Each ticked string as one session of the archive, with its target picture and the export file. Strings already in the
+    /// archive are asked about once: Yes imports them again, No leaves them out. False only when the shooter cancels.
+    /// </summary>
+    private bool SaveToArchive(List<(SmString S, double? Charge)> selected, string? grtPath)
+    {
+        if (_link == null || _picker == null || _exportPath == null) return true;
+        var a = _link.Db;
+        long shooter = _link.ShooterId();
+        var log = new List<string>();
+        long? loadId = _picker.IsFromGrt
+            ? grtPath != null && File.Exists(grtPath) ? Archive.ArchiveImports.LoadForGrtFile(a, grtPath, shooter, log) : null
+            : _picker.LoadId;
+        if (_picker.IsFromGrt && loadId == null) Note(Lang.T("no load open in GRT: the session is saved without a load"));
+
+        var already = selected.Where(x => Archive.ArchiveImports.ShotMarkerAlreadyImported(a, x.S)).Select(x => x.S.Name).ToList();
+        bool skipAlready = false;
+        if (already.Count > 0)
+        {
+            var ans = MessageBox.Show(this,
+                string.Format(Lang.T("These strings are already in the archive:\n{0}\n\nImport them again? (No = only the new ones)"), string.Join(Environment.NewLine, already)),
+                Lang.T("Import"), MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+            if (ans == DialogResult.Cancel) { Note(Lang.T("import cancelled")); return false; }
+            skipAlready = ans == DialogResult.No;
+        }
+
+        byte[] export = File.ReadAllBytes(_exportPath);
+        int sessions = 0, shots = 0;
+        foreach (var (s, charge) in selected)
+        {
+            if (skipAlready && already.Contains(s.Name)) continue;
+            byte[]? png = null;
+            try { png = TargetRenderer.Render(s, ImportJob.ResolveFace(s, log), RenderOptions.ForGrt).Png; }
+            catch (Exception ex) { Note(s.Name + ": " + ex.Message); }
+            var r = Archive.ArchiveImports.AddShotMarkerString(a, shooter, loadId, s, charge, _exportPath, export, png);
+            sessions++; shots += r.Shots;
+        }
+        foreach (string l in log) Note(l);
+        Note(string.Format(Lang.T("archive: {0} session(s) saved ({1} shot(s) with velocity)"), sessions, shots));
+        _picker.Refill(loadId);
+        return true;
     }
 
     private void Note(string line) => _log.AppendText(line + Environment.NewLine);

@@ -146,6 +146,27 @@ public static class LadderLoader
 
     // Two strings or two groups at the same step are pooled, not "last one wins": a ladder shot over
     // two sessions, or a chrono file re-exported, would otherwise silently lose all but one of them.
+    /// <summary>
+    /// Ladder steps straight from velocities and groups already in hand (the shooter's archive): each string goes on its
+    /// step, each group with a step goes on its own, strings or groups on the same step are pooled as everywhere else.
+    /// A group without a step is left out and named in the log.
+    /// </summary>
+    public static LoadReport FromParts(IEnumerable<TargetGroup> groups, IEnumerable<LadderVelocity> velocities, LadderMode mode)
+    {
+        var rep = new LoadReport();
+        var vels = new Dictionary<double, IReadOnlyList<double>>();
+        foreach (var v in velocities.Where(v => v.Velocities.Count > 0))
+            AddVelocities(vels, v.Step, v.Velocities.ToList(), rep.Log, StepText(mode, v.Step));
+        var tgts = new Dictionary<double, TargetGroup>();
+        foreach (var t in groups)
+        {
+            if (t.ChargeGrains is not { } step) { rep.Log.Add(Tr.F("{0}: no charge / step -- skipped", t.SourceFile)); continue; }
+            AddTarget(tgts, step, t, rep.Log, t.SourceFile);
+        }
+        Merge(rep, vels, tgts);
+        return rep;
+    }
+
     private static void AddVelocities(Dictionary<double, IReadOnlyList<double>> vels, double step,
         List<double> v, List<string> log, string label)
     {

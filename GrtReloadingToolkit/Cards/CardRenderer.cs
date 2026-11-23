@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using System.Globalization;
 using GrtPluginKit.Grt;
 using QRCoder;
@@ -7,7 +8,7 @@ namespace GrtReloadingToolkit.Cards;
 internal static class CardRenderer
 {
     /// <summary>The units GRT is showing, so a printed card reads like the load it came from.</summary>
-    private static GrtUnits U => GrtUnits.Current;
+    private static ProgramUnitView U => ProgramUnits.Current;
 
     public static Bitmap QrBitmap(string text, int px = 8)
     {

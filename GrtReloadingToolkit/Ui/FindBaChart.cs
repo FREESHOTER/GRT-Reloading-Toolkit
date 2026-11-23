@@ -24,20 +24,20 @@ internal sealed class FindBaChart : Panel
     public FindBaChart()
     {
         DoubleBuffered = true;
-        BackColor = Color.FromArgb(18, 24, 36);
+        BackColor = ChartPalette.Dark.Back;
     }
 
     /// <summary>Ba/velocity/group vs. temperature for a set of journal entries -- Find best Ba's own
     /// use, kept as a convenience overload so that form doesn't need to know about display units.</summary>
     public void SetData(IEnumerable<JournalEntry> entries, YAxis axis)
     {
-        var u = GrtUnits.Current;
+        var u = Measuring.ProgramUnits.Current;
         double? YOf(JournalEntry e) => axis switch { YAxis.Ba => e.Ba, YAxis.Velocity => e.VelocityAvgMs, _ => e.GroupMoa };
         var pts = entries
             .Select(e => (TempC: e.TemperatureC, Y: YOf(e)))
             .Where(p => p.TempC.HasValue && p.Y.HasValue)
-            .Select(p => (X: u.TemperatureValue(p.TempC!.Value), Y: axis == YAxis.Velocity ? u.VelocityValue(p.Y!.Value) : p.Y!.Value));
-        string yName = axis switch { YAxis.Ba => "Ba", YAxis.Velocity => u.VelocityUnitName, _ => "MOA" };
+            .Select(p => (X: u.TemperatureValue(p.TempC!.Value), Y: axis == YAxis.Velocity ? u.VelocityValue(p.Y!.Value) : axis == YAxis.Group ? u.AngleValue(p.Y!.Value) : p.Y!.Value));
+        string yName = axis switch { YAxis.Ba => "Ba", YAxis.Velocity => u.VelocityUnitName, _ => u.AngleUnitName };
         SetData(pts, u.TemperatureUnitName, yName, Lang.T("No entries with both temperature and this value logged yet."));
     }
 
@@ -56,26 +56,27 @@ internal sealed class FindBaChart : Panel
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        Render(e.Graphics, Width, Height);
+        Render(e.Graphics, Width, Height, ChartPalette.Dark);
     }
 
     /// <summary>Renders the current series to a stand-alone PNG (for the GRT report gallery), same
     /// pattern as <see cref="Ocw.LadderChart.RenderPng()"/>.</summary>
-    public byte[]? RenderPng(int width = 900, int height = 560)
+    /// <param name="print">white ground for paper (<see cref="ChartPalette.Print"/>).</param>
+    public byte[]? RenderPng(int width = 900, int height = 560, bool print = false)
     {
         if (_pts is null || _pts.Count == 0) return null;
         using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(bmp)) Render(g, width, height);
+        using (var g = Graphics.FromImage(bmp)) Render(g, width, height, ChartPalette.For(print));
         using var ms = new MemoryStream();
         bmp.Save(ms, ImageFormat.Png);
         return ms.ToArray();
     }
 
-    private void Render(Graphics g, int width, int height)
+    private void Render(Graphics g, int width, int height, ChartPalette c)
     {
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        g.Clear(BackColor);
-        using var tb = new SolidBrush(Color.FromArgb(210, 220, 230));
+        g.Clear(c.Back);
+        using var tb = new SolidBrush(c.Text);
         using var fnt = new Font("Segoe UI", 8f);
 
         if (_pts is null || _pts.Count == 0)
@@ -96,7 +97,7 @@ internal sealed class FindBaChart : Panel
         float X(double v) => ml + (float)((v - xMin) / (xMax - xMin)) * pw;
         float Y(double v) => mt + ph - (float)((v - yMin) / (yMax - yMin)) * ph;
 
-        using var axisPen = new Pen(Color.FromArgb(120, 148, 163, 184));
+        using var axisPen = new Pen(c.Axis);
         g.DrawRectangle(axisPen, ml, mt, pw, ph);
         // Invariant, like every other number this plugin renders: interpolation alone picks up the
         // OS locale, so on an Italian machine the axis read "0,4523" beside a grid column showing
@@ -111,11 +112,11 @@ internal sealed class FindBaChart : Panel
         if (_pts.Count >= 3)
         {
             var (a, b) = LinFit(_pts.Select(p => p.X).ToArray(), _pts.Select(p => p.Y).ToArray());
-            using var trend = new Pen(Color.FromArgb(120, 251, 191, 36), 1.5f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
+            using var trend = new Pen(c.AccentTrend, 1.5f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
             g.DrawLine(trend, X(xMin), Y(a + b * xMin), X(xMax), Y(a + b * xMax));
         }
 
-        using var dot = new SolidBrush(Color.FromArgb(56, 189, 248));
+        using var dot = new SolidBrush(c.Primary);
         foreach (var p in _pts) g.FillEllipse(dot, X(p.X) - 3, Y(p.Y) - 3, 6, 6);
     }
 

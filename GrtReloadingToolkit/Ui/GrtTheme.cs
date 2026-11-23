@@ -16,15 +16,56 @@ internal static class GrtTheme
 {
     public const string StateKey = "theme.grt";
 
-    public static readonly Color PanelBack = Color.FromArgb(0x39, 0x44, 0x54);
-    public static readonly Color PanelAlt = Color.FromArgb(0x3d, 0x49, 0x5c);
-    public static readonly Color Header = Color.FromArgb(0x2d, 0x36, 0x43);
-    public static readonly Color Field = Color.FromArgb(0x28, 0x32, 0x3c);
-    public static readonly Color Border = Color.FromArgb(0x4e, 0x5e, 0x73);
-    public static readonly Color Selection = Color.FromArgb(0x63, 0x76, 0x90);
-    public static readonly Color Text = Color.White;
-    public static readonly Color Dim = Color.FromArgb(0x8c, 0x9b, 0xb0);
-    public static readonly Color Accent = Color.FromArgb(0xff, 0xb3, 0x47);
+    public static Color PanelBack { get; private set; } = Color.FromArgb(0x39, 0x44, 0x54);
+    public static Color PanelAlt { get; private set; } = Color.FromArgb(0x3d, 0x49, 0x5c);
+    public static Color Header { get; private set; } = Color.FromArgb(0x2d, 0x36, 0x43);
+    public static Color Field { get; private set; } = Color.FromArgb(0x28, 0x32, 0x3c);
+    public static Color Border { get; private set; } = Color.FromArgb(0x4e, 0x5e, 0x73);
+    public static Color Selection { get; private set; } = Color.FromArgb(0x63, 0x76, 0x90);
+    public static Color Text { get; private set; } = Color.White;
+    public static Color Dim { get; private set; } = Color.FromArgb(0x8c, 0x9b, 0xb0);
+    public static Color Accent { get; private set; } = Color.FromArgb(0xff, 0xb3, 0x47);
+
+    /// <summary>True when the program runs on its own as the Banco di Ricarica: the windows take the colours of its home page
+    /// (deeper slate, cards a step lighter) and the main action of a window is an amber button.</summary>
+    public static bool Banco { get; private set; }
+
+    private static HashSet<string> _primary = new();
+
+    /// <summary>The palette of the Banco di Ricarica's home page, for every window opened from now on. Called once at start,
+    /// before any window, when GRT did not launch the program; beside GRT the windows keep GRT's own look.</summary>
+    public static void UseBancoPalette()
+    {
+        Banco = true;
+        PanelBack = Color.FromArgb(0x1b, 0x23, 0x30);
+        PanelAlt = Color.FromArgb(0x21, 0x2b, 0x3a);
+        Header = Color.FromArgb(0x14, 0x1b, 0x27);
+        Field = Color.FromArgb(0x10, 0x17, 0x21);
+        Border = Color.FromArgb(0x2b, 0x38, 0x4c);
+        Selection = Color.FromArgb(0x3d, 0x4d, 0x66);
+        Text = Color.FromArgb(0xf1, 0xf5, 0xf9);
+        Dim = Color.FromArgb(0x94, 0xa3, 0xb8);
+        Accent = Color.FromArgb(0xff, 0xb3, 0x47);
+        // the buttons that do what a window is for: keep the result, import, make the report
+        _primary = new HashSet<string>(new[] { "PDF report", "Save in the archive", "Import", "Import into GRT", "Import selected" }
+            .Select(Lang.T));
+    }
+
+    private static readonly Color PrimaryBack = Color.FromArgb(0xf5, 0xa5, 0x24);
+    private static readonly Color PrimaryHot = Color.FromArgb(0xff, 0xc2, 0x5c);
+    private static readonly Color PrimaryDown = Color.FromArgb(0xe0, 0x8a, 0x12);
+    private static readonly Color PrimaryText = Color.FromArgb(0x1a, 0x12, 0x05);
+
+    /// <summary>Amber while it is a main action and enabled; a plain button otherwise (its text or state may change later).</summary>
+    private static void Primary(Button b)
+    {
+        bool main = _primary.Contains(b.Text) && b.Enabled;
+        b.BackColor = main ? PrimaryBack : Border;
+        b.ForeColor = main ? PrimaryText : Text;
+        b.FlatAppearance.BorderColor = main ? PrimaryHot : Selection;
+        b.FlatAppearance.MouseOverBackColor = main ? PrimaryHot : Selection;
+        b.FlatAppearance.MouseDownBackColor = main ? PrimaryDown : Header;
+    }
 
     /// <summary>The standard size of GRT's text; smaller captions (status lines, notes) are brought up to it.</summary>
     public const float FontSize = 9f;
@@ -89,11 +130,20 @@ internal static class GrtTheme
             case NumericUpDown n: n.BackColor = Field; n.ForeColor = Text; Dark(n); break;
             case ComboBox cb: cb.BackColor = Field; cb.ForeColor = Text; Dark(cb, "DarkMode_CFD"); break;
             case ListBox lb: lb.BackColor = Field; lb.ForeColor = Text; lb.BorderStyle = BorderStyle.FixedSingle; Dark(lb); break;
+            // A list view keeps the system's white fields: with the light text of the window on them, the rows that are not selected could not be read.
+            case ListView lv: lv.BackColor = Field; lv.ForeColor = Text; lv.BorderStyle = BorderStyle.FixedSingle; Dark(lv); break;
             case Button b:
                 b.FlatStyle = FlatStyle.Flat; b.UseVisualStyleBackColor = false;
                 b.BackColor = Border; b.ForeColor = Text;
                 b.FlatAppearance.BorderColor = Selection; b.FlatAppearance.MouseOverBackColor = Selection;
-                b.FlatAppearance.MouseDownBackColor = Header; break;
+                b.FlatAppearance.MouseDownBackColor = Header;
+                if (Banco)
+                {
+                    b.TextChanged += (_, _) => Primary(b);
+                    b.EnabledChanged += (_, _) => Primary(b);
+                    Primary(b);
+                }
+                break;
             case CheckBox cx when cx.Appearance == Appearance.Normal:
                 // The system draws the tick box in white; flat, it takes the field colour and the theme's border.
                 cx.FlatStyle = FlatStyle.Flat; cx.ForeColor = Fore(cx.ForeColor, Text); cx.BackColor = Back(cx.BackColor, PanelBack);

@@ -38,7 +38,7 @@ internal sealed class LoadScoringSettingsForm : Form
         var tabs = new TabControl { Dock = DockStyle.Fill };
         tabs.TabPages.Add(BuildCurveTab("SD " + _u.VelocityUnitName, _sdGrid, _working.SdTiers, velocityTiers: true));
         tabs.TabPages.Add(BuildCurveTab("ES " + _u.VelocityUnitName, _esGrid, _working.EsTiers, velocityTiers: true));
-        tabs.TabPages.Add(BuildCurveTab(Lang.T("Group MOA"), _groupGrid, _working.GroupMoaTiers, velocityTiers: false));
+        tabs.TabPages.Add(BuildCurveTab(Measuring.ProgramUnits.Current.AngleText(Lang.T("Group MOA")), _groupGrid, _working.GroupMoaTiers, velocityTiers: false));
 
         var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 44, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8) };
         var cancel = new Button { Text = Lang.T("Cancel"), DialogResult = DialogResult.Cancel, AutoSize = true };
@@ -76,7 +76,7 @@ internal sealed class LoadScoringSettingsForm : Form
         grid.Dock = DockStyle.Fill;
         grid.AllowUserToAddRows = false; grid.AllowUserToDeleteRows = false; grid.RowHeadersVisible = false;
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        grid.Columns.Add("value", velocityTiers ? Lang.T("Up to") + " " + _u.VelocityUnitName : Lang.T("Up to") + " MOA");
+        grid.Columns.Add("value", velocityTiers ? Lang.T("Up to") + " " + _u.VelocityUnitName : Lang.T("Up to") + " " + Measuring.ProgramUnits.Current.AngleUnitName);
         grid.Columns.Add("score", Lang.T("Score"));
         Populate(grid, tiers, velocityTiers);
         page.Controls.Add(grid);
@@ -90,7 +90,7 @@ internal sealed class LoadScoringSettingsForm : Form
         {
             bool last = i == tiers.Count - 1;
             string valueText = last ? Lang.T("(worse than all above)")
-                : (velocityTiers ? _u.VelocityValue(tiers[i].Threshold) : tiers[i].Threshold)
+                : (velocityTiers ? _u.VelocityValue(tiers[i].Threshold) : Measuring.ProgramUnits.Current.AngleValue(tiers[i].Threshold))
                     .ToString("0.###", CultureInfo.InvariantCulture);
             int row = grid.Rows.Add(valueText, tiers[i].Score.ToString("0.#", CultureInfo.InvariantCulture));
             if (last) grid.Rows[row].Cells[0].ReadOnly = true;
@@ -113,8 +113,10 @@ internal sealed class LoadScoringSettingsForm : Form
         {
             double threshold = fallback[i].Threshold;
             bool last = i == grid.Rows.Count - 1;
-            if (!last && TryParseCell(grid.Rows[i].Cells[0].Value, out double shown))
-                threshold = velocityTiers ? _u.VelocityToMps(shown) : shown;
+            // an angle that was not touched keeps its stored MOA exactly (the shown number is rounded: a round trip through mrad would drift)
+            bool untouchedAngle = !velocityTiers && Convert.ToString(grid.Rows[i].Cells[0].Value) == Measuring.ProgramUnits.Current.AngleValue(fallback[i].Threshold).ToString("0.###", CultureInfo.InvariantCulture);
+            if (!last && !untouchedAngle && TryParseCell(grid.Rows[i].Cells[0].Value, out double shown))
+                threshold = velocityTiers ? _u.VelocityToMps(shown) : Measuring.ProgramUnits.Current.AngleToMoa(shown);
             double score = TryParseCell(grid.Rows[i].Cells[1].Value, out double s)
                 ? Math.Clamp(s, 0.0, 10.0) : fallback[i].Score;
             result.Add(new ScoreTier(threshold, score));

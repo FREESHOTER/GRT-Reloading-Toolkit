@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>GRT_OCW_Analyzer</AssemblyName>
+    <RootNamespace>GrtOcwAnalyzer</RootNamespace>
+    <Version>0.1.0</Version>
+    <Product>GRT Ladder / OCW Analyzer</Product>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\grt-plugins-shared\GrtPluginKit\GrtPluginKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="plugin\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="_plugin_template\" />
+  </ItemGroup>
+
+</Project>

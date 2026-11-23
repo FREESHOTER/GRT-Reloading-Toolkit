@@ -51,6 +51,9 @@ internal static class UiState
     /// <summary>One stored value, or <paramref name="fallback"/> when it was never set.</summary>
     public static string Get(string key, string fallback) => Values.TryGetValue(key, out string? v) ? v : fallback;
 
+    /// <summary>The names of the stored values that start with <paramref name="prefix"/> and hold something.</summary>
+    public static IEnumerable<string> KeysStartingWith(string prefix) => Values.Where(kv => kv.Key.StartsWith(prefix, StringComparison.Ordinal) && kv.Value.Length > 0).Select(kv => kv.Key).ToList();
+
     /// <summary>Stores one value now (a setting, not a measurement: it must survive a crash).</summary>
     public static void Set(string key, string value) { Values[key] = value; Save(); }
 

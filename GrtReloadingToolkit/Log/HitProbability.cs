@@ -58,14 +58,16 @@ public static class HitProbability
 
     /// <summary>
     /// By what factor the true spread may exceed the one measured, at one-sided 90 % confidence, for a group of
-    /// <paramref name="impacts"/> shots: sqrt(ν / χ²₀.₁₀(ν)) with ν = 2(n-1) degrees of freedom (two axes, each centred on the
-    /// group's own mean). The chi-square quantile is the Wilson-Hilferty approximation, good to a fraction of a percent here.
-    /// Null for fewer than 3 shots, where the bound is meaningless.
+    /// <paramref name="impacts"/> shots from <paramref name="groups"/> group(s): sqrt(ν / χ²₀.₁₀(ν)) with ν = 2(n − groups)
+    /// degrees of freedom (two axes, each group centred on its own mean). The chi-square quantile is the Wilson-Hilferty
+    /// approximation, good to a fraction of a percent here. Null when fewer than 2 degrees of freedom per axis are left
+    /// (fewer than 3 shots in a single group), where the bound is meaningless.
     /// </summary>
-    public static double? UpperSigmaFactor(int impacts)
+    public static double? UpperSigmaFactor(int impacts, int groups = 1)
     {
-        if (impacts < 3) return null;
-        double nu = 2.0 * (impacts - 1);
+        int dof = impacts - Math.Max(groups, 1);
+        if (dof < 2) return null;
+        double nu = 2.0 * dof;
         const double z10 = -1.2815515655446004;     // 10th percentile of the standard normal
         double a = 2.0 / (9.0 * nu);
         double chi2 = nu * Math.Pow(1 - a + z10 * Math.Sqrt(a), 3);
@@ -81,14 +83,14 @@ public static class HitProbability
     /// </summary>
     public static HitProbabilityResult Compute(
         double sigmaMoa, int impacts, double distanceM, Shape shape, double sizeAMm, double sizeBMm,
-        double offsetXMoa = 0, double offsetYMoa = 0)
+        double offsetXMoa = 0, double offsetYMoa = 0, int groups = 1)
     {
         double sigma = SigmaMm(sigmaMoa, distanceM);
         double dx = offsetXMoa * distanceM * MmPerMoaPerMetre, dy = offsetYMoa * distanceM * MmPerMoaPerMetre;
 
         double P(double s) => shape == Shape.Circle ? Circle(sizeAMm / 2, s, dx, dy) : Rectangle(sizeAMm, sizeBMm, s, dx, dy);
 
-        double? cautious = UpperSigmaFactor(impacts) is { } f ? P(sigma * f) * 100 : null;
+        double? cautious = UpperSigmaFactor(impacts, groups) is { } f ? P(sigma * f) * 100 : null;
         return new HitProbabilityResult(P(sigma) * 100, cautious, sigma, Quantile(sigma, 0.50), Quantile(sigma, 0.90), Quantile(sigma, 0.95));
     }
 

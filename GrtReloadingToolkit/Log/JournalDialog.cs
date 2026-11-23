@@ -17,15 +17,17 @@ internal sealed class JournalDialog : Form
     private readonly NumericUpDown _rounds = new() { Maximum = 100000, Width = 90 };
     // Entered and shown in GRT's unit, stored in m/s. The ceilings convert with the boxes, or a
     // ft/s shooter could not type a 3000 ft/s load.
-    private static readonly GrtUnits U = GrtUnits.Current;
-    private static readonly decimal MvMax = (decimal)U.VelocityValue(3000), SdMax = (decimal)U.VelocityValue(500);
+    private static Measuring.ProgramUnitView U => Measuring.ProgramUnits.Current;   // read each time: the units can be changed while the program is open
+    private static decimal MvMax => (decimal)U.VelocityValue(3000);
+    private static decimal SdMax => (decimal)U.VelocityValue(500);
     // The charge and the distance went in raw while the velocities converted, so a grams or yards
     // shooter typed one unit into a box and read another back out of the journal grid -- and the
     // wrong number was the one that reached the database. Both now follow the velocities.
     //
     // Grams need four places where grains need two: 0.02 gr is a good scale's last digit and also
     // 0.0013 g, which two places would round away. Same reason GrtUnits.ChargeFormat splits.
-    private static readonly decimal ChargeMax = (decimal)U.ChargeValue(500), DistMax = (decimal)U.DistanceValue(3000);
+    private static decimal ChargeMax => (decimal)U.ChargeValue(500);
+    private static decimal DistMax => (decimal)U.DistanceValue(3000);
     private readonly NumericUpDown _charge = new()
     {
         DecimalPlaces = U.ChargeInGrams ? 4 : 2,
@@ -35,7 +37,7 @@ internal sealed class JournalDialog : Form
     };
     private readonly NumericUpDown _mv = new() { DecimalPlaces = 1, Maximum = MvMax, Width = 90 };
     private readonly NumericUpDown _sd = new() { DecimalPlaces = 1, Maximum = SdMax, Width = 80 };
-    private readonly NumericUpDown _grp = new() { DecimalPlaces = 2, Maximum = 50, Width = 80 };
+    private readonly NumericUpDown _grp = new() { DecimalPlaces = 2, Maximum = (decimal)U.AngleValue(50), Width = 80 };
     private readonly NumericUpDown _dist = new() { Maximum = DistMax, Width = 90 };
     // Every shot of the string, in GRT's velocity unit, pasted or typed: with them the mean, the SD and the ES are worked out
     // here, and an outing can be followed over time (a mean without its shots says nothing about the spread). The wind uses the same unit.
@@ -121,7 +123,7 @@ internal sealed class JournalDialog : Form
         if (e.WindDeg is { } wd) _windDir.Value = Clamp(wd, _windDir);
         _loadingShots = false;
         _shots.TextChanged += (_, _) => { if (!_loadingShots) FillFromShots(); };
-        if (e.GroupMoa is { } g) _grp.Value = Clamp(g, _grp);
+        if (e.GroupMoa is { } g) _grp.Value = Clamp(U.AngleValue(g), _grp);
         if (e.DistanceM is { } d) _dist.Value = Clamp(U.DistanceValue(d), _dist);
         _envRecorded.Checked = e.TemperatureC.HasValue || e.PressureHpa.HasValue || e.HumidityPct.HasValue;
         _tempUnit.SelectedIndex = 0; _pressureUnit.SelectedIndex = 0;
@@ -160,7 +162,7 @@ internal sealed class JournalDialog : Form
         Row("MV " + U.VelocityUnitName, _mv);
         Row("SD " + U.VelocityUnitName, _sd);
         Row(Ui.Lang.T("Shot velocities") + " " + U.VelocityUnitName, _shots);
-        Row(Ui.Lang.T("Group MOA"), _grp);
+        Row(U.AngleText(Ui.Lang.T("Group MOA")), _grp);
         Row(Ui.Lang.T("Distance") + " " + U.DistanceUnitName, _dist);
         Row(Ui.Lang.T("Wind") + " " + U.VelocityUnitName, _wind);
         Row(Ui.Lang.T("Wind direction (degrees from 12 o'clock)"), _windDir);
@@ -307,7 +309,7 @@ internal sealed class JournalDialog : Form
         _e.Rounds = (int)_rounds.Value;
         _e.VelocityAvgMs = _mv.Value > 0 ? U.VelocityToMps((double)_mv.Value) : null;
         _e.SdMs = _sd.Value > 0 ? U.VelocityToMps((double)_sd.Value) : null;
-        _e.GroupMoa = _grp.Value > 0 ? (double)_grp.Value : null;
+        _e.GroupMoa = _grp.Value > 0 ? U.AngleToMoa((double)_grp.Value) : null;
         _e.DistanceM = _dist.Value > 0 ? U.DistanceToMetres((double)_dist.Value) : null;
         _e.TemperatureC = _envRecorded.Checked ? CurrentTempC() : null;
         _e.PressureHpa = _envRecorded.Checked ? CurrentPressureHpa() : null;

@@ -20,6 +20,17 @@ public sealed class TargetGroup
 
     public List<Impact> Impacts { get; } = new();
 
+    /// <summary>
+    /// How many groups these impacts come from, each already recentred on its own centre (1 for a group as shot;
+    /// <see cref="GrtReloadingToolkit.Log.GroupAnalysis.CombineGroups"/> sets the number it pooled). Every group spent one degree of freedom
+    /// per axis on finding its own centre, so the spread about the centres has n − groups of them, not n − 1:
+    /// ten 3-shot groups pooled hold 20, not 29, and dividing by 29 reads the spread about 17 % too small.
+    /// </summary>
+    public int PooledGroups { get; set; } = 1;
+
+    /// <summary>Degrees of freedom per axis left for the spread: impacts less one per group centre (never below 0).</summary>
+    public int DegreesOfFreedom => Math.Max(Impacts.Count - Math.Max(PooledGroups, 1), 0);
+
     public double CenterXMoa => Impacts.Count > 0 ? Impacts.Average(i => i.XMoa) : AppCenterXMoa;
     public double CenterYMoa => Impacts.Count > 0 ? Impacts.Average(i => i.YMoa) : AppCenterYMoa;
 
@@ -49,6 +60,14 @@ public sealed class TargetGroup
             return Impacts.Average(i => Math.Sqrt((i.XMoa - cx) * (i.XMoa - cx) + (i.YMoa - cy) * (i.YMoa - cy)));
         }
     }
+
+    /// <summary>
+    /// Mean radius as the load would group it, MOA: <see cref="MeanRadiusMoa"/> is measured about each group's own centre,
+    /// which sits closer to its shots than the load's true centre does, so it reads small by √((n − groups)/n) —
+    /// 18 % for 3-shot groups, 11 % for 5, 5 % for 10. This scales it back. Null when no degree of freedom is left.
+    /// </summary>
+    public double? MeanRadiusCorrectedMoa
+        => DegreesOfFreedom > 0 ? MeanRadiusMoa * Math.Sqrt((double)Impacts.Count / DegreesOfFreedom) : null;
 
     /// <summary>Vertical spread of impacts (max Y − min Y), MOA — the OCW-relevant number.</summary>
     public double VerticalSpreadMoa

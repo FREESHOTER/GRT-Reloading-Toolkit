@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using System.Globalization;
 using GrtReloadingToolkit.Log;
 using GrtReloadingToolkit.Ocw;
@@ -41,9 +42,19 @@ internal abstract class LadderAnalyzerForm : Form
     private LadderResult? _result;
     private Action<string>? _logHandler;
 
-    protected LadderAnalyzerForm(GrtClient? grt)
+    // the shooter's archive as a third source, beside a folder and the open GRT load
+    private readonly ArchiveLink? _link;
+    private List<TargetGroup>? _archGroups;
+    private List<LadderVelocity>? _archVels;
+    private long? _archLoad, _archSession;
+    private readonly Button _saveArchive = new() { Text = Lang.T("Save in the archive"), AutoSize = true, Enabled = false };
+    private readonly Button _pdf = new() { Text = Lang.T("PDF report"), AutoSize = true, Enabled = false };
+    private string? _archTitle;
+
+    protected LadderAnalyzerForm(GrtClient? grt, ArchiveLink? link = null)
     {
         _grt = grt;
+        _link = link;
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
@@ -77,6 +88,31 @@ internal abstract class LadderAnalyzerForm : Form
             Shown += async (_, _) => { _folderPath = preset; _folder.Text = preset; await RefreshLoadVelocitiesAsync(); Reanalyze(); };
     }
 
+    /// <summary>
+    /// The window drawn for a picture (<c>--anteprima seduta</c> / <c>scala</c>): a ladder of nine invented steps, five shots on each target, with a quiet stretch
+    /// in the middle where the group is small and the vertical POI does not move.
+    /// </summary>
+    protected void LoadPreviewData()
+    {
+        bool seat = Mode == LadderMode.Seating;
+        var rnd = new Random(7);
+        _archGroups = new List<TargetGroup>();
+        _archVels = new List<LadderVelocity>();
+        for (int i = 0; i < 9; i++)
+        {
+            double step = seat ? 0.005 + 0.005 * i : 39.0 + 0.3 * i;
+            bool quiet = i is >= 3 and <= 5;
+            var tg = new TargetGroup { SourceFile = "prova " + (i + 1), ChargeGrains = step, DistanceM = 100 };
+            double poi = quiet ? 0.1 : 0.45 * (i - 4);
+            double spread = quiet ? 0.18 : 0.45;
+            for (int k = 0; k < 5; k++) tg.Impacts.Add(new Impact((rnd.NextDouble() - 0.5) * 2 * spread, poi + (rnd.NextDouble() - 0.5) * 2 * spread));
+            _archGroups.Add(tg);
+            double mean = seat ? 828 : 805 + (quiet ? 20 + 0.6 * (i - 3) : 9.0 * i);
+            _archVels.Add(new LadderVelocity(step, Enumerable.Range(0, 5).Select(_ => mean + (rnd.NextDouble() - 0.5) * (quiet ? 3 : 8)).ToList()));
+        }
+        Reanalyze();
+    }
+
     public void BringForward()
     {
         if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
@@ -106,23 +142,46 @@ internal abstract class LadderAnalyzerForm : Form
         var grpBtn = new Button { Text = Lang.T("Groups from GRT load"), AutoSize = true, Margin = new Padding(0, 6, 0, 0) };
         top.SetFlowBreak(re, true);   // start a new row
         grpBtn.Click += async (_, _) => await LoadGrtGroupsAsync();
-        var gu = GrtUnits.Current;
+        var gu = ProgramUnits.Current;
         _noFlyers.Margin = new Padding(6, 8, 0, 0);
         top.Controls.Add(grpBtn);
+        if (_link != null)
+        {
+            var fromArchive = new Button { Text = Lang.T("From the archive…"), AutoSize = true, Margin = new Padding(6, 6, 0, 0) };
+            fromArchive.Click += (_, _) => LoadFromArchive();
+            top.Controls.Add(fromArchive);
+        }
         top.Controls.Add(_noFlyers);
+        if (Mode == LadderMode.Seating)
+        {
+            // the numbers of the ladder are the shooter's own (file names, notes): which unit he writes them in is his to say, and the table, the chart and the note show them in the length unit of the program
+            top.Controls.Add(new Label { Text = Lang.T("seat/jump numbers typed in"), AutoSize = true, Padding = new Padding(10, 8, 0, 0) });
+            var typed = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 60, Margin = new Padding(0, 4, 0, 0) };
+            typed.Items.AddRange(new object[] { "mm", "in" });
+            typed.SelectedIndex = ProgramUnits.Current.SeatingTypedCode == "in" ? 1 : 0;
+            typed.SelectedIndexChanged += (_, _) =>
+            {
+                AppUnits.Prefs.SetField(ProgramUnitView.SeatingTypedField, UnitKind.Length, typed.SelectedIndex == 1 ? "in" : "mm");
+                Reanalyze();
+            };
+            top.Controls.Add(typed);
+        }
 
         _grid.Dock = DockStyle.Fill;
         _grid.ReadOnly = true;
         _grid.AllowUserToAddRows = false;
         _grid.RowHeadersVisible = false;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        // MOA is an angle and reads the same everywhere; velocity and distance are stored metric
-        // and get headed with whatever GRT is showing, so a node never reads in a unit the load
+        // angles are stored in MOA and shown in the angle unit of the program; velocity is stored metric
+        // and is headed with whatever GRT is showing, so a node never reads in a unit the load
         // was never worked up in.
         foreach (var (n, h) in new[] { ("x", XHeader), ("vn", "n"), ("mv", "MV " + gu.VelocityUnitName), ("sd", "SD"), ("es", "ES"),
-                     ("d", Lang.T("Dist") + " " + gu.DistanceUnitName), ("poi", "POI-Y MOA"), ("mr", Lang.T("Grp MR MOA")), ("vs", Lang.T("Vert MOA")) })
+                     ("d", Lang.T("Dist") + " " + gu.DistanceUnitName), ("poi", "POI-Y " + gu.AngleUnitName), ("mr", gu.AngleText(Lang.T("Grp MR MOA"))), ("vs", gu.AngleText(Lang.T("Vert MOA"))) })
             _grid.Columns.Add(n, h);
         _grid.Columns.Add("score", Lang.T("Score"));
+        _grid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;           // the long titles (mean radius, vertical spread) go on two lines
+        _grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+        _grid.ColumnHeadersHeight = 40;
 
         _chart.Dock = DockStyle.Fill;
 
@@ -142,6 +201,13 @@ internal abstract class LadderAnalyzerForm : Form
         var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
         _writeBtn.Click += async (_, _) => await WriteNoteAsync();
         bottom.Controls.Add(_writeBtn);
+        if (_link != null)
+        {
+            _saveArchive.Click += (_, _) => SaveToArchive();
+            bottom.Controls.Add(_saveArchive);
+        }
+        _pdf.Click += async (_, _) => await PdfAsync();
+        bottom.Controls.Add(_pdf);
         _chooseBtn.Text = Lang.T(ChooseText);
         _chooseBtn.Click += async (_, _) => await ChooseAsync();
         bottom.Controls.Add(_chooseBtn);
@@ -166,6 +232,7 @@ internal abstract class LadderAnalyzerForm : Form
         _folderPath = d.SelectedPath;
         _folder.Text = _folderPath;
         _grtGroups = null;   // folder source replaces the GRT shot-group source
+        _archGroups = null; _archVels = null;
         await RefreshLoadVelocitiesAsync();   // best-effort: fill gaps from the open load's Measurement
         Reanalyze();
     }
@@ -251,6 +318,7 @@ internal abstract class LadderAnalyzerForm : Form
             }
 
             _grtGroups = groups;
+            _archGroups = null; _archVels = null;
             _folder.Text = $"{Lang.T("GRT shot groups")} ({groups.Count}) — {Path.GetFileName(top.file)}";
             Reanalyze();
         }
@@ -261,15 +329,85 @@ internal abstract class LadderAnalyzerForm : Form
         }
     }
 
+    /// <summary>
+    /// One session of the archive as a ladder: each string on its step (the charge, or the seating number in its name), each
+    /// measurable group on its step. Groups without a step get the strings' steps in ascending order, only if the shooter
+    /// confirms it, as with GRT's tabs: shooting order is an assumption, not data.
+    /// </summary>
+    private void LoadFromArchive()
+    {
+        if (_link == null) return;
+        using var pick = new ArchivePickForm(_link, ArchivePick.Both);
+        if (pick.ShowDialog(this) != DialogResult.OK || pick.Session is not { } s) return;
+        var vels = new List<LadderVelocity>();
+        foreach (var st in pick.PickedStrings)
+        {
+            var vs = st.Velocities.Where(v => v > 50).ToList();
+            if (vs.Count > 0 && LadderLoader.MeasurementStep(Mode, st.ChargeGr, st.Label, st.Notes) is { } step)
+                vels.Add(new LadderVelocity(step, vs));
+            else if (vs.Count > 0)
+                AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("archive: string {0} has no step, left out"), st.Label));
+        }
+        var groups = pick.PickedGroups.Select(g => Archive.ArchiveQueries.ToTargetGroup(g, _noFlyers.Checked)).OfType<TargetGroup>().ToList();
+        if (groups.Any(g => g.ChargeGrains is null) && LadderLoader.AssignOrdinalSteps(groups, vels.Select(v => v.Step)) is { } pairs)
+        {
+            string list = string.Join(Environment.NewLine, pairs.Select(p => "  " + p.Group.SourceFile + "  →  " +
+                Mode.XValue(p.Step).ToString(Mode.XFormat(), CultureInfo.InvariantCulture) + " " + XUnit));
+            if (MessageBox.Show(this, Lang.T("Some groups have no step. Give them the strings' steps in ascending order (first group = lowest)?")
+                    + Environment.NewLine + Environment.NewLine + list,
+                    Lang.T("From the archive"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                LadderLoader.ApplySteps(pairs);
+        }
+        int noStep = groups.Count(g => g.ChargeGrains is null);
+        if (noStep > 0) AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("archive: {0} group(s) without a step left out"), noStep));
+        groups = groups.Where(g => g.ChargeGrains is not null).ToList();
+        if (vels.Count == 0 && groups.Count == 0) { MessageBox.Show(this, Lang.T("Nothing in that session can be placed on a ladder."), Lang.T("From the archive")); return; }
+
+        _archGroups = groups;
+        _archVels = vels;
+        _archLoad = s.LoadId;
+        _archSession = s.Id;
+        _archTitle = $"{s.LoadName} — {s.Date}";
+        _folderPath = null; _grtGroups = null; _grtVels = null;
+        _folder.Text = $"{Lang.T("Shooter's archive")}: {s.Date} — {s.LoadName} ({vels.Count} {Lang.T("strings")}, {groups.Count} {Lang.T("groups")})";
+        Reanalyze();
+    }
+
+    private string ArchiveInputs() => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        sorgente = _folder.Text, peso_poi = (double)_wPoi.Value, peso_secondo = (double)_wPrim.Value, finestra = (int)_win.Value,
+        senza_flyer = _noFlyers.Checked,
+    });
+
+    private void SaveToArchive()
+    {
+        if (_link == null || _result == null) return;
+        _link.Save(this, Lang.T(NoteTitle), _archLoad, _archSession, ArchiveInputs(), LadderAnalyzer.BuildReport(_result, HeadlineFor(DateTime.Now)));
+    }
+
+    private async Task PdfAsync()
+    {
+        if (_result == null) return;
+        bool fromArchive = _archGroups != null;
+        string title = fromArchive && _archTitle != null ? _archTitle
+            : _folderPath != null ? Path.GetFileName(_folderPath.TrimEnd(Path.DirectorySeparatorChar, '/'))
+            : Lang.T("open GRT load");
+        await ReportPdfAction.MakeAsync(this, _pdf, _link, Lang.T(NoteTitle), title,
+            fromArchive ? _archLoad : null, fromArchive ? _archSession : null, ArchiveInputs(),
+            LadderAnalyzer.BuildReport(_result, HeadlineFor(DateTime.Now)), ReportPdfAction.Chart(Lang.T(NoteTitle), _chart.RenderPng(1400, 900, print: true)));
+    }
+
     private void Reanalyze()
     {
-        if (_folderPath is null && _grtGroups is null) return;
+        if (_folderPath is null && _grtGroups is null && _archGroups is null) return;
         try
         {
-            var loaded = _grtGroups is { } gg
-                ? LadderLoader.FromGroups(gg, Mode, _folderPath)
-                : LadderLoader.FromFolder(_folderPath!, Mode);
-            if (_grtVels is { } lv) LadderLoader.FillMissingVelocities(loaded, lv);
+            var loaded = _archGroups is { } ag
+                ? LadderLoader.FromParts(ag, _archVels ?? new(), Mode)
+                : _grtGroups is { } gg
+                    ? LadderLoader.FromGroups(gg, Mode, _folderPath)
+                    : LadderLoader.FromFolder(_folderPath!, Mode);
+            if (_archGroups is null && _grtVels is { } lv) LadderLoader.FillMissingVelocities(loaded, lv);
             foreach (var l in loaded.Log) AppendLog(l);
 
             var w = AnalysisWeights.For(Mode);
@@ -280,7 +418,7 @@ internal abstract class LadderAnalyzerForm : Form
             _result = LadderAnalyzer.Analyze(loaded.Rows, Mode, XUnit, w);
 
             _grid.Rows.Clear();
-            var u = GrtUnits.Current;
+            var u = ProgramUnits.Current;
             foreach (var x in _result.Rows)
             {
                 int ri = _grid.Rows.Add(
@@ -290,9 +428,9 @@ internal abstract class LadderAnalyzerForm : Form
                     x.HasVel ? u.VelocityValue(x.SdMps).ToString("F1", CultureInfo.InvariantCulture) : "",
                     x.HasVel ? u.VelocityValue(x.EsMps).ToString("F1", CultureInfo.InvariantCulture) : "",
                     x.HasTarget ? u.DistanceValue(x.DistanceM).ToString("0", CultureInfo.InvariantCulture) : "",
-                    x.HasTarget ? x.PoiYMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",
-                    x.HasTarget ? x.MeanRadiusMoa.ToString("0.00", CultureInfo.InvariantCulture) : "",
-                    x.HasTarget ? x.VertSpreadMoa.ToString("0.00", CultureInfo.InvariantCulture) : "");
+                    x.HasTarget ? u.AngleValue(x.PoiYMoa).ToString("0.00", CultureInfo.InvariantCulture) : "",
+                    x.HasTarget ? u.AngleValue(x.MeanRadiusMoa).ToString("0.00", CultureInfo.InvariantCulture) : "",
+                    x.HasTarget ? u.AngleValue(x.VertSpreadMoa).ToString("0.00", CultureInfo.InvariantCulture) : "");
                 _grid.Rows[ri].Cells["score"].Value = LadderScore.Of(x).Total?.ToString("0.00", CultureInfo.InvariantCulture) ?? "";
             }
 
@@ -306,6 +444,8 @@ internal abstract class LadderAnalyzerForm : Form
             _chart.SetData(_result);
             _summary.Text = LadderAnalyzer.BuildReport(_result, HeadlineFor(DateTime.Now)).Replace("\n", "\r\n");
             _writeBtn.Enabled = _result.BestNode != null && _grt is { Connected: true };
+            _saveArchive.Enabled = _result.Rows.Count > 0;
+            _pdf.Enabled = _result.Rows.Count > 0;
             _chooseBtn.Enabled = _grt is { Connected: true } && _result.Rows.Any(r => LadderScore.Of(r).Total.HasValue);
             string xf = Mode.XFormat();
             _status.Text = _result.BestNode is { } n
@@ -358,7 +498,7 @@ internal abstract class LadderAnalyzerForm : Form
                 return;
             }
             var read = GrtLoadDoc.Load(GrtLoadDoc.EffectiveReadPath(top.file));
-            var u = GrtUnits.Current;
+            var u = ProgramUnits.Current;
             string value = Mode.XValue(step.X).ToString(Mode.XFormat(), CultureInfo.InvariantCulture) + " " + (charge ? u.ChargeUnitName : XUnit);
             int rank = _result.Rows.Count(r => LadderScore.Of(r).Total is { } t && t > score.Total.Value) + 1;
             int ranked = _result.Rows.Count(r => LadderScore.Of(r).Total.HasValue);
@@ -366,7 +506,7 @@ internal abstract class LadderAnalyzerForm : Form
             string ranking = string.Format(Lang.T(charge ? "Ladder rank #{0} of {1}, score {2} ({3})." : "Seating test rank #{0} of {1}, score {2} ({3})."), rank, ranked,
                 score.Total.Value.ToString("0.00", CultureInfo.InvariantCulture), Lang.T(LoadScoring.ScoreLabel(score.Total)));
             string figures = $"SD {(step.HasVel ? u.VelocitySd(step.SdMps) + " " + u.VelocityUnitName : "--")}   ES {(step.HasVel ? u.VelocitySd(step.EsMps) + " " + u.VelocityUnitName : "--")}   "
-                + $"{Lang.T("Group MOA")} {(step.HasTarget ? step.GroupEsMoa.ToString("0.00", CultureInfo.InvariantCulture) : "--")}   {Math.Max(step.VelN, step.Impacts)} {Lang.T("Rounds")}";
+                + $"{u.AngleText(Lang.T("Group MOA"))} {(step.HasTarget ? u.AngleValue(step.GroupEsMoa).ToString("0.00", CultureInfo.InvariantCulture) : "--")}   {Math.Max(step.VelN, step.Impacts)} {Lang.T("Rounds")}";
             string noteTitle = charge ? ChosenChargeNote.Title : ChosenDepthNote.Title;
             string note = charge
                 ? ChosenChargeNote.Build(DateTime.Now, value, where, ranking, figures, Lang.T("Next: the seating-depth test is shot with this charge."))

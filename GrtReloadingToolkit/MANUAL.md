@@ -1170,7 +1170,77 @@ Says whether the barrel's twist keeps the bullet stable, by the **Miller twist r
 
 ---
 
-## 32. Limitations & FAQ
+## 32. The archive, the library and the PDF reports
+
+The program keeps **one archive of its own** (`Documents\Ricarica\archivio.db`, a SQLite file): the sessions, the strings and every shot, the target groups, the loads, the cartridges one by one and the analyses that were saved. It works **stand-alone**, as *Banco di Ricarica*, and as the GRT plugin; GRT and Excel-style files are only a way in and a way out, never the place where the data lives. What GRT writes back are still the notes and snapshots of section 2.
+
+- **Save in the archive** (in the analyses that have the button) keeps the figures and the report of that analysis with the load and the session they belong to; the **PDF report** button writes a PDF with the figures, the charts and the text, opens it, and keeps it in the archive too (the PDF files are also in `Documents\Ricarica\rapporti`).
+- **Component library.** Cases, bullets, primers and powders with the values that are known about them. When the same piece has several values the order is: what you measured, then the maker, then GRT, then the older tools. A match between two names is never made silently: the window lists the matches to **confirm**.
+- Whatever you choose to show, the archive keeps ONE unit for each kind of quantity (grains, millimetres, metres, MOA, m/s, °C): changing the units (section 35) changes only what is shown and how a typed number is read, never a stored value.
+
+Before the program changes the schema of the archive (a new version adds a column, never removes one) it is good practice to keep a copy of the file: the copies made by hand go anywhere, the archive is a single file.
+
+---
+
+## 33. Cartridges: measure, predict, plan
+
+For a match or a long-range test the load is not one number but a lot of cartridges, each a little different. This window (phase 1, *Cartridges*) measures them, learns from the archive what actually moves the velocity, predicts each cartridge and plans how to fire them. It has seven tabs:
+
+- **Pieces** — cases, bullets and primers as marks with their measures (weight, case volume, neck, length…). A mark that is not there yet is created when you type it. A right click on the title of a column changes the unit of that column.
+- **Match lots** and **Training** — the lots of finished cartridges, one row for each cartridge (case, bullet, primer, and the measures taken on the finished round).
+- **Prediction and plan** — *Learn from the archive* builds the model of the velocity (below) and then the plan: how to divide the lot in groups so that each group shoots the smallest SD. For a race the shape is yours: targets, barrels (shots) per target, how many returns, how many shots per return, and the proving shots; what you set is remembered.
+- **Check after the shooting** — link the shots of a session to the cartridges that fired them. The window says whether the prediction held (is the cartridge estimated faster really the faster one?) and warns when the session is one the model learned from (then the check is not independent).
+- **Tolerances and classes** — which measures matter and by how much, and the classes to sort the pieces into.
+- **SD budget** — pick the strings of a session: it says where the SD comes from (the change of velocity between series, the first shots of a series, each proven measure, the chronograph, the rest), what it costs on the target at each distance and how many shots are needed to prove an improvement. A chart shows the shares and the series.
+
+**How the model decides.** Inside each series the mean of that series is taken out, so that a warmer day, another barrel or a new box cannot pass for a measure; then each measure is tested against the velocity, with the correction for testing many measures at once (Holm). Only a measure that is **proven** (probability of chance under 5 %) enters the prediction. With few shots the model says nothing rather than guess: a measure is tested only once enough shots carry it. The prediction is the velocity of each cartridge from the median one of the lot, in m/s.
+
+---
+
+## 34. Training, race, and the reading of the shots
+
+Phases 6 and 7 of the home page are the two kinds of lot. The **match lot** is kept for the match; **training lots** are other cartridges, shot to teach the model what moves the velocity, to try a plan and to check a prediction. Every shot linked to a cartridge, in training or in a match, teaches the same model.
+
+### Training (phase 6)
+
+- **Training cartridges** — the lots with the purpose *training*; a training lot can *imitate* a match lot, and **Compare with the match lot** says how much the cartridges of the two resemble each other, in the measures the model has proven. **What the training taught** compares the model without and with the latest training session (shots learned, measures proven, SD left unexplained, link of the leave-one-out check, SD expected of the match lot) with a chart of before and after.
+- **Chronograph statistics (training)** and **SD budget (training)** open on the latest training session.
+- **Group reading (shooter errors)** — paste or load the shots of a group (the coordinates are from the point of aim, or from the centre) and the reading says what points to a mistake of the shooter: a zero that is not right (with the clicks to give), a spread longer sideways than in height, a shot after shot drift, a first shot that goes worse, a series that is not like the others, a flier. Every finding has the probability that it is chance written beside it; "nothing found" is not proof that there is nothing, above all with fewer than 10 shots.
+
+### Race (phase 7)
+
+- **Race plan and check** — the plan of the match lot, the prediction frozen before the shooting and the check after.
+- **Match reading (one shot per target)** — tick *Match* in the reading window and write one shot for each target, with its distance, and, when you have them, the velocity, the wind, the position and the lot. Each error is split in four parts: **cartridge**, **settings** (zero, scope), **wind not corrected** and **shooting**; each shot gets its main cause; patterns are named only when the evidence is enough (*strong* findings, and *weak* ones marked "to be confirmed"), for instance a target that was missed always in the same way.
+
+Both readings are statistics on the shots you give them: they point, they do not judge. A finding is worth confirming on the next shooting.
+
+---
+
+## 35. Units of measure
+
+Open **Units of measure** from the home page. For each kind of quantity there is one choice for the whole program: **grains or grams** (powder, bullet, case), **millimetres or inches** (lengths), **metres or yards** (distances), **MOA or mrad** (angles); and the click of your scope (1/8, 1/4, 1/2 MOA; 1/20, 1/10 mrad). Velocity, temperature and twist keep following GRT's own settings.
+
+- **One setting, a selector on the field.** Where a table has a column of the kind, a right click on its title lists the units of that kind for that column only (the charge of a chronograph import, any measure of the cartridges); *Like the others of its kind* goes back to the common choice.
+- **Numbers that carry no unit.** The seating depth or jump of a seating ladder and the neck tension of the advanced diagnostics are numbers you type in file names or in names of strings, so the program cannot know the unit: each of these windows asks which unit you write in (a box *typed in*), and shows the result in the length unit you chose.
+- **Texts and reports.** The verdicts, the notes written to GRT, the PDF reports and the charts use the same units; a verdict written by the program in MOA is converted number by number (a click such as 1/4 MOA stays what it is). The thresholds windows show the limits in the angle unit chosen, and a limit you did not touch keeps its stored value to the last digit.
+- A window reads the units when it is opened: after changing them, reopen the windows that were already open.
+
+---
+
+## 36. Charts
+
+A picture explains many results better than a sentence, so most analyses draw their result. Every chart of the program can be **copied or saved as a picture** with a right click on it, and the ones that go into a PDF report are drawn again in dark ink on white.
+
+- **Shots on the target** (reading of a group or of a match): the shots round the aim in MOA or mrad, coloured by series or by cause, the centre of the shots with an arrow from the aim, and the ellipse that holds most of the shots.
+- **The shots of each string** (chronograph import and statistics): each string a column of dots with its average and one SD either side, the averages joined, the string with the smallest SD marked; a shot flagged as an outlier is red.
+- **Ladder / OCW and seating**: the velocity (or the group) against the charge (or the depth) with the vertical POI and the recommended node shaded.
+- **Group analysis**: the group with rings and the dashed ring of the mean radius. **Distance workflow**: the score of each charge as a bar. **SD root-cause**: the contribution of each shot, temperature against velocity and against group.
+- **Cartridges**: what moves the velocity (the dots and the slope the data give), the plan group by group, the water held by each case, the **SD budget** (the shares and the series) and **what the training taught** (before and after).
+- **Follow a load**: the mean velocity, the SD and ES, the velocity against temperature and the group over time.
+
+---
+
+## 37. Limitations & FAQ
 
 **Why a pile of `_toolkit_…` files?** GRT's plugin API can't edit the open load and can't reload an
 already-open tab — so each write is a fresh timestamped snapshot. Each snapshot is complete; keep

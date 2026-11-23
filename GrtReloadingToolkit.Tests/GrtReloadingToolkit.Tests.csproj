@@ -51,6 +51,7 @@
     <Compile Include="..\GrtReloadingToolkit\Probe\ModelProbe.cs" Link="Probe\ModelProbe.cs" />
     <Compile Include="..\GrtReloadingToolkit\Cal\PowderModels.cs" Link="Cal\PowderModels.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\ToolIconPainter.cs" Link="Ui\ToolIconPainter.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Ui\HomeArt.cs" Link="Ui\HomeArt.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\LauncherCaption.cs" Link="Ui\LauncherCaption.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\ChosenChargeReader.cs" Link="Ui\ChosenChargeReader.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\PathProgress.cs" Link="Ui\PathProgress.cs" />
@@ -65,6 +66,15 @@
     <Compile Include="..\GrtReloadingToolkit\Log\Db.cs" Link="Log\Db.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadOwner.cs" Link="Log\LoadOwner.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadSnapshot.cs" Link="Log\LoadSnapshot.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Recovery\HistoryRecovery.cs" Link="Recovery\HistoryRecovery.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\ArchiveDb.cs" Link="Archive\ArchiveDb.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\ArchiveBuilder.cs" Link="Archive\ArchiveBuilder.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\ArchiveBackup.cs" Link="Archive\ArchiveBackup.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\ComponentLibrary.cs" Link="Archive\ComponentLibrary.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\ArchiveImports.cs" Link="Archive\ArchiveImports.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\ArchiveQueries.cs" Link="Archive\ArchiveQueries.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\LibraryBrowse.cs" Link="Archive\LibraryBrowse.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Reports\PdfReport.cs" Link="Reports\PdfReport.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\StaleNotes.cs" Link="Log\StaleNotes.cs" />
     <Compile Include="..\GrtReloadingToolkit\Log\LoadIdentity.cs" Link="Log\LoadIdentity.cs" />
     <Compile Include="..\GrtReloadingToolkit\Ui\RowLabels.cs" Link="Ui\RowLabels.cs" />
@@ -118,6 +128,27 @@
     <Compile Include="..\GrtReloadingToolkit\Cards\LabelSheet.cs" Link="Cards\LabelSheet.cs" />
     <!-- Same story again: the chrono-statistics math is plain arithmetic, no WinForms. -->
     <Compile Include="..\GrtReloadingToolkit\ChronoStats\ChronoStatsCalc.cs" Link="ChronoStats\ChronoStatsCalc.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\VelocityModel.cs" Link="Cartridges\VelocityModel.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\CartridgePlanner.cs" Link="Cartridges\CartridgePlanner.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\PredictionCheck.cs" Link="Cartridges\PredictionCheck.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\MeasureFields.cs" Link="Cartridges\MeasureFields.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\CartridgeText.cs" Link="Cartridges\CartridgeText.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\StatsExtra.cs" Link="Cartridges\StatsExtra.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\VarianceBudget.cs" Link="Cartridges\VarianceBudget.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\MeasureClasses.cs" Link="Cartridges\MeasureClasses.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\WeighingImport.cs" Link="Cartridges\WeighingImport.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Shooting\ShooterErrors.cs" Link="Shooting\ShooterErrors.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Shooting\ShooterText.cs" Link="Shooting\ShooterText.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Shooting\MatchReading.cs" Link="Shooting\MatchReading.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Shooting\MatchInput.cs" Link="Shooting\MatchInput.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Shooting\MatchText.cs" Link="Shooting\MatchText.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Shooting\PatternInput.cs" Link="Shooting\PatternInput.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\PatternQueries.cs" Link="Archive\PatternQueries.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Archive\CartridgeStore.cs" Link="Archive\CartridgeStore.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\TrainingTransfer.cs" Link="Cartridges\TrainingTransfer.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Cartridges\TrainingProgress.cs" Link="Cartridges\TrainingProgress.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Measuring\UnitSystem.cs" Link="Measuring\UnitSystem.cs" />
+    <Compile Include="..\GrtReloadingToolkit\Measuring\ProgramUnits.cs" Link="Measuring\ProgramUnits.cs" />
     <!-- The dbtest CLI self-test: no WinForms, just Console + Db. Linked so its path-safety
          invariant (never defaults to the real database) is covered by a test, not just eyeballed. -->
     <Compile Include="..\GrtReloadingToolkit\DbSelfTest.cs" Link="DbSelfTest.cs" />

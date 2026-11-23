@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using System.Globalization;
 using GrtReloadingToolkit.Cal;
 using GrtReloadingToolkit.Log;
@@ -137,10 +138,10 @@ internal sealed class CalibrationForm : Form
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         // Charges are stored in grains and this column, like the velocities below it, shows and
         // accepts GRT's unit. It was the one cell here still taking raw grains under a "gr" label.
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName });
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "chg", HeaderText = Lang.T("Charge") + " " + ProgramUnits.Current.ChargeUnitName });
         // Velocities are stored in m/s; these three columns show and accept GRT's unit instead, so
         // a shooter reading ft/s off their chronograph types the number they are looking at.
-        string vu = GrtUnits.Current.VelocityUnitName;
+        string vu = ProgramUnits.Current.VelocityUnitName;
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "meas", HeaderText = Lang.T("Meas MV") + " " + vu });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sim", HeaderText = Lang.T("Sim MV") + " " + vu });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "dm", HeaderText = "Δ " + vu, ReadOnly = true });
@@ -400,7 +401,7 @@ internal sealed class CalibrationForm : Form
             }
             SetSim(c, sim);
             AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("captured sim MV {0} for {1} (GRT's current charge)  Pmax {2} {3}"),
-                GrtUnits.Current.Velocity(sim), GrtUnits.Current.Charge(c), (res.MaxPressure ?? 0).ToString("0", CultureInfo.InvariantCulture), res.MaxPressureUnit));
+                ProgramUnits.Current.Velocity(sim), ProgramUnits.Current.Charge(c), (res.MaxPressure ?? 0).ToString("0", CultureInfo.InvariantCulture), res.MaxPressureUnit));
             RefreshGrid();
             Recompute();
         }
@@ -449,9 +450,9 @@ internal sealed class CalibrationForm : Form
                 if (res.MuzzleVelocityMps is { } sim && sim > 0)
                 {
                     SetSim(chg, sim);
-                    AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} -> sim {1}"), GrtUnits.Current.Charge(chg), GrtUnits.Current.Velocity(sim)));
+                    AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} -> sim {1}"), ProgramUnits.Current.Charge(chg), ProgramUnits.Current.Velocity(sim)));
                 }
-                else AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} -> no sim MV (skipped)"), GrtUnits.Current.Charge(chg)));
+                else AppendLog(string.Format(CultureInfo.InvariantCulture, Lang.T("{0} -> no sim MV (skipped)"), ProgramUnits.Current.Charge(chg)));
                 RefreshGrid();
                 Recompute();
             }
@@ -710,7 +711,7 @@ internal sealed class CalibrationForm : Form
     {
         _suppressGrid = true;
         _grid.Rows.Clear();
-        var u = GrtUnits.Current;
+        var u = ProgramUnits.Current;
         foreach (var p in _result.Points.OrderBy(p => p.ChargeGr))
             _grid.Rows.Add(
                 u.ChargeValue(p.ChargeGr).ToString(u.ChargeFormat, CultureInfo.InvariantCulture),
@@ -729,7 +730,7 @@ internal sealed class CalibrationForm : Form
             var p = ordered[i];
             // The inverse of RefreshGrid: the cells are in GRT's units, the point is always
             // grains and m/s.
-            var u = GrtUnits.Current;
+            var u = ProgramUnits.Current;
             if (D(_grid.Rows[i].Cells["chg"].Value) is { } c) p.ChargeGr = u.ChargeToGrains(c);
             if (D(_grid.Rows[i].Cells["meas"].Value) is { } m) p.MeasMps = u.VelocityToMps(m);
             if (D(_grid.Rows[i].Cells["sim"].Value) is { } s) p.SimMps = u.VelocityToMps(s);
@@ -775,7 +776,7 @@ internal sealed class CalibrationForm : Form
         _writeBaK.Enabled = ok && _jointFit is { Ok: true } && _verification is { Accepted: true };
         _verifyJoint.Enabled = _jointFit is { Ok: true } && _grt is { Connected: true };
         _status.Text = _result.N >= 1
-            ? string.Format(CultureInfo.InvariantCulture, Lang.T("{0} point(s), mean offset {1:+0.0;-0.0} {2} ({3:+0.0;-0.0} %)"), _result.N, GrtUnits.Current.VelocityValue(_result.MeanDeltaMps), GrtUnits.Current.VelocityUnitName, _result.MeanDeltaPct)
+            ? string.Format(CultureInfo.InvariantCulture, Lang.T("{0} point(s), mean offset {1:+0.0;-0.0} {2} ({3:+0.0;-0.0} %)"), _result.N, ProgramUnits.Current.VelocityValue(_result.MeanDeltaMps), ProgramUnits.Current.VelocityUnitName, _result.MeanDeltaPct)
             : Lang.T("capture at least one charge");
     }
 

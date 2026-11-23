@@ -80,7 +80,9 @@ public static class GroupAnalysis
             double dx = im.XMoa - cx, dy = im.YMoa - cy;
             sxx += dx * dx; syy += dy * dy; sxy += dx * dy;
         }
-        int denom = Math.Max(n - 1, 1);
+        // One degree of freedom per group centre (see TargetGroup.PooledGroups): n − 1 for a group as shot,
+        // n − k for k groups pooled, each about its own centre.
+        int denom = Math.Max(group.DegreesOfFreedom, 1);
         return (sxx / denom, syy / denom, sxy / denom);
     }
 
@@ -323,14 +325,17 @@ public static class GroupAnalysis
     /// </summary>
     public static TargetGroup CombineGroups(IReadOnlyList<TargetGroup> groups)
     {
-        var combined = new TargetGroup { SourceFile = $"combined ({groups.Count} groups)" };
-        if (groups.Count == 0) return combined;
+        var combined = new TargetGroup { SourceFile = $"combined ({groups.Count} groups)", PooledGroups = 0 };
+        if (groups.Count == 0) { combined.PooledGroups = 1; return combined; }
         foreach (var g in groups)
         {
             double cx = g.CenterXMoa, cy = g.CenterYMoa;
             foreach (var im in g.Impacts)
                 combined.Impacts.Add(new Impact(im.XMoa - cx, im.YMoa - cy));
+            // Each source group already spent its own centres (a pooled group passed in again spent several).
+            if (g.Impacts.Count > 0) combined.PooledGroups += Math.Max(g.PooledGroups, 1);
         }
+        if (combined.PooledGroups == 0) combined.PooledGroups = 1;
         combined.DistanceM = groups.Average(g => g.DistanceM);
         return combined;
     }

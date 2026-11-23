@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>GRT_Sensitivity_Lab</AssemblyName>
+    <RootNamespace>GrtSensitivityLab</RootNamespace>
+    <Version>0.1.0</Version>
+    <Product>GRT Sensitivity Lab</Product>
+    <!-- Same DPI story as GrtModelLab / the Reloading Toolkit: app.manifest carries
+         dpiAware=false, applied by the OS loader before any managed code runs. Do NOT also set
+         ApplicationHighDpiMode. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Puts an icon in the exe's Win32 resources, which is what Explorer, the Start menu and
+         shortcuts read. It does NOT reach the title bar or the taskbar: see Ui/AppIcon.cs,
+         which assigns Form.Icon explicitly for that. app.ico is generated from the same artwork
+         as plugin\media\icons\icn_sensitivitylab_*.png. -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <EnableWindowsFormsHighDpiAutoResizing>false</EnableWindowsFormsHighDpiAutoResizing>
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\grt-plugins-shared\GrtPluginKit\GrtPluginKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The same file again, this time as a managed resource, so AppIcon can hand the whole
+         multi-size .ico to Windows at runtime. ApplicationIcon above does not make it readable
+         from managed code. LogicalName is spelled out because the default derives from
+         RootNamespace, and renaming that would silently break the lookup instead of failing the
+         build. -->
+    <EmbeddedResource Include="app.ico" LogicalName="GrtSensitivityLab.app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="plugin\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="_plugin_template\" />
+  </ItemGroup>
+
+</Project>

@@ -83,6 +83,20 @@ public class HitProbabilityTests
     }
 
     [Fact]
+    public void PooledGroupsUseTheirRealDegreesOfFreedom()
+    {
+        // Ten 3-shot groups pooled: 30 shots less 10 centres = 20 per axis, the same as a single 21-shot group.
+        Assert.Equal(HitProbability.UpperSigmaFactor(21)!.Value, HitProbability.UpperSigmaFactor(30, 10)!.Value, 12);
+        Assert.True(HitProbability.UpperSigmaFactor(30, 10)! > HitProbability.UpperSigmaFactor(30)!);
+        // Ten 1-shot "groups" leave nothing to read a spread from.
+        Assert.Null(HitProbability.UpperSigmaFactor(10, 10));
+        var single = HitProbability.Compute(0.5, 30, 600, HitProbability.Shape.Circle, 200, 0);
+        var pooled = HitProbability.Compute(0.5, 30, 600, HitProbability.Shape.Circle, 200, 0, groups: 10);
+        Assert.Equal(single.HitPct, pooled.HitPct, 9);
+        Assert.True(pooled.CautiousHitPct < single.CautiousHitPct);
+    }
+
+    [Fact]
     public void AShortGroupGetsALowerCautiousChance()
     {
         var r = HitProbability.Compute(0.6, 5, 800, HitProbability.Shape.Circle, 300, 0);

@@ -70,10 +70,10 @@ internal sealed class LoadLeaderboardForm : Form
         _grid.ReadOnly = true; _grid.AllowUserToAddRows = false; _grid.RowHeadersVisible = false;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        var u = GrtUnits.Current;
+        var u = Measuring.ProgramUnits.Current;
         foreach (var (n, h) in new[] { ("rank", "#"), ("cal", Lang.T("Caliber")), ("pw", Lang.T("Powder")), ("bu", Lang.T("Bullet")),
                      ("chg", Lang.T("Charge") + " " + u.ChargeUnitName), ("sess", Lang.T("Sessions")), ("rnd", Lang.T("Rounds")),
-                     ("sd", "SD " + u.VelocityUnitName), ("es", "ES " + u.VelocityUnitName), ("grp", Lang.T("Group MOA")),
+                     ("sd", "SD " + u.VelocityUnitName), ("es", "ES " + u.VelocityUnitName), ("grp", u.AngleText(Lang.T("Group MOA"))),
                      ("score", Lang.T("Score")), ("label", Lang.T("Rating")) })
             _grid.Columns.Add(n, h);
 
@@ -125,7 +125,7 @@ internal sealed class LoadLeaderboardForm : Form
 
     private void Run()
     {
-        var u = GrtUnits.Current;
+        var u = Measuring.ProgramUnits.Current;
         // Refresh the caliber list on every Rank, not just at construction: the Journal is its own
         // window and can gain a caliber while this one sits open, and until now that caliber was
         // rankable (Run reads the journal fresh) but not selectable.
@@ -142,7 +142,7 @@ internal sealed class LoadLeaderboardForm : Form
                 r.Sessions, r.Rounds,
                 r.Sd is { } sd ? u.VelocitySd(sd) : "",
                 r.Es is { } es ? u.VelocitySd(es) : "",
-                r.Group?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
+                r.Group is { } rg ? u.AngleValue(rg).ToString("0.00", CultureInfo.InvariantCulture) : "",
                 r.Score.Total?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
                 Lang.T(LoadScoring.ScoreLabel(r.Score.Total)));
             _grid.Rows[i].Tag = r;
@@ -193,7 +193,7 @@ internal sealed class LoadLeaderboardForm : Form
             var row = ranked[idx];
             int scoredCount = ranked.Count(r => r.Score.Total.HasValue);
             int rank = row.Score.Total.HasValue ? ranked.Take(idx + 1).Count(r => r.Score.Total.HasValue) : -1;
-            var u = GrtUnits.Current;
+            var u = Measuring.ProgramUnits.Current;
 
             var report = new System.Text.StringBuilder();
             report.AppendLine($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}");
@@ -210,7 +210,7 @@ internal sealed class LoadLeaderboardForm : Form
                 report.AppendLine($"  {label,-14} {(sub?.ToString("0.0", CultureInfo.InvariantCulture) ?? "--"),5}  {detail}");
             Line("SD", row.Score.Sd, row.Sd is { } sd ? u.VelocitySd(sd) + " " + u.VelocityUnitName : "--");
             Line("ES", row.Score.Es, row.Es is { } es ? u.VelocitySd(es) + " " + u.VelocityUnitName : "--");
-            Line(Lang.T("Group MOA"), row.Score.Group, row.Group?.ToString("0.00", CultureInfo.InvariantCulture) + " MOA");
+            Line(u.AngleText(Lang.T("Group MOA")), row.Score.Group, row.Group is { } rgm ? u.AngleValue(rgm).ToString("0.00", CultureInfo.InvariantCulture) + " " + u.AngleUnitName : "--");
             Line(Lang.T("Sample size"), row.Score.SampleSize, row.Rounds + " " + Lang.T("Rounds"));
             Line(Lang.T("Consistency"), row.Score.Consistency,
                 row.Sessions + " " + (row.Sessions == 1 ? Lang.T("session") : Lang.T("Sessions")));
@@ -255,7 +255,7 @@ internal sealed class LoadLeaderboardForm : Form
                 return;
             }
 
-            var u = GrtUnits.Current;
+            var u = Measuring.ProgramUnits.Current;
             string charge = u.ChargeValue(row.ChargeGr).ToString(u.ChargeFormat, CultureInfo.InvariantCulture) + " " + u.ChargeUnitName;
             string rank = _grid.CurrentRow.Cells["rank"].Value?.ToString() ?? "-";
             string note = ChosenChargeNote.Build(DateTime.Now, charge,
@@ -263,7 +263,7 @@ internal sealed class LoadLeaderboardForm : Form
                 string.Format(Lang.T("Leaderboard rank #{0}, score {1} ({2})."), rank,
                     row.Score.Total?.ToString("0.00", CultureInfo.InvariantCulture), Lang.T(LoadScoring.ScoreLabel(row.Score.Total))),
                 $"SD {(row.Sd is { } sd ? u.VelocitySd(sd) + " " + u.VelocityUnitName : "--")}   ES {(row.Es is { } es ? u.VelocitySd(es) + " " + u.VelocityUnitName : "--")}   "
-                + $"{Lang.T("Group MOA")} {row.Group?.ToString("0.00", CultureInfo.InvariantCulture) ?? "--"}   {row.Rounds} {Lang.T("Rounds")}",
+                + $"{u.AngleText(Lang.T("Group MOA"))} {(row.Group is { } rgm2 ? u.AngleValue(rgm2).ToString("0.00", CultureInfo.InvariantCulture) : "--")}   {row.Rounds} {Lang.T("Rounds")}",
                 Lang.T("Next: the seating-depth test is shot with this charge."));
 
             var doc = GrtLoadDoc.OpenForToolkitEdit(top.file);

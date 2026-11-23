@@ -162,6 +162,11 @@
       <li><a href="#follow">Eine Ladung verfolgen</a></li>
       <li><a href="#modelprobe">Modellsonde</a></li>
       <li><a href="#stability">Gyroskopische Stabilit&auml;t</a></li>
+      <li><a href="#archive">Archiv und Bibliothek</a></li>
+      <li><a href="#cartridges">Patronen</a></li>
+      <li><a href="#training">Training und Wettkampf</a></li>
+      <li><a href="#units">Maßeinheiten</a></li>
+      <li><a href="#charts">Diagramme</a></li>
       <li><a href="#faq">Einschränkungen &amp; FAQ</a></li>
     </ol>
   </nav>
@@ -1544,8 +1549,79 @@ MeineLadung_toolkit_20260612_201408.grtload  <span class="c">← vom Toolkit ges
       <p><strong>Was es nicht ist.</strong> Eine theoretische Sch&auml;tzung f&uuml;r ein Spitz- oder Boat-Tail-Geschoss. Die echte Rundlaufg&uuml;te des Geschosses z&auml;hlt, eine gemessene L&auml;nge mit Kunststoffspitze muss die wahre Gesamtl&auml;nge sein, und die M&uuml;ndungsgeschwindigkeit sinkt an kalten Tagen, was das Werkzeug nicht wei&szlig; (die niedrigere Geschwindigkeit selbst eintragen). Es behauptet nicht, wie viel ballistischer Koeffizient bei grenzwertigem Sg verloren geht: Ver&ouml;ffentlichte Zahlen widersprechen sich. Im Zweifel auf der Scheibe pr&uuml;fen: ovale L&ouml;cher hei&szlig;en, das Geschoss ist nicht stabil.</p>
     </section>
 
+    <section id="archive">
+      <h2><span class="no">32</span>Das Archiv, die Bibliothek und die PDF-Berichte</h2>
+      <p>Das Programm führt <strong>ein eigenes Archiv</strong> (<code>Dokumente\Ricarica\archivio.db</code>, eine SQLite-Datei): die Sitzungen, die Serien und jeden Schuss, die Trefferbilder, die Ladungen, die Patronen einzeln und die gespeicherten Analysen. Es läuft <strong>eigenständig</strong> als <em>Banco di Ricarica</em> und als GRT-Plugin; GRT und andere Dateien sind nur Eingang und Ausgang, nie der Ort, an dem die Daten leben. Was in GRT zurückgeschrieben wird, sind weiterhin die Notizen und Schnappschüsse aus Abschnitt 2.</p>
+      <ul>
+        <li><strong>Im Archiv speichern</strong> (bei den Analysen mit dieser Schaltfläche) legt die Zahlen und den Bericht der Analyse bei der Ladung und der Sitzung ab, zu denen sie gehören; <strong>PDF-Bericht</strong> schreibt ein PDF mit Zahlen, Diagrammen und Text, öffnet es und legt es auch im Archiv ab (die PDF-Dateien liegen außerdem in <code>Dokumente\Ricarica\rapporti</code>).</li>
+        <li><strong>Komponentenbibliothek.</strong> Hülsen, Geschosse, Zündhütchen und Pulver mit den bekannten Werten. Hat dasselbe Teil mehrere Werte, gilt die Reihenfolge: was du gemessen hast, dann der Hersteller, dann GRT, dann die älteren Werkzeuge. Eine Zuordnung zweier Namen geschieht nie heimlich: das Fenster listet die Zuordnungen zur <strong>Bestätigung</strong> auf.</li>
+        <li>Was auch immer du anzeigst: das Archiv führt EINE Einheit je Größenart (Grain, Millimeter, Meter, MOA, m/s, °C). Das Ändern der Einheiten (Abschnitt 35) ändert nur die Anzeige und das Lesen einer getippten Zahl, nie einen gespeicherten Wert.</li>
+      </ul>
+      <p>Bevor das Programm das Schema des Archivs ändert (eine neue Version fügt eine Spalte hinzu, entfernt nie eine), ist eine Kopie der Datei ratsam: das Archiv ist eine einzige Datei.</p>
+    </section>
+
+
+    <section id="cartridges">
+      <h2><span class="no">33</span>Patronen: messen, vorhersagen, planen</h2>
+      <p>Für einen Wettkampf oder einen Weitschusstest ist die Ladung keine Zahl, sondern ein Los von Patronen, jede ein wenig anders. Dieses Fenster (Phase 1, <em>Patronen</em>) misst sie, lernt aus dem Archiv, was die Geschwindigkeit wirklich bewegt, sagt jede Patrone voraus und plant, wie sie geschossen werden. Es hat sieben Reiter:</p>
+      <ul>
+        <li><strong>Teile</strong> — Hülsen, Geschosse und Zündhütchen als Marken mit ihren Maßen (Gewicht, Volumen, Hals, Länge …). Eine noch nicht vorhandene Marke wird beim Eintippen angelegt. Ein Rechtsklick auf den Spaltentitel ändert die Einheit dieser Spalte.</li>
+        <li><strong>Wettkampflose</strong> und <strong>Training</strong> — die Lose fertiger Patronen, eine Zeile je Patrone (Hülse, Geschoss, Zündhütchen und die an der fertigen Patrone genommenen Maße).</li>
+        <li><strong>Vorhersage und Plan</strong> — <em>Aus dem Archiv lernen</em> baut das Geschwindigkeitsmodell (unten) und dann den Plan: wie das Los in Gruppen aufgeteilt wird, damit jede Gruppe die kleinste SD schießt. Für einen Wettkampf bestimmst du die Form: Scheiben, Fässchen (Schüsse) je Scheibe, wie viele Wiederholungen, wie viele Schüsse je Wiederholung und die Probeschüsse; was du einstellst, wird gemerkt.</li>
+        <li><strong>Kontrolle nach dem Schießen</strong> — verknüpfe die Schüsse einer Sitzung mit den Patronen, die sie abgefeuert haben. Das Fenster sagt, ob die Vorhersage gehalten hat (ist die als schneller geschätzte Patrone wirklich schneller?) und warnt, wenn die Sitzung eine ist, aus der das Modell gelernt hat (dann ist die Kontrolle nicht unabhängig).</li>
+        <li><strong>Toleranzen und Klassen</strong> — welche Maße zählen und wie stark, und die Klassen zum Sortieren der Teile.</li>
+        <li><strong>SD-Bilanz</strong> — wähle die Serien einer Sitzung: sie sagt, woher die SD kommt (die Geschwindigkeitsänderung zwischen Serien, die ersten Schüsse einer Serie, jedes belegte Maß, der Chronograph, der Rest), was sie auf der Scheibe in jeder Entfernung kostet und wie viele Schüsse nötig sind, um eine Verbesserung zu belegen. Ein Diagramm zeigt die Anteile und die Serien.</li>
+      </ul>
+      <p><strong>Wie das Modell entscheidet.</strong> In jeder Serie wird deren Mittelwert herausgenommen, damit ein wärmerer Tag, ein anderer Lauf oder eine neue Schachtel nicht als Maß durchgehen; dann wird jedes Maß gegen die Geschwindigkeit getestet, mit der Korrektur für viele gleichzeitige Tests (Holm). Nur ein <strong>belegtes</strong> Maß (Zufallswahrscheinlichkeit unter 5 %) geht in die Vorhersage ein. Bei wenigen Schüssen sagt das Modell nichts, statt zu raten: ein Maß wird erst getestet, wenn genug Schüsse es tragen. Die Vorhersage ist die Geschwindigkeit jeder Patrone gegenüber der mittleren Patrone des Loses, in m/s.</p>
+    </section>
+
+
+    <section id="training">
+      <h2><span class="no">34</span>Training, Wettkampf und das Lesen der Schüsse</h2>
+      <p>Die Phasen 6 und 7 der Startseite sind die zwei Arten von Los. Das <strong>Wettkampflos</strong> wird für den Wettkampf aufgehoben; <strong>Trainingslose</strong> sind andere Patronen, geschossen, um das Modell zu lehren, was die Geschwindigkeit bewegt, um einen Plan zu erproben und eine Vorhersage zu prüfen. Jeder mit einer Patrone verknüpfte Schuss, im Training oder im Wettkampf, lehrt dasselbe Modell.</p>
+      <h3>Training (Phase 6)</h3>
+      <ul>
+        <li><strong>Trainingspatronen</strong> — die Lose mit dem Zweck <em>Training</em>; ein Trainingslos kann ein Wettkampflos <em>nachahmen</em>, und <strong>Mit dem Wettkampflos vergleichen</strong> sagt, wie ähnlich sich die Patronen beider in den vom Modell belegten Maßen sind. <strong>Was das Training gelehrt hat</strong> vergleicht das Modell ohne und mit der letzten Trainingssitzung (gelernte Schüsse, belegte Maße, ungeklärte SD, Zusammenhang der Kontrolle ohne den einzelnen Schuss, vom Wettkampflos erwartete SD) mit einem Vorher/Nachher-Diagramm.</li>
+        <li><strong>Chronograph-Statistik (Training)</strong> und <strong>SD-Bilanz (Training)</strong> öffnen sich auf der letzten Trainingssitzung.</li>
+        <li><strong>Lesen der Gruppe (Schützenfehler)</strong> — füge die Schüsse einer Gruppe ein oder lade sie (Koordinaten vom Haltepunkt oder von der Mitte) und das Lesen sagt, was auf einen Fehler des Schützen hindeutet: eine falsche Null (mit den zu gebenden Klicks), eine seitlich längere als hohe Streuung, eine Drift Schuss für Schuss, ein schlechterer erster Schuss, eine Serie anders als die anderen, ein Ausreißer. Jeder Befund trägt die Wahrscheinlichkeit, dass er Zufall ist; »nichts gefunden« beweist nicht, dass nichts da ist, vor allem unter 10 Schuss.</li>
+      </ul>
+      <h3>Wettkampf (Phase 7)</h3>
+      <ul>
+        <li><strong>Wettkampfplan und Kontrolle</strong> — der Plan des Wettkampfloses, die vor dem Schießen eingefrorene Vorhersage und die Kontrolle danach.</li>
+        <li><strong>Lesen des Wettkampfs (ein Schuss je Scheibe)</strong> — hake <em>Wettkampf</em> im Lesefenster an und schreibe einen Schuss je Scheibe mit Entfernung und, falls vorhanden, Geschwindigkeit, Wind, Position und Los. Jeder Fehler wird in vier Teile zerlegt: <strong>Patrone</strong>, <strong>Einstellungen</strong> (Null, Zielfernrohr), <strong>nicht korrigierter Wind</strong> und <strong>Schießen</strong>; jeder Schuss bekommt seine Hauptursache; Muster werden nur benannt, wenn die Belege reichen (<em>starke</em> Befunde und <em>schwache</em>, als »zu bestätigen« markiert), zum Beispiel eine Scheibe, die immer auf dieselbe Art verfehlt wurde.</li>
+      </ul>
+      <p>Beide Lesarten sind Statistik über die Schüsse, die du ihnen gibst: sie weisen hin, sie urteilen nicht. Ein Befund ist es wert, beim nächsten Schießen bestätigt zu werden.</p>
+    </section>
+
+
+    <section id="units">
+      <h2><span class="no">35</span>Maßeinheiten</h2>
+      <p>Öffne <strong>Maßeinheiten</strong> auf der Startseite. Für jede Größenart gibt es eine Wahl für das ganze Programm: <strong>Grain oder Gramm</strong> (Pulver, Geschoss, Hülse), <strong>Millimeter oder Zoll</strong> (Längen), <strong>Meter oder Yard</strong> (Entfernungen), <strong>MOA oder mrad</strong> (Winkel); und der Klick deines Zielfernrohrs (1/8, 1/4, 1/2 MOA; 1/20, 1/10 mrad). Geschwindigkeit, Temperatur und Drall folgen weiter den Einstellungen von GRT.</p>
+      <ul>
+        <li><strong>Eine Einstellung, ein Wähler am Feld.</strong> Hat eine Tabelle eine Spalte dieser Art, listet ein Rechtsklick auf den Titel die Einheiten dieser Art nur für diese Spalte auf (die Ladung eines Chronograph-Imports, jedes Maß der Patronen); <em>Wie die anderen ihrer Art</em> kehrt zur gemeinsamen Wahl zurück.</li>
+        <li><strong>Zahlen ohne Einheit.</strong> Die Setztiefe oder der Sprung einer Setztiefenleiter und die Halsspannung der erweiterten Diagnose sind Zahlen, die du in Dateinamen oder Seriennamen tippst, das Programm kann die Einheit also nicht kennen: jedes dieser Fenster fragt, in welcher Einheit du schreibst (ein Feld <em>geschrieben in</em>), und zeigt das Ergebnis in der gewählten Längeneinheit.</li>
+        <li><strong>Texte und Berichte.</strong> Die Befunde, die in GRT geschriebenen Notizen, die PDF-Berichte und die Diagramme nutzen dieselben Einheiten; ein vom Programm in MOA geschriebener Befund wird Zahl für Zahl umgerechnet (ein Klick wie 1/4 MOA bleibt, was er ist). Die Schwellenfenster zeigen die Grenzen in der gewählten Winkeleinheit, und eine nicht angefasste Grenze behält ihren gespeicherten Wert bis zur letzten Stelle.</li>
+        <li>Ein Fenster liest die Einheiten beim Öffnen: nach dem Ändern die schon offenen Fenster neu öffnen.</li>
+      </ul>
+    </section>
+
+
+    <section id="charts">
+      <h2><span class="no">36</span>Diagramme</h2>
+      <p>Ein Bild erklärt viele Ergebnisse besser als ein Satz, deshalb zeichnen fast alle Analysen ihr Ergebnis. Jedes Diagramm des Programms lässt sich per Rechtsklick <strong>als Bild kopieren oder speichern</strong>, und die in einen PDF-Bericht gehenden werden in dunkler Tinte auf Weiß neu gezeichnet.</p>
+      <ul>
+        <li><strong>Schüsse auf der Scheibe</strong> (Lesen einer Gruppe oder eines Wettkampfs): die Schüsse um den Haltepunkt in MOA oder mrad, nach Serie oder Ursache gefärbt, die Mitte der Schüsse mit einem Pfeil vom Haltepunkt und die Ellipse, die die meisten Schüsse enthält.</li>
+        <li><strong>Die Schüsse jeder Serie</strong> (Chronograph-Import und -Statistik): jede Serie eine Punktsäule mit Mittelwert und einer SD je Seite, die Mittelwerte verbunden, die Serie mit der kleinsten SD markiert; ein als Ausreißer markierter Schuss ist rot.</li>
+        <li><strong>Ladeleiter / OCW und Setztiefe</strong>: die Geschwindigkeit (oder die Gruppe) gegen die Ladung (oder die Tiefe) mit vertikalem POI und hervorgehobenem empfohlenem Knoten.</li>
+        <li><strong>Gruppenanalyse</strong>: die Gruppe mit Ringen und dem gestrichelten Ring des mittleren Radius. <strong>Entfernungs-Workflow</strong>: die Punktzahl jeder Ladung als Balken. <strong>SD-Ursachen</strong>: der Beitrag jedes Schusses, Temperatur gegen Geschwindigkeit und gegen Gruppe.</li>
+        <li><strong>Patronen</strong>: was die Geschwindigkeit bewegt (die Punkte und die aus den Daten folgende Steigung), der Plan Gruppe für Gruppe, das in jeder Hülse gefasste Wasser, die <strong>SD-Bilanz</strong> (Anteile und Serien) und <strong>was das Training gelehrt hat</strong> (vorher und nachher).</li>
+        <li><strong>Eine Ladung verfolgen</strong>: mittlere Geschwindigkeit, SD und ES, Geschwindigkeit gegen Temperatur und die Gruppe über die Zeit.</li>
+      </ul>
+    </section>
+
+
     <section id="faq">
-      <h2><span class="no">32</span>Einschränkungen &amp; FAQ</h2>
+      <h2><span class="no">37</span>Einschränkungen &amp; FAQ</h2>
       <h3>Warum ein Haufen <code>_toolkit_…</code>-Dateien?</h3>
       <p>GRTs Plugin-API kann die offene Ladung nicht bearbeiten und kann einen bereits offenen Tab nicht
         neu laden &mdash; jeder Schreibvorgang ist also ein frischer zeitgestempelter Snapshot. Jeder

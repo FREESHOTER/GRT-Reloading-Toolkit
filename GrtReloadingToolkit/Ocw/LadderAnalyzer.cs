@@ -8,6 +8,7 @@ public static class LadderAnalyzer
     public static LadderResult Analyze(IEnumerable<LadderStep> steps, LadderMode mode, string xUnit, AnalysisWeights? w = null)
     {
         w ??= AnalysisWeights.For(mode);
+        var pu = Measuring.ProgramUnits.Current;   // the angle unit of the program: the nodes are described in it
         var r = new LadderResult { Mode = mode, XUnit = xUnit, Weights = w };
         r.Rows.AddRange(steps.OrderBy(x => x.X));
         var xs = r.Rows;
@@ -53,7 +54,7 @@ public static class LadderAnalyzer
                 // tightest groups that are also stable across the window (forgiving node)
                 var best = grpW.OrderBy(x => x.GrpMean + 0.5 * x.GrpRange).First();
                 r.PrimaryNode = Node(xs, best,
-                    Tr.F("mean group {0} MOA, varies only {1} MOA across {2} steps", best.GrpMean.ToString("0.00", CultureInfo.InvariantCulture), best.GrpRange.ToString("0.00", CultureInfo.InvariantCulture), win));
+                    pu.AngleText(Tr.F("mean group {0} MOA, varies only {1} MOA across {2} steps", pu.AngleValue(best.GrpMean).ToString("0.00", CultureInfo.InvariantCulture), pu.AngleValue(best.GrpRange).ToString("0.00", CultureInfo.InvariantCulture), win)));
             }
         }
 
@@ -63,7 +64,7 @@ public static class LadderAnalyzer
         {
             var best = poiW.OrderBy(x => x.PoiRange).ThenBy(x => x.GrpMean).First();
             r.PoiNode = Node(xs, best,
-                Tr.F("vertical POI varies only {0} MOA across {1} steps", best.PoiRange.ToString("0.00", CultureInfo.InvariantCulture), win));
+                pu.AngleText(Tr.F("vertical POI varies only {0} MOA across {1} steps", pu.AngleValue(best.PoiRange).ToString("0.00", CultureInfo.InvariantCulture), win)));
         }
 
         // ---- weighted best -------------------------------------------------
@@ -117,19 +118,20 @@ public static class LadderAnalyzer
         // This table goes into GRT as a note, so it reads in the units GRT is set to. The unit
         // names go in a legend rather than the headers, which are fixed-width and would shift.
         var gu = GrtUnits.Current;
+        var pu = Measuring.ProgramUnits.Current;   // charges, distances and angles follow the units chosen in the program; velocity stays GRT's
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(headline);
         sb.AppendLine(new string('-', headline.Length));
         sb.AppendLine();
         sb.AppendLine(Tr.F("{0} in {1}, MV/SD/ES in {2}, dist in {3}, POI-Y/grpMR/vert in MOA",
-            seat ? Tr.T("seat") : Tr.T("charge"), r.XUnit, gu.VelocityUnitName, gu.DistanceUnitName));
+            seat ? Tr.T("seat") : Tr.T("charge"), r.XUnit, gu.VelocityUnitName, pu.DistanceUnitName));
         sb.AppendLine(Tr.F("{0,7}  n   MV      SD    ES   | dist  POI-Y   grpMR  vert", xh));
         foreach (var x in r.Rows)
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 "{0,7} {1,3} {2,7:F1} {3,5:F1} {4,5:F1} | {5,4:0} {6,7:0.00} {7,6:0.00} {8,5:0.00}",
                 r.Mode.XValue(x.X).ToString(xf, CultureInfo.InvariantCulture), x.HasVel ? x.VelN : 0,
                 gu.VelocityValue(x.MeanMps), gu.VelocityValue(x.SdMps), gu.VelocityValue(x.EsMps),
-                x.HasTarget ? gu.DistanceValue(x.DistanceM) : 0, x.PoiYMoa, x.MeanRadiusMoa, x.VertSpreadMoa));
+                x.HasTarget ? pu.DistanceValue(x.DistanceM) : 0, pu.AngleValue(x.PoiYMoa), pu.AngleValue(x.MeanRadiusMoa), pu.AngleValue(x.VertSpreadMoa)));
         sb.AppendLine();
         Line(sb, seat ? Tr.T("Group-size plateau") : Tr.T("Velocity flat-spot (Satterlee)"), r.PrimaryNode, r);
         Line(sb, Tr.T("Vertical-POI node"), r.PoiNode, r);
@@ -150,7 +152,7 @@ public static class LadderAnalyzer
         sb.AppendLine();
         sb.AppendLine(seat ? Tr.T("Method: MOA target coordinates from OnTarget.") : Tr.T("Method: MOA target coordinates from OnTarget, velocities from Athlon Rangecraft."));
         sb.AppendLine(Tr.T("SD is the sample SD (n-1), as GRT shows it. Confirm any node with a fresh confirmation group before committing."));
-        return sb.ToString();
+        return pu.AngleText(sb.ToString());
 
         // A node's bounds are the same quantity as the X column, so they take the same conversion.
         static void Line(System.Text.StringBuilder s, string label, NodeWindow? n, LadderResult r)

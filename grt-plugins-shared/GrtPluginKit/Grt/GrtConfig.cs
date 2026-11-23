@@ -51,6 +51,20 @@ public sealed class GrtConfig
         for (int up = 0; up < 5 && dir != null; up++, dir = dir.Parent)
             if (Directory.Exists(Path.Combine(dir.FullName, "doku")))
                 return dir.FullName;
+
+        // Installed on its own, outside GRT's plugins folder: the GRT install, if any, is named in cartella_grt.txt beside
+        // the exe (first non-empty line). Without it the program runs as well, on its own defaults.
+        string pointer = Path.Combine(AppContext.BaseDirectory, "cartella_grt.txt");
+        if (File.Exists(pointer))
+        {
+            try
+            {
+                string? named = File.ReadAllLines(pointer).Select(l => l.Trim().Trim('"')).FirstOrDefault(l => l.Length > 0);
+                if (named != null && Directory.Exists(Path.Combine(named, "doku"))) return named;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
         return null;
     }
 

@@ -15,7 +15,7 @@ public sealed class ToolIconTests
     [Fact]
     public void EveryToolHasAnIconThatDrawsSomething()
     {
-        Assert.Equal(28, ToolIconPainter.Names.Count);   // one per launcher button
+        Assert.Equal(31, ToolIconPainter.Names.Count);   // one per launcher button, and the home page's folder and load import
         foreach (string name in ToolIconPainter.Names)
         {
             using var bmp = Decode(ToolIconPainter.RenderPng(name, false, 44));

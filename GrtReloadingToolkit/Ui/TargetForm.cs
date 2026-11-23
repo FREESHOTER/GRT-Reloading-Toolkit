@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using System.Drawing.Printing;
 using System.Globalization;
 using GrtPluginKit.Grt;
@@ -21,6 +22,12 @@ internal sealed class TargetForm : Form
     private readonly NumericUpDown _perPage = new() { Minimum = 0, Maximum = 20, Value = 0, Width = 55 };
     private readonly NumericUpDown _shotsPerPoint = new() { Minimum = 1, Maximum = 5, Value = 3, Width = 55 };
     private readonly TextBox _charges = new() { Width = 260, PlaceholderText = "39.0, 39.5, 40.0, 40.5, 41.0" };
+    private readonly ComboBox _chargeUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 50 };
+    private readonly ComboBox _distanceUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 50 };
+    private readonly Label _chargeLabel = new() { AutoSize = true, Margin = new Padding(0, 10, 0, 2) };
+    private readonly Label _distanceLabel = new() { AutoSize = true, Margin = new Padding(0, 10, 0, 2) };
+    private string ChargeCode => UnitSystem.Of(UnitKind.Mass)[Math.Max(0, _chargeUnit.SelectedIndex)].Code;
+    private string DistanceCode => UnitSystem.Of(UnitKind.Distance)[Math.Max(0, _distanceUnit.SelectedIndex)].Code;
     private readonly TextBox _distance = new() { Width = 80, PlaceholderText = "100" };
     private readonly TextBox _firearm = new() { Width = 260 };
     private readonly TextBox _powder = new() { Width = 260 };
@@ -95,13 +102,22 @@ internal sealed class TargetForm : Form
         shotsPanel.Controls.Add(_shotsPerPoint);
         Add(shotsPanel);
 
-        Add(new Label { Text = Lang.T("Charge weights (gr, comma-separated, optional)"), AutoSize = true, Margin = new Padding(0, 10, 0, 2) });
+        foreach (var u in UnitSystem.Of(UnitKind.Mass)) _chargeUnit.Items.Add(u.Label);
+        foreach (var u in UnitSystem.Of(UnitKind.Distance)) _distanceUnit.Items.Add(u.Label);
+        _chargeUnit.SelectedIndex = Math.Max(0, UnitSystem.Of(UnitKind.Mass).ToList().FindIndex(u => u.Code == AppUnits.Prefs.For("target.charges", UnitKind.Mass)));
+        _distanceUnit.SelectedIndex = Math.Max(0, UnitSystem.Of(UnitKind.Distance).ToList().FindIndex(u => u.Code == AppUnits.Prefs.For("target.distance", UnitKind.Distance)));
+        UpdateUnitLabels();
+        Add(_chargeLabel);
         _charges.TextChanged += (_, _) => Render();
         Add(_charges);
+        _chargeUnit.SelectedIndexChanged += (_, _) => { AppUnits.Prefs.SetField("target.charges", UnitKind.Mass, ChargeCode); UpdateUnitLabels(); Render(); };
+        Add(new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 2, 0, 0), Controls = { new Label { Text = Lang.T("Unit of the weights:"), AutoSize = true, Margin = new Padding(0, 6, 4, 0) }, _chargeUnit } });
 
-        Add(new Label { Text = Lang.T("Distance (m, optional)"), AutoSize = true, Margin = new Padding(0, 10, 0, 2) });
+        Add(_distanceLabel);
         _distance.TextChanged += (_, _) => Render();
         Add(_distance);
+        _distanceUnit.SelectedIndexChanged += (_, _) => { AppUnits.Prefs.SetField("target.distance", UnitKind.Distance, DistanceCode); UpdateUnitLabels(); Render(); };
+        Add(new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 2, 0, 0), Controls = { new Label { Text = Lang.T("Unit of the distance:"), AutoSize = true, Margin = new Padding(0, 6, 4, 0) }, _distanceUnit } });
 
         Add(new Label { Text = Lang.T("Firearm (optional)"), AutoSize = true, Margin = new Padding(0, 10, 0, 2) });
         _firearm.TextChanged += (_, _) => Render();
@@ -144,12 +160,19 @@ internal sealed class TargetForm : Form
         Controls.Add(right);
     }
 
+    private void UpdateUnitLabels()
+    {
+        _chargeLabel.Text = string.Format(CultureInfo.InvariantCulture, Lang.T("Charge weights ({0}, comma-separated, optional)"), UnitSystem.Label(ChargeCode));
+        _distanceLabel.Text = string.Format(CultureInfo.InvariantCulture, Lang.T("Distance ({0}, optional)"), UnitSystem.Label(DistanceCode));
+    }
+
     private TargetSpec BuildSpec()
     {
+        // what is typed is in the unit chosen beside each box; the sheet keeps grains and metres and writes the unit that was chosen
         var charges = _charges.Text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.TryParse(s.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) ? v : (double?)null)
-            .Where(v => v.HasValue).Select(v => v!.Value).ToList();
-        double? distance = double.TryParse(_distance.Text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double dm) ? dm : null;
+            .Where(v => v.HasValue).Select(v => UnitSystem.ToBase(v!.Value, ChargeCode)).ToList();
+        double? distance = double.TryParse(_distance.Text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double dm) ? UnitSystem.ToBase(dm, DistanceCode) : null;
         return new TargetSpec
         {
             Kind = _rOcw.Checked ? TargetKind.Ocw : TargetKind.Ladder,
@@ -157,7 +180,7 @@ internal sealed class TargetForm : Form
             ChargesGr = charges.Count > 0 ? charges : null,
             PerPage = (int)_perPage.Value,
             ShotsPerPoint = (int)_shotsPerPoint.Value,
-            DistanceM = distance,
+            DistanceM = distance, ChargeUnit = ChargeCode, DistanceUnit = DistanceCode,
             Firearm = _firearm.Text,
             Powder = _powder.Text,
             Bullet = _bullet.Text,

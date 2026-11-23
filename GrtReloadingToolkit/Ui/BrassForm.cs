@@ -16,6 +16,7 @@ internal sealed class BrassForm : Form
     // case volume
     private readonly DataGridView _cv = new();
     private readonly ComboBox _cvUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 70, Items = { "grain", "gram" } };
+    private readonly CaseVolumeChart _cvChart = new() { Dock = DockStyle.Right, Width = 400 };
     private readonly Label _cvOut = new() { AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
     private readonly Button _cvWrite = new() { Text = Lang.T("Write casevol to GRT load"), AutoSize = true, Enabled = false };
     private BrassCalc.CaseVolumeResult? _cvResult;
@@ -62,9 +63,38 @@ internal sealed class BrassForm : Form
             ("sd.unit", _sdUnit), ("sd.cbto", _sdCbto), ("sd.case", _sdCase), ("sd.bbto", _sdBbto),
             ("neck.unit", _neckUnit), ("neck.bulletDia", _bulletDia), ("neck.wall", _wall),
             ("neck.interference", _interf), ("neck.loadedOd", _loadedOd));
+        ApplyProgramUnits();
         _status.Text = _grt is { Connected: true } ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port) : Lang.T("stand-alone (no GRT)");
         RecalcNeck();
         RecalcSeating();
+    }
+
+    /// <summary>
+    /// The units chosen in "Units of measure" win over GRT's and over what the window remembered. They are applied once the remembered boxes are back, so the
+    /// change of unit converts the numbers in them (the handlers of the pickers do that) instead of reading them in the wrong unit. A choice made here is kept.
+    /// </summary>
+    private void ApplyProgramUnits()
+    {
+        var prefs = AppUnits.Prefs;
+        bool Has(string field, Measuring.UnitKind k) => prefs.HasOwnChoice(field, k) || prefs.HasDefaultChoice(k);
+        if (Has("brass.cv", Measuring.UnitKind.Mass)) _cvUnit.SelectedIndex = prefs.For("brass.cv", Measuring.UnitKind.Mass) == "g" ? 1 : 0;
+        if (Has("brass.sd", Measuring.UnitKind.Length)) _sdUnit.SelectedIndex = prefs.For("brass.sd", Measuring.UnitKind.Length) == "in" ? 1 : 0;
+        if (Has("brass.neck", Measuring.UnitKind.Length)) _neckUnit.SelectedIndex = prefs.For("brass.neck", Measuring.UnitKind.Length) == "in" ? 0 : 1;
+        _cvUnit.SelectedIndexChanged += (_, _) => prefs.SetField("brass.cv", Measuring.UnitKind.Mass, CvInGrains ? "gr" : "g");
+        _sdUnit.SelectedIndexChanged += (_, _) => prefs.SetField("brass.sd", Measuring.UnitKind.Length, SdInInch ? "in" : "mm");
+        _neckUnit.SelectedIndexChanged += (_, _) => prefs.SetField("brass.neck", Measuring.UnitKind.Length, _neckUnit.SelectedIndex == 0 ? "in" : "mm");
+    }
+
+    /// <summary>The window drawn for a picture (<c>--anteprima bossoli</c>): twelve invented cases weighed empty and full of water.</summary>
+    public static BrassForm Preview()
+    {
+        var f = new BrassForm(null);
+        double[] water = { 29.4, 29.7, 29.5, 30.1, 29.2, 29.8, 29.6, 30.9, 29.5, 29.3, 29.9, 29.6 };
+        f._cv.Rows.Clear();
+        for (int i = 0; i < water.Length; i++)
+            f._cv.Rows.Add((96.5 + i * 0.03).ToString("0.00", CultureInfo.InvariantCulture), (96.5 + i * 0.03 + water[i]).ToString("0.00", CultureInfo.InvariantCulture));
+        f.Recalc();
+        return f;
     }
 
     public void BringForward()
@@ -119,6 +149,7 @@ internal sealed class BrassForm : Form
         bottom.Controls.Add(_cvWrite);
 
         page.Controls.Add(_cv);
+        page.Controls.Add(_cvChart);
         page.Controls.Add(bottom);
         page.Controls.Add(bar);
         return page;
@@ -137,6 +168,7 @@ internal sealed class BrassForm : Form
     private void Recalc()
     {
         var waterGrains = new List<double>();
+        var shownWater = new List<double>();                      // the same water, in the unit of the table, for the picture
         foreach (DataGridViewRow row in _cv.Rows)
         {
             if (row.IsNewRow) continue;
@@ -144,9 +176,13 @@ internal sealed class BrassForm : Form
             double? wIn = (e is { } ev && f is { } fv && fv > ev) ? fv - ev : w;
             row.Cells["water"].Value = wIn is { } x ? x.ToString("0.000", CultureInfo.InvariantCulture) : "";
             if (wIn is { } y && y > 0)
+            {
                 waterGrains.Add(CvInGrains ? y : BrassCalc.GramsToGrains(y));
+                shownWater.Add(y);
+            }
         }
         _cvResult = BrassCalc.CaseVolume(waterGrains);
+        _cvChart.SetData(shownWater, CvInGrains ? "gr" : "g");
         var r = _cvResult;
         _cvOut.Text = r.N == 0
             ? Lang.T("enter empty + full weights (or the water weight directly) for 3+ cases")

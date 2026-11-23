@@ -165,6 +165,11 @@
       <li><a href="#follow">Suivre une charge</a></li>
       <li><a href="#modelprobe">Sonde du modèle</a></li>
       <li><a href="#stability">Stabilit&eacute; gyroscopique</a></li>
+      <li><a href="#archive">Archive et bibliothèque</a></li>
+      <li><a href="#cartridges">Cartouches</a></li>
+      <li><a href="#training">Entraînement et compétition</a></li>
+      <li><a href="#units">Unités de mesure</a></li>
+      <li><a href="#charts">Graphiques</a></li>
       <li><a href="#faq">Limites &amp; FAQ</a></li>
     </ol>
   </nav>
@@ -1563,8 +1568,79 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← instantané écrit p
       <p><strong>Ce que ce n&#39;est pas.</strong> Une estimation th&eacute;orique pour une balle pointue ou boat-tail. La vraie concentricit&eacute; de la balle compte, une longueur mesur&eacute;e avec la pointe en plastique doit &ecirc;tre la vraie longueur totale, et la vitesse initiale baisse par temps froid, ce que l&#39;outil ignore (saisissez vous-m&ecirc;me la vitesse plus basse). Il ne pr&eacute;tend pas dire combien de coefficient balistique se perd quand Sg est limite&nbsp;: les chiffres publi&eacute;s divergent. En cas de doute, v&eacute;rifiez sur la cible&nbsp;: des trous ovales signifient que la balle n&#39;est pas stable.</p>
     </section>
 
+    <section id="archive">
+      <h2><span class="no">32</span>L'archive, la bibliothèque et les rapports PDF</h2>
+      <p>Le programme tient <strong>sa propre archive</strong> (<code>Documents\Ricarica\archivio.db</code>, un fichier SQLite) : les séances, les séries et chaque tir, les groupements, les charges, les cartouches une à une et les analyses enregistrées. Il fonctionne <strong>seul</strong>, comme <em>Banco di Ricarica</em>, et comme plugin de GRT ; GRT et les autres fichiers ne sont qu'une entrée et une sortie, jamais l'endroit où vivent les données. Ce que GRT reçoit reste les notes et les instantanés de la section 2.</p>
+      <ul>
+        <li><strong>Enregistrer dans l'archive</strong> (dans les analyses qui ont ce bouton) conserve les chiffres et le rapport de l'analyse avec la charge et la séance auxquelles ils appartiennent ; le bouton <strong>Rapport PDF</strong> écrit un PDF avec les chiffres, les graphiques et le texte, l'ouvre et le conserve aussi dans l'archive (les fichiers PDF sont aussi dans <code>Documents\Ricarica\rapporti</code>).</li>
+        <li><strong>Bibliothèque de composants.</strong> Douilles, balles, amorces et poudres avec les valeurs connues. Quand une même pièce a plusieurs valeurs, l'ordre est : ce que vous avez mesuré, puis le fabricant, puis GRT, puis les outils plus anciens. Un rapprochement entre deux noms n'est jamais fait en cachette : la fenêtre liste les rapprochements à <strong>confirmer</strong>.</li>
+        <li>Quoi que vous choisissiez d'afficher, l'archive garde UNE seule unité par type de grandeur (grains, millimètres, mètres, MOA, m/s, °C) : changer les unités (section 35) ne change que l'affichage et la lecture d'un nombre saisi, jamais une valeur enregistrée.</li>
+      </ul>
+      <p>Avant que le programme change le schéma de l'archive (une nouvelle version ajoute une colonne, n'en retire jamais), il est prudent de garder une copie du fichier : l'archive est un seul fichier.</p>
+    </section>
+
+
+    <section id="cartridges">
+      <h2><span class="no">33</span>Cartouches : mesurer, prévoir, planifier</h2>
+      <p>Pour une compétition ou un essai à longue distance, la charge n'est pas un nombre mais un lot de cartouches, chacune un peu différente. Cette fenêtre (phase 1, <em>Cartouches</em>) les mesure, apprend de l'archive ce qui fait vraiment varier la vitesse, prévoit chaque cartouche et planifie comment les tirer. Elle a sept onglets :</p>
+      <ul>
+        <li><strong>Pièces</strong> — douilles, balles et amorces comme des marques avec leurs mesures (poids, volume, collet, longueur…). Une marque qui n'existe pas encore est créée quand vous la tapez. Un clic droit sur le titre d'une colonne change l'unité de cette colonne.</li>
+        <li><strong>Lots de compétition</strong> et <strong>Entraînement</strong> — les lots de cartouches finies, une ligne par cartouche (douille, balle, amorce et les mesures prises sur la cartouche finie).</li>
+        <li><strong>Prévision et plan</strong> — <em>Apprendre de l'archive</em> construit le modèle de la vitesse (ci-dessous) puis le plan : comment répartir le lot en groupes pour que chaque groupe tire la plus petite ET. Pour une compétition la forme est la vôtre : cibles, barillets (coups) par cible, combien de reprises, combien de coups par reprise et les coups d'essai ; ce que vous réglez est mémorisé.</li>
+        <li><strong>Vérification après le tir</strong> — reliez les coups d'une séance aux cartouches qui les ont tirés. La fenêtre dit si la prévision a tenu (la cartouche estimée plus rapide l'est-elle vraiment ?) et prévient quand la séance est une de celles dont le modèle a appris (la vérification n'est alors pas indépendante).</li>
+        <li><strong>Tolérances et classes</strong> — quelles mesures comptent et de combien, et les classes pour trier les pièces.</li>
+        <li><strong>Bilan de l'ET</strong> — choisissez les séries d'une séance : il dit d'où vient l'ET (le changement de vitesse d'une série à l'autre, les premiers coups d'une série, chaque mesure prouvée, le chronographe, le reste), ce qu'elle coûte sur la cible à chaque distance et combien de coups il faut pour prouver une amélioration. Un graphique montre les parts et les séries.</li>
+      </ul>
+      <p><strong>Comment le modèle décide.</strong> Dans chaque série on retire la moyenne de cette série, afin qu'un jour plus chaud, un autre canon ou une nouvelle boîte ne passent pas pour une mesure ; puis chaque mesure est testée contre la vitesse, avec la correction pour les tests multiples (Holm). Seule une mesure <strong>prouvée</strong> (probabilité de hasard sous 5 %) entre dans la prévision. Avec peu de coups le modèle ne dit rien plutôt que de deviner : une mesure n'est testée que lorsque assez de coups la portent. La prévision est la vitesse de chaque cartouche par rapport à la cartouche médiane du lot, en m/s.</p>
+    </section>
+
+
+    <section id="training">
+      <h2><span class="no">34</span>Entraînement, compétition et lecture des coups</h2>
+      <p>Les phases 6 et 7 de la page d'accueil sont les deux sortes de lot. Le <strong>lot de compétition</strong> est gardé pour la compétition ; les <strong>lots d'entraînement</strong> sont d'autres cartouches, tirées pour apprendre au modèle ce qui fait varier la vitesse, pour essayer un plan et pour vérifier une prévision. Chaque coup relié à une cartouche, à l'entraînement ou en compétition, instruit le même modèle.</p>
+      <h3>Entraînement (phase 6)</h3>
+      <ul>
+        <li><strong>Cartouches d'entraînement</strong> — les lots dont le but est <em>entraînement</em> ; un lot d'entraînement peut <em>imiter</em> un lot de compétition, et <strong>Comparer avec le lot de compétition</strong> dit à quel point les cartouches des deux se ressemblent, dans les mesures que le modèle a prouvées. <strong>Ce que l'entraînement a appris</strong> compare le modèle sans et avec la dernière séance d'entraînement (coups appris, mesures prouvées, ET inexpliquée, lien du contrôle en retirant un coup, ET attendue du lot de compétition) avec un graphique avant/après.</li>
+        <li><strong>Statistiques chronographe (entraînement)</strong> et <strong>Bilan de l'ET (entraînement)</strong> s'ouvrent sur la dernière séance d'entraînement.</li>
+        <li><strong>Lecture du groupement (erreurs du tireur)</strong> — collez ou chargez les coups d'un groupement (coordonnées depuis le point de visée, ou depuis le centre) et la lecture dit ce qui indique une erreur du tireur : un zéro qui n'est pas bon (avec les clics à donner), une dispersion plus longue sur le côté qu'en hauteur, une dérive coup après coup, un premier coup moins bon, une série différente des autres, un coup isolé. Chaque constat porte à côté la probabilité qu'il soit dû au hasard ; « rien trouvé » ne prouve pas qu'il n'y a rien, surtout avec moins de 10 coups.</li>
+      </ul>
+      <h3>Compétition (phase 7)</h3>
+      <ul>
+        <li><strong>Plan de compétition et vérification</strong> — le plan du lot de compétition, la prévision figée avant le tir et la vérification après.</li>
+        <li><strong>Lecture de la compétition (un coup par cible)</strong> — cochez <em>Compétition</em> dans la fenêtre de lecture et écrivez un coup par cible, avec sa distance et, si vous les avez, la vitesse, le vent, la position et le lot. Chaque erreur est séparée en quatre parts : <strong>cartouche</strong>, <strong>réglages</strong> (zéro, lunette), <strong>vent non corrigé</strong> et <strong>tir</strong> ; chaque coup reçoit sa cause principale ; les schémas ne sont nommés que lorsque les preuves suffisent (constats <em>forts</em>, et <em>faibles</em> marqués « à confirmer »), par exemple une cible toujours ratée de la même façon.</li>
+      </ul>
+      <p>Les deux lectures sont des statistiques sur les coups que vous leur donnez : elles indiquent, elles ne jugent pas. Un constat mérite d'être confirmé au tir suivant.</p>
+    </section>
+
+
+    <section id="units">
+      <h2><span class="no">35</span>Unités de mesure</h2>
+      <p>Ouvrez <strong>Unités de mesure</strong> depuis la page d'accueil. Pour chaque type de grandeur il y a un choix pour tout le programme : <strong>grains ou grammes</strong> (poudre, balle, douille), <strong>millimètres ou pouces</strong> (longueurs), <strong>mètres ou yards</strong> (distances), <strong>MOA ou mrad</strong> (angles) ; et le clic de votre lunette (1/8, 1/4, 1/2 MOA ; 1/20, 1/10 mrad). La vitesse, la température et le pas continuent de suivre les réglages de GRT.</p>
+      <ul>
+        <li><strong>Un réglage, un sélecteur sur le champ.</strong> Là où un tableau a une colonne de ce type, un clic droit sur son titre liste les unités de ce type pour cette colonne seulement (la charge d'un import chronographe, toute mesure des cartouches) ; <em>Comme les autres de son type</em> revient au choix commun.</li>
+        <li><strong>Des nombres sans unité.</strong> La profondeur de sertissage ou le saut d'une échelle de profondeur et la tension du collet des diagnostics avancés sont des nombres que vous tapez dans des noms de fichiers ou de séries, le programme ne peut donc pas connaître l'unité : chacune de ces fenêtres demande dans quelle unité vous écrivez (une case <em>écrit en</em>) et montre le résultat dans l'unité de longueur choisie.</li>
+        <li><strong>Textes et rapports.</strong> Les verdicts, les notes écrites dans GRT, les rapports PDF et les graphiques utilisent les mêmes unités ; un verdict écrit par le programme en MOA est converti nombre par nombre (un clic comme 1/4 MOA reste ce qu'il est). Les fenêtres de seuils montrent les limites dans l'unité d'angle choisie, et une limite que vous n'avez pas touchée garde sa valeur enregistrée jusqu'au dernier chiffre.</li>
+        <li>Une fenêtre lit les unités à son ouverture : après les avoir changées, rouvrez les fenêtres déjà ouvertes.</li>
+      </ul>
+    </section>
+
+
+    <section id="charts">
+      <h2><span class="no">36</span>Graphiques</h2>
+      <p>Une image explique beaucoup de résultats mieux qu'une phrase ; presque toutes les analyses dessinent donc leur résultat. Chaque graphique du programme peut être <strong>copié ou enregistré comme image</strong> par un clic droit, et ceux qui vont dans un rapport PDF sont redessinés à l'encre foncée sur fond blanc.</p>
+      <ul>
+        <li><strong>Coups sur la cible</strong> (lecture d'un groupement ou d'une compétition) : les coups autour de la visée en MOA ou mrad, colorés par série ou par cause, le centre des coups avec une flèche depuis la visée et l'ellipse qui contient la plupart des coups.</li>
+        <li><strong>Les coups de chaque série</strong> (import et statistiques du chronographe) : chaque série une colonne de points avec sa moyenne et un ET de chaque côté, les moyennes reliées, la série à l'ET le plus petit marquée ; un coup signalé comme aberrant est rouge.</li>
+        <li><strong>Échelle de charges / OCW et profondeur</strong> : la vitesse (ou le groupement) contre la charge (ou la profondeur) avec le POI vertical et le nœud recommandé surligné.</li>
+        <li><strong>Analyse de groupement</strong> : le groupement avec des anneaux et l'anneau pointillé du rayon moyen. <strong>Workflow des distances</strong> : le score de chaque charge en barre. <strong>Causes de l'ET</strong> : la contribution de chaque coup, température contre vitesse et contre groupement.</li>
+        <li><strong>Cartouches</strong> : ce qui fait varier la vitesse (les points et la pente que donnent les données), le plan groupe par groupe, l'eau contenue dans chaque douille, le <strong>bilan de l'ET</strong> (les parts et les séries) et <strong>ce que l'entraînement a appris</strong> (avant et après).</li>
+        <li><strong>Suivre une charge</strong> : la vitesse moyenne, l'ET et l'EE, la vitesse contre la température et le groupement dans le temps.</li>
+      </ul>
+    </section>
+
+
     <section id="faq">
-      <h2><span class="no">32</span>Limites &amp; FAQ</h2>
+      <h2><span class="no">37</span>Limites &amp; FAQ</h2>
       <h3>Pourquoi une pile de fichiers <code>_toolkit_…</code>&nbsp;?</h3>
       <p>L&#39;API plugin de GRT ne peut pas modifier le load ouvert ni recharger un onglet déjà
         ouvert &mdash; donc chaque écriture est un nouvel instantané horodaté. Chaque instantané est

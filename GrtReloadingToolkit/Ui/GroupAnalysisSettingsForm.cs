@@ -46,11 +46,11 @@ internal sealed class GroupAnalysisSettingsForm : Form
         var other = new TableLayoutPanel { Dock = DockStyle.Bottom, ColumnCount = 2, AutoSize = true, Padding = new Padding(8) };
         void Row(string label, Control c) { other.RowCount++; other.Controls.Add(new Label { Text = label, AutoSize = true, Margin = new Padding(0, 4, 6, 0) }); other.Controls.Add(c); }
         Row(Lang.T("Minimum shots for outlier detection"), _minShotsOutliers);
-        Row(Lang.T("Off-centre flag threshold (MOA)"), _offCenter);
+        Row(Angle(Lang.T("Off-centre flag threshold (MOA)")), _offCenter);
         Row(Lang.T("Spread-ratio skew flag threshold"), _spreadRatio);
-        Row(Lang.T("App-centre mismatch flag threshold (MOA)"), _appCenterMismatch);
+        Row(Angle(Lang.T("App-centre mismatch flag threshold (MOA)")), _appCenterMismatch);
         Row(Lang.T("Velocity <-> dispersion correlation flag threshold (|r|)"), _velocityCorrelation);
-        Row(Lang.T("\"Load is done, it's wind now\" vertical spread threshold (MOA)"), _windNotLoad);
+        Row(Angle(Lang.T("\"Load is done, it's wind now\" vertical spread threshold (MOA)")), _windNotLoad);
         PopulateOther(_working);
 
         var bar = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 44, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8) };
@@ -91,7 +91,7 @@ internal sealed class GroupAnalysisSettingsForm : Form
     {
         _bandTabs.TabPages.Clear();
         _bandEditors.Clear();
-        var u = GrtPluginKit.Grt.GrtUnits.Current;
+        var u = Units;
         foreach (var band in cfg.DistanceBands.OrderBy(b => b.MaxDistanceM))
             _bandTabs.TabPages.Add(BuildBandTab(u.Distance(band.MaxDistanceM), band));
     }
@@ -107,7 +107,7 @@ internal sealed class GroupAnalysisSettingsForm : Form
         var grid = new DataGridView { Dock = DockStyle.Fill };
         grid.AllowUserToAddRows = false; grid.AllowUserToDeleteRows = false; grid.RowHeadersVisible = false;
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        grid.Columns.Add("value", Lang.T("Up to") + " MOA");
+        grid.Columns.Add("value", Lang.T("Up to") + " " + Units.AngleUnitName);
         grid.Columns.Add("score", Lang.T("Score"));
         Populate(grid, band.ScoreTiers);
         layout.Controls.Add(grid, 0, 0);
@@ -130,26 +130,43 @@ internal sealed class GroupAnalysisSettingsForm : Form
         return page;
     }
 
-    private static void Populate(DataGridView grid, List<ScoreTier> tiers)
+    private void Populate(DataGridView grid, List<ScoreTier> tiers)
     {
         grid.Rows.Clear();
         for (int i = 0; i < tiers.Count; i++)
         {
             bool last = i == tiers.Count - 1;
-            string valueText = last ? Lang.T("(worse than all above)") : tiers[i].Threshold.ToString("0.###", CultureInfo.InvariantCulture);
+            string valueText = last ? Lang.T("(worse than all above)") : ShownThreshold(tiers[i].Threshold);
             int row = grid.Rows.Add(valueText, tiers[i].Score.ToString("0.#", CultureInfo.InvariantCulture));
             if (last) grid.Rows[row].Cells[0].ReadOnly = true;
         }
     }
 
+    // The thresholds are kept in MOA; they are shown and typed in the angle unit of the program. A value that was not touched keeps its stored figure exactly.
+    private static Measuring.ProgramUnitView Units => Measuring.ProgramUnits.Current;
+    private readonly Dictionary<NumericUpDown, (double Moa, decimal Shown)> _loaded = new();
+    private static string Angle(string moaLabel) => Units.AngleText(moaLabel);
+    private static string ShownThreshold(double moa) => Units.AngleValue(moa).ToString("0.###", CultureInfo.InvariantCulture);
+
+    private void SetAngle(NumericUpDown n, double moa)
+    {
+        double k = Units.AngleValue(1.0);
+        if (!_loaded.ContainsKey(n)) { n.Maximum = (decimal)(Math.Round((double)n.Maximum * k, 3)); n.Increment = (decimal)Math.Max(0.001, (double)n.Increment * k); n.DecimalPlaces = Units.AngleInMrad ? 3 : n.DecimalPlaces; }
+        n.Value = Math.Min(n.Maximum, (decimal)Math.Round(Units.AngleValue(moa), n.DecimalPlaces));
+        _loaded[n] = (moa, n.Value);
+    }
+
+    private double GetAngle(NumericUpDown n, double fallbackMoa) =>
+        _loaded.TryGetValue(n, out var l) && l.Shown == n.Value ? l.Moa : Units.AngleToMoa((double)n.Value);
+
     private void PopulateOther(GroupAnalysisConfig cfg)
     {
         _minShotsOutliers.Value = cfg.MinShotsForOutliers;
-        _offCenter.Value = (decimal)cfg.OffCenterThresholdMoa;
+        SetAngle(_offCenter, cfg.OffCenterThresholdMoa);
         _spreadRatio.Value = (decimal)cfg.SpreadRatioThreshold;
-        _appCenterMismatch.Value = (decimal)cfg.AppCenterMismatchThresholdMoa;
+        SetAngle(_appCenterMismatch, cfg.AppCenterMismatchThresholdMoa);
         _velocityCorrelation.Value = (decimal)cfg.VelocityCorrelationThreshold;
-        _windNotLoad.Value = (decimal)cfg.WindNotLoadVerticalThresholdMoa;
+        SetAngle(_windNotLoad, cfg.WindNotLoadVerticalThresholdMoa);
     }
 
     private void CommitBandsTo(GroupAnalysisConfig cfg)
@@ -172,23 +189,24 @@ internal sealed class GroupAnalysisSettingsForm : Form
     private void CommitOtherTo(GroupAnalysisConfig cfg)
     {
         cfg.MinShotsForOutliers = (int)_minShotsOutliers.Value;
-        cfg.OffCenterThresholdMoa = (double)_offCenter.Value;
+        cfg.OffCenterThresholdMoa = GetAngle(_offCenter, cfg.OffCenterThresholdMoa);
         cfg.SpreadRatioThreshold = (double)_spreadRatio.Value;
-        cfg.AppCenterMismatchThresholdMoa = (double)_appCenterMismatch.Value;
+        cfg.AppCenterMismatchThresholdMoa = GetAngle(_appCenterMismatch, cfg.AppCenterMismatchThresholdMoa);
         cfg.VelocityCorrelationThreshold = (double)_velocityCorrelation.Value;
-        cfg.WindNotLoadVerticalThresholdMoa = (double)_windNotLoad.Value;
+        cfg.WindNotLoadVerticalThresholdMoa = GetAngle(_windNotLoad, cfg.WindNotLoadVerticalThresholdMoa);
     }
 
     /// <summary>Tolerant of a cell that won't parse (keeps that tier's previous value rather than
     /// crashing on Save), and accepts either decimal separator -- same trick as LoadScoringSettingsForm.</summary>
-    private static List<ScoreTier> ReadGrid(DataGridView grid, List<ScoreTier> fallback)
+    private List<ScoreTier> ReadGrid(DataGridView grid, List<ScoreTier> fallback)
     {
         var result = new List<ScoreTier>(fallback.Count);
         for (int i = 0; i < grid.Rows.Count; i++)
         {
             double threshold = fallback[i].Threshold;
             bool last = i == grid.Rows.Count - 1;
-            if (!last && TryParseCell(grid.Rows[i].Cells[0].Value, out double shown)) threshold = shown;
+            // untouched cells keep the stored MOA exactly: the shown number is rounded, and a round trip through mrad would drift
+            if (!last && Convert.ToString(grid.Rows[i].Cells[0].Value) != ShownThreshold(fallback[i].Threshold) && TryParseCell(grid.Rows[i].Cells[0].Value, out double shown)) threshold = Units.AngleToMoa(shown);
             double score = TryParseCell(grid.Rows[i].Cells[1].Value, out double s) ? Math.Clamp(s, 0.0, 10.0) : fallback[i].Score;
             result.Add(new ScoreTier(threshold, score));
         }

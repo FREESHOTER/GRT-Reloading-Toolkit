@@ -162,6 +162,11 @@
       <li><a href="#follow">Segui un carico</a></li>
       <li><a href="#modelprobe">Sonda del modello</a></li>
       <li><a href="#stability">Stabilit&agrave; giroscopica</a></li>
+      <li><a href="#archive">Archivio e biblioteca</a></li>
+      <li><a href="#cartridges">Cartucce</a></li>
+      <li><a href="#training">Allenamento e gara</a></li>
+      <li><a href="#units">Unità di misura</a></li>
+      <li><a href="#charts">Grafici</a></li>
       <li><a href="#faq">Limiti e FAQ</a></li>
     </ol>
   </nav>
@@ -1486,8 +1491,79 @@ MioLoad_toolkit_20260612_201408.grtload  <span class="c">← lo snapshot scritto
       <p><strong>Cosa non &egrave;.</strong> Una stima teorica per un proiettile a punta o boat-tail. Conta la concentricit&agrave; reale del proiettile, una lunghezza misurata con la punta di plastica deve essere la lunghezza totale vera, e la velocit&agrave; alla volata cala nelle giornate fredde, cosa che lo strumento non sa (scrivi tu la velocit&agrave; pi&ugrave; bassa). Non dichiara quanto coefficiente balistico si perde quando Sg &egrave; al limite: le cifre pubblicate non concordano. Nel dubbio, controlla sul bersaglio: fori ovali vogliono dire che il proiettile non &egrave; stabile.</p>
     </section>
 
+    <section id="archive">
+      <h2><span class="no">32</span>L'archivio, la biblioteca e i rapporti PDF</h2>
+      <p>Il programma tiene <strong>un archivio proprio</strong> (<code>Documenti\Ricarica\archivio.db</code>, un file SQLite): le sedute, le serie e ogni colpo, le rosate, i carichi, le cartucce una per una e le analisi salvate. Funziona <strong>da solo</strong>, come <em>Banco di Ricarica</em>, e come plugin di GRT; GRT e gli altri file sono solo un ingresso e un'uscita, mai il posto dove vivono i dati. Quello che GRT riceve sono ancora le note e le copie della sezione 2.</p>
+      <ul>
+        <li><strong>Salva nell'archivio</strong> (nelle analisi che hanno il pulsante) conserva i numeri e il rapporto di quell'analisi insieme al carico e alla seduta a cui appartengono; il pulsante <strong>Rapporto PDF</strong> scrive un PDF con i numeri, i grafici e il testo, lo apre e lo conserva anche nell'archivio (i file PDF sono anche in <code>Documenti\Ricarica\rapporti</code>).</li>
+        <li><strong>Biblioteca componenti.</strong> Bossoli, ogive, inneschi e polveri con i valori che si conoscono. Quando lo stesso pezzo ha più valori l'ordine è: quello che hai misurato, poi quello del produttore, poi GRT, poi gli strumenti più vecchi. Un abbinamento fra due nomi non viene mai fatto di nascosto: la finestra elenca gli abbinamenti da <strong>confermare</strong>.</li>
+        <li>Qualunque cosa scegli di vedere, l'archivio tiene UNA sola unità per ogni tipo di grandezza (grani, millimetri, metri, MOA, m/s, °C): cambiare le unità (sezione 35) cambia solo quello che si vede e come si legge un numero scritto, mai un valore salvato.</li>
+      </ul>
+      <p>Prima che il programma cambi lo schema dell'archivio (una versione nuova aggiunge una colonna, non ne toglie mai) conviene tenere una copia del file: l'archivio è un file solo.</p>
+    </section>
+
+
+    <section id="cartridges">
+      <h2><span class="no">33</span>Cartucce: misura, prevedi, pianifica</h2>
+      <p>Per una gara o una prova a lunga distanza il carico non è un numero ma un lotto di cartucce, ognuna un po' diversa. Questa finestra (fase 1, <em>Cartucce</em>) le misura, impara dall'archivio che cosa muove davvero la velocità, prevede ogni cartuccia e pianifica come sparare. Ha sette schede:</p>
+      <ul>
+        <li><strong>Pezzi</strong> — bossoli, ogive e inneschi come marche con le loro misure (peso, volume, collo, lunghezza…). Una marca che non c'è ancora viene creata quando la scrivi. Il clic destro sul titolo di una colonna cambia l'unità di quella colonna.</li>
+        <li><strong>Lotti di gara</strong> e <strong>Allenamento</strong> — i lotti di cartucce finite, una riga per cartuccia (bossolo, ogiva, innesco e le misure prese sulla cartuccia finita).</li>
+        <li><strong>Previsione e piano</strong> — <em>Impara dall'archivio</em> costruisce il modello della velocità (sotto) e poi il piano: come dividere il lotto in gruppi perché ogni gruppo spari la SD più piccola. Per una gara la forma è tua: cartelli, barilotti (colpi) per cartello, quanti rientri, quanti colpi per rientro e i colpi di prova; quello che imposti viene ricordato.</li>
+        <li><strong>Verifica dopo il tiro</strong> — collega i colpi di una seduta alle cartucce che li hanno sparati. La finestra dice se la previsione ha retto (la cartuccia stimata più veloce è davvero la più veloce?) e avvisa quando la seduta è una da cui il modello ha imparato (allora la verifica non è indipendente).</li>
+        <li><strong>Tolleranze e classi</strong> — quali misure contano e quanto, e le classi in cui dividere i pezzi.</li>
+        <li><strong>Bilancio della SD</strong> — scegli le serie di una seduta: dice da dove viene la SD (il cambio di velocità fra una serie e l'altra, i primi colpi di una serie, ogni misura provata, il cronografo, il resto), quanto costa sul bersaglio a ogni distanza e quanti colpi servono per provare un miglioramento. Un grafico mostra le quote e le serie.</li>
+      </ul>
+      <p><strong>Come decide il modello.</strong> In ogni serie si toglie la media di quella serie, così un giorno più caldo, un'altra canna o una scatola nuova non possono passare per una misura; poi ogni misura viene provata contro la velocità, con la correzione per le prove multiple (Holm). Solo una misura <strong>provata</strong> (probabilità di caso sotto il 5 %) entra nella previsione. Con pochi colpi il modello non dice niente invece di tirare a indovinare: una misura si prova solo quando abbastanza colpi la portano. La previsione è la velocità di ogni cartuccia rispetto alla cartuccia mediana del lotto, in m/s.</p>
+    </section>
+
+
+    <section id="training">
+      <h2><span class="no">34</span>Allenamento, gara e lettura dei colpi</h2>
+      <p>Le fasi 6 e 7 della pagina iniziale sono i due tipi di lotto. Il <strong>lotto di gara</strong> è tenuto per la gara; i <strong>lotti di allenamento</strong> sono altre cartucce, sparate per insegnare al modello che cosa muove la velocità, per provare un piano e per controllare una previsione. Ogni colpo collegato a una cartuccia, in allenamento o in gara, insegna allo stesso modello.</p>
+      <h3>Allenamento (fase 6)</h3>
+      <ul>
+        <li><strong>Cartucce di allenamento</strong> — i lotti con lo scopo <em>allenamento</em>; un lotto di allenamento può <em>imitare</em> un lotto di gara, e <strong>Confronta con il lotto di gara</strong> dice quanto si somigliano le cartucce dei due, nelle misure che il modello ha provato. <strong>Cosa ha insegnato l'allenamento</strong> confronta il modello senza e con l'ultima seduta di allenamento (colpi imparati, misure provate, SD rimasta inspiegata, legame della verifica escludendo un colpo, SD attesa dal lotto di gara) con un grafico prima/dopo.</li>
+        <li><strong>Statistiche cronografo (allenamento)</strong> e <strong>Bilancio della SD (allenamento)</strong> si aprono sull'ultima seduta di allenamento.</li>
+        <li><strong>Lettura della rosata (errori del tiratore)</strong> — incolla o carica i colpi di una rosata (le coordinate sono dal punto di mira, o dal centro) e la lettura dice che cosa indica un errore del tiratore: uno zero non giusto (con i click da dare), una dispersione più lunga di lato che in altezza, una deriva colpo dopo colpo, un primo colpo che va peggio, una serie diversa dalle altre, un colpo fuori. Ogni rilievo ha scritta accanto la probabilità che sia caso; «niente trovato» non prova che non ci sia niente, soprattutto con meno di 10 colpi.</li>
+      </ul>
+      <h3>Gara (fase 7)</h3>
+      <ul>
+        <li><strong>Piano di gara e verifica</strong> — il piano del lotto di gara, la previsione congelata prima del tiro e la verifica dopo.</li>
+        <li><strong>Lettura della gara (un colpo per bersaglio)</strong> — spunta <em>Gara</em> nella finestra di lettura e scrivi un colpo per ogni bersaglio, con la sua distanza e, quando li hai, la velocità, il vento, la posizione e il lotto. Ogni errore è diviso in quattro parti: <strong>cartuccia</strong>, <strong>impostazioni</strong> (zero, ottica), <strong>vento non corretto</strong> e <strong>tiro</strong>; ogni colpo ha la sua causa principale; gli schemi sono nominati solo quando le prove bastano (rilievi <em>forti</em>, e <em>deboli</em> segnati «da confermare»), per esempio un bersaglio sbagliato sempre allo stesso modo.</li>
+      </ul>
+      <p>Le due letture sono statistiche sui colpi che dai: indicano, non giudicano. Un rilievo vale la pena di essere confermato al tiro successivo.</p>
+    </section>
+
+
+    <section id="units">
+      <h2><span class="no">35</span>Unità di misura</h2>
+      <p>Apri <strong>Unità di misura</strong> dalla pagina iniziale. Per ogni tipo di grandezza c'è una scelta per tutto il programma: <strong>grani o grammi</strong> (polvere, ogiva, bossolo), <strong>millimetri o pollici</strong> (lunghezze), <strong>metri o iarde</strong> (distanze), <strong>MOA o mrad</strong> (angoli); e il click della tua ottica (1/8, 1/4, 1/2 MOA; 1/20, 1/10 mrad). Velocità, temperatura e passo continuano a seguire le impostazioni di GRT.</p>
+      <ul>
+        <li><strong>Un'impostazione, un selettore sul campo.</strong> Dove una tabella ha una colonna di quel tipo, il clic destro sul titolo elenca le unità di quel tipo per quella colonna soltanto (la carica di un import del cronografo, una misura qualsiasi delle cartucce); <em>Come gli altri del suo tipo</em> torna alla scelta comune.</li>
+        <li><strong>Numeri senza unità.</strong> La profondità di seduta o il salto di una scala di seduta e la tensione del collo della diagnostica avanzata sono numeri che scrivi nei nomi dei file o delle serie, quindi il programma non può sapere l'unità: ognuna di queste finestre chiede in quale unità scrivi (una casella <em>scritti in</em>) e mostra il risultato nella lunghezza che hai scelto.</li>
+        <li><strong>Testi e rapporti.</strong> I verdetti, le note scritte in GRT, i rapporti PDF e i grafici usano le stesse unità; un verdetto scritto dal programma in MOA viene convertito numero per numero (un click come 1/4 MOA resta quello che è). Le finestre delle soglie mostrano i limiti nell'unità angolare scelta, e un limite che non hai toccato conserva il valore salvato fino all'ultima cifra.</li>
+        <li>Una finestra legge le unità quando viene aperta: dopo averle cambiate, riapri le finestre che erano già aperte.</li>
+      </ul>
+    </section>
+
+
+    <section id="charts">
+      <h2><span class="no">36</span>Grafici</h2>
+      <p>Un'immagine spiega molti risultati meglio di una frase, quindi quasi tutte le analisi disegnano il loro risultato. Ogni grafico del programma si può <strong>copiare o salvare come immagine</strong> con il clic destro, e quelli che entrano in un rapporto PDF vengono ridisegnati con inchiostro scuro su bianco.</p>
+      <ul>
+        <li><strong>Colpi sul bersaglio</strong> (lettura di una rosata o di una gara): i colpi attorno alla mira in MOA o mrad, colorati per serie o per causa, il centro dei colpi con una freccia dalla mira e l'ellisse che contiene la maggior parte dei colpi.</li>
+        <li><strong>I colpi di ogni serie</strong> (import e statistiche del cronografo): ogni serie una colonna di punti con la sua media e una SD per lato, le medie unite, la serie con la SD minore segnata; un colpo segnalato come anomalo è rosso.</li>
+        <li><strong>Ladder / OCW e seduta</strong>: la velocità (o la rosata) contro la carica (o la profondità) con il POI verticale e il nodo consigliato evidenziato.</li>
+        <li><strong>Analisi gruppo</strong>: la rosata con i cerchi e il cerchio tratteggiato del raggio medio. <strong>Workflow distanze</strong>: il punteggio di ogni carica come barra. <strong>Cause della SD</strong>: il contributo di ogni colpo, temperatura contro velocità e contro rosata.</li>
+        <li><strong>Cartucce</strong>: che cosa muove la velocità (i punti e la pendenza che danno i dati), il piano gruppo per gruppo, l'acqua contenuta in ogni bossolo, il <strong>bilancio della SD</strong> (le quote e le serie) e <strong>cosa ha insegnato l'allenamento</strong> (prima e dopo).</li>
+        <li><strong>Segui un carico</strong>: la velocità media, SD ed ES, la velocità contro la temperatura e la rosata nel tempo.</li>
+      </ul>
+    </section>
+
+
     <section id="faq">
-      <h2><span class="no">32</span>Limiti e FAQ</h2>
+      <h2><span class="no">37</span>Limiti e FAQ</h2>
       <h3>Perché tanti file <code>_toolkit_…</code>?</h3>
       <p>L&#39;API plugin di GRT non può modificare il load aperto e non può ricaricare un tab già
         aperto — quindi ogni scrittura è un nuovo snapshot con data e ora. Ogni snapshot è completo;

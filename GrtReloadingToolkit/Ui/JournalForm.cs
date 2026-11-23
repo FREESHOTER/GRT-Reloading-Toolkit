@@ -48,9 +48,9 @@ internal sealed class JournalForm : Form
         _jrn.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _jrn.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         _jrn.CellDoubleClick += (_, _) => EditEntry();
-        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("cal", Lang.T("Caliber")), ("chg", Lang.T("Charge") + " " + GrtUnits.Current.ChargeUnitName),
-                     ("rnd", Lang.T("Rounds")), ("mv", "MV " + GrtUnits.Current.VelocityUnitName),
-                     ("sd", "SD " + GrtUnits.Current.VelocityUnitName), ("grp", "MOA"), ("cpr", Lang.T("Cost/rd")), ("tot", Lang.T("Total")), ("sh", Lang.T("Shooter")) })
+        foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("cal", Lang.T("Caliber")), ("chg", Lang.T("Charge") + " " + Measuring.ProgramUnits.Current.ChargeUnitName),
+                     ("rnd", Lang.T("Rounds")), ("mv", "MV " + Measuring.ProgramUnits.Current.VelocityUnitName),
+                     ("sd", "SD " + Measuring.ProgramUnits.Current.VelocityUnitName), ("grp", Measuring.ProgramUnits.Current.AngleUnitName), ("cpr", Lang.T("Cost/rd")), ("tot", Lang.T("Total")), ("sh", Lang.T("Shooter")) })
             _jrn.Columns.Add(n, h);
         _jrn.MultiSelect = true;
 
@@ -81,7 +81,7 @@ internal sealed class JournalForm : Form
         if (alerts)
             try { _alerts.Show(LoadAlerts.All(AlertPanel.ContextFor(_db))); } catch (Exception) { _alerts.Visible = false; }
         _jrn.Rows.Clear();
-        var gu = GrtUnits.Current;
+        var gu = Measuring.ProgramUnits.Current;
         var comps = _db.Components(includeArchived: true).ToDictionary(c => c.Id);
         var owners = ShooterState.Names(_db);
         _jrn.Columns["sh"]!.Visible = ShooterState.ShowColumn(_db);
@@ -97,7 +97,7 @@ internal sealed class JournalForm : Form
                 e.Rounds,
                 e.VelocityAvgMs is { } v ? gu.VelocityValue(v).ToString("0", CultureInfo.InvariantCulture) : "",
                 e.SdMs is { } sd ? gu.VelocitySd(sd) : "",
-                e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
+                e.GroupMoa is { } gmoa ? gu.AngleValue(gmoa).ToString("0.00", CultureInfo.InvariantCulture) : "",
                 cb.PerRoundText,
                 cb.Mixed ? cb.MixedNote
                     : cb.PerRound > 0 && e.Rounds > 0

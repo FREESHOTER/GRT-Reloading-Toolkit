@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using System.Globalization;
 using GrtPluginKit.Grt;
 
@@ -54,7 +55,7 @@ internal sealed class BarrelChart : Panel
         g.DrawRectangle(axis, ml, mt, pw, ph);
         // Only the labels change: the scale is linear, so converting the axis would redraw the
         // identical curve. Round counts are counts, and stay counts.
-        var u = GrtUnits.Current;
+        var u = ProgramUnits.Current;
         g.DrawString($"{u.VelocityValue(yMax):0} {u.VelocityUnitName}", fnt, tb, 4, mt - 3);
         g.DrawString($"{u.VelocityValue(yMin):0}", fnt, tb, 4, mt + ph - 12);
         g.DrawString($"{xMin:0} rd", fnt, tb, ml, mt + ph + 6);

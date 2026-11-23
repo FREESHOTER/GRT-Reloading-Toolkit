@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using GrtPluginKit.Analysis;
 using GrtPluginKit.Grt;
 
@@ -39,7 +40,7 @@ public sealed class LoadCard
     public string Title => string.IsNullOrWhiteSpace(Caliber) ? "Load" : Caliber;
 
     public string ChargeLine => ChargeGr is { } g
-        ? $"{GrtUnits.Current.Charge(g)} {Powder}".Trim()
+        ? $"{ProgramUnits.Current.Charge(g)} {Powder}".Trim()
         : Powder;
 
     /// <summary>
@@ -52,7 +53,7 @@ public sealed class LoadCard
     {
         get
         {
-            var u = GrtUnits.Current;
+            var u = ProgramUnits.Current;
             var parts = new List<string>(3);
             if (!string.IsNullOrWhiteSpace(Barrel)) parts.Add(Barrel.Trim());
             if (BarrelTwistMm is > 0 and { } t) parts.Add(u.Twist(t));
@@ -68,7 +69,7 @@ public sealed class LoadCard
         sb.AppendLine("GRT LOAD");
         Add(sb, "cal", Caliber);
         Add(sb, "gun", Firearm);
-        var u = GrtUnits.Current;
+        var u = ProgramUnits.Current;
         Add(sb, "bullet", Bullet + (BulletGr is { } b ? " " + u.BulletMass(b) : ""));
         Add(sb, "powder", Powder);
         if (ChargeGr is { } c) Add(sb, "charge", u.Charge(c));

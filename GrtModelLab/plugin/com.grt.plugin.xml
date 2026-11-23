@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<GordonsReloadingTool>
+
+  <plugin
+    name           = "GRT Model OBT"
+    id             = "com.grt.plugin.modelobt"
+    version        = "0.1.0"
+    provider       = "community"
+    description    = "Companion to GRT: capture extra barrel-specific physical data (steel, taper profile) as the input for a future barrel-vibration model and a barrel-specific Optimal Barrel Time. Not a load-development tool."
+    launch-windows = "GRT_Model_OBT.exe"
+    launch-type    = "onDemand"
+    launch-args    = ""
+    start-timeout  = "5.0"
+    enabled        = "true"
+  >
+
+    <registerevent>
+      <event name="ColorPresetChange" enabled="false" />
+      <event name="TabSwitch" enabled="false" />
+      <event name="TabDataChange" enabled="false" />
+      <event name="TabComputed" enabled="false" />
+      <event name="WindowClosed" enabled="false" />
+    </registerevent>
+
+    <menu autoenable="true" icon="media/icons/icn_modelobt_16x16.png" icon_colorize="false">
+      <menuitem id="open" label="GRT Model OBT…" enabled="true" icon="media/icons/icn_modelobt_16x16.png" />
+    </menu>
+
+    <toolbar>
+      <toolbaritem id="open" label="GRT Model OBT"
+                   tooltip="Barrel physical profile capture, toward a barrel-specific Optimal Barrel Time"
+                   icon="media/icons/icn_modelobt_32x32.png" icon_colorize="false" enabled="true" />
+    </toolbar>
+
+  </plugin>
+</GordonsReloadingTool>

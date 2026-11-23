@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>GRT_Model_OBT</AssemblyName>
+    <RootNamespace>GrtModelLab</RootNamespace>
+    <Version>0.1.0</Version>
+    <Product>GRT Model OBT</Product>
+    <!-- Same DPI story as the Reloading Toolkit: app.manifest carries dpiAware=false, applied by
+         the OS loader before any managed code runs. Do NOT also set ApplicationHighDpiMode. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Puts an icon in the exe's Win32 resources, which is what Explorer, the Start menu and
+         shortcuts read. It does NOT reach the title bar or the taskbar: those follow the
+         *window's* icon, and WinForms defaults that to a stock glyph baked into
+         System.Windows.Forms.dll regardless of what the exe carries — confirmed the same way the
+         GRT Reloading Toolkit's sibling fix (PR #15) measured it: a fresh Form's Icon inside
+         powershell.exe returns that same stock glyph, not this exe's own resource. Ui\AppIcon.cs
+         assigns it explicitly; see the comment there. app.ico is generated from the same artwork
+         as plugin\media\icons\icn_modelobt_*.png (see scripts\make_app_ico.py).-->
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <EnableWindowsFormsHighDpiAutoResizing>false</EnableWindowsFormsHighDpiAutoResizing>
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <!-- V2 barrel-vibration FEM: generalized eigenvalue problem (Cholesky-transformed to a
+         standard symmetric one) needs a real linear-algebra library — nothing in the BCL solves
+         eigenproblems. -->
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\grt-plugins-shared\GrtPluginKit\GrtPluginKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The same file again, this time as a managed resource, so AppIcon can hand the whole
+         multi-size .ico to Windows at runtime. ApplicationIcon above does not make it readable
+         from managed code. LogicalName is spelled out because the default derives from
+         RootNamespace, and renaming that would silently break the lookup instead of failing the
+         build. -->
+    <EmbeddedResource Include="app.ico" LogicalName="GrtModelLab.app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="plugin\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="_plugin_template\" />
+  </ItemGroup>
+
+</Project>

@@ -18,7 +18,7 @@ internal sealed class FollowLoadForm : Form
 
     private readonly GrtClient? _grt;
     private readonly TrackerDb _db;
-    private readonly GrtUnits _u = GrtUnits.Current;
+    private readonly Measuring.ProgramUnitView _u = Measuring.ProgramUnits.Current;
 
     private readonly TextBox _filter = new() { Dock = DockStyle.Top };
     private readonly ListBox _list = new() { Dock = DockStyle.Fill, IntegralHeight = false, HorizontalScrollbar = true };
@@ -86,7 +86,7 @@ internal sealed class FollowLoadForm : Form
         foreach (var (n, h) in new[]
                  {
                      ("date", "Data"), ("temp", "Temperatura"), ("n", "Colpi"), ("mv", "MV " + _u.VelocityUnitName), ("sd", "SD"), ("es", "ES"),
-                     ("grp", "MOA"), ("dist", "Distanza " + _u.DistanceUnitName), ("wind", "Vento"), ("notes", "Note"),
+                     ("grp", _u.AngleUnitName), ("dist", "Distanza " + _u.DistanceUnitName), ("wind", "Vento"), ("notes", "Note"),
                  })
             _grid.Columns.Add(n, h);
 
@@ -227,7 +227,7 @@ internal sealed class FollowLoadForm : Form
                 v.Count > 0 ? _u.VelocityValue(st.Mean).ToString("0.0", inv) : "",
                 v.Count > 1 ? _u.VelocitySd(st.Sd) : "",
                 v.Count > 1 ? _u.VelocitySd(st.Es) : "",
-                o.GroupMoa?.ToString("0.00", inv) ?? "",
+                o.GroupMoa is { } gmoa ? _u.AngleValue(gmoa).ToString("0.00", inv) : "",
                 o.DistanceM is { } dm ? _u.DistanceValue(dm).ToString("0", inv) : "",
                 o.WindMps is { } w ? _u.VelocityValue(w).ToString("0.0", inv) + (o.WindDeg is { } wd ? $" @{wd:0}" : "") : "",
                 o.Notes);

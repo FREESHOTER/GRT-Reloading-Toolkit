@@ -102,8 +102,17 @@ public sealed class GrtLoadDoc
 
     public static GrtLoadDoc Load(string path)
     {
+        using var fs = File.OpenRead(path);
+        return Load(fs, path);
+    }
+
+    /// <summary>Reads a .grtload from a stream (one kept in an archive, say); <paramref name="sourcePath"/> is only what
+    /// <see cref="SourcePath"/> reports.</summary>
+    public static GrtLoadDoc Load(Stream stream, string sourcePath)
+    {
+        string path = sourcePath;
         var doc = new XmlDocument { PreserveWhitespace = true };
-        doc.Load(path);
+        doc.Load(stream);
         XmlElement? inner = doc.DocumentElement?["InnerBallistikInput"];
         if (doc.DocumentElement?.Name != "GordonsReloadingTool" || inner == null)
             throw new InvalidDataException("Not a recognisable .grtload (no <InnerBallistikInput>).");
@@ -340,6 +349,35 @@ public sealed class GrtLoadDoc
             .Where(e => e.Name == "note")
             .Select(e => Uri.UnescapeDataString(e.GetAttribute("title")))
             .ToList();
+    /// <summary>Every appendix note as (title, text), decoded, in document order.</summary>
+    public IReadOnlyList<(string Title, string Text)> Notes()
+        => _appendix.ChildNodes.OfType<XmlElement>()
+            .Where(e => e.Name == "note")
+            .Select(e => (Uri.UnescapeDataString(e.GetAttribute("title")), Uri.UnescapeDataString(e.GetAttribute("text"))))
+            .ToList();
+
+    /// <summary>The picture of every "Shot group analysis" tab as (tab's 1-based position among the shot-group tabs, tab title,
+    /// picture type such as "png" or "jpg", bytes), in document order; a tab without a readable picture is left out. The
+    /// position matches the order of <see cref="ShotGroups"/>, and tells apart two tabs with the same title. Read only.</summary>
+    public IReadOnlyList<(int Index, string Title, string Type, byte[] Data)> ShotGroupPictures()
+    {
+        var list = new List<(int, string, string, byte[])>();
+        int index = 0;
+        foreach (XmlElement sg in _appendix.ChildNodes.OfType<XmlElement>().Where(e => e.Name == "ShotGroup"))
+        {
+            index++;
+            var pic = sg.ChildNodes.OfType<XmlElement>().FirstOrDefault(e => e.Name == "picture");
+            string data = pic?.GetAttribute("data") ?? "";
+            if (data.Length == 0) continue;
+            try
+            {
+                list.Add((index, Uri.UnescapeDataString(sg.GetAttribute("title")), pic!.GetAttribute("type"), Convert.FromBase64String(data)));
+            }
+            catch (FormatException) { /* not base64: nothing to give back */ }
+        }
+        return list;
+    }
+
     /// <summary>The decoded text of every appendix note whose (decoded) title starts with <paramref name="titlePrefix"/>,
     /// in document order: for a tool that has to know what an earlier run of itself already wrote.</summary>
     public IReadOnlyList<string> NoteTexts(string titlePrefix)
@@ -698,6 +736,21 @@ public sealed class GrtLoadDoc
 
     /// <summary>Raw numeric value of an input, in whatever unit the file stores it (see <see cref="InputUnit"/>).</summary>
     public double? InputNumber(string section, string name) => ParseInput(section, name);
+
+    /// <summary>
+    /// Every input of the caliber, gun, projectile and propellant sections (any type, value decoded as text, with GRT's unit
+    /// and description), then every &lt;var&gt; of the caliberfile section: the C.I.P./SAAMI drawing of the case, which carries
+    /// no unit attribute (lengths in mm, pressures in bar) and comes back with type "var". Read only.
+    /// </summary>
+    public IEnumerable<(string Section, string Name, string Type, string Value, string Unit, string Description)> AllInputs()
+    {
+        foreach (string section in new[] { "caliber", "gun", "projectile", "propellant" })
+            foreach (XmlElement e in _inner.SelectNodes($"{section}/input")!.OfType<XmlElement>())
+                yield return (section, e.GetAttribute("name"), e.GetAttribute("type"), Uri.UnescapeDataString(e.GetAttribute("value")),
+                    e.GetAttribute("unit"), Uri.UnescapeDataString(e.GetAttribute("descr")));
+        foreach (XmlElement e in _inner.SelectNodes("caliberfile/var")!.OfType<XmlElement>())
+            yield return ("caliberfile", e.GetAttribute("name"), "var", Uri.UnescapeDataString(e.GetAttribute("value")), "", "");
+    }
 
     /// <summary>Every <c>type="decimal"</c> input of the caliber, gun, projectile and propellant sections, in file
     /// order, with the value and unit as the file stores them and GRT's own description of the field.</summary>

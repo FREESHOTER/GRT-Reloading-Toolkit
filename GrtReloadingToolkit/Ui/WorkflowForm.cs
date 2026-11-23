@@ -30,6 +30,7 @@ internal sealed class WorkflowForm : Form
     private readonly ComboBox _caliber = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
     private readonly ComboBox _distance = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 120 };
     private readonly DataGridView _grid = new();
+    private readonly RankChart _chart = new() { Dock = DockStyle.Fill };
     private readonly Label _status = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
 
     /// <summary>A <see cref="WorkflowRanking.Row"/> plus the display names <see cref="Ui"/> needs
@@ -53,7 +54,7 @@ internal sealed class WorkflowForm : Form
     private sealed class DistanceItem
     {
         public double Meters;
-        public override string ToString() => GrtUnits.Current.Distance(Meters);
+        public override string ToString() => Measuring.ProgramUnits.Current.Distance(Meters);
     }
 
     public WorkflowForm(GrtClient? grt, Db db)
@@ -92,16 +93,19 @@ internal sealed class WorkflowForm : Form
         _grid.ReadOnly = true; _grid.AllowUserToAddRows = false; _grid.RowHeadersVisible = false;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        var u = GrtUnits.Current;
+        var u = Measuring.ProgramUnits.Current;
         foreach (var (n, h) in new[] { ("rank", "#"), ("pw", Lang.T("Powder")), ("bu", Lang.T("Bullet")),
                      ("chg", Lang.T("Charge") + " " + u.ChargeUnitName), ("sess", Lang.T("Sessions")), ("rnd", Lang.T("Rounds")),
-                     ("sd", "SD " + u.VelocityUnitName), ("es", "ES " + u.VelocityUnitName), ("grp", Lang.T("Group MOA")),
+                     ("sd", "SD " + u.VelocityUnitName), ("es", "ES " + u.VelocityUnitName), ("grp", u.AngleText(Lang.T("Group MOA"))),
                      ("score", Lang.T("Score")), ("label", Lang.T("Rating")) })
             _grid.Columns.Add(n, h);
 
         _status.Dock = DockStyle.Bottom; _status.Padding = new Padding(8, 4, 0, 4);
 
-        Controls.Add(_grid);
+        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal }.WithDistance(230);
+        split.Panel1.Controls.Add(_grid);
+        split.Panel2.Controls.Add(_chart);
+        Controls.Add(split);
         Controls.Add(_status);
         Controls.Add(bar);
         _next = NextStepBar.Attach(this, "Workflow", _grt);
@@ -163,11 +167,12 @@ internal sealed class WorkflowForm : Form
         if (_caliber.SelectedItem is not string caliber || _distance.SelectedItem is not DistanceItem dist)
         {
             _grid.Rows.Clear();
+            _chart.SetData(Array.Empty<RankBar>());
             _status.Text = Lang.T("No journal entries yet -- log a session first.");
             return;
         }
 
-        var u = GrtUnits.Current;
+        var u = Measuring.ProgramUnits.Current;
         var groups = ComputeGroups(caliber, dist.Meters);
         var ranked = Rank(groups);
 
@@ -181,11 +186,15 @@ internal sealed class WorkflowForm : Form
                 r.Sessions, r.Rounds,
                 r.Sd is { } sd ? u.VelocitySd(sd) : "",
                 r.Es is { } es ? u.VelocitySd(es) : "",
-                r.Group?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
+                r.Group is { } rg ? u.AngleValue(rg).ToString("0.00", CultureInfo.InvariantCulture) : "",
                 r.Score.Total?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
                 Lang.T(LoadScoring.ScoreLabel(r.Score.Total)));
             _grid.Rows[i].Tag = r;
         }
+
+        _chart.SetData(ranked.Select(r => new RankBar(
+            u.Charge(r.ChargeGr) + "  " + r.Powder, r.Score.Total,
+            (r.Sd is { } bsd ? "SD " + u.VelocitySd(bsd) + " · " : "") + (r.Group is { } bg ? u.AngleValue(bg).ToString("0.00", CultureInfo.InvariantCulture) + " " + u.AngleUnitName + " · " : "") + r.Rounds + " " + Lang.T("Rounds"))).ToList());
 
         int excluded = groups.Count - ranked.Count;
         _status.Text = ranked.Count == 0
@@ -248,7 +257,7 @@ internal sealed class WorkflowForm : Form
             int idx = ranked.FindIndex(r => r.PowderId == match.PowderId && r.BulletId == match.BulletId && r.Identity == match.Identity && Math.Abs(r.ChargeGr - match.ChargeGr) < 0.005);
             int scoredCount = ranked.Count(r => r.Score.Total.HasValue);
             int rank = match.Score.Total.HasValue ? ranked.Take(idx + 1).Count(r => r.Score.Total.HasValue) : -1;
-            var u = GrtUnits.Current;
+            var u = Measuring.ProgramUnits.Current;
 
             var report = new System.Text.StringBuilder();
             report.AppendLine($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}");
@@ -268,7 +277,7 @@ internal sealed class WorkflowForm : Form
                 report.AppendLine($"  {label,-14} {(sub?.ToString("0.0", CultureInfo.InvariantCulture) ?? "--"),5}  {detail}");
             Line("SD", match.Score.Sd, match.Sd is { } sd ? u.VelocitySd(sd) + " " + u.VelocityUnitName : "--");
             Line("ES", match.Score.Es, match.Es is { } es ? u.VelocitySd(es) + " " + u.VelocityUnitName : "--");
-            Line(Lang.T("Group MOA"), match.Score.Group, match.Group?.ToString("0.00", CultureInfo.InvariantCulture) + " MOA");
+            Line(u.AngleText(Lang.T("Group MOA")), match.Score.Group, match.Group is { } mg ? u.AngleValue(mg).ToString("0.00", CultureInfo.InvariantCulture) + " " + u.AngleUnitName : "--");
             Line(Lang.T("Sample size"), match.Score.SampleSize, match.Rounds + " " + Lang.T("Rounds"));
 
             var writeDoc = GrtLoadDoc.OpenForToolkitEdit(top.file);

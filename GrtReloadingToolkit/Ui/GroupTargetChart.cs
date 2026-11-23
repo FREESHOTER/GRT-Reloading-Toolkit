@@ -20,7 +20,7 @@ internal sealed class GroupTargetChart : Panel
     public GroupTargetChart()
     {
         DoubleBuffered = true;
-        BackColor = Color.FromArgb(18, 24, 36);
+        BackColor = ChartPalette.Dark.Back;
     }
 
     public void SetData(TargetGroup group, IReadOnlyList<MahalanobisOutlier> outliers)
@@ -33,26 +33,27 @@ internal sealed class GroupTargetChart : Panel
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        Render(e.Graphics, Width, Height);
+        Render(e.Graphics, Width, Height, ChartPalette.Dark);
     }
 
     /// <summary>Renders the current group to a stand-alone PNG (for the GRT report gallery), same
     /// pattern as <see cref="Ocw.LadderChart.RenderPng()"/>.</summary>
-    public byte[]? RenderPng(int width = 640, int height = 640)
+    /// <param name="print">white ground for paper (<see cref="ChartPalette.Print"/>).</param>
+    public byte[]? RenderPng(int width = 640, int height = 640, bool print = false)
     {
         if (_group is null || _group.Impacts.Count == 0) return null;
         using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(bmp)) Render(g, width, height);
+        using (var g = Graphics.FromImage(bmp)) Render(g, width, height, ChartPalette.For(print));
         using var ms = new MemoryStream();
         bmp.Save(ms, ImageFormat.Png);
         return ms.ToArray();
     }
 
-    private void Render(Graphics g, int width, int height)
+    private void Render(Graphics g, int width, int height, ChartPalette c)
     {
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        g.Clear(BackColor);
-        using var tb = new SolidBrush(Color.FromArgb(210, 220, 230));
+        g.Clear(c.Back);
+        using var tb = new SolidBrush(c.Text);
         using var fnt = new Font("Segoe UI", 8f);
 
         if (_group is null || _group.Impacts.Count == 0)
@@ -82,24 +83,41 @@ internal sealed class GroupTargetChart : Panel
         float X(double xMoa) => originX + (float)(xMoa - cx) * scale;
         float Y(double yMoa) => originY - (float)(yMoa - cy) * scale; // screen Y grows down, target "up" is +Y
 
-        using var axisPen = new Pen(Color.FromArgb(90, 148, 163, 184));
+        using var axisPen = new Pen(c.AxisFaint);
         g.DrawRectangle(axisPen, margin, margin, pw, ph);
         g.DrawLine(axisPen, X(cx - half), originY, X(cx + half), originY);
         g.DrawLine(axisPen, originX, Y(cy - half), originX, Y(cy + half));
 
         var ci = CultureInfo.InvariantCulture;
-        g.DrawString(string.Format(ci, "±{0:0.0} MOA", half), fnt, tb, margin, height - margin + 6);
+        // rings round the centre of the group in the angle unit of the program, and the mean radius as a dashed ring: the picture reads in the same numbers as the verdict
+        var units = Measuring.ProgramUnits.Current;
+        double k = units.AngleValue(1.0);                                    // unit per MOA
+        double ringStep = ChartBase.NiceStep(half * k, 3);
+        using (var ringPen = new Pen(c.Grid))
+            for (double r = ringStep; r < half * k * 1.4; r += ringStep)
+            {
+                float pr = (float)(r / k) * scale;
+                g.DrawEllipse(ringPen, originX - pr, originY - pr, 2 * pr, 2 * pr);
+                g.DrawString(r.ToString("0.##", ci), fnt, new SolidBrush(c.TextDim), originX + pr * 0.7071f + 2, originY - pr * 0.7071f - 12);
+            }
+        if (_group.MeanRadiusMoa > 0)
+        {
+            float mr = (float)_group.MeanRadiusMoa * scale;
+            using var mrPen = new Pen(Color.FromArgb(170, c.Accent), 1.6f) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
+            g.DrawEllipse(mrPen, originX - mr, originY - mr, 2 * mr, 2 * mr);
+        }
+        g.DrawString(string.Format(ci, "±{0:0.0#} {1}   ", half * k, units.AngleUnitName) + Lang.T("(dashed ring = mean radius)"), fnt, tb, margin, height - margin + 6);
 
         // Point of aim: a plain cross, drawn first so impacts and the centroid sit on top of it.
-        using var poaPen = new Pen(Color.FromArgb(160, 210, 220, 230), 1.5f);
+        using var poaPen = new Pen(c.Aim, 1.5f);
         float poaX = X(_group.AimXMoa), poaY = Y(_group.AimYMoa);
         g.DrawLine(poaPen, poaX - 7, poaY, poaX + 7, poaY);
         g.DrawLine(poaPen, poaX, poaY - 7, poaX, poaY + 7);
 
         var flaggedByIndex = _outliers.Where(o => o.Flagged).Select(o => o.Index).ToHashSet();
-        using var normalBrush = new SolidBrush(Color.FromArgb(56, 189, 248));
-        using var flaggedBrush = new SolidBrush(Color.FromArgb(251, 191, 36));
-        using var flaggedPen = new Pen(Color.FromArgb(251, 191, 36), 1.5f);
+        using var normalBrush = new SolidBrush(c.Primary);
+        using var flaggedBrush = new SolidBrush(c.Accent);
+        using var flaggedPen = new Pen(c.Accent, 1.5f);
         for (int i = 0; i < _group.Impacts.Count; i++)
         {
             var im = _group.Impacts[i];
@@ -114,7 +132,7 @@ internal sealed class GroupTargetChart : Panel
 
         // Centroid: a small diamond in the same amber used for a flagged outlier's ring elsewhere in
         // this plugin, but solid rather than a ring, so it never reads as a second flagged shot.
-        using var centroidBrush = new SolidBrush(Color.FromArgb(251, 191, 36));
+        using var centroidBrush = new SolidBrush(c.Accent);
         float ccx = X(cx), ccy = Y(cy);
         PointF[] diamond = { new(ccx, ccy - 6), new(ccx + 6, ccy), new(ccx, ccy + 6), new(ccx - 6, ccy) };
         g.FillPolygon(centroidBrush, diamond);

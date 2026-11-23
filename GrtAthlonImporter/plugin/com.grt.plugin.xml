@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<GordonsReloadingTool>
+
+  <plugin
+    name           = "Athlon Rangecraft Importer"
+    id             = "com.grt.plugin.athlonimporter"
+    version        = "0.1.0"
+    provider       = "community"
+    description    = "Imports Athlon Rangecraft Velocity Pro .xlsx chronograph exports into the Measurements tab (batch = ladder)."
+    launch-windows = "GRT_Athlon_Importer.exe"
+    launch-type    = "onDemand"
+    launch-args    = ""
+    start-timeout  = "5.0"
+    enabled        = "true"
+  >
+
+    <registerevent>
+      <event name="ColorPresetChange" enabled="false" />
+      <event name="TabSwitch" enabled="false" />
+      <event name="TabDataChange" enabled="false" />
+      <event name="TabUnitChange" enabled="false" />
+      <event name="TabClosed" enabled="false" />
+      <event name="TabComputed" enabled="false" />
+      <event name="WindowClosed" enabled="false" />
+    </registerevent>
+
+    <menu autoenable="true" icon="media/icons/icn_athlon_16x16.png" icon_colorize="true">
+      <menuitem id="open" label="Athlon Rangecraft Importer" enabled="true" checked="false"
+                icon="media/icons/icn_athlon_16x16.png" />
+    </menu>
+
+    <toolbar>
+      <toolbaritem
+        id            = "toolbar_main"
+        label         = "Athlon Importer"
+        tooltip       = "Import Athlon Rangecraft chronograph .xlsx files into the Measurements tab"
+        icon          = "media/icons/icn_athlon_32x32.png"
+        icon_colorize = "true"
+        enabled       = "true"
+      />
+    </toolbar>
+
+  </plugin>
+</GordonsReloadingTool>

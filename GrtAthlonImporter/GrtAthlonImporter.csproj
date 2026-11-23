@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>GRT_Athlon_Importer</AssemblyName>
+    <RootNamespace>GrtAthlonImporter</RootNamespace>
+    <Version>0.1.0</Version>
+    <Product>GRT Athlon Rangecraft Importer</Product>
+    <Company>community plugin</Company>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="plugin\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="_plugin_template\" />
+  </ItemGroup>
+
+</Project>

@@ -9,7 +9,7 @@ namespace GrtReloadingToolkit.Ui;
 /// and the ES are worked out from the shots as they are typed, the sample SD that GRT shows. Everything but the date and the shots may stay empty.</summary>
 internal sealed class OutingDialog : Form
 {
-    private static readonly GrtUnits U = GrtUnits.Current;
+    private static Measuring.ProgramUnitView U => Measuring.ProgramUnits.Current;   // read each time: the units can be changed while the program is open
     private readonly Outing _o;
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
@@ -42,9 +42,9 @@ internal sealed class OutingDialog : Form
         _temp.Text = o.TempC is { } tc ? U.TemperatureValue(tc).ToString("0.#", Inv) : "";
         _press.Text = Opt(o.PressureHpa, "0"); _hum.Text = Opt(o.HumidityPct, "0");
         _wind.Text = o.WindMps is { } w ? U.VelocityValue(w).ToString("0.#", Inv) : ""; _windDir.Text = Opt(o.WindDeg, "0");
-        _group.Text = Opt(o.GroupMoa, "0.00"); _dist.Text = o.DistanceM is { } dm ? U.DistanceValue(dm).ToString("0", Inv) : "";
+        _group.Text = o.GroupMoa is { } gm ? U.AngleValue(gm).ToString("0.00", Inv) : ""; _dist.Text = o.DistanceM is { } dm ? U.DistanceValue(dm).ToString("0", Inv) : "";
         _firearm.Text = o.Firearm; _powderLot.Text = o.PowderLot; _primerLot.Text = o.PrimerLot;
-        _seating.Text = Opt(o.SeatingMm, "0.00"); _firings.Text = o.BrassFirings?.ToString(Inv) ?? ""; _barrel.Text = o.BarrelRounds?.ToString(Inv) ?? "";
+        _seating.Text = o.SeatingMm is { } sm ? U.LengthValue(sm).ToString(U.LengthInInch ? "0.0000" : "0.00", Inv) : ""; _firings.Text = o.BrassFirings?.ToString(Inv) ?? ""; _barrel.Text = o.BarrelRounds?.ToString(Inv) ?? "";
         _notes.Text = o.Notes;
 
         var t = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(10), AutoSize = true };
@@ -57,12 +57,12 @@ internal sealed class OutingDialog : Form
         Row("Umidità %", _hum);
         Row("Vento " + U.VelocityUnitName, _wind);
         Row("Direzione del vento (gradi dalle ore 12)", _windDir);
-        Row("Gruppo MOA", _group);
+        Row(U.AngleText("Gruppo MOA"), _group);
         Row("Distanza " + U.DistanceUnitName, _dist);
         Row("Arma", _firearm);
         Row("Lotto di polvere", _powderLot);
         Row("Lotto di inneschi", _primerLot);
-        Row("Profondità di seduta mm", _seating);
+        Row("Profondità di seduta " + U.LengthUnitName, _seating);
         Row("Ricariche del bossolo", _firings);
         Row("Colpi già sparati dalla canna", _barrel);
         Row("Note", _notes);
@@ -132,10 +132,10 @@ internal sealed class OutingDialog : Form
         _o.PressureHpa = N(_press); _o.HumidityPct = N(_hum);
         _o.WindMps = N(_wind) is { } w ? U.VelocityToMps(w) : null;
         _o.WindDeg = _o.WindMps is null ? null : N(_windDir);
-        _o.GroupMoa = N(_group);
+        _o.GroupMoa = N(_group) is { } gg ? U.AngleToMoa(gg) : null;
         _o.DistanceM = N(_dist) is { } dd ? U.DistanceToMetres(dd) : null;
         _o.Firearm = _firearm.Text.Trim(); _o.PowderLot = _powderLot.Text.Trim(); _o.PrimerLot = _primerLot.Text.Trim();
-        _o.SeatingMm = N(_seating);
+        _o.SeatingMm = N(_seating) is { } sd ? U.LengthToMm(sd) : null;
         _o.BrassFirings = N(_firings) is { } bf ? (int)Math.Round(bf) : null;
         _o.BarrelRounds = N(_barrel) is { } br ? (int)Math.Round(br) : null;
         _o.Notes = _notes.Text.Trim();

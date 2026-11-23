@@ -46,11 +46,20 @@ internal sealed class GroupAnalysisForm : Form
         /// DIFFERENT rifle/load would be a coincidence dressed up as a finding, not a real connection.
         /// See <see cref="GroupAnalysis.CheckAgainstNode"/>.</summary>
         public (double Low, double High)? OcwNodeGrains { get; init; }
+
+        /// <summary>Where it sits in the archive, when it came from there.</summary>
+        public long? ArchiveId { get; init; }
+        public long? ArchiveSession { get; init; }
+        public long? ArchiveLoad { get; init; }
     }
+
+    private readonly ArchiveLink? _link;
+    private readonly Button _saveArchive = new() { Text = Lang.T("Save in the archive"), AutoSize = true, Margin = new Padding(6, 2, 0, 0), Enabled = false };
+    private readonly Button _pdf = new() { Text = Lang.T("PDF report"), AutoSize = true, Margin = new Padding(6, 2, 0, 0), Enabled = false };
 
     private readonly GrtClient? _grt;
     private NextStepBar? _next;
-    private readonly GrtUnits _u = GrtUnits.Current;
+    private readonly Measuring.ProgramUnitView _u = Measuring.ProgramUnits.Current;
     private readonly List<GroupEntry> _entries = new();
 
     private readonly Label _loadStatus = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
@@ -74,15 +83,31 @@ internal sealed class GroupAnalysisForm : Form
     private GroupAnalysisReport? _lastReport;
     private TargetGroup? _lastGroup;
 
-    public GroupAnalysisForm(GrtClient? grt)
+    /// <summary>The window drawn for a picture (<c>--anteprima rosate2</c>): one invented group of ten shots at 300 m, a little high and to the right of the aim.</summary>
+    public static GroupAnalysisForm Preview()
+    {
+        var f = new GroupAnalysisForm(null);
+        var rnd = new Random(11);
+        var g = new TargetGroup { SourceFile = "prova", ChargeGrains = 41.2, DistanceM = 300, AimXMoa = 0, AimYMoa = 0 };
+        for (int i = 0; i < 10; i++) g.Impacts.Add(new Impact(0.35 + (rnd.NextDouble() - 0.5) * 1.1, 0.5 + (rnd.NextDouble() - 0.5) * 1.5));
+        g.Impacts.Add(new Impact(1.9, 2.2));
+        f._entries.Add(new GroupEntry { Source = "prova.csv", Group = g, HasAppCenter = false, ChargeGrains = 41.2 });
+        f.RefreshGroupGrid(0);
+        f.Analyze();
+        return f;
+    }
+
+    public GroupAnalysisForm(GrtClient? grt, ArchiveLink? link = null)
     {
         _grt = grt;
+        _link = link;
         Text = AppVersion.Title(Lang.T("Group Analysis"));
         Width = 1080; Height = 720;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(880, 560);
 
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6, 6, 0, 0) };
+        // grows to a second row when the buttons do not fit the width (the window may be narrow)
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Padding = new Padding(6, 6, 0, 4) };
         var loadBtn = new Button { Text = Lang.T("Load GRT's shot-group tabs…"), AutoSize = true };
         loadBtn.Click += async (_, _) => await LoadFromGrtAsync();
         top.Controls.Add(loadBtn);
@@ -92,6 +117,12 @@ internal sealed class GroupAnalysisForm : Form
         var folderBtn = new Button { Text = Lang.T("Load OnTarget folder…"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
         folderBtn.Click += (_, _) => LoadOnTargetFolder();
         top.Controls.Add(folderBtn);
+        if (_link != null)
+        {
+            var fromArchive = new Button { Text = Lang.T("From the archive…"), AutoSize = true, Margin = new Padding(6, 0, 0, 0) };
+            fromArchive.Click += (_, _) => LoadFromArchive();
+            top.Controls.Add(fromArchive);
+        }
         top.Controls.Add(_loadStatus);
         _loadStatus.Margin = new Padding(10, 10, 0, 0);
         var settingsBtn = new Button { Text = Lang.T("⚙ Thresholds…"), AutoSize = true, Margin = new Padding(20, 2, 0, 0) };
@@ -101,6 +132,13 @@ internal sealed class GroupAnalysisForm : Form
         writeBtn.Enabled = _grt is { Connected: true };
         writeBtn.Click += async (_, _) => await WriteToGrtAsync();
         top.Controls.Add(writeBtn);
+        if (_link != null)
+        {
+            _saveArchive.Click += (_, _) => SaveToArchive();
+            top.Controls.Add(_saveArchive);
+        }
+        _pdf.Click += async (_, _) => await PdfAsync();
+        top.Controls.Add(_pdf);
 
         // SplitterDistance is set AFTER the control is docked and parented, not in the object
         // initializer: at initializer time the SplitContainer has no real size yet, so an early
@@ -138,7 +176,7 @@ internal sealed class GroupAnalysisForm : Form
         // duplicate) instead of wrapping, so headers wrap to two lines here rather than truncate.
         _groupGrid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
         _groupGrid.ColumnHeadersHeight = 38;
-        _groupGrid.Columns.Add("charge", Lang.T("Charge (gr)"));
+        _groupGrid.Columns.Add("charge", Lang.T("Charge") + " (" + _u.ChargeUnitName + ")");
         _groupGrid.Columns.Add("hits", Lang.T("Hits"));
         _groupGrid.Columns.Add("chrono", Lang.T("Chrono shots"));
         _groupGrid.Columns.Add("source", Lang.T("Source"));
@@ -252,7 +290,7 @@ internal sealed class GroupAnalysisForm : Form
             RefreshGroupGrid();
             _loadStatus.Text = string.Format(Lang.T("{0} shot-group tab(s) loaded."), groups.Count)
                 + (log.Count > 0 ? " " + string.Join(" ", log) : "")
-                + (node is { } n ? " " + string.Format(Lang.T("OCW node found: {0}-{1} gr."), n.Low.ToString("0.##", CultureInfo.InvariantCulture), n.High.ToString("0.##", CultureInfo.InvariantCulture)) : "");
+                + (node is { } n ? " " + string.Format(Lang.T("OCW node found: {0}-{1} {2}."), _u.ChargeValue(n.Low).ToString("0.0##", CultureInfo.InvariantCulture), _u.ChargeValue(n.High).ToString("0.0##", CultureInfo.InvariantCulture), _u.ChargeUnitName) : "");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
@@ -391,7 +429,7 @@ internal sealed class GroupAnalysisForm : Form
         _groupGrid.Rows.Clear();
         foreach (var e in _entries)
         {
-            string charge = e.ChargeGrains is { } g ? FormattableString.Invariant($"{g:0.0##}") : "—";
+            string charge = e.ChargeGrains is { } g ? _u.ChargeValue(g).ToString(_u.ChargeFormat, CultureInfo.InvariantCulture) : "—";
             string chrono = e.Velocities is { Count: > 0 } vs ? vs.Count.ToString(CultureInfo.InvariantCulture) : "—";
             _groupGrid.Rows.Add(charge, e.Group.Impacts.Count, chrono, e.Source);
         }
@@ -453,6 +491,8 @@ internal sealed class GroupAnalysisForm : Form
 
         _lastReport = report;
         _lastGroup = group;
+        _saveArchive.Enabled = true;
+        _pdf.Enabled = true;
         _chart.SetData(group, outliers);
         _verdict.Text = BuildVerdict(report, group);
     }
@@ -493,7 +533,7 @@ internal sealed class GroupAnalysisForm : Form
         double distanceM = _hitDistance.Value > 0 ? _u.DistanceToMetres((double)_hitDistance.Value) : group.DistanceM;
         double sigmaMoa = GroupAnalysis.SigmaMoa(group);
         var r = HitProbability.Compute(sigmaMoa, group.Impacts.Count, distanceM, rect ? HitProbability.Shape.Rectangle : HitProbability.Shape.Circle, a, b,
-            _hitOffset.Checked ? group.CenterXMoa : 0, _hitOffset.Checked ? group.CenterYMoa : 0);
+            _hitOffset.Checked ? group.CenterXMoa : 0, _hitOffset.Checked ? group.CenterYMoa : 0, group.PooledGroups);
 
         string target = rect
             ? string.Format(Lang.T("{0} × {1} rectangle"), ShortLength(a), ShortLength(b))
@@ -526,6 +566,9 @@ internal sealed class GroupAnalysisForm : Form
         sb.AppendLine();
         sb.AppendLine(string.Format(Lang.T("Mean radius {0} MOA · Extreme spread {1} MOA · CEP50 {2} MOA"),
             report.MeanRadiusMoa.ToString("0.00", ci), report.GroupEsMoa.ToString("0.00", ci), report.Cep50Moa.ToString("0.00", ci)));
+        if (group.MeanRadiusCorrectedMoa is { } mrc)
+            sb.AppendLine(string.Format(Lang.T("Mean radius the load would group at: {0} MOA (the measured one reads small with {1} shot(s) per group centre)."),
+                mrc.ToString("0.00", ci), ((double)group.Impacts.Count / Math.Max(group.PooledGroups, 1)).ToString("0.#", ci)));
         sb.AppendLine(string.Format(Lang.T("Horizontal spread {0} MOA · Vertical spread {1} MOA"),
             report.HorizontalSpreadMoa.ToString("0.00", ci), report.VerticalSpreadMoa.ToString("0.00", ci)));
         if (report.VelocityPoiR is { } vr)
@@ -556,7 +599,66 @@ internal sealed class GroupAnalysisForm : Form
             sb.AppendLine(Lang.T("Problems found:"));
             foreach (var p in report.Problems) sb.AppendLine("  • " + p.Localized(Lang.T));
         }
-        return sb.ToString();
+        return _u.AngleAll(sb.ToString());          // the engines write MOA: the numbers and the word follow the angle unit of the program
+    }
+
+    // ── The archive ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// The measurable groups of one session of the archive. When a string of the same session was shot at the group's
+    /// charge, its velocities come along in firing order, as a matching chronograph file does.
+    /// </summary>
+    private void LoadFromArchive()
+    {
+        if (_link == null) return;
+        using var pick = new ArchivePickForm(_link, ArchivePick.Groups);
+        if (pick.ShowDialog(this) != DialogResult.OK || pick.Session is not { } s) return;
+        var strings = Archive.ArchiveQueries.Strings(_link.Db, s.Id);
+        int added = 0;
+        foreach (var g in pick.PickedGroups)
+        {
+            if (Archive.ArchiveQueries.ToTargetGroup(g) is not { } t) continue;
+            var match = g.Step is { } step ? strings.FirstOrDefault(st => st.ChargeGr is { } c && Math.Abs(c - step) < 0.005) : null;
+            _entries.Add(new GroupEntry
+            {
+                Source = t.SourceFile + " (" + s.Date + ")", Group = t, HasAppCenter = false, ChargeGrains = g.Step,
+                Velocities = match?.Velocities, ArchiveId = g.Id, ArchiveSession = s.Id, ArchiveLoad = s.LoadId,
+            });
+            added++;
+        }
+        _loadStatus.Text = string.Format(Lang.T("archive: {0} group(s) added from the session of {1}"), added, s.Date);
+        RefreshGroupGrid(added > 0 ? _entries.Count - 1 : null);
+    }
+
+    private string ReportText(GroupAnalysisReport report, TargetGroup group)
+    {
+        var text = new StringBuilder();
+        text.AppendLine($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}");
+        text.AppendLine(new string('-', 20));
+        text.AppendLine(BuildVerdict(report, group));
+        return text.ToString();
+    }
+
+    private string ArchiveInputs(GroupEntry? entry, TargetGroup group) => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        rosata_archivio = entry?.ArchiveId, rosata = entry?.Source ?? group.SourceFile, colpi = group.Impacts.Count,
+        distanza_m = group.DistanceM, rosate_unite = group.PooledGroups,
+    });
+
+    private void SaveToArchive()
+    {
+        if (_link == null || _lastReport is not { } report || _lastGroup is not { } group) return;
+        var entry = _entries.FirstOrDefault(e => ReferenceEquals(e.Group, group));
+        _link.Save(this, Lang.T("Group Analysis"), entry?.ArchiveLoad, entry?.ArchiveSession, ArchiveInputs(entry, group), ReportText(report, group));
+    }
+
+    private async Task PdfAsync()
+    {
+        if (_lastReport is not { } report || _lastGroup is not { } group) return;
+        var entry = _entries.FirstOrDefault(e => ReferenceEquals(e.Group, group));
+        await ReportPdfAction.MakeAsync(this, _pdf, _link, Lang.T("Group Analysis"), entry?.Source ?? group.SourceFile,
+            entry?.ArchiveLoad, entry?.ArchiveSession, ArchiveInputs(entry, group), ReportText(report, group),
+            ReportPdfAction.Chart(Lang.T("Group"), _chart.RenderPng(900, 900, print: true)));
     }
 
     // ── Write-back ────────────────────────────────────────────────────
@@ -570,14 +672,9 @@ internal sealed class GroupAnalysisForm : Form
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
             { MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Write group analysis note to GRT load")); return; }
 
-            var text = new StringBuilder();
-            text.AppendLine($"{NoteTitle} {DateTime.Now:yyyy-MM-dd}");
-            text.AppendLine(new string('-', 20));
-            text.AppendLine(BuildVerdict(report, group));
-
             var writeDoc = GrtLoadDoc.OpenForToolkitEdit(top.file);
             writeDoc.RemoveByTitlePrefix(NoteTitle);
-            writeDoc.AddNote(NoteTitle, text.ToString());
+            writeDoc.AddNote(NoteTitle, ReportText(report, group));
             byte[]? png = _chart.RenderPng();
             if (png != null) writeDoc.AddGalleryPicture($"{NoteTitle} chart", "groupanalysis_chart", png);
             string outPath = writeDoc.SaveSibling("groupanalysis");

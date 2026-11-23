@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<GordonsReloadingTool>
+
+  <plugin
+    name           = "GRT Sensitivity Lab"
+    id             = "com.grt.plugin.sensitivitylab"
+    version        = "0.1.0"
+    provider       = "community"
+    description    = "What if... substitute a real measured value (case volume, bullet weight, seating depth...) for a GRT input's file default and re-simulate, one input at a time. Plus a sensitivity sweep that ranks every input by how much it moves GRT's prediction, so you know what's worth measuring precisely in the first place. Includes installable GRT report templates."
+    launch-windows = "GRT_Sensitivity_Lab.exe"
+    launch-type    = "onDemand"
+    launch-args    = ""
+    start-timeout  = "5.0"
+    enabled        = "true"
+  >
+
+    <registerevent>
+      <event name="ColorPresetChange" enabled="false" />
+      <event name="TabSwitch" enabled="false" />
+      <event name="TabDataChange" enabled="false" />
+      <event name="TabComputed" enabled="false" />
+      <event name="WindowClosed" enabled="false" />
+    </registerevent>
+
+    <!-- icon_colorize="false" everywhere the icon appears, same as the Reloading Toolkit (PR #15):
+         it ships in colour rather than as white line art for GRT to tint. GRT does not tint icons
+         in its plugin dropdown, so a white icon there is white-on-white and invisible. -->
+    <menu autoenable="true" icon="media/icons/icn_sensitivitylab_16x16.png" icon_colorize="false">
+      <menuitem id="open" label="GRT Sensitivity Lab..." enabled="true" icon="media/icons/icn_sensitivitylab_16x16.png" icon_colorize="false" />
+    </menu>
+
+    <toolbar>
+      <toolbaritem id="open" label="GRT Sensitivity Lab"
+                   tooltip="What if... substitute a real measured value into GRT and re-simulate"
+                   icon="media/icons/icn_sensitivitylab_32x32.png" icon_colorize="false" enabled="true" />
+    </toolbar>
+
+  </plugin>
+</GordonsReloadingTool>

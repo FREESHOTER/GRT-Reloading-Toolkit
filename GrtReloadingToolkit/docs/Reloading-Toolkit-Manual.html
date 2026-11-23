@@ -165,6 +165,11 @@
       <li><a href="#follow">Follow a load</a></li>
       <li><a href="#modelprobe">Model probe</a></li>
       <li><a href="#stability">Gyroscopic stability</a></li>
+      <li><a href="#archive">The archive and the library</a></li>
+      <li><a href="#cartridges">Cartridges</a></li>
+      <li><a href="#training">Training and race</a></li>
+      <li><a href="#units">Units of measure</a></li>
+      <li><a href="#charts">Charts</a></li>
       <li><a href="#faq">Limitations &amp; FAQ</a></li>
     </ol>
   </nav>
@@ -1435,8 +1440,79 @@ MyLoad_toolkit_20260612_201408.grtload  <span class="c">← snapshot the toolkit
       <p><strong>What it is not.</strong> A theoretical estimate for a spitzer or boat-tail bullet. The bullet&#39;s real concentricity matters, a measured length that includes a plastic tip has to be the real overall length, and muzzle velocity falls on a cold day, which the tool does not know (type the lower velocity yourself). It does not claim how much ballistic coefficient is lost when Sg is marginal: published figures disagree. When in doubt, check on the target: oval holes mean the bullet is not stable.</p>
     </section>
 
+    <section id="archive">
+      <h2><span class="no">32</span>The archive, the library and the PDF reports</h2>
+      <p>The program keeps <strong>one archive of its own</strong> (<code>Documents\Ricarica\archivio.db</code>, a SQLite file): the sessions, the strings and every shot, the target groups, the loads, the cartridges one by one and the analyses that were saved. It works <strong>stand-alone</strong>, as <em>Banco di Ricarica</em>, and as the GRT plugin; GRT and Excel-style files are only a way in and a way out, never the place where the data lives. What GRT writes back are still the notes and snapshots of section 2.</p>
+      <ul>
+        <li><strong>Save in the archive</strong> (in the analyses that have the button) keeps the figures and the report of that analysis with the load and the session they belong to; the <strong>PDF report</strong> button writes a PDF with the figures, the charts and the text, opens it, and keeps it in the archive too (the PDF files are also in <code>Documents\Ricarica\rapporti</code>).</li>
+        <li><strong>Component library.</strong> Cases, bullets, primers and powders with the values that are known about them. When the same piece has several values the order is: what you measured, then the maker, then GRT, then the older tools. A match between two names is never made silently: the window lists the matches to <strong>confirm</strong>.</li>
+        <li>Whatever you choose to show, the archive keeps ONE unit for each kind of quantity (grains, millimetres, metres, MOA, m/s, °C): changing the units (section 35) changes only what is shown and how a typed number is read, never a stored value.</li>
+      </ul>
+      <p>Before the program changes the schema of the archive (a new version adds a column, never removes one) it is good practice to keep a copy of the file: the copies made by hand go anywhere, the archive is a single file.</p>
+    </section>
+
+
+    <section id="cartridges">
+      <h2><span class="no">33</span>Cartridges: measure, predict, plan</h2>
+      <p>For a match or a long-range test the load is not one number but a lot of cartridges, each a little different. This window (phase 1, <em>Cartridges</em>) measures them, learns from the archive what actually moves the velocity, predicts each cartridge and plans how to fire them. It has seven tabs:</p>
+      <ul>
+        <li><strong>Pieces</strong> — cases, bullets and primers as marks with their measures (weight, case volume, neck, length…). A mark that is not there yet is created when you type it. A right click on the title of a column changes the unit of that column.</li>
+        <li><strong>Match lots</strong> and <strong>Training</strong> — the lots of finished cartridges, one row for each cartridge (case, bullet, primer, and the measures taken on the finished round).</li>
+        <li><strong>Prediction and plan</strong> — <em>Learn from the archive</em> builds the model of the velocity (below) and then the plan: how to divide the lot in groups so that each group shoots the smallest SD. For a race the shape is yours: targets, barrels (shots) per target, how many returns, how many shots per return, and the proving shots; what you set is remembered.</li>
+        <li><strong>Check after the shooting</strong> — link the shots of a session to the cartridges that fired them. The window says whether the prediction held (is the cartridge estimated faster really the faster one?) and warns when the session is one the model learned from (then the check is not independent).</li>
+        <li><strong>Tolerances and classes</strong> — which measures matter and by how much, and the classes to sort the pieces into.</li>
+        <li><strong>SD budget</strong> — pick the strings of a session: it says where the SD comes from (the change of velocity between series, the first shots of a series, each proven measure, the chronograph, the rest), what it costs on the target at each distance and how many shots are needed to prove an improvement. A chart shows the shares and the series.</li>
+      </ul>
+      <p><strong>How the model decides.</strong> Inside each series the mean of that series is taken out, so that a warmer day, another barrel or a new box cannot pass for a measure; then each measure is tested against the velocity, with the correction for testing many measures at once (Holm). Only a measure that is <strong>proven</strong> (probability of chance under 5 %) enters the prediction. With few shots the model says nothing rather than guess: a measure is tested only once enough shots carry it. The prediction is the velocity of each cartridge from the median one of the lot, in m/s.</p>
+    </section>
+
+
+    <section id="training">
+      <h2><span class="no">34</span>Training, race, and the reading of the shots</h2>
+      <p>Phases 6 and 7 of the home page are the two kinds of lot. The <strong>match lot</strong> is kept for the match; <strong>training lots</strong> are other cartridges, shot to teach the model what moves the velocity, to try a plan and to check a prediction. Every shot linked to a cartridge, in training or in a match, teaches the same model.</p>
+      <h3>Training (phase 6)</h3>
+      <ul>
+        <li><strong>Training cartridges</strong> — the lots with the purpose <em>training</em>; a training lot can <em>imitate</em> a match lot, and <strong>Compare with the match lot</strong> says how much the cartridges of the two resemble each other, in the measures the model has proven. <strong>What the training taught</strong> compares the model without and with the latest training session (shots learned, measures proven, SD left unexplained, link of the leave-one-out check, SD expected of the match lot) with a chart of before and after.</li>
+        <li><strong>Chronograph statistics (training)</strong> and <strong>SD budget (training)</strong> open on the latest training session.</li>
+        <li><strong>Group reading (shooter errors)</strong> — paste or load the shots of a group (the coordinates are from the point of aim, or from the centre) and the reading says what points to a mistake of the shooter: a zero that is not right (with the clicks to give), a spread longer sideways than in height, a shot after shot drift, a first shot that goes worse, a series that is not like the others, a flier. Every finding has the probability that it is chance written beside it; "nothing found" is not proof that there is nothing, above all with fewer than 10 shots.</li>
+      </ul>
+      <h3>Race (phase 7)</h3>
+      <ul>
+        <li><strong>Race plan and check</strong> — the plan of the match lot, the prediction frozen before the shooting and the check after.</li>
+        <li><strong>Match reading (one shot per target)</strong> — tick <em>Match</em> in the reading window and write one shot for each target, with its distance, and, when you have them, the velocity, the wind, the position and the lot. Each error is split in four parts: <strong>cartridge</strong>, <strong>settings</strong> (zero, scope), <strong>wind not corrected</strong> and <strong>shooting</strong>; each shot gets its main cause; patterns are named only when the evidence is enough (<em>strong</em> findings, and <em>weak</em> ones marked "to be confirmed"), for instance a target that was missed always in the same way.</li>
+      </ul>
+      <p>Both readings are statistics on the shots you give them: they point, they do not judge. A finding is worth confirming on the next shooting.</p>
+    </section>
+
+
+    <section id="units">
+      <h2><span class="no">35</span>Units of measure</h2>
+      <p>Open <strong>Units of measure</strong> from the home page. For each kind of quantity there is one choice for the whole program: <strong>grains or grams</strong> (powder, bullet, case), <strong>millimetres or inches</strong> (lengths), <strong>metres or yards</strong> (distances), <strong>MOA or mrad</strong> (angles); and the click of your scope (1/8, 1/4, 1/2 MOA; 1/20, 1/10 mrad). Velocity, temperature and twist keep following GRT's own settings.</p>
+      <ul>
+        <li><strong>One setting, a selector on the field.</strong> Where a table has a column of the kind, a right click on its title lists the units of that kind for that column only (the charge of a chronograph import, any measure of the cartridges); <em>Like the others of its kind</em> goes back to the common choice.</li>
+        <li><strong>Numbers that carry no unit.</strong> The seating depth or jump of a seating ladder and the neck tension of the advanced diagnostics are numbers you type in file names or in names of strings, so the program cannot know the unit: each of these windows asks which unit you write in (a box <em>typed in</em>), and shows the result in the length unit you chose.</li>
+        <li><strong>Texts and reports.</strong> The verdicts, the notes written to GRT, the PDF reports and the charts use the same units; a verdict written by the program in MOA is converted number by number (a click such as 1/4 MOA stays what it is). The thresholds windows show the limits in the angle unit chosen, and a limit you did not touch keeps its stored value to the last digit.</li>
+        <li>A window reads the units when it is opened: after changing them, reopen the windows that were already open.</li>
+      </ul>
+    </section>
+
+
+    <section id="charts">
+      <h2><span class="no">36</span>Charts</h2>
+      <p>A picture explains many results better than a sentence, so most analyses draw their result. Every chart of the program can be <strong>copied or saved as a picture</strong> with a right click on it, and the ones that go into a PDF report are drawn again in dark ink on white.</p>
+      <ul>
+        <li><strong>Shots on the target</strong> (reading of a group or of a match): the shots round the aim in MOA or mrad, coloured by series or by cause, the centre of the shots with an arrow from the aim, and the ellipse that holds most of the shots.</li>
+        <li><strong>The shots of each string</strong> (chronograph import and statistics): each string a column of dots with its average and one SD either side, the averages joined, the string with the smallest SD marked; a shot flagged as an outlier is red.</li>
+        <li><strong>Ladder / OCW and seating</strong>: the velocity (or the group) against the charge (or the depth) with the vertical POI and the recommended node shaded.</li>
+        <li><strong>Group analysis</strong>: the group with rings and the dashed ring of the mean radius. <strong>Distance workflow</strong>: the score of each charge as a bar. <strong>SD root-cause</strong>: the contribution of each shot, temperature against velocity and against group.</li>
+        <li><strong>Cartridges</strong>: what moves the velocity (the dots and the slope the data give), the plan group by group, the water held by each case, the <strong>SD budget</strong> (the shares and the series) and <strong>what the training taught</strong> (before and after).</li>
+        <li><strong>Follow a load</strong>: the mean velocity, the SD and ES, the velocity against temperature and the group over time.</li>
+      </ul>
+    </section>
+
+
     <section id="faq">
-      <h2><span class="no">32</span>Limitations &amp; FAQ</h2>
+      <h2><span class="no">37</span>Limitations &amp; FAQ</h2>
       <h3>Why a pile of <code>_toolkit_…</code> files?</h3>
       <p>GRT&#39;s plugin API can&#39;t edit the open load and can&#39;t reload an already-open tab &mdash;
         so each write is a fresh timestamped snapshot. Each snapshot is complete; keep the newest (Save

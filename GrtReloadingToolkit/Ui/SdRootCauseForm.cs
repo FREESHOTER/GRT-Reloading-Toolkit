@@ -32,11 +32,13 @@ internal sealed class SdRootCauseForm : Form
         /// <summary>What the stored per-shot temperatures are filed under: the label alone is not
         /// enough (every GRT Measurement is called "Misurazione"), so the shots themselves are part of it.</summary>
         public string StorageKey => $"{Label} [{RowLabels.Fingerprint(Velocities)}]";
+        /// <summary>The archive string it was read from, when it came from the archive.</summary>
+        public long? ArchiveId { get; init; }
     }
 
     private readonly GrtClient? _grt;
     private readonly Db _db;
-    private readonly GrtUnits _u = GrtUnits.Current;
+    private readonly Measuring.ProgramUnitView _u = Measuring.ProgramUnits.Current;
     private readonly List<StringRow> _rows = new();
     private readonly List<TargetGroup> _groups = new();
     private string _caliber = "";
@@ -55,28 +57,47 @@ internal sealed class SdRootCauseForm : Form
 
     private SdRootCause.SdRootCauseReport? _lastReport;
     private string? _lastLabel;
+    private readonly ArchiveLink? _link;
+    private long? _archLoad, _archSession;
+    private readonly Button _saveArchive = new() { Text = Lang.T("Save in the archive"), AutoSize = true, Margin = new Padding(6, 2, 0, 0), Enabled = false };
+    private readonly Button _pdf = new() { Text = Lang.T("PDF report"), AutoSize = true, Margin = new Padding(6, 2, 0, 0), Enabled = false };
 
-    public SdRootCauseForm(GrtClient? grt, Db db)
+    public SdRootCauseForm(GrtClient? grt, Db db, ArchiveLink? link = null)
     {
         _grt = grt;
         _db = db;
+        _link = link;
         Text = AppVersion.Title(Lang.T("SD Root-Cause"));
         Width = 1120; Height = 720;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(900, 560);
 
-        var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(6, 6, 0, 0) };
+        // grows to a second row when the buttons do not fit the width (the window may be narrow)
+        var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Padding = new Padding(6, 6, 0, 4) };
         var loadBtn = new Button { Text = Lang.T("Load strings from GRT load…"), AutoSize = true };
         loadBtn.Click += async (_, _) => await LoadStringsAsync();
         top.Controls.Add(loadBtn);
+        if (_link != null)
+        {
+            var fromArchive = new Button { Text = Lang.T("From the archive…"), AutoSize = true, Margin = new Padding(6, 2, 0, 0) };
+            fromArchive.Click += (_, _) => LoadFromArchive();
+            top.Controls.Add(fromArchive);
+        }
         top.Controls.Add(_loadStatus);
         _loadStatus.Margin = new Padding(10, 10, 0, 0);
         var writeBtn = new Button { Text = Lang.T("Write root-cause note to GRT load"), AutoSize = true, Margin = new Padding(20, 2, 0, 0) };
         writeBtn.Enabled = _grt is { Connected: true };
         writeBtn.Click += async (_, _) => await WriteToGrtAsync();
         top.Controls.Add(writeBtn);
+        if (_link != null)
+        {
+            _saveArchive.Click += (_, _) => SaveToArchive();
+            top.Controls.Add(_saveArchive);
+        }
+        _pdf.Click += async (_, _) => await PdfAsync();
+        top.Controls.Add(_pdf);
 
-        var split = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 300, FixedPanel = FixedPanel.Panel1 };
+        var split = new SplitContainer { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1 }.WithDistance(300);
         split.Panel1.Controls.Add(BuildControlsPanel());
         split.Panel2.Controls.Add(BuildResultsPanel());
 
@@ -178,7 +199,7 @@ internal sealed class SdRootCauseForm : Form
                     var vs = kept.Select(s => s.VelocityMps).ToList();
                     if (vs.Count < 3) continue;
                     string label = ch.ChargeGrains is { } g
-                        ? FormattableString.Invariant($"{g:0.0##} gr ({meas.Title})")
+                        ? $"{_u.Charge(g)} ({meas.Title})"
                         : $"{ch.Name} ({meas.Title})";
                     _rows.Add(new StringRow
                     {
@@ -190,19 +211,89 @@ internal sealed class SdRootCauseForm : Form
             _groups.Clear();
             var (groups, _) = GrtShotGroups.FromDoc(doc);
             _groups.AddRange(groups);
-
-            _stringPicker.Items.Clear();
-            foreach (var r in _rows) _stringPicker.Items.Add(r.Label);
-            if (_stringPicker.Items.Count > 0) _stringPicker.SelectedIndex = 0;
-
-            _groupPicker.Items.Clear();
-            _groupPicker.Items.Add(Lang.T("— none —"));
-            foreach (var g in _groups) _groupPicker.Items.Add($"{g.SourceFile} ({g.Impacts.Count} {Lang.T("hits")})");
-            _groupPicker.SelectedIndex = 0;
-
-            _loadStatus.Text = string.Format(Lang.T("{0} string(s), {1} shot-group tab(s) loaded."), _rows.Count, _groups.Count);
+            _archLoad = _archSession = null;
+            FillPickers();
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+
+    private void FillPickers()
+    {
+        _stringPicker.Items.Clear();
+        foreach (var r in _rows) _stringPicker.Items.Add(r.Label);
+        if (_stringPicker.Items.Count > 0) _stringPicker.SelectedIndex = 0;
+
+        _groupPicker.Items.Clear();
+        _groupPicker.Items.Add(Lang.T("— none —"));
+        foreach (var g in _groups) _groupPicker.Items.Add($"{g.SourceFile} ({g.Impacts.Count} {Lang.T("hits")})");
+        _groupPicker.SelectedIndex = 0;
+
+        _loadStatus.Text = string.Format(Lang.T("{0} string(s), {1} shot-group tab(s) loaded."), _rows.Count, _groups.Count);
+    }
+
+    /// <summary>The strings (3 shots or more) and the measurable groups of one session of the archive. The clock time of each
+    /// shot comes from its note, as the import keeps it; the per-shot barrel temperatures are filed under the load's caliber.</summary>
+    private void LoadFromArchive()
+    {
+        if (_link == null) return;
+        using var pick = new ArchivePickForm(_link, ArchivePick.Both);
+        if (pick.ShowDialog(this) != DialogResult.OK || pick.Session is not { } s) return;
+        _rows.Clear();
+        foreach (var st in pick.PickedStrings)
+        {
+            var kept = st.Shots.Where(x => x.VelocityMps > 50).ToList();
+            if (kept.Count < 3) continue;
+            _rows.Add(new StringRow
+            {
+                Label = RowLabels.Unique(_rows.Select(r => r.Label), $"{st.Label} ({s.Date})"),
+                Velocities = kept.Select(x => x.VelocityMps).ToList(),
+                Clock = kept.Select(x => Archive.ArchiveQueries.ClockSeconds(x.Note)).ToList(),
+                ArchiveId = st.Id,
+            });
+        }
+        _groups.Clear();
+        foreach (var g in pick.PickedGroups)
+            if (Archive.ArchiveQueries.ToTargetGroup(g) is { } t) _groups.Add(t);
+        _caliber = s.Caliber;
+        _archLoad = s.LoadId;
+        _archSession = s.Id;
+        FillPickers();
+    }
+
+    private string ReportText(SdRootCause.SdRootCauseReport report, string label)
+    {
+        var text = new StringBuilder();
+        text.AppendLine($"{NoteTitle} {DateTime.Now:yyyy-MM-dd} — {label}");
+        text.AppendLine(new string('-', 20));
+        text.AppendLine(BuildVerdict(report));
+        return text.ToString();
+    }
+
+    private string ArchiveInputs(string label)
+    {
+        var row = _rows.FirstOrDefault(r => r.Label == label);
+        return System.Text.Json.JsonSerializer.Serialize(new
+        {
+            serie_archivio = row?.ArchiveId, serie = label, colpi_canna_fredda = (int)_coldBoreShots.Value,
+            rosata = _groupPicker.SelectedIndex > 0 ? _groupPicker.SelectedItem?.ToString() : null,
+        });
+    }
+
+    private void SaveToArchive()
+    {
+        if (_link == null || _lastReport is not { } report || _lastLabel is not { } label) return;
+        _link.Save(this, Lang.T("SD Root-Cause"), _archLoad, _archSession, ArchiveInputs(label), ReportText(report, label));
+    }
+
+    private async Task PdfAsync()
+    {
+        if (_lastReport is not { } report || _lastLabel is not { } label) return;
+        var images = new List<Reports.ReportImage>();
+        images.AddRange(ReportPdfAction.Chart(Lang.T("SD contribution"), _barChart.RenderPng(print: true)));
+        if (report.TempVelocityR != null) images.AddRange(ReportPdfAction.Chart(Lang.T("Temp → velocity"), _tempVelChart.RenderPng(print: true)));
+        if (report.TempPoiR != null) images.AddRange(ReportPdfAction.Chart(Lang.T("Temp → group"), _tempPoiChart.RenderPng(print: true)));
+        await ReportPdfAction.MakeAsync(this, _pdf, _link, Lang.T("SD Root-Cause"), label, _archLoad, _archSession,
+            ArchiveInputs(label), ReportText(report, label), images);
     }
 
     private void OnStringSelected()
@@ -270,9 +361,11 @@ internal sealed class SdRootCauseForm : Form
         {
             var report = SdRootCause.Diagnose(row.Velocities, coldBoreFlags, manualTemps.Count >= 3 ? manualTemps : null, group, row.Clock);
             _lastReport = report;
+            _saveArchive.Enabled = true;
+            _pdf.Enabled = true;
             RenderReport(report);
         }
-        catch (SdRootCause.SdRootCauseError ex) { _verdict.Text = ex.Message; _lastReport = null; }
+        catch (SdRootCause.SdRootCauseError ex) { _verdict.Text = ex.Message; _lastReport = null; _pdf.Enabled = false; }
     }
 
     private void RenderReport(SdRootCause.SdRootCauseReport report)
@@ -304,8 +397,8 @@ internal sealed class SdRootCauseForm : Form
             var pairs = _tempGrid.Rows.Cast<DataGridViewRow>()
                 .Select((r, i) => (i, tempText: Convert.ToString(r.Cells["temp"].Value)))
                 .Where(p => double.TryParse(p.tempText, NumberStyles.Float, CultureInfo.InvariantCulture, out _) && radiusByIndex.ContainsKey(p.i))
-                .Select(p => (X: double.Parse(p.tempText!, CultureInfo.InvariantCulture), Y: radiusByIndex[p.i]));
-            _tempPoiChart.SetData(pairs, _u.TemperatureUnitName, "MOA", "");
+                .Select(p => (X: double.Parse(p.tempText!, CultureInfo.InvariantCulture), Y: _u.AngleValue(radiusByIndex[p.i])));
+            _tempPoiChart.SetData(pairs, _u.TemperatureUnitName, _u.AngleUnitName, "");
         }
         else _tempPoiChart.SetData(Array.Empty<(double, double)>(), "", "", Lang.T("No matching shot-group data for this string."));
 
@@ -413,14 +506,9 @@ internal sealed class SdRootCauseForm : Form
             if (string.IsNullOrWhiteSpace(top.file) || !File.Exists(top.file))
             { MessageBox.Show(this, Lang.T("No saved load is open in GRT."), Lang.T("Write root-cause note to GRT load")); return; }
 
-            var text = new StringBuilder();
-            text.AppendLine($"{NoteTitle} {DateTime.Now:yyyy-MM-dd} — {label}");
-            text.AppendLine(new string('-', 20));
-            text.AppendLine(BuildVerdict(report));
-
             var writeDoc = GrtLoadDoc.OpenForToolkitEdit(top.file);
             writeDoc.RemoveByTitlePrefix(NoteTitle);
-            writeDoc.AddNote(NoteTitle, text.ToString());
+            writeDoc.AddNote(NoteTitle, ReportText(report, label));
             byte[]? png = _barChart.RenderPng();
             if (png != null) writeDoc.AddGalleryPicture($"{NoteTitle} chart", "sdrootcause_chart", png);
             string outPath = writeDoc.SaveSibling("sdrootcause");

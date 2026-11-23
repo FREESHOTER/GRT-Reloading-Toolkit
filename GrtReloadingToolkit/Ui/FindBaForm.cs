@@ -17,13 +17,13 @@ internal sealed class FindBaForm : Form
     private readonly ComboBox _fbCaliber = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
     private readonly ComboBox _fbPowder = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, DisplayMember = "Text", ValueMember = "Id" };
     private readonly ComboBox _fbBullet = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, DisplayMember = "Text", ValueMember = "Id" };
-    private readonly ComboBox _fbSortBy = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Items = { Lang.T("Tightest group (MOA)"), Lang.T("Closest velocity to target"), Lang.T("Closest temperature to target") } };
+    private readonly ComboBox _fbSortBy = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220, Items = { Measuring.ProgramUnits.Current.AngleText(Lang.T("Tightest group (MOA)")), Lang.T("Closest velocity to target"), Lang.T("Closest temperature to target") } };
     private readonly NumericUpDown _fbTargetMv = new() { DecimalPlaces = 0, Maximum = 3000, Width = 70 };
     private readonly NumericUpDown _fbTargetTemp = new() { DecimalPlaces = 1, Minimum = -40, Maximum = 60, Width = 70 };
     private readonly ComboBox _fbTargetTempUnit = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 50, Items = { "C", "F" } };
     private readonly Panel _fbTargetMvPanel = new() { AutoSize = true };
     private readonly Panel _fbTargetTempPanel = new() { AutoSize = true };
-    private readonly ComboBox _fbYAxis = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130, Items = { "Ba", "MV m/s", Lang.T("Group MOA") } };
+    private readonly ComboBox _fbYAxis = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130, Items = { "Ba", "MV m/s", Measuring.ProgramUnits.Current.AngleText(Lang.T("Group MOA")) } };
     private readonly DataGridView _fb = new();
     private readonly FindBaChart _fbChart = new();
     private List<JournalEntry> _fbLastResults = new();
@@ -60,7 +60,7 @@ internal sealed class FindBaForm : Form
         // in the grid's unit: an ft/s shooter typing 2900 means 2900 ft/s, not 2900 m/s. The ceilings
         // are the same physical limits in whatever unit is showing -- 3000 m/s, and -40 C to 60 C,
         // whose Fahrenheit span is -40 to 140. Capped at 60 no Fahrenheit user could enter a warm day.
-        var fbU = GrtUnits.Current;
+        var fbU = Measuring.ProgramUnits.Current;
         _fbTargetMv.Maximum = (decimal)Math.Ceiling(fbU.VelocityValue(3000));
         _fbTargetTemp.Minimum = -40;
         _fbTargetTemp.Maximum = 140;
@@ -91,7 +91,7 @@ internal sealed class FindBaForm : Form
         // cell, the way the rest of the toolkit does -- and names the unit GRT is configured for,
         // not the one the numbers happen to be stored in.
         foreach (var (n, h) in new[] { ("date", Lang.T("Date")), ("load", Lang.T("Load")), ("chg", Lang.T("Charge") + " " + fbU.ChargeUnitName), ("ba", "Ba"), ("a0", "a0"), ("k", "k"),
-                     ("mv", "MV " + fbU.VelocityUnitName), ("sd", "SD " + fbU.VelocityUnitName), ("grp", Lang.T("Group MOA")),
+                     ("mv", "MV " + fbU.VelocityUnitName), ("sd", "SD " + fbU.VelocityUnitName), ("grp", fbU.AngleText(Lang.T("Group MOA"))),
                      ("temp", Lang.T("Temp") + " " + fbU.TemperatureUnitName), ("notes", Lang.T("Notes")) })
             _fb.Columns.Add(n, h);
 
@@ -181,7 +181,7 @@ internal sealed class FindBaForm : Form
         long? powderId = (_fbPowder.SelectedItem as FbItem)?.Id is > 0 ? (_fbPowder.SelectedItem as FbItem)!.Id : null;
         long? bulletId = (_fbBullet.SelectedItem as FbItem)?.Id is > 0 ? (_fbBullet.SelectedItem as FbItem)!.Id : null;
 
-        var u = GrtUnits.Current;
+        var u = Measuring.ProgramUnits.Current;
         var results = _db.FindCalibrations(caliber, powderId, bulletId);
         _fbLastResults = results;
 
@@ -213,7 +213,7 @@ internal sealed class FindBaForm : Form
                 e.K?.ToString("0.######", CultureInfo.InvariantCulture) ?? "",
                 e.VelocityAvgMs is { } mv ? u.VelocityValue(mv).ToString("0", CultureInfo.InvariantCulture) : "",
                 e.SdMs is { } sd ? u.VelocitySd(sd) : "",
-                e.GroupMoa?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
+                e.GroupMoa is { } gmoa ? u.AngleValue(gmoa).ToString("0.00", CultureInfo.InvariantCulture) : "",
                 temp, e.Notes);
             _fb.Rows[i].Tag = e;
         }

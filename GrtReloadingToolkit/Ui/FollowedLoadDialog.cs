@@ -7,7 +7,7 @@ namespace GrtReloadingToolkit.Ui;
 /// outings read from GRT with the same caliber, a charge within 0.05 gr and a matching bullet and powder belong to it.</summary>
 internal sealed class FollowedLoadDialog : Form
 {
-    private static readonly GrtUnits U = GrtUnits.Current;
+    private static Measuring.ProgramUnitView U => Measuring.ProgramUnits.Current;
     private readonly TrackedLoad _l;
 
     private readonly TextBox _name = new() { Width = 300 };

@@ -1,3 +1,4 @@
+using GrtReloadingToolkit.Measuring;
 using System.Globalization;
 using GrtReloadingToolkit.Athlon;
 using GrtReloadingToolkit.Log;
@@ -25,19 +26,34 @@ internal sealed class AthlonForm : Form
 
     private readonly Log.Db? _db;
 
-    public AthlonForm(GrtClient? grt, Log.Db? db = null)
+    // the archive first, GRT if asked
+    private readonly Archive.ArchiveDb? _archive;
+    private readonly ComboBox _loadPick = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 360 };
+    private readonly DateTimePicker _date = new() { Format = DateTimePickerFormat.Short, Width = 110 };
+    private readonly CheckBox _toGrt = new() { Checked = true, AutoSize = true };
+    private bool _dateTouched;
+
+    /// <summary>One entry of the "load in the archive" list.</summary>
+    private sealed record LoadChoice(long? Id, string Label, bool FromGrt = false, bool New = false, bool FromFile = false)
+    {
+        public override string ToString() => Label;
+    }
+
+    public AthlonForm(GrtClient? grt, Log.Db? db = null, Archive.ArchiveDb? archive = null)
     {
         _grt = grt;
         _db = db;
+        _archive = archive;
         _logHandler = AppendLog;
         Text = AppVersion.Title(Lang.T("Chronograph import (Athlon / Garmin)"));
-        Width = 900;
-        Height = 560;
+        Width = 980;
+        Height = 600;
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(720, 420);
+        MinimumSize = new Size(760, 440);
 
         BuildLayout();
-        UiState.Bind(this, "athlon", ("perShotTemp", _perShotTemp), ("replacePrev", _replacePrev));
+        UiState.Bind(this, "athlon", ("perShotTemp", _perShotTemp), ("replacePrev", _replacePrev), ("toGrt", _toGrt));
+        FillLoadChoices();
         if (_grt != null) _grt.Log += _logHandler;
         UpdateStatus();
     }
@@ -91,6 +107,28 @@ internal sealed class AthlonForm : Form
             top.Controls.AddRange(new Control[] { dev, dev2 });
         }
 
+        // where the strings go: the archive (load + date), and GRT too if ticked
+        var dest = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(6, 4, 6, 0), WrapContents = false };
+        var loadLbl = new Label { Text = Lang.T("Load in the archive:"), AutoSize = true, Margin = new Padding(0, 6, 4, 0) };
+        var dateLbl = new Label { Text = Lang.T("Session date:"), AutoSize = true, Margin = new Padding(14, 6, 4, 0) };
+        _toGrt.Text = Lang.T("also send to GRT");
+        _toGrt.Margin = new Padding(14, 5, 0, 0);
+        _date.ValueChanged += (_, _) => _dateTouched = true;
+        _loadPick.SelectedIndexChanged += (_, _) => PickedLoad();
+        _loadPick.DropDownWidth = 560;
+        // the two GRT-only options mean nothing when the strings stay in the archive
+        void GrtOptions() => _perShotTemp.Enabled = _replacePrev.Enabled = _toGrt.Checked;
+        _toGrt.CheckedChanged += (_, _) => GrtOptions();
+        Shown += (_, _) => GrtOptions();
+        if (_archive == null)
+        {
+            loadLbl.Text = Lang.T("archive not available: the strings go to GRT only");
+            _loadPick.Visible = _date.Visible = dateLbl.Visible = false;
+            _toGrt.Checked = true;
+            _toGrt.Enabled = false;
+        }
+        dest.Controls.AddRange(new Control[] { loadLbl, _loadPick, dateLbl, _date, _toGrt });
+
         _grid.Dock = DockStyle.Fill;
         _grid.AllowUserToAddRows = false;
         _grid.AllowUserToDeleteRows = false;
@@ -101,16 +139,18 @@ internal sealed class AthlonForm : Form
 
         _grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "inc", HeaderText = Lang.T("Use"), FillWeight = 6 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "file", HeaderText = Lang.T("File"), ReadOnly = true, FillWeight = 30 });
-        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = Lang.T("Charge") + " (" + GrtUnits.Current.ChargeUnitName + ")", FillWeight = 12,
+        _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "charge", HeaderText = ChargeHeader(), FillWeight = 12,
             ToolTipText = Lang.T("Editable — type the charge here when the session note and file name don't carry it.") });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "n", HeaderText = Lang.T("Shots"), ReadOnly = true, FillWeight = 8 });
         // Velocities and temperatures are stored in m/s and °C whatever the chronograph file said,
         // so the headers name the unit the cells are actually shown in — GRT's.
-        var u = GrtUnits.Current;
+        var u = ProgramUnits.Current;
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "avg", HeaderText = "AVG " + u.VelocityUnitName, ReadOnly = true, FillWeight = 12 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "sd", HeaderText = "SD", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "es", HeaderText = "ES", ReadOnly = true, FillWeight = 8 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "temp", HeaderText = Lang.T("Temp") + " " + u.TemperatureUnitName, FillWeight = 10 });
+
+        AppUnits.AttachFieldMenu(_grid, "charge", "athlon.charge", Measuring.UnitKind.Mass, RefreshChargeColumn);
 
         // The charge is guessed from the session note / file name and shows "?" when neither
         // carries it. Writing the corrected value back into the parsed string is what the
@@ -122,17 +162,18 @@ internal sealed class AthlonForm : Form
             if (row.Tag is not AthlonString s) return;
             // Typed in GRT's unit, kept in grains: the importer and everything downstream of it
             // price and plot a charge in grains whatever the box is headed with.
-            var cu = GrtUnits.Current;
+            var cu = ChargeUnits;
             double? g = Str.ParseNumber(Convert.ToString(row.Cells["charge"].Value, CultureInfo.InvariantCulture));
             s.ChargeGrains = g is > 0 ? cu.ChargeToGrains(g.Value) : null;
             row.Cells["charge"].Value = s.ChargeGrains is { } v ? ChargeCell(v) : "?";
+            RefreshChart();
         };
 
         var bottom = new Panel { Dock = DockStyle.Bottom, Height = 150 };
         _log.Dock = DockStyle.Fill;
 
         var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 44, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(6) };
-        _importBtn.Text = Lang.T("Import into GRT");
+        _importBtn.Text = _archive != null ? Lang.T("Import") : Lang.T("Import into GRT");
         _importBtn.AutoSize = true;
         _importBtn.Enabled = false;
         _importBtn.Click += async (_, _) => await DoImportAsync();
@@ -146,9 +187,13 @@ internal sealed class AthlonForm : Form
         bottom.Controls.Add(_log);
         bottom.Controls.Add(actions);
 
-        Controls.Add(_grid);
+        var middle = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Vertical }.WithDistance(640);
+        middle.Panel1.Controls.Add(_grid);
+        middle.Panel2.Controls.Add(_chart);
+        Controls.Add(middle);
         Controls.Add(bottom);
         Controls.Add(_status);
+        Controls.Add(dest);
         Controls.Add(top);
         if (_next != null) { Controls.Add(_next); _ = _next.TrackLoadAsync(_grt); }
     }
@@ -194,6 +239,7 @@ internal sealed class AthlonForm : Form
                 _strings.Add(parsed);
                 AddGridRow(parsed);
                 foreach (string w in parsed.Warnings) AppendLog($"{parsed.FileName}: {w}");
+                SuggestDate();
             }
             catch (Exception ex)
             {
@@ -211,8 +257,20 @@ internal sealed class AthlonForm : Form
     // 0.02 gr is a good scale's last digit and also 0.0013 g, which two places would round away.
     private static string ChargeCell(double grains)
     {
-        var u = GrtUnits.Current;
+        var u = ChargeUnits;
         return u.ChargeValue(grains).ToString(u.ChargeFormat, CultureInfo.InvariantCulture);
+    }
+
+    // The charge column has a unit of its own that a right click on its title changes (weights follow the single choice of the program until then).
+    private static ProgramUnitView ChargeUnits => ProgramUnits.Current.ForField("athlon.charge");
+    private static string ChargeHeader() => Lang.T("Charge") + " (" + ChargeUnits.ChargeUnitName + ")";
+
+    private void RefreshChargeColumn()
+    {
+        _grid.Columns["charge"]!.HeaderText = ChargeHeader();
+        foreach (DataGridViewRow row in _grid.Rows)
+            if (row.Tag is AthlonString s) row.Cells["charge"].Value = s.ChargeGrains is { } g ? ChargeCell(g) : "?";
+        RefreshChart();
     }
 
     private void AddGridRow(AthlonString s)
@@ -223,7 +281,7 @@ internal sealed class AthlonForm : Form
         row.Cells["inc"].Value = true;
         row.Cells["file"].Value = s.FileName;
         row.Cells["charge"].Value = s.ChargeGrains is { } g ? ChargeCell(g) : "?";
-        var u = GrtUnits.Current;
+        var u = ProgramUnits.Current;
         row.Cells["n"].Value = stats.N;
         row.Cells["avg"].Value = Str.Num(u.VelocityValue(stats.Mean), 1);
         row.Cells["sd"].Value = Str.Num(u.VelocityValue(stats.Sd), 1);
@@ -242,11 +300,145 @@ internal sealed class AthlonForm : Form
         UpdateStatus();
     }
 
+    // ---- the archive ------------------------------------------------------------------------------------------------
+
+    private long ArchiveShooter() => Archive.ArchiveImports.ShooterFor(_archive!, _db?.CurrentShooterId);
+
+    private void FillLoadChoices(long? select = null)
+    {
+        if (_archive == null) return;
+        _loadPick.BeginUpdate();
+        _loadPick.Items.Clear();
+        // never a load picked by default: a session filed on the wrong load is worse than one that asks
+        if (_grt != null) _loadPick.Items.Add(new LoadChoice(null, Lang.T("(the load open in GRT)"), FromGrt: true));
+        else _loadPick.Items.Add(new LoadChoice(null, Lang.T("(choose the load…)")));
+        foreach (var (id, label) in Archive.ArchiveImports.LoadsOf(_archive, ArchiveShooter()))
+            _loadPick.Items.Add(new LoadChoice(id, label));
+        _loadPick.Items.Add(new LoadChoice(null, Lang.T("From a GRT file (.grtload)…"), FromFile: true));
+        _loadPick.Items.Add(new LoadChoice(null, Lang.T("New load…"), New: true));
+        _loadPick.EndUpdate();
+        int idx = select is { } s ? _loadPick.Items.Cast<LoadChoice>().ToList().FindIndex(c => c.Id == s) : -1;
+        _loadPick.SelectedIndex = idx >= 0 ? idx : 0;
+    }
+
+    private bool _choosing;
+
+    /// <summary>"New load…" asks for a name and a caliber, files the load in the archive and selects it.</summary>
+    private void PickedLoad()
+    {
+        if (_choosing || _archive == null || _loadPick.SelectedItem is not LoadChoice c || !(c.New || c.FromFile)) return;
+        _choosing = true;
+        try
+        {
+            if (c.FromFile)
+            {
+                var log = new List<string>();
+                long? fromFile = ArchiveLoadPicker.PickGrtFile(this, _archive, ArchiveShooter(), log);
+                if (fromFile == null) { _loadPick.SelectedIndex = 0; return; }
+                FillLoadChoices(fromFile);
+                foreach (var l in log) AppendLog(l);
+                return;
+            }
+            var (name, caliber) = AskNewLoad();
+            if (name.Length == 0) { _loadPick.SelectedIndex = 0; return; }
+            long id = Archive.ArchiveImports.NewLoad(_archive, ArchiveShooter(), name, caliber);
+            FillLoadChoices(id);
+            AppendLog(string.Format(Lang.T("new load in the archive: {0}"), name));
+        }
+        finally { _choosing = false; }
+    }
+
+    private (string Name, string Caliber) AskNewLoad()
+    {
+        using var f = new Form
+        {
+            Text = Lang.T("New load"), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent,
+            MinimizeBox = false, MaximizeBox = false, ClientSize = new Size(420, 130),
+        };
+        var name = new TextBox { Left = 100, Top = 14, Width = 300 };
+        var cal = new TextBox { Left = 100, Top = 46, Width = 300 };
+        var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 244, Top = 88, Width = 75 };
+        var cancel = new Button { Text = Lang.T("Cancel"), DialogResult = DialogResult.Cancel, Left = 325, Top = 88, Width = 75 };
+        f.Controls.AddRange(new Control[]
+        {
+            new Label { Text = Lang.T("Name"), Left = 12, Top = 17, AutoSize = true }, name,
+            new Label { Text = Lang.T("Caliber"), Left = 12, Top = 49, AutoSize = true }, cal, ok, cancel,
+        });
+        f.AcceptButton = ok; f.CancelButton = cancel;
+        GrtTheme.Apply(f);
+        return f.ShowDialog(this) == DialogResult.OK ? (name.Text.Trim(), cal.Text.Trim()) : ("", "");
+    }
+
+    /// <summary>The exports carry clock times only: the session date starts at the oldest file's date, until the shooter changes it.</summary>
+    private void SuggestDate()
+    {
+        if (_dateTouched || _strings.Count == 0) return;
+        _date.Value = Archive.ArchiveImports.LikelyDate(_strings.Select(s => s.SourceFile));
+        _dateTouched = false;
+    }
+
+    /// <summary>
+    /// Writes the ticked strings into the archive as one session. Returns false when the shooter stops at the "already in
+    /// the archive" question; true otherwise, also when there is no archive (then the strings go to GRT only).
+    /// </summary>
+    private bool SaveToArchive(List<ImportBuilder.Row> rows, string? grtPath)
+    {
+        if (_archive == null) { AppendLog(Lang.T("archive not available: the strings go to GRT only")); return true; }
+        long shooter = ArchiveShooter();
+        var log = new List<string>();
+        long? loadId = null;
+        if (_loadPick.SelectedItem is LoadChoice c)
+        {
+            if (c.FromGrt)
+            {
+                if (grtPath != null) loadId = Archive.ArchiveImports.LoadForGrtFile(_archive, grtPath, shooter, log);
+                else AppendLog(Lang.T("no load open in GRT: the session is saved without a load"));
+            }
+            else loadId = c.Id;
+        }
+
+        string firearm = "";
+        var strings = new List<Archive.ChronoString>();
+        foreach (var r in rows.Where(r => r.Include))
+        {
+            var s = r.String_;
+            var stats = StringStats.From(s.Velocities.ToList());
+            strings.Add(new Archive.ChronoString(
+                s.ChargeGrains is { } g ? Archive.ArchiveImports.Grains(g) : Path.GetFileNameWithoutExtension(s.SourceFile),
+                s.ChargeGrains, r.TempC, ImportBuilder.BuildChargeNote(s, stats, r.TempC),
+                s.Shots.Select(m => new Archive.ChronoShot(m.VelocityMps, m.Time, m.Note)).ToList(),
+                s.SourceFile, File.ReadAllBytes(s.SourceFile)));
+        }
+
+        var already = Archive.ArchiveImports.AlreadyImported(_archive, strings);
+        if (already.Count > 0 && MessageBox.Show(this,
+                string.Format(Lang.T("These files are already in the archive:\n{0}\n\nImport them again as a new session?"), string.Join("\n", already)),
+                Lang.T("Import"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        {
+            AppendLog(Lang.T("import cancelled"));
+            return false;
+        }
+
+        var res = Archive.ArchiveImports.AddChronoSession(_archive, shooter, loadId, _date.Value.Date, firearm, strings, "Athlon / Garmin");
+        foreach (string l in log) AppendLog(l);
+        AppendLog(string.Format(Lang.T("archive: session saved ({0} string(s), {1} shot(s))"), res.Strings, res.Shots));
+        FillLoadChoices(loadId);
+        return true;
+    }
+
     private async Task DoImportAsync()
     {
         try
         {
             _importBtn.Enabled = false;
+            bool toGrt = _archive == null || _toGrt.Checked;
+            bool loadFromGrt = _loadPick.SelectedItem is LoadChoice { FromGrt: true };
+            if (_archive != null && _loadPick.SelectedItem is LoadChoice { Id: null, FromGrt: false, New: false })
+            {
+                MessageBox.Show(this, Lang.T("Choose the load in the archive these strings belong to (or \"New load…\")."), Lang.T("Import"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
             var rows = new List<ImportBuilder.Row>();
             foreach (DataGridViewRow gr in _grid.Rows)
@@ -255,13 +447,13 @@ internal sealed class AthlonForm : Form
                 bool inc = gr.Cells["inc"].Value is true;
                 // The cell is in GRT's unit (the header says so); everything downstream is °C.
                 double? shown = Str.ParseNumber(Convert.ToString(gr.Cells["temp"].Value, CultureInfo.InvariantCulture));
-                double? temp = shown is { } sv ? GrtUnits.Current.TemperatureToCelsius(sv) : null;
+                double? temp = shown is { } sv ? ProgramUnits.Current.TemperatureToCelsius(sv) : null;
                 rows.Add(new ImportBuilder.Row(s, temp, inc));
             }
             if (rows.All(r => !r.Include)) { MessageBox.Show(this, Lang.T("Nothing selected."), Lang.T("Import")); return; }
 
             string? basePath = null;
-            if (_grt is { Connected: true })
+            if (_grt is { Connected: true } && (toGrt || loadFromGrt))
             {
                 try
                 {
@@ -286,6 +478,15 @@ internal sealed class AthlonForm : Form
             if (basePath != null && !ImportTarget.Confirm(this, basePath, _db))
             {
                 AppendLog(Lang.T("import cancelled"));
+                return;
+            }
+
+            // the archive first: it is the shooter's own copy, whatever happens with GRT next
+            if (!SaveToArchive(rows, basePath)) return;
+            if (!toGrt)
+            {
+                _next?.MarkDone();
+                _status.Text = Lang.T("Saved in the archive (not sent to GRT).");
                 return;
             }
 
@@ -355,8 +556,19 @@ internal sealed class AthlonForm : Form
         }
     }
 
+    private readonly StringsChart _chart = new() { Dock = DockStyle.Fill };
+
+    private void RefreshChart()
+    {
+        var u = ProgramUnits.Current;
+        _chart.SetData(_strings.Where(x => x.Velocities.Any()).Select(x => new StringPoint(
+            x.ChargeGrains is { } g ? ChargeUnits.Charge(g) + " (" + x.FileName + ")" : x.FileName,
+            x.Velocities.Select(v => u.VelocityValue(v)).ToList())).ToList(), u.VelocityUnitName);
+    }
+
     private void UpdateStatus()
     {
+        RefreshChart();
         _importBtn.Enabled = _strings.Count > 0;
         string conn = _grt == null ? Lang.T("stand-alone (no GRT)")
             : _grt.Connected ? string.Format(Lang.T("connected to GRT :{0}"), _grt.Port)

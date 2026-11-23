@@ -40,7 +40,8 @@ internal sealed class AdvancedDiagnosticsForm : Form
     private readonly GrtClient? _grt;
     private readonly Db _db;
     private readonly List<StringRow> _rows = new();
-    private readonly GrtUnits _u = GrtUnits.Current;
+    private readonly Measuring.ProgramUnitView _u = Measuring.ProgramUnits.Current;
+    private readonly ComboBox _tensionTyped = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 60, Items = { "mm", "in" } };
     private readonly Label _loadStatus = new() { AutoSize = true, ForeColor = SystemColors.GrayText };
 
     // Session Trend
@@ -132,7 +133,7 @@ internal sealed class AdvancedDiagnosticsForm : Form
                     var vs = ch.Shots.Select(s => s.VelocityMps).Where(v => v > 50).ToList();
                     if (vs.Count == 0) continue;
                     string label = ch.ChargeGrains is { } g
-                        ? FormattableString.Invariant($"{g:0.0##} gr ({meas.Title})")
+                        ? $"{_u.Charge(g)} ({meas.Title})"
                         : $"{ch.Name} ({meas.Title})";
                     _rows.Add(new StringRow { Label = RowLabels.Unique(_rows.Select(r => r.Label), label), Name = ch.Name, ChargeGrains = ch.ChargeGrains, Velocities = vs });
                 }
@@ -414,12 +415,16 @@ internal sealed class AdvancedDiagnosticsForm : Form
         var runBtn = new Button { Text = Lang.T("Analyze"), AutoSize = true };
         runBtn.Click += (_, _) => RunNeckTension();
         bar.Controls.Add(runBtn);
+        bar.Controls.Add(new Label { Text = Lang.T("tension typed in"), AutoSize = true, Margin = new Padding(10, 8, 0, 0) });
+        _tensionTyped.SelectedIndex = Measuring.ProgramUnits.Current.TensionTypedCode == "in" ? 1 : 0;
+        _tensionTyped.SelectedIndexChanged += (_, _) => { AppUnits.Prefs.SetField(Measuring.ProgramUnitView.TensionTypedField, Measuring.UnitKind.Length, _tensionTyped.SelectedIndex == 1 ? "in" : "mm"); RunNeckTension(); };
+        bar.Controls.Add(_tensionTyped);
         bar.Controls.Add(new Label { Text = "  " + Lang.T("Name each string with its tested tension, e.g. \"0.05\"."), AutoSize = true, Margin = new Padding(6, 8, 0, 0), ForeColor = SystemColors.GrayText });
 
         _neckGrid.Dock = DockStyle.Fill;
         _neckGrid.ReadOnly = true; _neckGrid.AllowUserToAddRows = false; _neckGrid.RowHeadersVisible = false;
         _neckGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        foreach (var (n, h) in new[] { ("str", Lang.T("String")), ("ten", Lang.T("Tension (mm)")), ("sd", "SD " + _u.VelocityUnitName), ("es", "ES " + _u.VelocityUnitName) })
+        foreach (var (n, h) in new[] { ("str", Lang.T("String")), ("ten", Lang.T("Tension") + " (" + _u.TensionShownName + ")"), ("sd", "SD " + _u.VelocityUnitName), ("es", "ES " + _u.VelocityUnitName) })
             _neckGrid.Columns.Add(n, h);
 
         page.Controls.Add(_neckGrid); page.Controls.Add(_neckVerdict); page.Controls.Add(bar);
@@ -438,16 +443,17 @@ internal sealed class AdvancedDiagnosticsForm : Form
             if (!m.Success || !double.TryParse(m.Groups[1].Value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double tension))
                 continue;
             var stats = ChronoStatsCalc.Analyze(row.Velocities);
-            points.Add(new AdvancedDiagnostics.NeckTensionPoint(tension, EsMps: stats.Es, SdMps: stats.SampleSd));
-            _neckGrid.Rows.Add(row.Label, tension.ToString("0.000", CultureInfo.InvariantCulture), _u.VelocitySd(stats.SampleSd), _u.VelocitySd(stats.Es));
+            double tensionMm = _u.TensionToMm(tension);       // the engine works in mm whatever the name was typed in
+            points.Add(new AdvancedDiagnostics.NeckTensionPoint(tensionMm, EsMps: stats.Es, SdMps: stats.SampleSd));
+            _neckGrid.Rows.Add(row.Label, _u.TensionShown(tensionMm), _u.VelocitySd(stats.SampleSd), _u.VelocitySd(stats.Es));
         }
 
         try
         {
             _lastNeck = AdvancedDiagnostics.NeckTensionCorrelation(points);
             var sb = new StringBuilder();
-            if (_lastNeck.CorrelationEs is { } cEs) sb.AppendLine(string.Format(Lang.T("Correlation tension<->ES: {0}, optimal tension: {1} mm"), cEs.ToString("0.00", CultureInfo.InvariantCulture), _lastNeck.OptimalTensionEs?.ToString("0.000", CultureInfo.InvariantCulture)));
-            if (_lastNeck.CorrelationSd is { } cSd) sb.AppendLine(string.Format(Lang.T("Correlation tension<->SD: {0}, optimal tension: {1} mm"), cSd.ToString("0.00", CultureInfo.InvariantCulture), _lastNeck.OptimalTensionSd?.ToString("0.000", CultureInfo.InvariantCulture)));
+            if (_lastNeck.CorrelationEs is { } cEs) sb.AppendLine(string.Format(Lang.T("Correlation tension<->ES: {0}, optimal tension: {1}"), cEs.ToString("0.00", CultureInfo.InvariantCulture), _lastNeck.OptimalTensionEs is { } oe ? _u.TensionShown(oe) + " " + _u.TensionShownName : "–"));
+            if (_lastNeck.CorrelationSd is { } cSd) sb.AppendLine(string.Format(Lang.T("Correlation tension<->SD: {0}, optimal tension: {1}"), cSd.ToString("0.00", CultureInfo.InvariantCulture), _lastNeck.OptimalTensionSd is { } os ? _u.TensionShown(os) + " " + _u.TensionShownName : "–"));
             _neckVerdict.Text = sb.Length > 0 ? sb.ToString() : Lang.T("No ES/SD data on the parsed strings.");
         }
         catch (AdvancedDiagnostics.AdvancedDiagnosticsError ex) { _neckVerdict.Text = ex.Message; _lastNeck = null; }
@@ -491,8 +497,8 @@ internal sealed class AdvancedDiagnosticsForm : Form
             {
                 sections++;
                 report.AppendLine().AppendLine($"[{Lang.T("Neck Tension")}]");
-                if (nt.CorrelationEs is { } ce) report.AppendLine(FormattableString.Invariant($"corr(tension,ES)={ce:0.00}, optimal={nt.OptimalTensionEs:0.000}mm"));
-                if (nt.CorrelationSd is { } cs) report.AppendLine(FormattableString.Invariant($"corr(tension,SD)={cs:0.00}, optimal={nt.OptimalTensionSd:0.000}mm"));
+                if (nt.CorrelationEs is { } ce) report.AppendLine(FormattableString.Invariant($"corr(tension,ES)={ce:0.00}, optimal={_u.TensionShown(nt.OptimalTensionEs ?? 0)}{_u.TensionShownName}"));
+                if (nt.CorrelationSd is { } cs) report.AppendLine(FormattableString.Invariant($"corr(tension,SD)={cs:0.00}, optimal={_u.TensionShown(nt.OptimalTensionSd ?? 0)}{_u.TensionShownName}"));
             }
             if (_lastPressure is { } pt)
             {
@@ -507,7 +513,7 @@ internal sealed class AdvancedDiagnosticsForm : Form
                 var flagged = _lastSessionTrends.Where(t => t.SdSeverity != "ok" || t.EsSeverity != "ok").ToList();
                 if (flagged.Count == 0) report.AppendLine(Lang.T("No concerning trend across any charge."));
                 foreach (var t in flagged)
-                    report.AppendLine(FormattableString.Invariant($"{t.Caliber} {t.ChargeGr:0.0}gr: SD {t.SdSeverity}, ES {t.EsSeverity}"));
+                    report.AppendLine($"{t.Caliber} {_u.Charge(t.ChargeGr)}: SD {t.SdSeverity}, ES {t.EsSeverity}");
             }
 
             if (sections == 0)

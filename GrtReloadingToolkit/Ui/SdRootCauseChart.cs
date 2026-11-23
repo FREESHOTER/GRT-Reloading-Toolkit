@@ -19,7 +19,7 @@ internal sealed class SdRootCauseChart : Panel
     public SdRootCauseChart()
     {
         DoubleBuffered = true;
-        BackColor = Color.FromArgb(18, 24, 36);
+        BackColor = ChartPalette.Dark.Back;
     }
 
     public void SetData(IReadOnlyList<SdRootCause.LeaveOneOutRow> rows) { _rows = rows; Invalidate(); }
@@ -27,26 +27,27 @@ internal sealed class SdRootCauseChart : Panel
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        Render(e.Graphics, Width, Height);
+        Render(e.Graphics, Width, Height, ChartPalette.Dark);
     }
 
     /// <summary>Renders the current ranking to a stand-alone PNG (for the GRT report gallery), same
     /// pattern as <see cref="Ocw.LadderChart.RenderPng()"/>.</summary>
-    public byte[]? RenderPng(int width = 900, int height = 420)
+    /// <param name="print">white ground for paper (<see cref="ChartPalette.Print"/>).</param>
+    public byte[]? RenderPng(int width = 900, int height = 420, bool print = false)
     {
         if (_rows is null || _rows.Count == 0) return null;
         using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(bmp)) Render(g, width, height);
+        using (var g = Graphics.FromImage(bmp)) Render(g, width, height, ChartPalette.For(print));
         using var ms = new MemoryStream();
         bmp.Save(ms, ImageFormat.Png);
         return ms.ToArray();
     }
 
-    private void Render(Graphics g, int width, int height)
+    private void Render(Graphics g, int width, int height, ChartPalette c)
     {
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        g.Clear(BackColor);
-        using var tb = new SolidBrush(Color.FromArgb(210, 220, 230));
+        g.Clear(c.Back);
+        using var tb = new SolidBrush(c.Text);
         using var fnt = new Font("Segoe UI", 8f);
 
         if (_rows is null || _rows.Count == 0)
@@ -65,7 +66,7 @@ internal sealed class SdRootCauseChart : Panel
         float zeroY = mt + ph / 2f;
         float scale = (ph / 2f) / (float)maxAbs;
 
-        using var axisPen = new Pen(Color.FromArgb(120, 148, 163, 184));
+        using var axisPen = new Pen(c.Axis);
         g.DrawRectangle(axisPen, ml, mt, pw, ph);
         g.DrawLine(axisPen, ml, zeroY, ml + pw, zeroY);
 
@@ -74,10 +75,10 @@ internal sealed class SdRootCauseChart : Panel
         g.DrawString(string.Format(ci, "-{0:0.0}", maxAbs), fnt, tb, 4, mt + ph - 12);
 
         float barW = pw / byShot.Count;
-        using var normalBrush = new SolidBrush(Color.FromArgb(56, 189, 248));
+        using var normalBrush = new SolidBrush(c.Primary);
         // Chauvenet-flagged shots reuse the amber already used for every trend line in this plugin,
         // rather than adding a third colour to the palette.
-        using var flaggedBrush = new SolidBrush(Color.FromArgb(251, 191, 36));
+        using var flaggedBrush = new SolidBrush(c.Accent);
         for (int i = 0; i < byShot.Count; i++)
         {
             var r = byShot[i];

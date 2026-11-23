@@ -443,6 +443,72 @@ public sealed class GroupAnalysisTests
     {
         var combined = CombineGroups(Array.Empty<TargetGroup>());
         Assert.Empty(combined.Impacts);
+        Assert.Equal(1, combined.PooledGroups);
+    }
+
+    [Fact]
+    public void CombinedGroupsSpendOneDegreeOfFreedomPerGroupCentre()
+    {
+        // Two 4-shot groups with the unit jitter: about their own centres each axis holds squares summing to 2 per
+        // group, 4 in all. Pooled, 8 shots less 2 centres leave 6 degrees of freedom, so the variance per axis is 4/6,
+        // not 4/7 as an n - 1 divisor would give.
+        var a = Group(100, (6, 5), (4, 5), (5, 6), (5, 4));
+        var b = Group(100, (-2, 2), (-4, 2), (-3, 3), (-3, 1));
+        var combined = CombineGroups(new[] { a, b });
+
+        Assert.Equal(2, combined.PooledGroups);
+        Assert.Equal(6, combined.DegreesOfFreedom);
+        Assert.Equal(Math.Sqrt(4.0 / 6.0), SigmaMoa(combined), 9);
+        // A single group is unchanged: 4 shots, 3 degrees of freedom.
+        Assert.Equal(1, a.PooledGroups);
+        Assert.Equal(Math.Sqrt(2.0 / 3.0), SigmaMoa(a), 9);
+    }
+
+    [Fact]
+    public void PoolingAPooledGroupAgainKeepsCountingEveryCentre()
+    {
+        var a = Group(100, (0, 0), (1, 0), (0, 1));
+        var b = Group(100, (5, 5), (6, 5), (5, 6));
+        var c = Group(100, (-5, 0), (-4, 0), (-5, 1));
+        var ab = CombineGroups(new[] { a, b });
+        var abc = CombineGroups(new[] { ab, c });
+        Assert.Equal(3, abc.PooledGroups);
+        Assert.Equal(6, abc.DegreesOfFreedom);
+    }
+
+    [Fact]
+    public void TheCorrectedMeanRadiusScalesByTheShotsPerCentre()
+    {
+        var g = Group(100, (1, 0), (-1, 0), (0, 1), (0, -1), (0, 0));
+        Assert.Equal(g.MeanRadiusMoa * Math.Sqrt(5.0 / 4.0), g.MeanRadiusCorrectedMoa!.Value, 12);
+        Assert.Null(Group(100, (1, 1)).MeanRadiusCorrectedMoa);
+    }
+
+    [Fact]
+    public void PooledSmallGroupsGiveTheTrueSpreadOnAverage()
+    {
+        // Ten 3-shot groups from a round normal spread of sigma = 1 MOA, repeated 4000 times with a fixed seed.
+        // With n - groups degrees of freedom the variance is unbiased (mean of sigma^2 = 1), and the corrected
+        // mean radius averages the Rayleigh mean sigma*sqrt(pi/2) = 1.2533; the old n - 1 divisor read the
+        // variance at 20/29 = 0.69 and the raw mean radius sits about 18 % low.
+        var rng = new Random(20261116);
+        double Normal() => Math.Sqrt(-2 * Math.Log(1 - rng.NextDouble())) * Math.Cos(2 * Math.PI * rng.NextDouble());
+        double sumVar = 0, sumMrc = 0, sumMr = 0;
+        const int runs = 4000;
+        for (int r = 0; r < runs; r++)
+        {
+            var groups = new List<TargetGroup>();
+            for (int k = 0; k < 10; k++)
+                groups.Add(Group(100, (Normal() + 3 * k, Normal()), (Normal() + 3 * k, Normal()), (Normal() + 3 * k, Normal())));
+            var pooled = CombineGroups(groups);
+            double s = SigmaMoa(pooled);
+            sumVar += s * s;
+            sumMrc += pooled.MeanRadiusCorrectedMoa!.Value;
+            sumMr += pooled.MeanRadiusMoa;
+        }
+        Assert.InRange(sumVar / runs, 0.98, 1.02);
+        Assert.InRange(sumMrc / runs, 1.2533 * 0.98, 1.2533 * 1.02);
+        Assert.InRange(sumMr / runs, 1.2533 * Math.Sqrt(2.0 / 3.0) * 0.98, 1.2533 * Math.Sqrt(2.0 / 3.0) * 1.02);
     }
 
     // ── Orchestrator ─────────────────────────────────────────────────────
