@@ -152,6 +152,8 @@
     <!-- The dbtest CLI self-test: no WinForms, just Console + Db. Linked so its path-safety
          invariant (never defaults to the real database) is covered by a test, not just eyeballed. -->
     <Compile Include="..\GrtReloadingToolkit\DbSelfTest.cs" Link="DbSelfTest.cs" />
+    <!-- The launch arguments decide whether the plugin connects to GRT, and how (port or socket file). -->
+    <Compile Include="..\GrtReloadingToolkit\LaunchArgs.cs" Link="LaunchArgs.cs" />
   </ItemGroup>
 
 </Project>
